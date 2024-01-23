@@ -1,0 +1,50 @@
+[project]
+name = "openvino_extension"
+version = "0.0.0.0"
+description = "Extension description"
+requires-python = ">=3.8"
+readme = {file = "README.md", content-type="text/markdown"}
+license = {text = "OSI Approved :: Apache Software License"}
+
+authors = [
+    { name = "Autor name", email = "autor@mail" },
+]
+
+classifiers = [
+]
+
+dependencies = [
+    'openvino'
+]
+
+[project.optional-dependencies]
+
+dev = [
+]
+
+test = [
+]
+
+all = [
+    "openvino_tokenizers[dev, test]"
+]
+
+[project.scripts]
+
+[tool.scikit-build]
+sdist.cmake = true
+sdist.exclude = ["dist"]
+
+wheel.packages = ["python/openvino_extension"]
+wheel.install-dir = "openvino_extension"
+wheel.py-api = "py3"
+wheel.license-files = ["LICENSE", "third-party-programs.txt", "SECURITY.md"]
+
+cmake.minimum-version = "3.15"
+cmake.build-type = "Release"
+cmake.args = []
+cmake.targets = ["openvino_extension"]
+
+[build-system]
+requires = ["scikit-build-core"]
+build-backend = "scikit_build_core.build"
