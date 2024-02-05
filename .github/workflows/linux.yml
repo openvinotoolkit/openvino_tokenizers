@@ -154,24 +154,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'openvinotoolkit/openvino'
+          path: ${{ env.OPENVINO_REPO }}
+          ref: 'master'
           sparse-checkout: |
-            .github/actions/setup_python
             install_build_dependencies.sh
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: ./.github/actions/setup_python
+        uses: actions/setup-python@v5
         with:
-          version: ${{ env.PYTHON_VERSION }}
-          pip-cache-path: ${{ env.PIP_CACHE_PATH }}
-          should-setup-pip-paths: 'true'
-          self-hosted-runner: 'true'
-          show-cache-info: 'false'
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
       - name: Clone Openvino tokenizers
         uses: actions/checkout@v4
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-          submodules: 'true'
 
       - name: Download OpenVINO package
         uses: actions/download-artifact@v3
@@ -190,7 +187,7 @@ jobs:
       #
 
       - name: Install build dependencies
-        run: sudo ./install_build_dependencies.sh
+        run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
 
       - name: Install python dependencies
         run: |
@@ -204,7 +201,7 @@ jobs:
       - name: Build tokenizers wheel
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          python -m build --wheel --outdir ${EXTENSION_BUILD_DIR} ${OPENVINO_TOKENIZERS_REPO}
+          python -m build --wheel --outdir ${BUILD_DIR} ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
@@ -219,5 +216,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: openvino_tokenizers_wheel
-          path: ${{ env.EXTENSION_BUILD_DIR }}/*.whl
+          path: ${{ env.BUILD_DIR }}/*.whl
           if-no-files-found: 'error'
