@@ -37,6 +37,6 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 11)
 endif()
 
-add_subdirectory(cpp/openvino_tokenizers)
+add_subdirectory(src)
 
 
