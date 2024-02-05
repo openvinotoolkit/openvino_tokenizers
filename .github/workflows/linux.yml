@@ -53,7 +53,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          bash sudo -E ${OPENVINO_REPO}/install_build_dependencies.sh
+          sudo -E ${OPENVINO_REPO}/install_build_dependencies.sh
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
@@ -160,7 +160,7 @@ jobs:
       - name: Extract OpenVINO packages
         run: |
           pushd ${INSTALL_DIR}
-          tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
           popd
 
       #
@@ -168,7 +168,7 @@ jobs:
       #
 
       - name: Install build dependencies
-        run: ./install_build_dependencies.sh
+        run: sudo ./install_build_dependencies.sh
 
       - name: Install python dependencies
         run: |
