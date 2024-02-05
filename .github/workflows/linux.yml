@@ -16,226 +16,205 @@ env:
   PYTHON_VERSION: '3.11'
 
 jobs:
-	openvino_build:
-		timeout-minutes: 150
-		defaults:
-			run:
-				shell: bash
-		runs-on: aks-linux-16-cores-32gb
-		container:
-			image: openvinogithubactions.azurecr.io/dockerhub/ubuntu:20.04
-			volumes:
-				- /mount:/mount
-			options: -e SCCACHE_AZURE_BLOB_CONTAINER -e SCCACHE_AZURE_CONNECTION_STRING
-		env:
-			DEBIAN_FRONTEND: noninteractive # to prevent apt-get from waiting user input
-			CMAKE_BUILD_TYPE: 'Release'
-			CMAKE_GENERATOR: 'Ninja Multi-Config'
-			CMAKE_CXX_COMPILER_LAUNCHER: sccache
-			CMAKE_C_COMPILER_LAUNCHER: sccache
-			SCCACHE_IGNORE_SERVER_IO_ERROR: 1
-			SCCACHE_SERVER_PORT: 35555
-			SCCACHE_ERROR_LOG: /__w/openvino/sccache_log.txt
-			SCCACHE_LOG: warn
-			SCCACHE_AZURE_KEY_PREFIX: ubuntu20_x86_64_Release
-			GITHUB_WORKSPACE: '/__w/openvino/openvino'
-			OPENVINO_REPO: /__w/openvino/openvino/openvino
-			INSTALL_DIR: /__w/openvino/openvino/openvino_install
-			BUILD_DIR: /__w/openvino/openvino/openvino_build
+  openvino_build:
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-20.04-16-cores
+    env:
+      DEBIAN_FRONTEND: noninteractive # to prevent apt-get from waiting user input
+      CMAKE_BUILD_TYPE: 'Release'
+      CMAKE_GENERATOR: 'Ninja Multi-Config'
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      OPENVINO_REPO: ${{ github.workspace }}/openvino
+      INSTALL_DIR: ${{ github.workspace }}/openvino/install
+      BUILD_DIR: ${{ github.workspace }}/openvino/build
 
-		steps:
-			- name: Set apt retries
-				run: echo 'Acquire::Retries "10";' > /etc/apt/apt.conf.d/80-retries
+    steps:
+      - name: Set apt retries
+        run: echo 'Acquire::Retries "10";' | sudo tee -a /etc/apt/apt.conf.d/80-retries > /dev/null
 
-			- name: Install git
-				run: |
-					apt-get update
-					apt-get install --assume-yes --no-install-recommends git ca-certificates
+      - name: Install git
+        run: |
+          sudo apt-get update
+          sudo apt-get install --assume-yes --no-install-recommends git ca-certificates
 
-			- name: Clone OpenVINO
-				uses: actions/checkout@v4
-				with:
-					repository: 'openvinotoolkit/openvino'
-					path: ${{ env.OPENVINO_REPO }}
-					submodules: 'true'
-					ref: master
+      - name: Clone OpenVINO
+        uses: actions/checkout@v4
+        with:
+          repository: 'openvinotoolkit/openvino'
+          path: ${{ env.OPENVINO_REPO }}
+          submodules: 'true'
+          ref: 'master'
 
-			#
-			# Dependencies
-			#
+      #
+      # Dependencies
+      #
 
-			- name: Install build dependencies
-				run: |
-					bash ${OPENVINO_REPO}/install_build_dependencies.sh
+      - name: Install build dependencies
+        run: |
+          sudo -E ${OPENVINO_REPO}/install_build_dependencies.sh
 
-			- name: Install sccache
-				uses: mozilla-actions/sccache-action@v0.0.4
-				with:
-					version: "v0.7.5"
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
-			- name: Setup Python ${{ env.PYTHON_VERSION }}
-				uses: ./openvino/.github/actions/setup_python
-				with:
-					version: ${{ env.PYTHON_VERSION }}
-					pip-cache-path: ${{ env.PIP_CACHE_PATH }}
-					should-setup-pip-paths: 'true'
-					self-hosted-runner: 'true'
-					show-cache-info: 'true'
+      - name: Install python dependencies
+        run: |
+          # For Python API: build and wheel packaging
+          python3 -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
 
-			- name: Install python dependencies
-				run: |
-					# For Python API: build and wheel packaging
-					python3 -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
+      #
+      # Build
+      #
 
-			#
-			# Build
-			#
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          max-size: "2000M"
+          # Should save cache only if run in the master branch of the base repo
+          # github.ref_name is 'ref/PR_#' in case of the PR, and 'branch_name' when executed on push
+          save: ${{ github.ref_name == 'master' && 'true' || 'false'  }}
+          verbose: 2
+          key: linux-ubuntu
+          restore-keys: |
+            linux-ubuntu
 
-			- name: CMake configure - OpenVINO
-				run: |
-					cmake \
-						-G "${{ env.CMAKE_GENERATOR }}" \
-						-DENABLE_CPPLINT=OFF \
-						-DENABLE_NCC_STYLE=OFF \
-						-DENABLE_TESTS=ON \
-						-DENABLE_STRICT_DEPENDENCIES=OFF \
-						-DENABLE_SYSTEM_TBB=ON \
-						-DENABLE_SYSTEM_OPENCL=ON \
-						-DCMAKE_VERBOSE_MAKEFILE=ON \
-						-DCPACK_GENERATOR=TGZ \
-						-DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-						-DCMAKE_CXX_COMPILER_LAUNCHER=${{ env.CMAKE_CXX_COMPILER_LAUNCHER }} \
-						-DCMAKE_C_COMPILER_LAUNCHER=${{ env.CMAKE_C_COMPILER_LAUNCHER }} \
-						-S ${OPENVINO_REPO} \
-						-B ${BUILD_DIR}
+      - name: CMake configure - OpenVINO
+        run: |
+          cmake \
+            -G "${{ env.CMAKE_GENERATOR }}" \
+            -DENABLE_CPPLINT=OFF \
+            -DENABLE_NCC_STYLE=OFF \
+            -DENABLE_TESTS=ON \
+            -DENABLE_STRICT_DEPENDENCIES=OFF \
+            -DENABLE_SYSTEM_TBB=ON \
+            -DENABLE_SYSTEM_OPENCL=ON \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DCPACK_GENERATOR=TGZ \
+            -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -S ${OPENVINO_REPO} \
+            -B ${BUILD_DIR}
 
-			- name: Clean sccache stats
-				run: ${SCCACHE_PATH} --zero-stats
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
 
-			- name: Cmake build - OpenVINO
-				run: cmake --build ${BUILD_DIR} --parallel --config ${{ env.CMAKE_BUILD_TYPE }}
+      - name: Cmake build - OpenVINO
+        run: cmake --build ${BUILD_DIR} --parallel --config ${{ env.CMAKE_BUILD_TYPE }}
 
-			- name: Show sccache stats
-				run: ${SCCACHE_PATH} --show-stats
+      - name: Show ccache stats
+        run: ccache --show-stats
 
-			- name: Cmake install - OpenVINO
-				run: |
-					cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -P ${BUILD_DIR}/cmake_install.cmake
-					cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCOMPONENT=python_wheels -P ${BUILD_DIR}/cmake_install.cmake
+      - name: Cmake install - OpenVINO
+        run: |
+          cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -P ${BUILD_DIR}/cmake_install.cmake
+          cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCOMPONENT=python_wheels -P ${BUILD_DIR}/cmake_install.cmake
 
-			- name: Pack Artifacts
-				run: |
-					pushd ${INSTALL_DIR}
-						tar -czvf ${BUILD_DIR}/openvino_package.tar.gz *
-					popd
+      - name: Pack Artifacts
+        run: |
+          pushd ${INSTALL_DIR}
+            tar -czvf ${BUILD_DIR}/openvino_package.tar.gz *
+          popd
 
-			#
-			# Upload build artifacts and logs
-			#
-			- name: Upload build logs
-				uses: actions/upload-artifact@v3
-				if: always()
-				with:
-					name: build_logs
-					path: ${{ env.SCCACHE_ERROR_LOG }}
-					if-no-files-found: 'ignore'
+      #
+      # Upload build artifacts and logs
+      #
 
-			- name: Upload openvino package
-				if: ${{ always() }}
-				uses: actions/upload-artifact@v3
-				with:
-					name: openvino_package
-					path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
-					if-no-files-found: 'error'
+      - name: Upload openvino package
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: openvino_package
+          path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
+          if-no-files-found: 'error'
 
-  Openvino_tokenizers:
+  openvino_tokenizers:
     name: OpenVINO tokenizers extension
-    needs: [ Build ]
+    needs: [ openvino_build ]
     timeout-minutes: 25
     defaults:
       run:
         shell: bash
-    runs-on: aks-linux-4-cores-16gb
-    container:
-      image: openvinogithubactions.azurecr.io/dockerhub/ubuntu:20.04
-      volumes:
-        - /mount:/mount
+    runs-on: ubuntu-20.04-4-cores
 
-			env:
-					INSTALL_DIR: /__w/openvino/openvino/install
-					OPENVINO_REPO: /__w/openvino/openvino/openvino
-					OPENVINO_TOKENIZERS_REPO: /__w/openvino/openvino/openvino_tokenizers
-					BUILD_DIR: /__w/openvino/openvino/openvino_tokenizers
+    env:
+      OPENVINO_REPO: ${{ github.workspace }}/openvino
+      INSTALL_DIR: ${{ github.workspace }}/openvino/install
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
+      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
-			steps:
-					- name: checkout action
-					uses: actions/checkout@v4
-					with:
-              repository: 'openvinotoolkit/openvino'
-							sparse-checkout: |
-							.github/actions/setup_python
-							install_build_dependencies.sh
+    steps:
+      - name: Clone Openvino tokenizers
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
-					- name: Setup Python ${{ env.PYTHON_VERSION }}
-					uses: ./.github/actions/setup_python
-					with:
-							version: ${{ env.PYTHON_VERSION }}
-							pip-cache-path: ${{ env.PIP_CACHE_PATH }}
-							should-setup-pip-paths: 'true'
-							self-hosted-runner: 'true'
-							show-cache-info: 'false'
+      - name: Clone Openvino
+        uses: actions/checkout@v4
+        with:
+          repository: 'openvinotoolkit/openvino'
+          path: ${{ env.OPENVINO_REPO }}
+          ref: 'master'
+          sparse-checkout: |
+            install_build_dependencies.sh
 
-          - name: Clone Openvino tokenizers
-          uses: actions/checkout@v4
-          with:
-            path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-            submodules: 'true'
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
 
-					- name: Download OpenVINO package
-					uses: actions/download-artifact@v3
-					with:
-							name: openvino_package
-							path: ${{ env.INSTALL_DIR }}
+      - name: Download OpenVINO package
+        uses: actions/download-artifact@v3
+        with:
+          name: openvino_package
+          path: ${{ env.INSTALL_DIR }}
 
-					- name: Extract OpenVINO packages
-					run: |
-							pushd ${INSTALL_DIR}
-							tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
-							popd
+      - name: Extract OpenVINO packages
+        run: |
+          pushd ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+          popd
 
-					#
-					# Dependencies
-					#
+      #
+      # Dependencies
+      #
 
-					- name: Install build dependencies
-					run: ./install_build_dependencies.sh
+      - name: Install build dependencies
+        run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
 
-					- name: Install python dependencies
-					run: |
-							# wheel packaging
-							python3 -m pip install -r ${OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
+      - name: Install python dependencies
+        run: |
+          # wheel packaging
+          python3 -m pip install -r ${OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
 
-					#
-					# Build
-					#
+      #
+      # Build
+      #
 
-					- name: Build tokenizers wheel
-					run: |
-							source ${INSTALL_DIR}/setupvars.sh
-							python -m build --wheel --outdir ${EXTENSION_BUILD_DIR} ${OPENVINO_TOKENIZERS_REPO}
-					env:
-							CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
-							CMAKE_BUILD_PARALLEL_LEVEL: '4'
-							CMAKE_GENERATOR: 'Unix Makefiles'
+      - name: Build tokenizers wheel
+        run: |
+          source ${INSTALL_DIR}/setupvars.sh
+          python -m build --wheel --outdir ${BUILD_DIR} ${OPENVINO_TOKENIZERS_REPO}
+        env:
+          CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
+          CMAKE_BUILD_PARALLEL_LEVEL: '4'
+          CMAKE_GENERATOR: 'Unix Makefiles'
 
-					#
-					# Upload build artifacts
-					#
+      #
+      # Upload build artifacts
+      #
 
-					- name: Upload openvino tokenizers wheel
-					if: ${{ always() }}
-					uses: actions/upload-artifact@v3
-					with:
-							name: openvino_tokenizers_wheel
-							path: ${{ env.EXTENSION_BUILD_DIR }}/*.whl
-							if-no-files-found: 'error'
+      - name: Upload openvino tokenizers wheel
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: openvino_tokenizers_wheel
+          path: ${{ env.BUILD_DIR }}/*.whl
+          if-no-files-found: 'error'
