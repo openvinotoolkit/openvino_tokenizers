@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Set apt retries
-        run: sudo echo 'Acquire::Retries "10";' > /etc/apt/apt.conf.d/80-retries
+        run: echo 'Acquire::Retries "10";' | sudo tee -a /etc/apt/apt.conf.d/80-retries > /dev/null
 
       - name: Install git
         run: |
