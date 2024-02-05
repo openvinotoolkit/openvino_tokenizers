@@ -16,7 +16,7 @@ OpenVINO Tokenizers adds text processing operations to OpenVINO.
 python3 -m venv venv
 source venv/bin/activate
  # or
-conda create --name openvino_tokenizer 
+conda create --name openvino_tokenizer
 conda activate openvino_tokenizer
 ```
 
@@ -41,19 +41,19 @@ conda install -c conda-forge openvino openvino-tokenizers && pip install transfo
 ### Build and install from source after [OpenVINO installation](https://docs.openvino.ai/2023.2/openvino_docs_install_guides_overview.html)
 ```bash
 source path/to/installed/openvino/setupvars.sh
-git clone https://github.com/openvinotoolkit/openvino_contrib.git
-cd openvino_contrib/modules/custom_operations/
+git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
+cd openvino_tokenizers
 pip install .[transformers]
 ```
 
 ### Build and install for development
 ```bash
 source path/to/installed/openvino/setupvars.sh
-git clone https://github.com/openvinotoolkit/openvino_contrib.git
-cd openvino_contrib/modules/custom_operations/
+git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
+cd openvino_tokenizers
 pip install -e .[all]
 # verify installation by running tests
-cd user_ie_extensions/tokenizer/python/tests/
+cd python/tests/
 pytest .
 ```
 
@@ -62,7 +62,7 @@ pytest .
 You can use converted tokenizers in C++ pipelines with prebuild binaries.
 
 1. Download OpenVINO archive distribution for your OS from [here](https://www.intel.com/content/www/us/en/developer/tools/openvino-toolkit/download.html) and extract the archive.
-2. Download OpenVINO Tokenizers prebuild libraries from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). To ensure compatibility first three numbers of OpenVINO Tokenizers version should match OpenVINO version and OS. 
+2. Download OpenVINO Tokenizers prebuild libraries from [here](https://storage.openvinotoolkit.org/repositories/openvino_tokenizers/packages/). To ensure compatibility first three numbers of OpenVINO Tokenizers version should match OpenVINO version and OS.
 3. Extract OpenVINO Tokenizers archive into OpenVINO installation directory:
     - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
     - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
@@ -83,7 +83,7 @@ and `read`/`compile` converted (de)tokenizers models.
 
 ### Convert HuggingFace tokenizer
 
-OpenVINO Tokenizers ships with CLI tool that can convert tokenizers from Huggingface Hub 
+OpenVINO Tokenizers ships with CLI tool that can convert tokenizers from Huggingface Hub
 or Huggingface tokenizers saved on disk:
 
 ```shell
