@@ -150,7 +150,12 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
     steps:
-      - name: checkout action
+      - name: Clone Openvino tokenizers
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
+
+      - name: Clone Openvino
         uses: actions/checkout@v4
         with:
           repository: 'openvinotoolkit/openvino'
@@ -164,11 +169,6 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: Clone Openvino tokenizers
-        uses: actions/checkout@v4
-        with:
-          path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Download OpenVINO package
         uses: actions/download-artifact@v3
