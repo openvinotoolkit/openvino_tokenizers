@@ -148,9 +148,9 @@ jobs:
 					path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
 					if-no-files-found: 'error'
 
-  Openvino_tokenizers:
+  openvino_tokenizers:
     name: OpenVINO tokenizers extension
-    needs: [ Build ]
+    needs: [ openvino_build ]
     timeout-minutes: 25
     defaults:
       run:
