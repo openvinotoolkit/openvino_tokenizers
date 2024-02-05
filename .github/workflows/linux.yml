@@ -33,12 +33,12 @@ jobs:
 
     steps:
       - name: Set apt retries
-        run: echo 'Acquire::Retries "10";' > /etc/apt/apt.conf.d/80-retries
+        run: sudo echo 'Acquire::Retries "10";' > /etc/apt/apt.conf.d/80-retries
 
       - name: Install git
         run: |
-          apt-get update
-          apt-get install --assume-yes --no-install-recommends git ca-certificates
+          sudo apt-get update
+          sudo apt-get install --assume-yes --no-install-recommends git ca-certificates
 
       - name: Clone OpenVINO
         uses: actions/checkout@v4
