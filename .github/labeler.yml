@@ -1,0 +1,21 @@
+'category: CI':
+- '.github/**/*'
+- 'Jenkinsfile'
+
+'category: tokenizers_cpp':
+- 'src/**/*'
+
+'category: tokenizers_py':
+- 'python/**/*'
+
+'category: tokenizers_test':
+- 'tests/**/*'
+
+'category: build':
+- '**/CMakeLists.txt'
+- '**/*.toml'
+- '**/*.cmake'
+
+'dependencies':
+- '**/requirement*.txt'
+- any: ['!**/CMakeLists.txt']
