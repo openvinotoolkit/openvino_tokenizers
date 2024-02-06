@@ -284,6 +284,7 @@ jobs:
       - name: Tokenizers Bandit tests
         run: |
           bandit -c pyproject.toml -r python
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Tokenizers regression tests
         run: |
