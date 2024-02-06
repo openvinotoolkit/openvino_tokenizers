@@ -218,3 +218,73 @@ jobs:
           name: openvino_tokenizers_wheel
           path: ${{ env.BUILD_DIR }}/*.whl
           if-no-files-found: 'error'
+
+  openvino_tokenizers_tests:
+    name: OpenVINO tokenizers tests
+    needs: [ openvino_tokenizers ]
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-20.04
+
+    env:
+      OPENVINO_REPO: ${{ github.workspace }}/openvino
+      INSTALL_DIR: ${{ github.workspace }}/openvino/install
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
+      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+
+    steps:
+      - name: Clone Openvino tokenizers tests
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
+          sparse-checkout: |
+            tests
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install python dependencies
+        run: |
+          python3 -m pip install -r ${OPENVINO_TOKENIZERS_REPO}/tests/requirements.txt
+
+      - name: Download tokenizers package
+        uses: actions/download-artifact@v3
+        with:
+          name: openvino_tokenizers_wheel
+          path: ${{ env.INSTALL_DIR }}/ov_tokenizers
+
+      - name: Extract OpenVINO packages
+        run: |
+          pushd ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+          popd
+
+      - name: Download OpenVINO package
+        uses: actions/download-artifact@v3
+        with:
+          name: openvino_package
+          path: ${{ env.INSTALL_DIR }}
+
+      - name: Extract OpenVINO packages
+        run: |
+          pushd ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+          popd
+
+      - name: Install OpenVINO Python wheel
+        run: |
+          python3 -m pip install ${INSTALL_DIR}/tools/openvino-*.whl
+
+      - name: Install OpenVINO tokenizers wheel
+        run: |
+          python3 -m pip install ${INSTALL_DIR}/ov_tokenizers/openvino-tokenizers-*.whl
+
+      - name: Tokenizers regression tests
+        run: |
+          python3 -m pytest tokenizers_test.py
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
