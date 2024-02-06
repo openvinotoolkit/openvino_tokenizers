@@ -240,9 +240,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-          sparse-checkout: |
-            python
-            tests
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
