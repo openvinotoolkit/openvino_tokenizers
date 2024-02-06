@@ -6,7 +6,7 @@
 #include <openvino/core/op_extension.hpp>
 #include <openvino/frontend/extension.hpp>
 
-include "tokenizer.hpp"
+#include "tokenizer.hpp"
 
 // clang-format off
 //! [ov_extension:entry_point]
