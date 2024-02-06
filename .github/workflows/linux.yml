@@ -236,12 +236,10 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
     steps:
-      - name: Clone Openvino tokenizers tests
+      - name: Clone Openvino tokenizers sources and tests
         uses: actions/checkout@v4
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-          sparse-checkout: |
-            tests
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
@@ -280,8 +278,13 @@ jobs:
           # Find and install wheel
           pushd ${INSTALL_DIR}/ov_tokenizers
             wheel_name=$(find . -name 'openvino_tokenizers*.whl')
-            python3 -m pip install $wheel_name[all]
+            python3 -m pip install $wheel_name[dev]
           popd
+
+      - name: Tokenizers Bandit tests
+        run: |
+          bandit -c pyproject.toml -r python
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Tokenizers regression tests
         run: |
