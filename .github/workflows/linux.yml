@@ -281,7 +281,7 @@ jobs:
           # Find and install wheel
           pushd ${INSTALL_DIR}/ov_tokenizers
             wheel_name=$(find . -name 'openvino_tokenizers*.whl')
-            python3 -m pip install $wheel_name[all]
+            python3 -m pip install $wheel_name[test]
           popd
 
       - name: Tokenizers Bandit tests
