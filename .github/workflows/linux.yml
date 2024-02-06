@@ -206,6 +206,7 @@ jobs:
           CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_GENERATOR: 'Unix Makefiles'
+          SKBUILD_WHEEL_BUILD_TAG: ${{github.run_attempt}}
 
       #
       # Upload build artifacts
