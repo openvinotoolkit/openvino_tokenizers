@@ -208,7 +208,7 @@ jobs:
           CMAKE_GENERATOR: 'Unix Makefiles'
           SKBUILD_WHEEL_BUILD_TAG: ${{github.run_attempt}}
 
-      #s
+      #
       # Upload build artifacts
       #
 
