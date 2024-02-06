@@ -248,21 +248,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Install python dependencies
-        run: |
-          python3 -m pip install -r ${OPENVINO_TOKENIZERS_REPO}/tests/requirements.txt
-
       - name: Download tokenizers package
         uses: actions/download-artifact@v3
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
-
-      - name: Extract OpenVINO packages
-        run: |
-          pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
-          popd
 
       - name: Download OpenVINO package
         uses: actions/download-artifact@v3
@@ -278,11 +268,19 @@ jobs:
 
       - name: Install OpenVINO Python wheel
         run: |
-          python3 -m pip install ${INSTALL_DIR}/tools/openvino-*.whl
+          # Find and install wheel
+          pushd ${INSTALL_DIR}/tools
+            wheel_name=$(find . -name 'openvino-*.whl')
+            python3 -m pip install $wheel_name
+          popd
 
       - name: Install OpenVINO tokenizers wheel
         run: |
-          python3 -m pip install ${INSTALL_DIR}/ov_tokenizers/openvino-tokenizers-*.whl
+          # Find and install wheel
+          pushd ${INSTALL_DIR}/ov_tokenizers
+            wheel_name=$(find . -name 'openvino_tokenizers*.whl')
+            python3 -m pip install $wheel_name[all]
+          popd
 
       - name: Tokenizers regression tests
         run: |
