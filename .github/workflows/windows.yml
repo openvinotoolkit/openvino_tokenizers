@@ -194,7 +194,7 @@ jobs:
       - name: Install python dependencies
         run: |
           # wheel packaging
-          python3 -m pip install -r ${OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
+          python3 -m pip install -r ${env:OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
 
       #
       # Build
