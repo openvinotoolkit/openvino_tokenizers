@@ -276,7 +276,7 @@ jobs:
       - name: Install OpenVINO tokenizers wheel
         run: |
           # Find and install wheel
-          $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\ov_tokenizers" -Filter openvino-tokenizers*.whl | % { $_.FullName }
+          $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\ov_tokenizers" -Filter openvino_tokenizers*.whl | % { $_.FullName }
           python3 -m pip install "$ovCoreWheelPath"
 
 
