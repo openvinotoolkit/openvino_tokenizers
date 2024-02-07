@@ -71,9 +71,9 @@ jobs:
           # github.ref_name is 'ref/PR_#' in case of the PR, and 'branch_name' when executed on push
           save: ${{ github.ref_name == 'master' && 'true' || 'false'  }}
           verbose: 2
-          key: linux-ubuntu
+          key: ccache-mac
           restore-keys: |
-            linux-ubuntu
+            ccache-mac
 
       - name: CMake configure - OpenVINO
         run: |
