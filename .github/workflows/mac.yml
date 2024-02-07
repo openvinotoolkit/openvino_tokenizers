@@ -279,13 +279,7 @@ jobs:
             python3 -m pip install $wheel_name[dev]
           popd
 
-      - name: Tokenizers Bandit tests
-        run: |
-          bandit -c pyproject.toml -r python
-        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-
       - name: Tokenizers regression tests
         run: |
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
-        

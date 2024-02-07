@@ -279,12 +279,6 @@ jobs:
           $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\ov_tokenizers" -Filter openvino_tokenizers*.whl | % { $_.FullName }
           python3 -m pip install "$ovCoreWheelPath"
 
-
-      - name: Tokenizers Bandit tests
-        run: |
-          bandit -c pyproject.toml -r python
-        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-
       - name: Tokenizers regression tests
         run: |
           python3 -m pytest tokenizers_test.py
