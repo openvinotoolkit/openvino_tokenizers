@@ -78,8 +78,8 @@ jobs:
           restore-keys: |
             ccache-windows
 
-      - name: Configure Developer Command Prompt for Microsoft Visual C++
-        uses: ilammy/msvc-dev-cmd@v1
+      # - name: Configure Developer Command Prompt for Microsoft Visual C++
+      #   uses: ilammy/msvc-dev-cmd@v1
 
       - name: CMake configure - OpenVINO
         run: |
