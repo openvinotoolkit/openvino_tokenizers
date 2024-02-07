@@ -33,14 +33,6 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/openvino/build
 
     steps:
-      - name: Set apt retries
-        run: echo 'Acquire::Retries "10";' | sudo tee -a /etc/apt/apt.conf.d/80-retries > /dev/null
-
-      - name: Install git
-        run: |
-          sudo apt-get update
-          sudo apt-get install --assume-yes --no-install-recommends git ca-certificates
-
       - name: Clone OpenVINO
         uses: actions/checkout@v4
         with:
@@ -54,8 +46,7 @@ jobs:
       #
 
       - name: Install build dependencies
-        run: |
-          sudo -E ${OPENVINO_REPO}/install_build_dependencies.sh
+        run: brew install coreutils ninja
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
@@ -195,7 +186,7 @@ jobs:
       #
 
       - name: Install build dependencies
-        run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
+        run: brew install coreutils ninja
 
       - name: Install python dependencies
         run: |
