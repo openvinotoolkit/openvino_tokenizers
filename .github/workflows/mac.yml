@@ -21,7 +21,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: 'macos-13-6-core'
+    runs-on: 'macos-13-6-cores'
     env:
       DEBIAN_FRONTEND: noninteractive # to prevent apt-get from waiting user input
       CMAKE_BUILD_TYPE: 'Release'
