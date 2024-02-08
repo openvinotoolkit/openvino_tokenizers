@@ -2,9 +2,6 @@ name: macOS (13, Python 3.11)
 on:
   workflow_run:
     workflows: [SDL Tests]
-    branches: [master]
-    types:
-      - completed
 
 concurrency:
   # github.ref is not unique in post-commit
