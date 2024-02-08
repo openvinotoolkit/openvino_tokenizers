@@ -7,6 +7,11 @@ on:
       - master
       - 'releases/**'
 
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
 concurrency:
   # github.ref is not unique in post-commit
   group: ${{ github.event_name == 'push' && github.run_id || github.ref }}-linux-sdl
