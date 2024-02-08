@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload openvino package
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openvino_package
           path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
@@ -169,7 +169,7 @@ jobs:
           cache: 'pip'
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: openvino_package
           path: ${{ env.INSTALL_DIR }}
@@ -211,7 +211,7 @@ jobs:
 
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.BUILD_DIR }}/*.whl
@@ -245,13 +245,13 @@ jobs:
           cache: 'pip'
 
       - name: Download tokenizers package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: openvino_package
           path: ${{ env.INSTALL_DIR }}
