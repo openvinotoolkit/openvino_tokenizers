@@ -18,6 +18,7 @@ from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
+    EOS_TOKEN_ID_NAME,
     STRING_OUTPUT_NAME,
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
@@ -753,6 +754,7 @@ class TokenizerPipeline:
     skip_tokens: Optional[List[int]] = field(default=None, repr=False)
     number_of_inputs: int = 1
     vocab_node_outputs: Optional[List[Output]] = field(default=None, repr=False)
+    eos_token_id: Optional[int] = None
 
     def get_config(self) -> Dict[str, Dict[str, Any]]:
         return {type(step).__name__: step.get_config() for step in self.steps}
@@ -793,7 +795,10 @@ class TokenizerPipeline:
         for step in self.post_tokenization_steps:
             processing_outputs = step.get_ov_subgraph(processing_outputs)
 
-        return Model(processing_outputs, string_inputs, name=TOKENIZER_NAME)
+        model = Model(processing_outputs, string_inputs, name=TOKENIZER_NAME)
+        if self.eos_token_id is not None:
+            model.set_rt_info(self.eos_token_id, EOS_TOKEN_ID_NAME)
+        return model
 
     @property
     def normalization_steps(self) -> List[NormalizationStep]:
@@ -841,4 +846,6 @@ class TokenizerPipeline:
         outputs = self.create_decoding_pipeline([token_ids])
         model = Model(outputs, [input_node], name=DETOKENIZER_NAME)
         model.output().tensor.add_names({STRING_OUTPUT_NAME})
+        if self.eos_token_id is not None:
+            model.set_rt_info(self.eos_token_id, EOS_TOKEN_ID_NAME)
         return model

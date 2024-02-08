@@ -22,6 +22,7 @@ from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
+    EOS_TOKEN_ID_NAME,
     STRING_OUTPUT_NAME,
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
@@ -93,7 +94,7 @@ def parse_split_step(pretokenizer_dict: Dict[str, Any]) -> RegexSplitStep:
 
 
 def parse_byte_level_pretokenization_step(
-    pretokenizer_dict: Dict[str, Any]
+    pretokenizer_dict: Dict[str, Any],
 ) -> List[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
     if pretokenizer_dict.get("add_prefix_space"):
@@ -145,6 +146,7 @@ class TransformersTokenizerPipelineParser:
             ),
         ]:
             add_steps()
+        self.pipeline.eos_token_id = getattr(self.original_tokenizer, "eos_token_id", None)
 
         return self.pipeline
 
@@ -348,6 +350,9 @@ def convert_fast_tokenizer(
             filtered_outputs.append(ov_tokenizer.output(i))
 
     tokenizer_model = Model(filtered_outputs, ov_tokenizer.get_parameters(), TOKENIZER_NAME)
+    for path, info in ov_tokenizer.get_rt_info().items():
+        tokenizer_model.set_rt_info(info.value, path)
+
     if with_detokenizer:
         return tokenizer_model, pipeline.get_detokenizer_ov_subgraph()
 
@@ -491,17 +496,25 @@ def convert_sentencepiece_model_tokenizer(
     tokenizer = Model(outputs, [input_node], TOKENIZER_NAME)
     tokenizer.validate_nodes_and_infer_types()
 
+    if hf_tokenizer.eos_token_id is not None:
+        tokenizer.set_rt_info(hf_tokenizer.eos_token_id, EOS_TOKEN_ID_NAME)
+
     if not with_detokenizer:
         return tokenizer
 
     if clean_up_tokenization_spaces is None:
         clean_up_tokenization_spaces = hf_tokenizer.clean_up_tokenization_spaces
 
-    return tokenizer, get_sp_detokenizer(
+    detokenizer = get_sp_detokenizer(
         sp_model_node,
         streaming_detokenizer=streaming_detokenizer,
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
     )
+
+    if hf_tokenizer.eos_token_id is not None:
+        detokenizer.set_rt_info(hf_tokenizer.eos_token_id, EOS_TOKEN_ID_NAME)
+
+    return tokenizer, detokenizer
 
 
 def get_sp_detokenizer(
@@ -576,5 +589,7 @@ def convert_tiktoken_model_tokenizer(
 
     if not with_detokenizer:
         return pipeline.get_tokenizer_ov_subgraph()
+
+    pipeline.eos_token_id = hf_tokenizer.eos_token_id
 
     return pipeline.get_tokenizer_ov_subgraph(), pipeline.get_detokenizer_ov_subgraph()

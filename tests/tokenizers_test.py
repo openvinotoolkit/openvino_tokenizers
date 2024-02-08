@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2023 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+from typing import Optional
 
 import numpy as np
 import pytest
-from openvino import Core
+from openvino import Core, Model
 from openvino_tokenizers import convert_tokenizer
+from openvino_tokenizers.constants import EOS_TOKEN_ID_NAME
 from transformers import AutoTokenizer
 
 
@@ -117,7 +119,7 @@ sentencepiece_models = [
     # "THUDM/chatglm-6b",  # hf_tokenizer init error
     "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
     "THUDM/chatglm3-6b",
-    # "t5-base",  # crashes tests
+    # "t5-base",  # no <s> token in the vocab, sentencepiece check error
 ]
 tiktiken_models = [
     "stabilityai/stablelm-2-1_6b",
@@ -468,3 +470,45 @@ def test_detokenizer_results_align_with_hf_on_multitoken_symbols_for_streaming()
         hf_detokenized_stream += hf_output
 
     assert detokenized_stream == hf_detokenized_stream
+
+
+def check_eos_id(eos_token_id: Optional[int], *models: Model) -> None:
+    for model in models:
+        if eos_token_id is None:
+            assert not model.has_rt_info(EOS_TOKEN_ID_NAME)
+        else:
+            assert model.has_rt_info(EOS_TOKEN_ID_NAME)
+            assert model.get_rt_info(EOS_TOKEN_ID_NAME).value == eos_token_id
+
+
+def test_eos_token_id_rt_info_wordpiece(hf_wordpiece_tokenizers):
+    eos_token_id = hf_wordpiece_tokenizers.eos_token_id
+    ov_tokenizer = convert_tokenizer(hf_wordpiece_tokenizers)
+    check_eos_id(eos_token_id, ov_tokenizer)
+
+
+def test_eos_token_id_rt_info_bpe(hf_bpe_tokenizers):
+    eos_token_id = hf_bpe_tokenizers.eos_token_id
+    ov_tokenizer, ov_detokenizer = convert_tokenizer(
+        hf_bpe_tokenizers,
+        with_detokenizer=True,
+    )
+    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+
+
+def test_eos_token_id_rt_info_tiktoken(hf_tiktoken_tokenizers):
+    eos_token_id = hf_tiktoken_tokenizers.eos_token_id
+    ov_tokenizer, ov_detokenizer = convert_tokenizer(
+        hf_tiktoken_tokenizers,
+        with_detokenizer=True,
+    )
+    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+
+
+def test_eos_token_id_rt_info_sentencepiece(hf_sentencepiece_tokenizers):
+    eos_token_id = hf_sentencepiece_tokenizers.eos_token_id
+    ov_tokenizer, ov_detokenizer = convert_tokenizer(
+        hf_sentencepiece_tokenizers,
+        with_detokenizer=True,
+    )
+    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
