@@ -37,7 +37,7 @@ dev = [
     "ruff",
     "bandit",
     "pytest",
-    "pytest-xdist[psutil]"
+    "pytest-xdist[psutil]",
     "pytest_harvest",
     "openvino_tokenizers[transformers, torch]"
 ]
