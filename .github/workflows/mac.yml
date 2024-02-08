@@ -203,7 +203,7 @@ jobs:
         env:
           CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
-          SKBUILD_WHEEL_BUILD_TAG: ${{ github.run_attempt }}
+          SKBUILD_WHEEL_BUILD_TAG: ${{ github.run_id }}
 
       #
       # Upload build artifacts
