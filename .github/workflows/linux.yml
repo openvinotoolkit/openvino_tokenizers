@@ -296,5 +296,5 @@ jobs:
 
       - name: Tokenizers regression tests
         run: |
-          python3 -m pytest tokenizers_test.py
+          python3 -m pytest -n logical tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
