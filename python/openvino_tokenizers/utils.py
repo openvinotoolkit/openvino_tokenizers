@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2023 Intel Corporation
+# Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
@@ -86,9 +86,12 @@ def greedy_decoder(input) -> Model:
     return token_ids.output(0)
 
 
-def add_greedy_decoding(text_generation_model: Model, logits_output: str = LOGITS_OUTPUT_NAME) -> Model:
+def add_greedy_decoding(
+        text_generation_model: Model, logits_output: str = LOGITS_OUTPUT_NAME, output_type: Type = Type.i64
+) -> Model:
     ppp = PrePostProcessor(text_generation_model)
     ppp.output(logits_output).postprocess().custom(greedy_decoder)
+    ppp.output(logits_output).tensor().set_element_type(output_type)
     model = ppp.build()
     model.output(logits_output).tensor.set_names({TOKEN_IDS_OUTPUT_NAME})
     return model
