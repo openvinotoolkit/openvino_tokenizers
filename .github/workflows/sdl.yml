@@ -1,4 +1,4 @@
-name: SDL Tests
+name: SDL
 on:
   workflow_dispatch:
   pull_request:

@@ -1,11 +1,8 @@
 name: macOS (13, Python 3.11)
 on:
-  workflow_dispatch:
-  pull_request:
-  push:
-    branches:
-      - master
-      - 'releases/**'
+  workflow_run:
+    workflows: [SDL]
+    types: [completed]
 
 concurrency:
   # github.ref is not unique in post-commit
@@ -17,6 +14,7 @@ env:
 
 jobs:
   openvino_build:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     timeout-minutes: 150
     defaults:
       run:
