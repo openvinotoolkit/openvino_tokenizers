@@ -26,6 +26,7 @@ transformers = [
     "transformers[sentencepiece] >= 4.36.0",
     "tiktoken"
 ]
+# chatglm2 custom tokenizer file imports torch, have to add torch dependency for tests
 torch = [
     'torch @ https://download.pytorch.org/whl/cpu-cxx11-abi/torch-2.0.1%2Bcpu.cxx11.abi-cp38-cp38-linux_x86_64.whl ; sys_platform=="linux" and python_version == "3.8"',
     'torch @ https://download.pytorch.org/whl/cpu-cxx11-abi/torch-2.0.1%2Bcpu.cxx11.abi-cp39-cp39-linux_x86_64.whl ; sys_platform=="linux" and python_version == "3.9"',
@@ -38,6 +39,7 @@ dev = [
     "bandit",
     "pytest",
     "pytest_harvest",
+    "pandas",
     "openvino_tokenizers[transformers, torch]"
 ]
 fuzzing = [
@@ -53,15 +55,17 @@ all = [
 convert_tokenizer = "openvino_tokenizers.cli:convert_hf_tokenizer"
 
 [tool.ruff]
-ignore = ["C901", "E501", "E741", "W605"]
-select = ["C", "E", "F", "I", "W"]
 line-length = 119
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint]
+ignore = ["C901", "E501", "E741", "W605"]
+select = ["C", "E", "F", "I", "W"]
+
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "openvino_tokenizers/hf_parser.py" = ["F821"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 lines-after-imports = 2
 
 [tool.bandit]

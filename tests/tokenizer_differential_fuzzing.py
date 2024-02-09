@@ -1,11 +1,11 @@
 import sys
+import unicodedata
 from functools import lru_cache
 
 import atheris
 import numpy as np
 from openvino import compile_model
 from transformers import AutoTokenizer
-import unicodedata
 
 
 with atheris.instrument_imports():

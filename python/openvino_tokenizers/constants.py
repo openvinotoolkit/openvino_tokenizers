@@ -10,6 +10,8 @@ LOGITS_OUTPUT_NAME = "logits"
 TOKEN_IDS_OUTPUT_NAME = "token_ids"
 STRING_OUTPUT_NAME = "string_output"
 
+EOS_TOKEN_ID_NAME = "eos_token_id"
+
 GREEDY_DECODER_NAME = "greedy_decoder"
 
 TOKENIZER_NAME = "tokenizer"
