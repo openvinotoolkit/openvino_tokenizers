@@ -16,6 +16,7 @@ from openvino import Model, PartialShape, Type
 from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
 from openvino.runtime.utils.types import as_node, make_constant_node
+from transformers import PreTrainedTokenizerBase
 from transformers.convert_slow_tokenizer import import_protobuf
 
 from . import _get_factory
@@ -300,7 +301,7 @@ class TransformersTokenizerPipelineParser:
         return
 
 
-def parse_special_tokens(hf_tokenizer: "PreTrainedTokenizerBase") -> Dict[int, str]:
+def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase) -> Dict[int, str]:
     # the order matters
     if getattr(hf_tokenizer, "added_tokens_decoder", False):
         return {
@@ -317,7 +318,7 @@ def parse_special_tokens(hf_tokenizer: "PreTrainedTokenizerBase") -> Dict[int, s
 
 
 def convert_fast_tokenizer(
-    hf_tokenizer: "PreTrainedTokenizerBase",
+    hf_tokenizer: PreTrainedTokenizerBase,
     number_of_inputs: int = 1,
     with_detokenizer: bool = False,
     skip_special_tokens: bool = False,
@@ -359,7 +360,7 @@ def convert_fast_tokenizer(
     return tokenizer_model
 
 
-def is_sentencepiece_model(hf_tokenizer: "PreTrainedTokenizerBase") -> bool:
+def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     return getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
 
 
@@ -402,7 +403,7 @@ def modify_sentencepiece_model(
 
 
 def convert_sentencepiece_model_tokenizer(
-    hf_tokenizer: "PreTrainedTokenizerBase",
+    hf_tokenizer: PreTrainedTokenizerBase,
     add_attention_mask: bool = True,
     with_detokenizer: bool = False,
     streaming_detokenizer: bool = False,
@@ -544,7 +545,7 @@ def get_sp_detokenizer(
     return tokenizer_detokenizer
 
 
-def is_tiktoken_model(hf_tokenizer: "PreTrainedTokenizerBase") -> bool:
+def is_tiktoken_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     try:
         from tiktoken import Encoding
     except ImportError:
@@ -556,7 +557,7 @@ def is_tiktoken_model(hf_tokenizer: "PreTrainedTokenizerBase") -> bool:
 
 
 def convert_tiktoken_model_tokenizer(
-    hf_tokenizer: "PreTrainedTokenizerBase",
+    hf_tokenizer: PreTrainedTokenizerBase,
     with_detokenizer: bool = False,
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = None,

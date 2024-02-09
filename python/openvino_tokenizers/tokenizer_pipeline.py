@@ -27,8 +27,9 @@ from .constants import (
 from .str_pack import pack_string, pack_strings
 
 
+@dataclass
 class BasePipelineStep:
-    _pipeline = field(default=None, init=False, repr=False)
+    _pipeline: Optional[weakref.ReferenceType["TokenizerPipeline"]] = field(default=None, init=False, repr=False)
 
     def __str__(self) -> str:
         params_string = ", ".join(f"{key}={val!r}" for key, val in self.get_config().items())
@@ -45,7 +46,7 @@ class BasePipelineStep:
         return config
 
     def get_pipeline(self) -> Optional["TokenizerPipeline"]:
-        return self._pipeline()
+        return self._pipeline() if self._pipeline is not None else None
 
     def set_pipeline(self, pipeline: "TokenizerPipeline") -> None:
         self._pipeline = weakref.ref(pipeline)
@@ -476,6 +477,9 @@ class SpecialTokenWithId:
         if vocab is not None and self.token in vocab:
             self._token_id = vocab.index(self.token)
 
+    @property
+    def token_id(self) -> Optional[int]:
+        return self._token_id
 
 @dataclass
 class TokenWithTypeId:
@@ -659,7 +663,7 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
                     "RaggedToDense",
                     input_nodes[3 * i : 3 * (i + 1)]
                     + max_length.outputs()
-                    + make_constant_node(0, Type.i32).outputs(),
+                    + make_constant_node(self.token_id or 0, Type.i32).outputs(),
                 )
                 .outputs()
             )
