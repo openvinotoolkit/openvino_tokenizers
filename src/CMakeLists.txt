@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2023 Intel Corporation
+# Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -26,6 +26,8 @@ set(CPACK_SOURCE_GENERATOR "") # not used
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(BUILD_FAST_TOKENIZERS OFF)
 

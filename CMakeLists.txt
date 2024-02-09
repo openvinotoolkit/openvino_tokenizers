@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2023 Intel Corporation
+# Copyright (C) 2022-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -9,7 +9,8 @@ project(openvino_tokenizers)
 include(cmake/platforms.cmake)
 
 # Find OpenVINODeveloperPackage first to compile with SDL flags
-find_package(OpenVINODeveloperPackage QUIET)
+find_package(OpenVINODeveloperPackage QUIET
+             PATHS "${OpenVINO_DIR}")
 if(NOT OpenVINODeveloperPackage_FOUND)
     find_package(OpenVINO REQUIRED COMPONENTS Runtime)
 endif()
