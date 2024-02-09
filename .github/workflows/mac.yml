@@ -1,7 +1,7 @@
 name: macOS (13, Python 3.11)
 on:
   workflow_run:
-    workflows: [SDL]
+    workflows: [Linux (Ubuntu 20.04, Python 3.11)]
     types: [completed]
 
 concurrency:
