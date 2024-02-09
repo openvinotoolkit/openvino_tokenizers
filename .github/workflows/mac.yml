@@ -14,7 +14,6 @@ env:
 
 jobs:
   openvino_build:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     timeout-minutes: 150
     defaults:
       run:
