@@ -51,14 +51,21 @@ from .tokenizer_pipeline import (
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
+from .utils import filter_re2_incompatible
 
 
-def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> RegexNormalizationStep:
+def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:
     regex_search_pattern = normalizer_dict["pattern"].get("String") or normalizer_dict["pattern"]["Regex"]
-    return RegexNormalizationStep(
-        regex_search_pattern=regex_search_pattern,
-        replace_term=normalizer_dict["content"],
-    )
+    filtered_pattern = filter_re2_incompatible(regex_search_pattern)
+    if filtered_pattern == "":
+        return []
+
+    return [
+        RegexNormalizationStep(
+            regex_search_pattern=regex_search_pattern,
+            replace_term=normalizer_dict["content"],
+        )
+    ]
 
 
 def parse_bert_normalizer(normalizer_dict: Dict[str, Any]) -> List[NormalizationStep]:
@@ -368,7 +375,6 @@ def modify_sentencepiece_model(
     sp_model_path: Path,
     add_tokens: Dict[int, str],
     skip_special_tokens: bool = False,
-    reference_vocab: Optional[List[str]] = None,
 ) -> None:
     model_pb = import_protobuf()
     model = model_pb.ModelProto()
@@ -573,7 +579,7 @@ def convert_tiktoken_model_tokenizer(
     pipeline.add_steps(
         [
             NormalizeUnicode("NFC"),
-            RegexSplitStep(split_pattern),
+            RegexSplitStep(split_pattern, behaviour="contiguous"),
             BytesToCharsStep(),
             BPETokenizationStep.from_tiktoken_encoding(encoding),
             TruncationStep.from_hf_object(hf_tokenizer),

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
+import re
 from typing import Dict, Optional, Sequence, Tuple, Union
 
 from openvino import Model, Type
@@ -87,7 +88,7 @@ def greedy_decoder(input) -> Model:
 
 
 def add_greedy_decoding(
-        text_generation_model: Model, logits_output: str = LOGITS_OUTPUT_NAME, output_type: Type = Type.i64
+    text_generation_model: Model, logits_output: str = LOGITS_OUTPUT_NAME, output_type: Type = Type.i64
 ) -> Model:
     ppp = PrePostProcessor(text_generation_model)
     ppp.output(logits_output).postprocess().custom(greedy_decoder)
@@ -109,3 +110,22 @@ def change_outputs_type(model: Model, output_type: Type) -> Model:
     for idx, _ in enumerate(model.outputs):
         ppp.output(idx).tensor().set_element_type(output_type)
     return ppp.build()
+
+
+def has_incompatible_re2_op(pattern: str) -> bool:
+    return "(?=" in pattern or "(?!" in pattern or "(?<=" in pattern or "(?<!" in pattern
+
+
+_subpattern_regex = re.compile(r"(?:[^()|]+|\([^)]*\))+")
+
+
+def filter_re2_incompatible(pattern: str) -> str:
+    not_filtered = []
+
+    for subpattern in (match.group() for match in _subpattern_regex.finditer(pattern)):
+        if has_incompatible_re2_op(subpattern):
+            logging.warning(f"Subpattern `{subpattern}` is not supported by re2 and filtered out.")
+            continue
+        not_filtered.append(subpattern)
+
+    return "|".join(not_filtered)
