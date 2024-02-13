@@ -19,6 +19,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
+  OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
 
 jobs:
   sdl_tests:
@@ -28,9 +29,6 @@ jobs:
       run:
         shell: bash
     runs-on: ubuntu-latest
-
-    env:
-      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
@@ -53,12 +51,11 @@ jobs:
           bandit -c pyproject.toml -r python
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
-
   trivy_scan:
     name: tryvi_tests
     runs-on: ubuntu-latest
     steps:
-      - name: Clone Openvino tokenizers sources and tests
+      - name: Clone Openvino tokenizers sources
         uses: actions/checkout@v4
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
@@ -67,4 +64,5 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: ${{ env.OPENVINO_TOKENIZERS_REPO }}
+
