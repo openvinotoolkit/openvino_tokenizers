@@ -91,6 +91,7 @@ jobs:
             -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF `
             -DENABLE_STRICT_DEPENDENCIES=OFF `
             -DENABLE_PYTHON=ON `
+            -DENABLE_WHEEL=ON `
             -DENABLE_JS=OFF `
             -DENABLE_SAMPLES=OFF `
             -DENABLE_OV_ONNX_FRONTEND=OFF `
@@ -100,7 +101,6 @@ jobs:
             -DENABLE_OV_TF_LITE_FRONTEND=OFF `
             -DENABLE_INTEL_GPU=OFF `
             -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON `
-            -DENABLE_PYTHON_PACKAGING=ON `
             -S ${{ env.OPENVINO_REPO }} `
             -B ${{ env.BUILD_DIR }}
 
