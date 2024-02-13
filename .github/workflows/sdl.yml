@@ -62,7 +62,7 @@ jobs:
           scan-ref: '.'
 
   checkmarx_scan:
-    name: tryvi_tests
+    name: checkmarx_tests
     runs-on: ubuntu-latest
 
     steps:
