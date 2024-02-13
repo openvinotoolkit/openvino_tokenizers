@@ -67,4 +67,4 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          scan-ref: ${{ env.OPENVINO_TOKENIZERS_REPO }}
+          scan-ref: '${{ env.OPENVINO_TOKENIZERS_REPO }}'
