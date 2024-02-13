@@ -203,6 +203,7 @@ jobs:
       #
 
       - name: Build tokenizers wheel
+        shell: cmd
         run: |
           call "${{ env.INSTALL_DIR }}\\setupvars.bat"
           python3 -m build --wheel --outdir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
