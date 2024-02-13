@@ -61,3 +61,18 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
 
+  checkmarx_scan:
+    name: tryvi_tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone Openvino tokenizers sources
+        uses: actions/checkout@v4
+
+      - name: Checkmarx AST CLI Action
+        uses: checkmarx/ast-github-action@main
+        with:
+          base_uri: https://ast.checkmarx.net/
+          cx_tenant: your_tenant
+          cx_client_id: ${{ secrets.CX_CLIENT_ID }}
+          cx_client_secret: ${{ secrets.CX_CLIENT_SECRET }}
