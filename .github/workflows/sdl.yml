@@ -22,7 +22,7 @@ env:
 
 jobs:
   sdl_tests:
-    name: bandit_tests
+    name: SDL tests
     timeout-minutes: 5
     defaults:
       run:
@@ -47,16 +47,9 @@ jobs:
         run: |
           bandit -c pyproject.toml -r python
 
-  trivy_scan:
-    name: tryvi_tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Clone Openvino tokenizers sources
-        uses: actions/checkout@v4
-
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
+
