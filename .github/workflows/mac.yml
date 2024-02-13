@@ -98,6 +98,7 @@ jobs:
             -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DENABLE_PYTHON_PACKAGING=ON \
             -S ${OPENVINO_REPO} \
             -B ${BUILD_DIR}
 

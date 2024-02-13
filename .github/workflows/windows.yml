@@ -100,6 +100,7 @@ jobs:
             -DENABLE_OV_TF_LITE_FRONTEND=OFF `
             -DENABLE_INTEL_GPU=OFF `
             -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON `
+            -DENABLE_PYTHON_PACKAGING=ON `
             -S ${{ env.OPENVINO_REPO }} `
             -B ${{ env.BUILD_DIR }}
 
