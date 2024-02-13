@@ -278,7 +278,7 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string):
     hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
     packed_strings = pack_strings([test_string])
 
-    hf_tokenized = hf_tokenizer([test_string], return_tensors="np")
+    hf_tokenized = hf_tokenizer([test_string], return_tensors="np", truncation=True)
     ov_tokenized = ov_tokenizer(packed_strings)
 
     for output_name, hf_result in hf_tokenized.items():
@@ -298,7 +298,7 @@ def test_hf_wordpiece_tokenizers_multiple_strings(wordpiece_tokenizers, test_str
     hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
     packed_strings = pack_strings(test_string)
 
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", padding=True)
+    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", padding=True, truncation=True)
     ov_tokenized = ov_tokenizer(packed_strings)
 
     for output_name, hf_result in hf_tokenized.items():
@@ -317,7 +317,7 @@ def test_hf_wordpiece_tokenizers_multiple_strings(wordpiece_tokenizers, test_str
 def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string):
     hf_tokenizer, ov_tokenizer = sentencepice_tokenizers
 
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np")
+    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True)
     ov_tokenized = ov_tokenizer(pack_strings([test_string]))
 
     for output_name, hf_result in hf_tokenized.items():
@@ -364,7 +364,7 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string):
     hf_tokenizer, ov_tokenizer = bpe_tokenizers
     packed_strings = pack_strings([test_string])
 
-    hf_tokenized = hf_tokenizer([test_string], return_tensors="np")
+    hf_tokenized = hf_tokenizer([test_string], return_tensors="np", truncation=True)
     ov_tokenized = ov_tokenizer(packed_strings)
 
     for output_name, hf_result in hf_tokenized.items():
@@ -410,7 +410,7 @@ def test_bpe_detokenizer(
 def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
     hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
 
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np")
+    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True)
     ov_tokenized = ov_tokenizer(pack_strings([test_string]))
 
     for output_name, hf_result in hf_tokenized.items():

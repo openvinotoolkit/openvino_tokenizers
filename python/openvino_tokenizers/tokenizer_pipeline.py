@@ -2,6 +2,7 @@
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 import weakref
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
@@ -25,6 +26,10 @@ from .constants import (
     TOKENIZER_NAME,
 )
 from .str_pack import pack_string, pack_strings
+from .utils import has_incompatible_re2_op
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -98,6 +103,15 @@ class RegexNormalizationStep(NormalizationStep):
     regex_search_pattern: str
     replace_term: str
 
+    def __post_init__(self):
+        self.vet_search_pattern()
+
+    def vet_search_pattern(self) -> None:
+        if has_incompatible_re2_op(self.regex_search_pattern):
+            logger.warning(
+                "RegexNormalization pattern is not supported, operation output might differ from the original tokenizer."
+            )
+
     @classmethod
     def strip_accents_regex(cls) -> "RegexNormalizationStep":
         return cls(regex_search_pattern=r"\p{Mn}", replace_term="")
@@ -167,6 +181,20 @@ class RegexSplitStep(PreTokenizatinStep):
     split_pattern: str
     invert: bool = False
     behaviour: str = "remove"
+
+    def __post_init__(self):
+        self.vet_split_pattern()
+
+    def vet_split_pattern(self) -> None:
+        if r"(?!\S)" in self.split_pattern:
+            #  rewrite regex pattern to get results closer to qwen.cpp results
+            logger.warning(r"Replace `(?!\S)` pattern to `(?:$|[^\S])` in RegexSplit operation")
+            self.split_pattern = self.split_pattern.replace(r"(?!\S)", r"(?:$|[^\S])")
+
+        if has_incompatible_re2_op(self.split_pattern):
+            logger.warning(
+                "RegexSplit pattern is not supported, operation output might differ from the original tokenizer."
+            )
 
     @classmethod
     def bert_whitespace_splitter(cls) -> "RegexSplitStep":
@@ -480,6 +508,7 @@ class SpecialTokenWithId:
     @property
     def token_id(self) -> Optional[int]:
         return self._token_id
+
 
 @dataclass
 class TokenWithTypeId:
