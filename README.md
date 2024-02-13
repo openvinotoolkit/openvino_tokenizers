@@ -1,5 +1,8 @@
 # OpenVINO Tokenizers
 
+>Note
+This project is not for production use.
+
 OpenVINO Tokenizers adds text processing operations to OpenVINO.
 
 ## Features
