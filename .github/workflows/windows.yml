@@ -38,7 +38,7 @@ jobs:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
           submodules: 'true'
-          ref: 'master'
+          ref: 'releases/2023/3'
 
       #
       # Dependencies
@@ -165,7 +165,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: 'master'
+          ref: 'releases/2023/3'
           sparse-checkout: |
             install_build_dependencies.sh
 
