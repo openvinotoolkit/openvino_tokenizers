@@ -19,7 +19,6 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
 
 jobs:
   sdl_tests:
@@ -29,6 +28,9 @@ jobs:
       run:
         shell: bash
     runs-on: ubuntu-latest
+
+    env:
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
@@ -54,6 +56,10 @@ jobs:
   trivy_scan:
     name: tryvi_tests
     runs-on: ubuntu-latest
+
+    env:
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
+
     steps:
       - name: Clone Openvino tokenizers sources
         uses: actions/checkout@v4
