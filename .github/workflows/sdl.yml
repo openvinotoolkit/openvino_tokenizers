@@ -1,4 +1,4 @@
-name: SDL
+name: OpenVINO tokenizers sdl tests
 on:
   workflow_dispatch:
   pull_request:
@@ -22,7 +22,7 @@ env:
 
 jobs:
   sdl_tests:
-    name: OpenVINO tokenizers sdl tests
+    name: bandit_tests
     timeout-minutes: 5
     defaults:
       run:
@@ -54,7 +54,7 @@ jobs:
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
   trivy_scan:
-    name: code_scanning
+    name: tryvi_tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -66,24 +66,3 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
 
-      # - name: Run Trivy vulnerability scanner in repo mode
-      #   uses: aquasecurity/trivy-action@master
-      #   with:
-      #     scan-type: 'fs'
-      #     ignore-unfixed: true
-      #     format: 'sarif'
-      #     output: 'trivy-results.sarif'
-      #     severity: 'CRITICAL'
-
-      # - name: Upload Trivy scan results to GitHub Security tab
-      #   uses: github/codeql-action/upload-sarif@v3
-      #   with:
-      #     sarif_file: 'trivy-results.sarif'
-
-      # - name: Upload Trivy scan results
-      #   if: ${{ always() }}
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: trivy_results
-      #     path: 'trivy-results.sarif'
-      #     if-no-files-found: 'error'
