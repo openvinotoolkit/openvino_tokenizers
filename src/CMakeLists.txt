@@ -141,11 +141,7 @@ else()
                         "Please, use -DBUILD_FAST_TOKENIZERS=ON cmake option to enable build from soures")
   endif()
 
-  FetchContent_GetProperties(fast_tokenizer)
-  if(NOT fast_tokenizer_POPULATED)
-    FetchContent_Populate(fast_tokenizer)
-    add_subdirectory(${fast_tokenizer_SOURCE_DIR} ${fast_tokenizer_BINARY_DIR} EXCLUDE_FROM_ALL)
-  endif()
+  FetchContent_MakeAvailable(fast_tokenizer)
 
   # to allow find_library to work with conda-forge env
   set(_old_CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ${CMAKE_FIND_ROOT_PATH_MODE_LIBRARY})
