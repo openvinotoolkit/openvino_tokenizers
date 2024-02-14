@@ -9,20 +9,6 @@ add_library(${TARGET_NAME} SHARED ${SRC})
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
 
-if(rpaths)
-  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "${rpaths}")
-endif()
-
-# Installing the extension module to the root of the package
-install(TARGETS ${TARGET_NAME}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-# cpack configuration
-set(CPACK_PACKAGE_NAME ${TARGET_NAME})
-set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}")
-set(CPACK_SOURCE_GENERATOR "") # not used
-
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
@@ -75,6 +61,7 @@ FetchContent_Declare(
   URL_HASH SHA256=63617eaf56c7a3857597dcd8780461f57dd21381b56a27716ef7d7e02e14ced4
 )
 FetchContent_MakeAvailable(sentencepiece)
+set_property(DIRECTORY ${sentencepiece_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL ON)
 
 if(BUILD_FAST_TOKENIZERS)
   FetchContent_Declare(
@@ -192,8 +179,6 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 # Post build steps to copy core_tokenizers dependencies
 #
 
-set_property(DIRECTORY ${sentencepiece_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL ON)
-
 if(BUILD_FAST_TOKENIZERS)
   install(TARGETS core_tokenizers
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -223,5 +208,19 @@ if(extra_libs)
   endif()
   install(FILES ${extra_libs} DESTINATION ${extra_libs_location})
 endif()
+
+if(rpaths)
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "${rpaths}")
+endif()
+
+# Installing the extension module to the root of the package
+install(TARGETS ${TARGET_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# cpack configuration
+set(CPACK_PACKAGE_NAME ${TARGET_NAME})
+set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}")
+set(CPACK_SOURCE_GENERATOR "") # not used
 
 include (CPack)

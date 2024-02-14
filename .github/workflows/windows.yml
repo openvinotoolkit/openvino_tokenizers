@@ -32,6 +32,9 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}\\openvino\\build
 
     steps:
+      - name: git configuration
+        run: git config --system core.longpaths true
+
       - name: Clone OpenVINO
         uses: actions/checkout@v4
         with:
