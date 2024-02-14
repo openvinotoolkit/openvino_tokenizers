@@ -215,8 +215,8 @@ endif()
 
 # Installing the extension module to the root of the package
 install(TARGETS ${TARGET_NAME}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT tokenizers
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT tokenizers)
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # cpack configuration
 set(CPACK_PACKAGE_NAME ${TARGET_NAME})
