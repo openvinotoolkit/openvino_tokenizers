@@ -142,7 +142,7 @@ else()
   endif()
 
   FetchContent_GetProperties(fast_tokenizer)
-  if(NOT re2_POPULATED)
+  if(NOT fast_tokenizer_POPULATED)
     FetchContent_Populate(fast_tokenizer)
     add_subdirectory(${fast_tokenizer_SOURCE_DIR} ${fast_tokenizer_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
