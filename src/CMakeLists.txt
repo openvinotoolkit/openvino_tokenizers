@@ -60,8 +60,12 @@ FetchContent_Declare(
   URL      https://github.com/google/sentencepiece/archive/refs/tags/v0.1.99.tar.gz
   URL_HASH SHA256=63617eaf56c7a3857597dcd8780461f57dd21381b56a27716ef7d7e02e14ced4
 )
-FetchContent_MakeAvailable(sentencepiece)
-set_property(DIRECTORY ${sentencepiece_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL ON)
+FetchContent_GetProperties(sentencepiece)
+if(NOT sentencepiece_POPULATED)
+  FetchContent_Populate(sentencepiece)
+  add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
 
 if(BUILD_FAST_TOKENIZERS)
   FetchContent_Declare(
@@ -102,8 +106,11 @@ else()
         URL      https://github.com/google/re2/archive/refs/tags/2022-04-01.tar.gz
         URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
       )
-      FetchContent_MakeAvailable(re2)
-      set_property(DIRECTORY ${re2_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL ON)
+      FetchContent_GetProperties(re2)
+      if(NOT re2_POPULATED)
+        FetchContent_Populate(re2)
+        add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
+      endif()
   elseif(LINUX AND X86_64)
       FetchContent_Declare(
         fast_tokenizer
@@ -134,7 +141,12 @@ else()
                         "Please, use -DBUILD_FAST_TOKENIZERS=ON cmake option to enable build from soures")
   endif()
 
-  FetchContent_MakeAvailable(fast_tokenizer)
+  FetchContent_GetProperties(fast_tokenizer)
+  if(NOT re2_POPULATED)
+    FetchContent_Populate(fast_tokenizer)
+    add_subdirectory(${fast_tokenizer_SOURCE_DIR} ${fast_tokenizer_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
+
   # to allow find_library to work with conda-forge env
   set(_old_CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ${CMAKE_FIND_ROOT_PATH_MODE_LIBRARY})
   set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER)
