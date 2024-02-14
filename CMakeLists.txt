@@ -15,6 +15,10 @@ if(NOT OpenVINODeveloperPackage_FOUND)
     find_package(OpenVINO REQUIRED COMPONENTS Runtime)
 endif()
 
+set_target_properties(openvino::runtime PROPERTIES
+  MAP_IMPORTED_CONFIG_MINSIZEREL Release
+  MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release)
+
 # set the project version using OpenVINO major, minor and patch versions
 set(CMAKE_PROJECT_VERSION_TWEAK 0)
 set(CMAKE_PROJECT_VERSION "${OpenVINO_VERSION}.${CMAKE_PROJECT_VERSION_TWEAK}")
