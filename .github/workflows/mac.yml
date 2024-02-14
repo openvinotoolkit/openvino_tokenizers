@@ -39,7 +39,7 @@ jobs:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
           submodules: 'true'
-          ref: 'master'
+          ref: 'releases/2023/3'
 
       #
       # Dependencies
@@ -58,6 +58,7 @@ jobs:
         run: |
           # For Python API: build and wheel packaging
           python3 -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
+          python3 -m pip install -r ${OPENVINO_REPO}/src/bindings/python/src/compatibility/openvino/requirements-dev.txt
 
       #
       # Build
@@ -98,6 +99,8 @@ jobs:
             -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DENABLE_PYTHON=ON \
+            -DENABLE_WHEEL=ON \
             -S ${OPENVINO_REPO} \
             -B ${BUILD_DIR}
 
@@ -159,7 +162,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: 'master'
+          ref: 'releases/2023/3'
           sparse-checkout: |
             install_build_dependencies.sh
 

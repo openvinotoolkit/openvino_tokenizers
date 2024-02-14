@@ -38,7 +38,7 @@ jobs:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
           submodules: 'true'
-          ref: 'master'
+          ref: 'releases/2023/3'
 
       #
       # Dependencies
@@ -54,6 +54,7 @@ jobs:
         run: |
           # For Python API: build and wheel packaging
           python3 -m pip install -r ${env:OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
+          python3 -m pip install -r ${env:OPENVINO_REPO}/src/bindings/python/src/compatibility/openvino/requirements-dev.txt
 
       - name: Install build dependencies
         run: |
@@ -91,6 +92,7 @@ jobs:
             -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF `
             -DENABLE_STRICT_DEPENDENCIES=OFF `
             -DENABLE_PYTHON=ON `
+            -DENABLE_WHEEL=ON `
             -DENABLE_JS=OFF `
             -DENABLE_SAMPLES=OFF `
             -DENABLE_OV_ONNX_FRONTEND=OFF `
@@ -165,7 +167,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: 'master'
+          ref: 'releases/2023/3'
           sparse-checkout: |
             install_build_dependencies.sh
 
@@ -201,9 +203,10 @@ jobs:
       #
 
       - name: Build tokenizers wheel
+        shell: cmd
         run: |
-          . "${{ env.INSTALL_DIR }}/setupvars.ps1"
-          python3 -m build --wheel --outdir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
+          call "${{ env.INSTALL_DIR }}\\setupvars.bat"
+          python3 -m build --wheel --outdir ${{ env.BUILD_DIR }} ${{ env.OPENVINO_TOKENIZERS_REPO }}
         env:
           CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
           CMAKE_BUILD_PARALLEL_LEVEL: '4'

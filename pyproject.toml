@@ -1,6 +1,6 @@
 [project]
 name = "openvino-tokenizers"
-version = "2024.0.0.0"
+version = "2023.3.0.1"
 description = "Convert tokenizers into OpenVINO models"
 requires-python = ">=3.8"
 readme = {file = "README.md", content-type="text/markdown"}
@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "openvino"
+    "openvino==2023.3.0"
 ]
 
 [project.optional-dependencies]
