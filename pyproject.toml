@@ -77,6 +77,7 @@ subprocess = ["subprocess.Popen", "subprocess.call", "subprocess.check_call", "s
 exclude_dirs = ["tests"]
 
 [tool.scikit-build]
+cmake.version = ">=3.20"
 cmake.build-type = "Release"
 cmake.args = [
     "-DCMAKE_INSTALL_BINDIR=lib",
