@@ -9,20 +9,6 @@ add_library(${TARGET_NAME} SHARED ${SRC})
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
 
-if(rpaths)
-  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "${rpaths}")
-endif()
-
-# Installing the extension module to the root of the package
-install(TARGETS ${TARGET_NAME}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-# cpack configuration
-set(CPACK_PACKAGE_NAME ${TARGET_NAME})
-set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}")
-set(CPACK_SOURCE_GENERATOR "") # not used
-
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
@@ -74,7 +60,12 @@ FetchContent_Declare(
   URL      https://github.com/google/sentencepiece/archive/refs/tags/v0.1.99.tar.gz
   URL_HASH SHA256=63617eaf56c7a3857597dcd8780461f57dd21381b56a27716ef7d7e02e14ced4
 )
-FetchContent_MakeAvailable(sentencepiece)
+FetchContent_GetProperties(sentencepiece)
+if(NOT sentencepiece_POPULATED)
+  FetchContent_Populate(sentencepiece)
+  add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
 
 if(BUILD_FAST_TOKENIZERS)
   FetchContent_Declare(
@@ -115,8 +106,11 @@ else()
         URL      https://github.com/google/re2/archive/refs/tags/2022-04-01.tar.gz
         URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
       )
-      FetchContent_MakeAvailable(re2)
-      set_property(DIRECTORY ${re2_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL ON)
+      FetchContent_GetProperties(re2)
+      if(NOT re2_POPULATED)
+        FetchContent_Populate(re2)
+        add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
+      endif()
   elseif(LINUX AND X86_64)
       FetchContent_Declare(
         fast_tokenizer
@@ -148,6 +142,7 @@ else()
   endif()
 
   FetchContent_MakeAvailable(fast_tokenizer)
+
   # to allow find_library to work with conda-forge env
   set(_old_CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ${CMAKE_FIND_ROOT_PATH_MODE_LIBRARY})
   set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER)
@@ -192,8 +187,6 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 # Post build steps to copy core_tokenizers dependencies
 #
 
-set_property(DIRECTORY ${sentencepiece_SOURCE_DIR} PROPERTY EXCLUDE_FROM_ALL ON)
-
 if(BUILD_FAST_TOKENIZERS)
   install(TARGETS core_tokenizers
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -223,5 +216,19 @@ if(extra_libs)
   endif()
   install(FILES ${extra_libs} DESTINATION ${extra_libs_location})
 endif()
+
+if(rpaths)
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "${rpaths}")
+endif()
+
+# Installing the extension module to the root of the package
+install(TARGETS ${TARGET_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# cpack configuration
+set(CPACK_PACKAGE_NAME ${TARGET_NAME})
+set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}")
+set(CPACK_SOURCE_GENERATOR "") # not used
 
 include (CPack)
