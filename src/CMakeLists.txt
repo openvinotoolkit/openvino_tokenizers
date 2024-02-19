@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-set(TARGET_NAME "openvino_tokenizers")
+set(TARGET_NAME "user_ov_extensions")
 
 FILE(GLOB SRC *.cpp)
 add_library(${TARGET_NAME} SHARED ${SRC})
