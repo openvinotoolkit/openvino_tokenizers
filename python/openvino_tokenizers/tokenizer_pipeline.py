@@ -101,7 +101,7 @@ class CaseFoldStep(NormalizationStep):
     def __post_init__(self):
         if self.encoding not in ["", "utf-8"]:
             raise ValueError(
-                f"[ CaseFoldStep ] `encoding` attribute must be one of ['', 'utf-8'], got {self.encoding:r}"
+                f"[ CaseFoldStep ] `encoding` attribute must be one of ['', 'utf-8'], got {self.encoding!r}."
             )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
