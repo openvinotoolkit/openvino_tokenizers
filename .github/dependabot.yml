@@ -1,0 +1,45 @@
+# See help here: https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/enabling-and-disabling-version-updates
+
+version: 2
+updates:
+  #
+  # Python dependencies
+  #
+  - package-ecosystem: pip
+    directory: "/python"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Europe/Dublin"
+    open-pull-requests-limit: 3
+    assignees:
+      - "apaniukov"
+    versioning-strategy: increase-if-necessary
+  #
+  # Tests
+  #
+  - package-ecosystem: pip
+    directory: "/tests"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Europe/Dublin"
+    open-pull-requests-limit: 3
+    assignees:
+      - "apaniukov"
+      - "mryzhov"
+    versioning-strategy: increase-if-necessary
+  #
+  # Github actions - CI
+  #
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Europe/Dublin"
+    assignees:
+      - "apaniukov"
+      - "mryzhov"
+      - "ilya-lavrenov"
+    open-pull-requests-limit: 3
