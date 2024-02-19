@@ -72,7 +72,7 @@ misc_strings = [
 
 wordpiece_models = [
     "bert-base-multilingual-cased",
-    "bert-large-cased",
+    "bert-base-uncased",
     "cointegrated/rubert-tiny2",
     "distilbert-base-uncased-finetuned-sst-2-english",
     "sentence-transformers/all-MiniLM-L6-v2",
