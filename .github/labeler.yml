@@ -1,21 +1,30 @@
-'category: CI':
-- '.github/**/*'
-- 'Jenkinsfile'
+CI:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: ['.github/**/*', 'Jenkinsfile']
 
-'category: tokenizers_cpp':
-- 'src/**/*'
+tokenizers_cpp:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: 'src/**/*'
 
-'category: tokenizers_py':
-- 'python/**/*'
+tokenizers_py:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: 'python/**/*'
 
-'category: tokenizers_test':
-- 'tests/**/*'
+tokenizers_test:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: 'tests/**/*'
 
-'category: build':
-- '**/CMakeLists.txt'
-- '**/*.toml'
-- '**/*.cmake'
+build:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: ['**/CMakeLists.txt', '**/*.toml', '**/*.cmake']
 
-'dependencies':
-- '**/requirement*.txt'
-- any: ['!**/CMakeLists.txt']
+dependencies:
+- all:
+  - changed-files:
+    - any-glob-to-any-file: '**/requirement*.txt'
+    - all-globs-to-all-files: '!**/CMakeLists.txt'
