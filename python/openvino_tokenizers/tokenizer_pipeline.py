@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
+
 import logging
 import weakref
 from dataclasses import dataclass, field
@@ -112,6 +113,7 @@ class CaseFoldStep(NormalizationStep):
 class RegexNormalizationStep(NormalizationStep):
     regex_search_pattern: str
     replace_term: str
+    global_replace: bool = True
 
     def __post_init__(self):
         self.vet_search_pattern()
@@ -152,7 +154,10 @@ class RegexNormalizationStep(NormalizationStep):
                 self.create_string_constant_node(self.replace_term),
             )
         )
-        return _get_factory().create("RegexNormalization", input_nodes).outputs()
+        print(self.global_replace)
+        return (
+            _get_factory().create("RegexNormalization", input_nodes, {"global_replace": self.global_replace}).outputs()
+        )
 
 
 @dataclass
