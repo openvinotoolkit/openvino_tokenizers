@@ -12,7 +12,7 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-    - name: CloneLabeler configuration
+    - name: Clone Labeler configuration
       uses: actions/checkout@v4
       with:
         sparse-checkout: ${{ env.LABELER_CONFIG }}
