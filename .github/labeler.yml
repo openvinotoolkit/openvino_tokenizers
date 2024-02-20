@@ -2,7 +2,7 @@ CI:
 - any:
   - changed-files:
     - any-glob-to-any-file:
-      - '.github/**/*
+      - '.github/**/*'
       - 'Jenkinsfile'
 
 tokenizers_cpp:
@@ -29,7 +29,7 @@ build:
       - '**/*.cmake'
 
 dependencies:
-- any:
+- all:
   - changed-files:
     - any-glob-to-any-file: '**/requirement*.txt'
     - all-globs-to-all-files: '!**/CMakeLists.txt'
