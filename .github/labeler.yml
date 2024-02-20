@@ -13,7 +13,7 @@ tokenizers_py:
   - changed-files:
     - any-glob-to-any-file: 'python/**/*'
 
-tokenizers_test:
+tokenizers_tests:
 - any:
   - changed-files:
     - any-glob-to-any-file: 'tests/**/*'
