@@ -12,17 +12,21 @@ public:
 
     CaseFold () = default;
 
-    CaseFold (const ov::OutputVector& arguments) : ov::op::Op(arguments) {
+    CaseFold (
+        const ov::OutputVector& arguments,
+        const std::string& encoding = "utf-8"
+    ) : ov::op::Op(arguments), m_encoding(encoding) {
         constructor_validate_and_infer_types();
     }
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<CaseFold >(inputs);
+        return std::make_shared<CaseFold>(inputs, m_encoding);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
+        visitor.on_attribute("encoding", m_encoding);
         return true;
     }
 
@@ -31,4 +35,7 @@ public:
     bool has_evaluate() const override {
         return true;
     }
+
+private:
+    std::string m_encoding = "utf-8";
 };

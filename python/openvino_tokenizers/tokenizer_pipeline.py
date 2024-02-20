@@ -95,8 +95,17 @@ class NormalizeUnicode(NormalizationStep):
 
 @dataclass
 class CaseFoldStep(NormalizationStep):
+    #  attribute from tf.StringLower operation
+    encoding: str = "utf-8"
+
+    def __post_init__(self):
+        if self.encoding not in ["", "utf-8"]:
+            raise ValueError(
+                f"[ CaseFoldStep ] `encoding` attribute must be one of ['', 'utf-8'], got {self.encoding!r}."
+            )
+
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return _get_factory().create("CaseFold", input_nodes).outputs()
+        return _get_factory().create("CaseFold", input_nodes, {"encoding": self.encoding}).outputs()
 
 
 @dataclass
