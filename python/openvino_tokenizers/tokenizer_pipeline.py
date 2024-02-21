@@ -154,7 +154,6 @@ class RegexNormalizationStep(NormalizationStep):
                 self.create_string_constant_node(self.replace_term),
             )
         )
-        print(self.global_replace)
         return (
             _get_factory().create("RegexNormalization", input_nodes, {"global_replace": self.global_replace}).outputs()
         )
@@ -196,9 +195,16 @@ class RegexSplitStep(PreTokenizatinStep):
     split_pattern: str
     invert: bool = False
     behaviour: str = "remove"
+    max_splits: int = -1
 
     def __post_init__(self):
         self.vet_split_pattern()
+
+        if self.max_splits <= 0 and self.max_splits != -1:
+            raise ValueError(
+                "RegexSplitStep max_splits attribute must be greater then `0` or equal to `-1`, "
+                f"got `{self.max_splits}`"
+            )
 
     def vet_split_pattern(self) -> None:
         if r"(?!\S)" in self.split_pattern:
@@ -290,6 +296,7 @@ class RegexSplitStep(PreTokenizatinStep):
                 {
                     "behaviour": self.behaviour.lower(),
                     "invert": self.invert,
+                    "max_splits": self.max_splits,
                 },
             )
             .outputs()
