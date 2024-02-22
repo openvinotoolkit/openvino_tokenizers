@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
+
 import logging
 import weakref
 from dataclasses import dataclass, field
@@ -112,6 +113,7 @@ class CaseFoldStep(NormalizationStep):
 class RegexNormalizationStep(NormalizationStep):
     regex_search_pattern: str
     replace_term: str
+    global_replace: bool = True
 
     def __post_init__(self):
         self.vet_search_pattern()
@@ -152,7 +154,9 @@ class RegexNormalizationStep(NormalizationStep):
                 self.create_string_constant_node(self.replace_term),
             )
         )
-        return _get_factory().create("RegexNormalization", input_nodes).outputs()
+        return (
+            _get_factory().create("RegexNormalization", input_nodes, {"global_replace": self.global_replace}).outputs()
+        )
 
 
 @dataclass
@@ -191,9 +195,16 @@ class RegexSplitStep(PreTokenizatinStep):
     split_pattern: str
     invert: bool = False
     behaviour: str = "remove"
+    max_splits: int = -1
 
     def __post_init__(self):
         self.vet_split_pattern()
+
+        if self.max_splits <= 0 and self.max_splits != -1:
+            raise ValueError(
+                "RegexSplitStep max_splits attribute must be greater then `0` or equal to `-1`, "
+                f"got `{self.max_splits}`"
+            )
 
     def vet_split_pattern(self) -> None:
         if r"(?!\S)" in self.split_pattern:
@@ -285,6 +296,7 @@ class RegexSplitStep(PreTokenizatinStep):
                 {
                     "behaviour": self.behaviour.lower(),
                     "invert": self.invert,
+                    "max_splits": self.max_splits,
                 },
             )
             .outputs()
