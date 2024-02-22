@@ -275,10 +275,6 @@ class RegexSplitStep(PreTokenizatinStep):
         )
 
     @classmethod
-    def add_whitespace_to_the_next_word(cls):
-        return cls(r"\s\S", invert=False, behaviour="merge_with_next")
-
-    @classmethod
     def digits_splitter(cls, behaviour="isolate") -> "RegexSplitStep":
         return cls(
             r"\p{Nd}|\p{Nl}|\p{No}",
@@ -336,6 +332,24 @@ class BytesToCharsStep(PreTokenizatinStep):
 @dataclass
 class TokenizationModelStep(BasePipelineStep):
     pass
+
+
+@dataclass
+class VocabEncoderStep(TokenizationModelStep):
+    vocab: List[str] = field(repr=False)
+    default_value: int
+    vocab_values: Optional[List[int]] = None
+
+    def __post_init__(self) -> None:
+        if self.vocab_values in None:
+            self.vocab_values = list(range(len(self.vocab)))
+
+    def get_vocab_node_outputs(self) -> Optional[List[Output]]:
+        return self.get_pipeline().vocab_node_outputs
+
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        input_nodes.extend(self.get_vocab_node_outputs())
+        return _get_factory().create("VocabEncoder", input_nodes).outputs()
 
 
 @dataclass
