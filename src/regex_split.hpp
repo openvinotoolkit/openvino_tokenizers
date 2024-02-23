@@ -22,18 +22,20 @@ public:
         const ov::OutputVector& arguments,
         const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
         const std::string& behaviour = "remove",
-        bool invert = false
+        bool invert = false,
+        int max_splits = -1
     );
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<RegexSplit>(inputs, m_pretokenizer, m_behaviour, m_invert);
+        return std::make_shared<RegexSplit>(inputs, m_pretokenizer, m_behaviour, m_invert, m_max_splits);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
         visitor.on_attribute("behaviour", m_behaviour);
         visitor.on_attribute("invert", m_invert);
+        visitor.on_attribute("max_splits", m_max_splits);
         return true;
     }
 
@@ -47,4 +49,5 @@ private:
     std::shared_ptr<pretokenizers::SplitPreTokenizer> m_pretokenizer;
     std::string m_behaviour = "remove";
     bool m_invert = false;
+    int m_max_splits = -1;
 };

@@ -38,12 +38,14 @@ RegexSplit::RegexSplit(
     const ov::OutputVector& arguments,
     const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
     const std::string& behaviour,
-    bool invert
+    bool invert,
+    int max_splits
 ) :
     ov::op::Op(arguments),
     m_pretokenizer(pretokenizer),
     m_behaviour(behaviour),
-    m_invert(invert) {
+    m_invert(invert),
+    m_max_splits(max_splits) {
 
     if (m_pretokenizer == nullptr) {
         auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
@@ -60,6 +62,10 @@ void RegexSplit::validate_and_infer_types() {
     check_ragged_string_input(this, 0);
     check_string_scalar_input(this, 5);
     OPENVINO_ASSERT(split_modes.find(m_behaviour) != split_modes.end(), "RegexSplit doesn't support unknown split mode: " + m_behaviour);
+    OPENVINO_ASSERT(
+        m_max_splits == -1 || m_max_splits > 0,
+        "RegexSplit max_splits attribute must be greater then `0` or equal to `-1`, got " + m_max_splits
+    );
     set_ragged_string_output(this, 0, get_input_partial_shape(0));
 }
 
@@ -100,9 +106,13 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
             for (size_t j = 0; j < num_splits; ++j) {
                 auto split = pretokenized.GetSplit(j);
-                const auto& value = split.normalized_.GetStr();
                 auto offset = split.normalized_.GetOrginalOffset();
                 new_begins[ragged_offset] = begins[ragged_col] + offset.first;
+
+                if (m_max_splits == j) {
+                    offset = pretokenized.GetSplit(num_splits - 1).normalized_.GetOrginalOffset();
+                    j = num_splits;
+                };
                 new_ends[ragged_offset++] = begins[ragged_col] + offset.second;
             };
         }
