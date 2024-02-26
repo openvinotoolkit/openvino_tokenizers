@@ -49,6 +49,16 @@ def get_parser() -> ArgumentParser:
         help="Add a detokenizer model to the output",
     )
     parser.add_argument(
+        "--subfolder",
+        required=False,
+        type=str,
+        default="",
+        help=(
+            "Specify in case the tokenizer files are located inside a subfolder of the model repo on huggingface.co. "
+            "Example: `convert_tokenizer SimianLuo/LCM_Dreamshaper_v7 --subfolder tokenizer`"
+        ),
+    )
+    parser.add_argument(
         "--skip-special-tokens",
         "--skip_special_tokens",
         required=False,
@@ -139,7 +149,7 @@ def convert_hf_tokenizer() -> None:
     args = get_parser().parse_args()
 
     print("Loading Huggingface Tokenizer...")
-    hf_tokenizer = AutoTokenizer.from_pretrained(args.name, trust_remote_code=args.trust_remote_code)
+    hf_tokenizer = AutoTokenizer.from_pretrained(args.name, subfolder=args.subfolder, trust_remote_code=args.trust_remote_code)
 
     print("Converting Huggingface Tokenizer to OpenVINO...")
     converted = convert_tokenizer(
