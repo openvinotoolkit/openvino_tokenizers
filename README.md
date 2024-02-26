@@ -76,6 +76,7 @@ After that you can add binary extension in the code with:
 - `core.add_extension("libopenvino_tokenizers.so")` for Linux
 
 and `read`/`compile` converted (de)tokenizers models.
+If you use version `2023.3.0.0`, the binary extension file is called `(lib)user_ov_extension.(dll/dylib/so)`.
 
 ## Usage
 
