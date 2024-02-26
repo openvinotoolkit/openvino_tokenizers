@@ -14,21 +14,64 @@
 
 using namespace ov;
 
-void VocabEncoder::validate_and_infer_types() {
-    check_string_input(this, 1);
-    const auto shape = get_input_partial_shape(0);
-    set_ragged_string_output(this, 0, {shape[0]});
+
+VocabEncoder::VocabEncoder (
+    const ov::OutputVector& arguments,
+    std::shared_ptr<std::map<std::vector<uint8_t>, int>> vocab,
+    int default_value
+) :
+    ov::op::Op(arguments), m_vocab(), m_default_value(default_value) {
+    if (m_vocab == nullptr) {
+        auto packed_vocab_const = as_type_ptr<Constant>(arguments[3].get_node_shared_ptr()->get_input_node_shared_ptr(0));
+        auto packed_vocab_buf = static_cast<const uint8_t*>(packed_vocab_const->get_data_ptr());
+        auto vocab_size = *reinterpret_cast<const int32_t*>(packed_vocab_buf + 0);
+        auto vocab_begins = reinterpret_cast<const int32_t*>(packed_vocab_buf + 4);
+        auto vocab_ends = reinterpret_cast<const int32_t*>(packed_vocab_buf + 4 + 4);
+        auto vocab_chars = packed_vocab_buf + 4 + 4 + 4 * vocab_size;
+
+        auto values_const = as_type_ptr<Constant>(arguments[4].get_node_shared_ptr()->get_input_node_shared_ptr(0));
+        auto values = static_cast<const int32_t*>(packed_vocab_const->get_data_ptr());
+
+        m_vocab = std::make_shared<std::map<std::vector<uint8_t>, int>>();
+
+        for (size_t id = 0; id < vocab_size; ++id) {
+            std::vector<uint8_t> token = std::vector(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
+            (*m_vocab)[token] = values[id];
+        };
+    };
+
+    constructor_validate_and_infer_types();
 }
 
+
+void VocabEncoder::validate_and_infer_types() {
+    // main string input
+    check_string_input(this, 0);
+    // 3 - vocab packed strings keys
+    // vocab values
+    FRONT_END_GENERAL_CHECK(this->get_input_element_type(4) == element::i32, "Expected an i32 tensor for VocabEncode values.");
+    // default value
+    FRONT_END_GENERAL_CHECK(this->get_input_element_type(5) == element::i32, "Expected an i32 scalar for VocabEncode defaule value.");
+    // one data output, reuse ragged dimensions from split
+    this->set_output_type(0, element::i32, get_input_partial_shape(0));
+}
+
+
 bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-//    auto batch_size = inputs[0].get_shape()[0];
-//    auto seq_len    = inputs[0].get_shape()[1];
-//    auto input_data = inputs[0].data<const int32_t>();
-//
-//    auto vocab_begins = inputs[1].data<const int32_t>();
-//    auto vocab_ends   = inputs[2].data<const int32_t>();
-//    auto vocab_chars  = inputs[3].data<const uint8_t>();
-//    auto vocab_size   = inputs[1].get_size();
+    // string inputs
+    auto begins = inputs[0].data<const int32_t>();
+    auto ends   = inputs[1].data<const int32_t>();
+    auto chars  = inputs[2].data<const uint8_t>();
+
+//    auto vocab_begins = inputs[3].data<const int32_t>();
+//    auto vocab_ends   = inputs[4].data<const int32_t>();
+//    auto vocab_chars  = inputs[5].data<const uint8_t>();
+//    auto vocab_size   = inputs[3].get_size();
+
+//    auto vocab_values = inputs[6].data<const int32_t>;
+//    auto default_value = inputs[7].data<const int32_t>;
+
+
 //
 //    std::vector<std::vector<uint8_t>> vocab;
 //    vocab.resize(vocab_size);

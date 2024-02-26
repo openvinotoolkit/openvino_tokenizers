@@ -5,18 +5,27 @@
 #pragma once
 #include <vector>
 #include <openvino/op/op.hpp>
+#include "openvino/opsets/opset13.hpp"
+
+using namespace ov;
+using namespace ov::opset13;
+
 
 class VocabEncoder : public ov::op::Op {
 public:
     OPENVINO_OP("VocabEncoder");
 
     VocabEncoder () = default;
-    VocabEncoder(const ov::OutputVector& arguments);
+    VocabEncoder(
+        const ov::OutputVector& arguments,
+        std::shared_ptr<std::map<std::vector<uint8_t>, int>> vocab,
+        int default_value = -1
+    );
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<VocabEncoder>(inputs);
+        return std::make_shared<VocabEncoder>(inputs, m_vocab, m_default_value);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -30,6 +39,6 @@ public:
         return true;
     }
 private:
-    std::map<const std::string, const int> m_vocab;
+    std::shared_ptr<std::map<std::vector<uint8_t>, int>> m_vocab;
     int m_default_value = -1;
 };
