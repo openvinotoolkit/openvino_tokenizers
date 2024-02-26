@@ -462,7 +462,10 @@ def convert_sentencepiece_model_tokenizer(
             getattr(hf_tokenizer, "truncation_side", "") == "right"
             or getattr(hf_tokenizer, "padding_side", "") == "right"
         )
-    add_bos_token = getattr(hf_tokenizer, "add_bos_token", add_eos_token) or False
+
+    add_bos_token = (
+        getattr(hf_tokenizer, "add_bos_token", add_eos_token) and hf_tokenizer.bos_token_id is not None
+    ) or False
 
     tokenizer_node = _get_factory().create(
         "SentencepieceTokenizer",
