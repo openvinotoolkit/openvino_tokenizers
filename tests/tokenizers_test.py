@@ -119,7 +119,8 @@ sentencepiece_models = [
     # "THUDM/chatglm-6b",  # hf_tokenizer init error
     "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
     "THUDM/chatglm3-6b",
-    # "t5-base",  # no <s> token in the vocab, sentencepiece check error
+    "t5-base",
+    "facebook/musicgen-small",
 ]
 tiktiken_models = [
     "stabilityai/stablelm-2-1_6b",
