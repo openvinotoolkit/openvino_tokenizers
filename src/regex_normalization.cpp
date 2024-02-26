@@ -19,8 +19,13 @@ RegexNormalization::RegexNormalization(const ov::OutputVector& arguments) :
 RegexNormalization::RegexNormalization(
         const ov::OutputVector& arguments,
         const std::shared_ptr<re2::RE2>& search_pattern_re,
-        const absl::string_view replace_pattern
-    ) : ov::op::Op(arguments), m_search_pattern_re(search_pattern_re), m_replace_pattern(replace_pattern) {
+        const absl::string_view replace_pattern,
+        bool global_replace
+    ) : ov::op::Op(arguments),
+        m_search_pattern_re(search_pattern_re),
+        m_replace_pattern(replace_pattern),
+        m_global_replace(global_replace) {
+
         if (m_search_pattern_re == nullptr) {
             auto search_pattern_const = as_type_ptr<Constant>(arguments[3].get_node_shared_ptr());
             auto replace_pattern_const = as_type_ptr<Constant>(arguments[4].get_node_shared_ptr());
@@ -51,7 +56,11 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
                 return str;
 
             std::string result = str;
-            re2::RE2::GlobalReplace(&result, *m_search_pattern_re, m_replace_pattern);
+            if (m_global_replace) {
+                re2::RE2::GlobalReplace(&result, *m_search_pattern_re, m_replace_pattern);
+            } else {
+                re2::RE2::Replace(&result, *m_search_pattern_re, m_replace_pattern);
+            };
             return result;
     });
 }

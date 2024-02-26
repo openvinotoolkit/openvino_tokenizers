@@ -23,7 +23,7 @@ env:
 jobs:
   sdl_tests:
     name: SDL tests
-    timeout-minutes: 5
+    timeout-minutes: 10
     defaults:
       run:
         shell: bash
@@ -52,4 +52,10 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
+
+      - name: Dependency Review
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/dependency-review-action@v4
+        with:
+          config-file: './.github/dependency_review.yml'
 

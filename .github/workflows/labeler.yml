@@ -1,6 +1,9 @@
 name: "Pull Request Labeler"
 on:
-- pull_request_target
+  pull_request_target:
+
+env:
+  LABELER_CONFIG: '.github/labeler.yml'
 
 jobs:
   triage:
@@ -9,8 +12,13 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/labeler@v4
+    - name: Clone Labeler configuration
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: ${{ env.LABELER_CONFIG }}
+
+    - uses: actions/labeler@v5
       with:
         repo-token: "${{ secrets.GITHUB_TOKEN }}"
-        configuration-path: '.github/labeler.yml'
+        configuration-path: ${{ env.LABELER_CONFIG }}
         sync-labels: 'true'

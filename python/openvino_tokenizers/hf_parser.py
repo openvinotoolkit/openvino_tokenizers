@@ -72,7 +72,9 @@ def parse_bert_normalizer(normalizer_dict: Dict[str, Any]) -> List[Normalization
     steps: List[NormalizationStep] = []
 
     if normalizer_dict["clean_text"] is True:
-        steps.append(RegexNormalizationStep.del_control_chars_regex())
+        pass
+        # TODO: this regex is not supported by re2, skip it until broader syntax support
+        # steps.append(RegexNormalizationStep.del_control_chars_regex())
 
     # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L127
     if normalizer_dict.get("strip_accents") or normalizer_dict["lowercase"]:
@@ -308,17 +310,17 @@ class TransformersTokenizerPipelineParser:
         return
 
 
-def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase) -> Dict[int, str]:
+def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> Dict[int, str]:
     # the order matters
-    if getattr(hf_tokenizer, "added_tokens_decoder", False):
+    if hasattr(hf_tokenizer, "added_tokens_decoder"):
         return {
             idx: added_token.content
             for idx, added_token in hf_tokenizer.added_tokens_decoder.items()
-            if added_token.special
+            if not only_special_tokens or added_token.special
         }
-    elif getattr(hf_tokenizer, "tokenizer", False) and getattr(hf_tokenizer.tokenizer, "index_special_tokens", False):
+    elif hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
         return hf_tokenizer.tokenizer.index_special_tokens
-    elif getattr(hf_tokenizer, "special_tokens", False):
+    elif hasattr(hf_tokenizer, "special_tokens"):
         return {idx: token for token, idx in sorted(hf_tokenizer.special_tokens.items(), key=lambda x: x[1])}
 
     return {}
@@ -374,6 +376,7 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
 def modify_sentencepiece_model(
     sp_model_path: Path,
     add_tokens: Dict[int, str],
+    hf_tokenizer: PreTrainedTokenizerBase,
     skip_special_tokens: bool = False,
 ) -> None:
     model_pb = import_protobuf()
@@ -398,7 +401,19 @@ def modify_sentencepiece_model(
             new_piece.type = 4  # change control type to userdef type
 
         if to_add:
+            while len(model.pieces) + 1 <= idx:
+                # to place special token in particular idx we have to extend vocab first
+                missing_piece = deepcopy(new_piece)
+                missing_piece.piece = hf_tokenizer.decode(len(model.pieces)) or f"<empty_{len(model.pieces)}>"
+                missing_piece.type = 4
+                model.pieces.insert(idx, missing_piece)
             model.pieces.insert(idx, new_piece)
+
+    while (idx := len(model.pieces)) < getattr(hf_tokenizer, "vocab_size", len(model.pieces)):
+        new_piece = deepcopy(model.pieces[-1])
+        new_piece.piece = hf_tokenizer.decode(len(model.pieces)) or f"<empty_{len(model.pieces)}>"
+        new_piece.type = 3
+        model.pieces.insert(idx, new_piece)
 
     # change unk token representation from ⁇ to token string
     unk_token = next(piece for piece in model.pieces if piece.type == 2)
@@ -423,10 +438,11 @@ def convert_sentencepiece_model_tokenizer(
         hf_tokenizer.save_pretrained(tmp)
         vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
 
-        add_tokens = parse_special_tokens(hf_tokenizer)
+        add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
         modify_sentencepiece_model(
             sp_model_path=vocab_file,
             add_tokens=add_tokens,
+            hf_tokenizer=hf_tokenizer,
             skip_special_tokens=skip_special_tokens,
         )
 
