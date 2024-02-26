@@ -337,8 +337,8 @@ class TokenizationModelStep(BasePipelineStep):
 @dataclass
 class VocabEncoderStep(TokenizationModelStep):
     vocab: List[str] = field(repr=False)
-    default_value: int
     vocab_values: Optional[List[int]] = None
+    default_value: int = -1
 
     def __post_init__(self) -> None:
         if self.vocab_values in None:
@@ -348,7 +348,16 @@ class VocabEncoderStep(TokenizationModelStep):
         return self.get_pipeline().vocab_node_outputs
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(self.get_vocab_node_outputs())
+        self.create_string_constant_node(self.vocab).outputs()
+        input_nodes.extend(
+            (
+                *self.create_string_constant_node(self.vocab).outputs(),
+                make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
+                make_constant_node(self.default_value, Type.i32)  # default_value
+            )
+        )
+
+        input_nodes.append(make_constant_node(self.default_value, Type.i32))
         return _get_factory().create("VocabEncoder", input_nodes).outputs()
 
 
