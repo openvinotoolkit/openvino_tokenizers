@@ -125,27 +125,15 @@ void override_parameter (std::shared_ptr<ov::Node> node, element::Type type, con
     }
 }
 
-// TODO: replace NodeContext and input_index by a single input
-OutputVector pre_translate_string_tensor_input(ov::Output<ov::Node> input) {
+OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input) {
     auto input_node = input.get_node_shared_ptr();
-
-#if !USE_STRING_TENSORS
-    override_parameter(input_node, element::u8, PartialShape{Dimension()});
-#endif
 
     if (auto struct_pack = std::dynamic_pointer_cast<StringTensorPack>(input_node)) {
         FRONT_END_GENERAL_CHECK(struct_pack->get_input_size() == 3, "Expected 3 inputs to StringTensorPack which represents a string tensor");
         return struct_pack->input_values();
-    } else {
-        #if USE_STRING_TENSORS || true     // always
-        return std::make_shared<StringTensorUnpack>(OutputVector{input}, "begins_ends")->outputs();
-        #else
-        // Suppose this is u8 packed string tensor with a single batch dimension
-        // Unpack this tensor using standard operations
-
-        // Cannot do that because there is not ReinterprectCast operation in OV
-        // TODO: Find a way to make it without reinterpretation operation or introduce it as an extension (easy)
-        #endif
+    }
+    else {
+        return std::make_shared<StringTensorUnpack>(OutputVector{ input }, "begins_ends")->outputs();
     }
 }
 
@@ -220,4 +208,12 @@ std::shared_ptr<Node> string_attribute_to_constant (const ov::frontend::NodeCont
     #else
     return std::make_shared<Constant>(element::u8, Shape{value.length()}, (const void*)value.data());
     #endif
+}
+
+void set_node_name(const std::string& node_name, const std::shared_ptr<Node>& node) {
+    const auto& outputs = node->outputs();
+    node->set_friendly_name(node_name);
+    for (size_t idx = 0; idx < outputs.size(); ++idx) {
+        outputs[idx].get_tensor().add_names({ node_name + ":" + std::to_string(idx) });
+    }
 }
