@@ -137,17 +137,6 @@ OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input
     }
 }
 
-OutputVector unpack_string_tensor(const ov::Output<ov::Node>& input) {
-    auto input_node = input.get_node_shared_ptr();
-
-    if (const auto& struct_pack = std::dynamic_pointer_cast<StringTensorPack>(input_node)) {
-        FRONT_END_GENERAL_CHECK(struct_pack->get_input_size() == 3, "Expected 3 inputs to StringTensorPack which represents a string tensor");
-        return struct_pack->input_values();
-    }
-    else {
-        return std::make_shared<StringTensorUnpack>(OutputVector{ input }, "begins_ends")->outputs();
-    }
-}
 
 OutputVector pre_translate_ragged_tensor_input(ov::Output<ov::Node> input) {
     auto ragged_pack = dynamic_cast<RaggedTensorPack*>(input.get_node());
