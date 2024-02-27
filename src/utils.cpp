@@ -137,7 +137,6 @@ OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input
     }
 }
 
-
 OutputVector pre_translate_ragged_tensor_input(ov::Output<ov::Node> input) {
     auto ragged_pack = dynamic_cast<RaggedTensorPack*>(input.get_node());
     OPENVINO_ASSERT(ragged_pack, "Expected RaggedTensorPack but didn't find it");
