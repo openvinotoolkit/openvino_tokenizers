@@ -68,3 +68,7 @@ bool evaluate_normalization_helper (
     std::function<std::string(const std::string&)> normalizer);
 
 std::shared_ptr<ov::Node> string_attribute_to_constant (const ov::frontend::NodeContext& node, const std::string& name);
+
+void set_node_name(const std::string& node_name, const std::shared_ptr<ov::Node>& node);
+
+ov::OutputVector unpack_string_tensor(const ov::Output<ov::Node>& input);

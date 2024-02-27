@@ -105,11 +105,16 @@ ov::OutputVector translate_normalize_utf8(const ov::frontend::NodeContext& node)
 }
 
 ov::OutputVector translate_static_regex_replace(const ov::frontend::NodeContext& node) {
+    auto node_name = node.get_name();
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 1, "StaticRegexReplace expects only 1 input");
-    ov::OutputVector inputs = pre_translate_string_tensor_input(node.get_input(0));
+    auto replace_global = node.get_attribute<bool>("replace_global", true);
+    FRONT_END_GENERAL_CHECK(replace_global, "StaticRegexReplace is supported only for replace_global equal to true");
+    ov::OutputVector inputs = unpack_string_tensor(node.get_input(0));
     inputs.push_back(string_attribute_to_constant(node, "pattern"));
     inputs.push_back(string_attribute_to_constant(node, "rewrite"));
-    return { post_translate_string_tensor_output(std::make_shared<RegexNormalization>(inputs)->outputs()) };
+    auto string_pack_result = post_translate_string_tensor_output(std::make_shared<RegexNormalization>(inputs)->outputs());
+    set_node_name(node_name, string_pack_result.get_node_shared_ptr());
+    return { string_pack_result };
 }
 
 ov::OutputVector translate_regex_split_with_offsets(const ov::frontend::NodeContext& node) {
@@ -119,7 +124,7 @@ ov::OutputVector translate_regex_split_with_offsets(const ov::frontend::NodeCont
     inputs.push_back(delim_regex_pattern);
     // TODO: Use node.get_input(2) with keep_delim_regex_pattern, most likely it should be handled in another RegexSplit with `isolate` behaviour
     auto outputs = std::make_shared<RegexSplit>(inputs)->outputs();
-    auto flatten_string_tensor = post_translate_string_tensor_output({outputs[2], outputs[3], outputs[4]});
+    auto flatten_string_tensor = post_translate_string_tensor_output({ outputs[2], outputs[3], outputs[4] });
     return { post_translate_ragged_tensor_output({outputs[0], outputs[1], flatten_string_tensor}) };
 }
 
@@ -127,14 +132,14 @@ ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::N
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 2, "WordpieceTokenizeWithOffsets expects 2 inputs");
     ov::OutputVector inputs = pre_translate_ragged_string_tensor_input(node.get_input(0));
 
-    #if USE_STRING_TENSORS
+#if USE_STRING_TENSORS
     // It may seem enough to call pre_translate_string_tensor_input that will override Parameter element
     // type in case if string tensors are not used.
     // But a Parameter is still required to be overridden even if string tensors are used because in TF model
     // it is represented not as a string tensor, but as a resource with hash table for lookup that we cannot interpret
     // and have to replace by 1D string tensor.
-    override_parameter(node.get_input(1).get_node_shared_ptr(), element::string, PartialShape{Dimension()});
-    #endif
+    override_parameter(node.get_input(1).get_node_shared_ptr(), element::string, PartialShape{ Dimension() });
+#endif
 
     auto vocab = pre_translate_string_tensor_input(node.get_input(1));
     inputs.insert(inputs.end(), vocab.begin(), vocab.end());

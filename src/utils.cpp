@@ -149,6 +149,18 @@ OutputVector pre_translate_string_tensor_input(ov::Output<ov::Node> input) {
     }
 }
 
+OutputVector unpack_string_tensor(const ov::Output<ov::Node>& input) {
+    auto input_node = input.get_node_shared_ptr();
+
+    if (const auto& struct_pack = std::dynamic_pointer_cast<StringTensorPack>(input_node)) {
+        FRONT_END_GENERAL_CHECK(struct_pack->get_input_size() == 3, "Expected 3 inputs to StringTensorPack which represents a string tensor");
+        return struct_pack->input_values();
+    }
+    else {
+        return std::make_shared<StringTensorUnpack>(OutputVector{ input }, "begins_ends")->outputs();
+    }
+}
+
 OutputVector pre_translate_ragged_tensor_input(ov::Output<ov::Node> input) {
     auto ragged_pack = dynamic_cast<RaggedTensorPack*>(input.get_node());
     OPENVINO_ASSERT(ragged_pack, "Expected RaggedTensorPack but didn't find it");
@@ -220,4 +232,12 @@ std::shared_ptr<Node> string_attribute_to_constant (const ov::frontend::NodeCont
     #else
     return std::make_shared<Constant>(element::u8, Shape{value.length()}, (const void*)value.data());
     #endif
+}
+
+void set_node_name(const std::string& node_name, const std::shared_ptr<Node>& node) {
+    const auto& outputs = node->outputs();
+    node->set_friendly_name(node_name);
+    for (size_t idx = 0; idx < outputs.size(); ++idx) {
+        outputs[idx].get_tensor().add_names({ node_name + ":" + std::to_string(idx) });
+    }
 }
