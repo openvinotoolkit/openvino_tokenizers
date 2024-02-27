@@ -341,7 +341,7 @@ class VocabEncoderStep(TokenizationModelStep):
     default_value: int = -1
 
     def __post_init__(self) -> None:
-        if self.vocab_values in None:
+        if self.vocab_values is None:
             self.vocab_values = list(range(len(self.vocab)))
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
@@ -353,11 +353,9 @@ class VocabEncoderStep(TokenizationModelStep):
             (
                 *self.create_string_constant_node(self.vocab).outputs(),
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
-                make_constant_node(self.default_value, Type.i32)  # default_value
+                *as_node(self.unk_token_id).outputs()  # default_value
             )
         )
-
-        input_nodes.append(make_constant_node(self.default_value, Type.i32))
         return _get_factory().create("VocabEncoder", input_nodes).outputs()
 
 
