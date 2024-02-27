@@ -353,7 +353,7 @@ class VocabEncoderStep(TokenizationModelStep):
             (
                 *self.create_string_constant_node(self.vocab).outputs(),
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
-                *as_node(self.unk_token_id).outputs()  # default_value
+                make_constant_node(self.default_value, Type.i32)  # default_value
             )
         )
         return _get_factory().create("VocabEncoder", input_nodes).outputs()

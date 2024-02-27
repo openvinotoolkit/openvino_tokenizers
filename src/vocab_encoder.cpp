@@ -20,7 +20,7 @@ VocabEncoder::VocabEncoder (
     std::shared_ptr<std::map<std::vector<uint8_t>, int>> vocab,
     int default_value
 ) :
-    ov::op::Op(arguments), m_vocab(), m_default_value(default_value) {
+    ov::op::Op(arguments), m_vocab(vocab), m_default_value(default_value) {
     if (m_vocab == nullptr) {
         auto packed_vocab_const = as_type_ptr<Constant>(arguments[3].get_node_shared_ptr()->get_input_node_shared_ptr(0));
         auto packed_vocab_buf = static_cast<const uint8_t*>(packed_vocab_const->get_data_ptr());
@@ -34,23 +34,17 @@ VocabEncoder::VocabEncoder (
 
         m_vocab = std::make_shared<std::map<std::vector<uint8_t>, int>>();
 
-        std::cerr << "[ VocabEncoder ] vocab_size: " << vocab_size << "\n";
-
         for (size_t id = 0; id < vocab_size; ++id) {
-            std::cerr << "[ VocabEncoder ] iter: " << id << "\n";
             std::vector<uint8_t> token = std::vector(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
 
             (*m_vocab)[token] = values[id];
 
         };
 
-        std::cerr << "[ VocabEncoder ] After Iter "<< "\n";
         auto default_value_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
-        std::cerr << "[ VocabEncoder ] After Iter Const "<< "\n";
-        auto graph_default_value  = static_cast<const int32_t*>(default_value_const->get_data_ptr());
-        std::cerr << "[ VocabEncoder ] After Iter Cast: " << graph_default_value << "\n";
-        m_default_value = *graph_default_value;
-        std::cerr << "[ VocabEncoder ] After Iter ="<< "\n";
+//        auto graph_default_value  = static_cast<const int32_t*>(default_value_const->get_data_ptr());
+//        std::cerr << "[ VocabEncoder ] After Iter Cast: " << graph_default_value << "\n";
+//        m_default_value = *graph_default_value;
     };
 
     constructor_validate_and_infer_types();
@@ -77,17 +71,13 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
 
-    std::cerr << "[ VocabEncoder ] Arguments1: " << "\n";
-
     const size_t num_elements = inputs[0].get_size();
 
-    std::cerr << "[ VocabEncoder ] num_elements: " << num_elements << "\n";
     // Set output shape
     outputs[0].set_shape({num_elements});
     auto token_ids = outputs[0].data<int32_t>();
 
     for (size_t element_idx = 0; element_idx < num_elements; ++element_idx) {
-        std::cerr << "[ VocabEncoder ] Arguments4: " << "\n";
         auto element = m_vocab->find(std::vector(chars + begins[element_idx], chars + ends[element_idx]));
         if (element == m_vocab->end()) {
             token_ids[element_idx] = m_default_value;
