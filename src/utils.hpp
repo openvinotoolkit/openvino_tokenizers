@@ -52,7 +52,7 @@ void unpack_strings_to_tensors(const std::string* strings, const ov::Shape shape
 
 void override_parameter (std::shared_ptr<ov::Node> node, ov::element::Type type, const ov::PartialShape& shape);
 
-ov::OutputVector pre_translate_string_tensor_input(ov::Output<ov::Node> input);
+ov::OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input);
 
 ov::OutputVector pre_translate_ragged_tensor_input(ov::Output<ov::Node> input);
 
@@ -68,3 +68,5 @@ bool evaluate_normalization_helper (
     std::function<std::string(const std::string&)> normalizer);
 
 std::shared_ptr<ov::Node> string_attribute_to_constant (const ov::frontend::NodeContext& node, const std::string& name);
+
+void set_node_name(const std::string& node_name, const std::shared_ptr<ov::Node>& node);
