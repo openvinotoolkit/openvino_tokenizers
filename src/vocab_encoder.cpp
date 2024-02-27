@@ -29,22 +29,18 @@ VocabEncoder::VocabEncoder (
         auto vocab_ends = reinterpret_cast<const int32_t*>(packed_vocab_buf + 4 + 4);
         auto vocab_chars = packed_vocab_buf + 4 + 4 + 4 * vocab_size;
 
-        auto values_const = as_type_ptr<Constant>(arguments[4].get_node_shared_ptr()->get_input_node_shared_ptr(0));
-        auto values = static_cast<const int32_t*>(packed_vocab_const->get_data_ptr());
+        auto values_const = as_type_ptr<Constant>(arguments[6].get_node_shared_ptr());
+        auto values = static_cast<const int32_t*>(values_const->get_data_ptr());
 
         m_vocab = std::make_shared<std::map<std::vector<uint8_t>, int>>();
-
         for (size_t id = 0; id < vocab_size; ++id) {
             std::vector<uint8_t> token = std::vector(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
-
             (*m_vocab)[token] = values[id];
-
         };
 
-        auto default_value_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
-//        auto graph_default_value  = static_cast<const int32_t*>(default_value_const->get_data_ptr());
-//        std::cerr << "[ VocabEncoder ] After Iter Cast: " << graph_default_value << "\n";
-//        m_default_value = *graph_default_value;
+        auto default_value_const = as_type_ptr<Constant>(arguments[7].get_node_shared_ptr());
+        auto graph_default_value  = static_cast<const int32_t*>(default_value_const->get_data_ptr());
+        m_default_value = *graph_default_value;
     };
 
     constructor_validate_and_infer_types();
@@ -58,6 +54,11 @@ void VocabEncoder::validate_and_infer_types() {
     check_string_input(this, 3);
     // vocab values
     FRONT_END_GENERAL_CHECK(this->get_input_element_type(6) == element::i32, "Expected an i32 tensor for VocabEncode values.");
+    // vocab.size == vocab_values.size when vocab is static
+    FRONT_END_GENERAL_CHECK(
+        this->get_input_partial_shape(3).is_dynamic() || this->get_input_partial_shape(3) == this->get_input_partial_shape(6),
+        "Expected equal number of vocab keys and values."
+    );
     // default value
     FRONT_END_GENERAL_CHECK(this->get_input_element_type(7) == element::i32, "Expected an i32 scalar for VocabEncode default value.");
     // one data output, reuse ragged dimensions from split
