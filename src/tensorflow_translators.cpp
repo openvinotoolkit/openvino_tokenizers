@@ -151,3 +151,13 @@ ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::N
     );
     return { post_translate_ragged_tensor_output(wp_tokenizer->outputs()) };
 }
+
+ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 1, "StringLower expects only 1 input");
+    auto encoding = node.get_attribute<std::string>("encoding", "");
+    ov::OutputVector inputs = pre_translate_string_tensor_input(node.get_input(0));
+    auto string_lower_result = post_translate_string_tensor_output(std::make_shared<CaseFold>(inputs, encoding)->outputs());
+    set_node_name(node_name, string_lower_result.get_node_shared_ptr());
+    return { string_lower_result };
+}
