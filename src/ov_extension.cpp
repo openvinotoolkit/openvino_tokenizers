@@ -36,6 +36,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceStreamDetokenizer>>(),
             std::make_shared<ov::frontend::ConversionExtension>("SentencepieceOp", translate_sentencepiece_op),
             std::make_shared<ov::frontend::ConversionExtension>("RaggedTensorToSparse", translate_sentencepiece_tokenizer),
+            std::make_shared<ov::frontend::ConversionExtension>("StringLower", translate_string_lower),
     }));
 //! [ov_extension:entry_point]
 // clang-format on
