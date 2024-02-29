@@ -170,7 +170,7 @@ file(GLOB SRC *.cpp)
 add_library(${TARGET_NAME} SHARED ${SRC})
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
-target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
+target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::frontend::tensorflow)
 
 #
 # Target include dirs, link libraries and other properties

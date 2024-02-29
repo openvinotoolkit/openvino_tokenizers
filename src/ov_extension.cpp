@@ -5,6 +5,7 @@
 #include <openvino/core/extension.hpp>
 #include <openvino/core/op_extension.hpp>
 #include <openvino/frontend/extension.hpp>
+#include <openvino/frontend/tensorflow/extension/conversion.hpp>
 
 #include "tokenizer.hpp"
 
@@ -16,15 +17,10 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<RaggedTensorPack>>(),
             std::make_shared<ov::OpExtension<StringTensorUnpack>>(),
             std::make_shared<ov::OpExtension<CaseFold>>(),
-            std::make_shared<ov::frontend::ConversionExtension>("CaseFoldUTF8", translate_case_fold_utf8),
             std::make_shared<ov::OpExtension<NormalizeUnicode>>(),
-            std::make_shared<ov::frontend::ConversionExtension>("NormalizeUTF8", translate_normalize_utf8),
             std::make_shared<ov::OpExtension<RegexNormalization>>(),
-            std::make_shared<ov::frontend::ConversionExtension>("StaticRegexReplace", translate_static_regex_replace),
             std::make_shared<ov::OpExtension<RegexSplit>>(),
-            std::make_shared<ov::frontend::ConversionExtension>("RegexSplitWithOffsets", translate_regex_split_with_offsets),
             std::make_shared<ov::OpExtension<WordpieceTokenizer>>(),
-            std::make_shared<ov::frontend::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),
             std::make_shared<ov::OpExtension<BPETokenizer>>(),
             std::make_shared<ov::OpExtension<BytesToChars>>(),
             std::make_shared<ov::OpExtension<CombineSegments>>(),
@@ -34,9 +30,16 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceTokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceDetokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceStreamDetokenizer>>(),
-            std::make_shared<ov::frontend::ConversionExtension>("SentencepieceOp", translate_sentencepiece_op),
-            std::make_shared<ov::frontend::ConversionExtension>("RaggedTensorToSparse", translate_sentencepiece_tokenizer),
-            std::make_shared<ov::frontend::ConversionExtension>("StringLower", translate_string_lower),
-    }));
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RegexSplitWithOffsets", translate_regex_split_with_offsets),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("NormalizeUTF8", translate_normalize_utf8),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("CaseFoldUTF8", translate_case_fold_utf8),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("SentencepieceOp", translate_sentencepiece_op),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RaggedTensorToSparse", translate_sentencepiece_tokenizer),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StringLower", translate_string_lower),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StaticRegexReplace", translate_static_regex_replace),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFind", translate_lookup_table_find_op),
+            std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFindV2", translate_lookup_table_find_op),
+}));
 //! [ov_extension:entry_point]
 // clang-format on
