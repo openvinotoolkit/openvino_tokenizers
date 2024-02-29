@@ -17,8 +17,9 @@
 #include "wordpiece_tokenizer.hpp"
 #include "bpe_tokenizer.hpp"
 #include "ragged_to_dense.hpp"
-#include "vocab_encoder.hpp"
+#include "ragged_to_sparse.hpp"
 #include "vocab_decoder.hpp"
+#include "vocab_encoder.hpp"
 #include "chars_to_bytes.hpp"
 
 #include "tensorflow_translators.hpp"
