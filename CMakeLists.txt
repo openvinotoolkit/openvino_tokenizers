@@ -8,7 +8,7 @@ project(openvino_tokenizers)
 
 include(cmake/platforms.cmake)
 
-find_package(OpenVINO REQUIRED COMPONENTS Runtime)
+find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow)
 
 # set the project version using OpenVINO major, minor and patch versions
 set(CMAKE_PROJECT_VERSION_TWEAK 0)
