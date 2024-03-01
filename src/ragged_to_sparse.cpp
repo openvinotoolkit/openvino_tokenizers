@@ -16,9 +16,9 @@ void RaggedToSparse::validate_and_infer_types() {
     auto starts_type = this->get_input_element_type(0);
     auto ends_type = this->get_input_element_type(1);
 
-    FRONT_END_GENERAL_CHECK(starts_type == element::i64, "Expected an i64 starts tensor ragged representation.");
-    FRONT_END_GENERAL_CHECK(ends_type == element::i64, "Expected an i64 starts tensor ragged representation.");
-    FRONT_END_GENERAL_CHECK(starts_type == ends_type, "starts and ends tensors should be the same type.");
+    OPENVINO_ASSERT(starts_type == element::i32, "Expected an i32 starts tensor ragged representation.");
+    OPENVINO_ASSERT(ends_type == element::i32, "Expected an i32 starts tensor ragged representation.");
+    OPENVINO_ASSERT(get_input_partial_shape(0) == get_input_partial_shape(1), "starts and ends tensors should be the same shape.");
 
     set_output_type(0, get_input_element_type(0), PartialShape({Dimension::dynamic(), 2}));
 }
@@ -28,17 +28,16 @@ bool RaggedToSparse::evaluate(ov::TensorVector& outputs, const ov::TensorVector&
     auto begins = inputs[0].data<const int32_t>();
     auto ends   = inputs[1].data<const int32_t>();
 
-    auto last_element_index = inputs[1].get_size();
+    auto last_element_index = inputs[1].get_size() - 1;
     outputs[0].set_shape({ends[last_element_index] - begins[0], 2});
 
-    auto batch_size = inputs[0].get_size()
+    auto batch_size = inputs[0].get_size();
 
-    auto output = outputs[0].data<const int32_t>();
-
+    auto output = outputs[0].data<int32_t>();
     size_t current_idx = 0;
     for (size_t i = 0; i < batch_size; ++i) {
         auto num_elements = ends[i] - begins[i];
-        for (size_t j = 0; j < num_elements) {
+        for (size_t j = 0; j < num_elements; ++j) {
             output[current_idx++] = i;
             output[current_idx++] = j;
         };
