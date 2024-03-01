@@ -7,11 +7,11 @@
 #include "normalizer.h" // for absl::string_view
 
 #include <openvino/op/op.hpp>
-#include "openvino/opsets/opset10.hpp"
+#include "openvino/opsets/opset13.hpp"
 #include "fast_tokenizer/normalizers/normalizers.h"
 
 using namespace ov;
-using namespace ov::opset10;
+using namespace ov::opset13;
 
 class RegexNormalization : public ov::op::Op {
 public:

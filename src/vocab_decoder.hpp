@@ -15,8 +15,7 @@ public:
         const ov::OutputVector& arguments,
         std::vector<int> skip_tokens
     ) :
-        ov::op::Op(arguments) {
-        m_skip_tokens = skip_tokens;
+        ov::op::Op(arguments), m_skip_tokens(skip_tokens) {
         constructor_validate_and_infer_types();
     }
 
