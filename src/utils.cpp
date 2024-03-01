@@ -3,7 +3,7 @@
 //
 
 #include "openvino/op/util/framework_node.hpp"
-#include "openvino/opsets/opset10.hpp"
+#include "openvino/opsets/opset13.hpp"
 #include "utils.hpp"
 #include "string_tensor_pack.hpp"
 #include "string_tensor_unpack.hpp"
@@ -11,7 +11,7 @@
 
 using namespace ov;
 using namespace ov::frontend;
-using namespace ov::opset10;
+using namespace ov::opset13;
 
 void parse_packed_strings (const Tensor& packed, int32_t& batch_size, const int32_t*& begin_ids, const int32_t*& end_ids, const uint8_t*& symbols) {
     auto strings = packed.data<const uint8_t>();

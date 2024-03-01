@@ -30,16 +30,8 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto vocab_chars  = inputs[3].data<const uint8_t>();
     auto vocab_size   = inputs[1].get_size();
 
-    std::vector<std::vector<uint8_t>> vocab;
-    vocab.resize(vocab_size);
-
-    std::vector<uint8_t> empty = {};
-
     OPENVINO_ASSERT(inputs.size() == 4, "Too few inputs passed to VocabDecoder, it means it is not converted properly or it is not used in the supported pattern");
 
-    for(size_t id = 0; id < vocab_size; ++id) {
-        vocab[id] = std::vector<uint8_t>(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
-    }
     // Set output shapes
     outputs[0].set_shape({batch_size});
     outputs[1].set_shape({batch_size});
@@ -62,17 +54,20 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
         for(size_t seq = new_ragged_begins[batch]; seq < new_ragged_ends[batch]; ++seq) {
             auto token_id = input_data[seq];
-            std::vector<uint8_t> token;
-            if (std::find(m_skip_tokens.begin(), m_skip_tokens.end(), token_id) == m_skip_tokens.end()) {
-                token = vocab[token_id];
-            } else {
-                token = empty;
+            int token_size = 0;
+            if (token_id >= vocab_size) {
+                OPENVINO_THROW("Token id is greater then vocabulary size.");
+            } else if (std::find(m_skip_tokens.begin(), m_skip_tokens.end(), token_id) == m_skip_tokens.end()) {
+                std::copy(
+                    vocab_chars + vocab_begins[token_id],
+                    vocab_chars + vocab_ends[token_id],
+                    &new_chars[char_offset]
+                );
+                token_size = vocab_ends[token_id] - vocab_begins[token_id];
             }
 
-            std::copy(token.begin(), token.end(), &new_chars[char_offset]);
-
             new_begins[seq] = char_offset;
-            char_offset += token.size();
+            char_offset += token_size;
             new_ends[seq] = char_offset;
         }
     }

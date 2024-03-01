@@ -5,7 +5,7 @@
 #include "openvino/frontend/tensorflow/hash_table.hpp"
 
 #include "openvino/op/util/framework_node.hpp"
-#include "openvino/opsets/opset10.hpp"
+#include "openvino/opsets/opset13.hpp"
 
 #include "tensorflow_translators.hpp"
 #include "utils.hpp"
@@ -23,7 +23,7 @@
 using namespace TemplateExtension;
 using namespace ov;
 using namespace ov::frontend;
-using namespace ov::opset10;
+using namespace ov::opset13;
 
 namespace {
     template<typename T>

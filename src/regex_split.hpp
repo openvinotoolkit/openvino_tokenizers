@@ -5,7 +5,7 @@
 #pragma once
 
 #include <openvino/op/op.hpp>
-#include "openvino/opsets/opset10.hpp"
+#include "openvino/opsets/opset13.hpp"
 #include "fast_tokenizer/pretokenizers/pretokenizers.h"
 
 using namespace ov;
