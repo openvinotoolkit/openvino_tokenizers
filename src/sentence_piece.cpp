@@ -8,7 +8,7 @@
 #include "model_interface.h"
 
 #include "openvino/op/util/framework_node.hpp"
-#include "openvino/opsets/opset10.hpp"
+#include "openvino/opsets/opset13.hpp"
 
 #include "sentence_piece.hpp"
 #include "utils.hpp"
@@ -18,7 +18,7 @@ using sentencepiece::util::Status;
 using namespace TemplateExtension;
 using namespace ov;
 using namespace ov::frontend;
-using namespace ov::opset10;
+using namespace ov::opset13;
 
 // TODO: Replace shape_size(t.get_shape()) by t.get_size(), where t is ov::Tensor
 

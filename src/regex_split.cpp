@@ -3,14 +3,14 @@
 //
 
 #include "openvino/op/util/framework_node.hpp"
-#include "openvino/opsets/opset10.hpp"
+#include "openvino/opsets/opset13.hpp"
 
 #include "regex_split.hpp"
 #include "utils.hpp"
 #include "fast_tokenizer/normalizers/normalizers.h"
 
 using namespace ov;
-using namespace ov::opset10;
+using namespace ov::opset13;
 
 namespace {
 

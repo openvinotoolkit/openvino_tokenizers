@@ -4,10 +4,10 @@
 
 #include "bpe_tokenizer.hpp"
 #include "utils.hpp"
-#include "openvino/opsets/opset10.hpp"
+#include "openvino/opsets/opset13.hpp"
 
 using namespace ov;
-using namespace ov::opset10;
+using namespace ov::opset13;
 
 #undef tokenizer
 
