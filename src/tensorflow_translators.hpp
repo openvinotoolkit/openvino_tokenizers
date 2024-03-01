@@ -5,6 +5,10 @@
 #pragma once
 
 #include <openvino/frontend/node_context.hpp>
+#ifdef OpenVINO_Frontend_TensorFlow_FOUND
+#include <openvino/frontend/tensorflow/node_context.hpp>
+ov::OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::NodeContext& node);
+#endif
 
 ov::OutputVector translate_sentencepiece_op(const ov::frontend::NodeContext& node);
 ov::frontend::NamedOutputVector translate_sentencepiece_tokenizer(const ov::frontend::NodeContext& node);
