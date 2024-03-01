@@ -6,7 +6,7 @@
 
 #include <openvino/op/op.hpp>
 
-// Takes a ragged tensor with one ragged dimension (starts, ends) and produces 2D tensor [(row, col), ...]
+// Takes one ragged dimension (starts, ends) and produces 2D tensor of sparse coordinates [(row, col), ...]
 class RaggedToSparse : public ov::op::Op {
 public:
     OPENVINO_OP("RaggedToSparse");
