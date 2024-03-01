@@ -18,7 +18,9 @@
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("SentencepieceOp", translate_sentencepiece_op),                              \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RaggedTensorToSparse", translate_sentencepiece_tokenizer),                  \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StringLower", translate_string_lower),                                      \
-    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StaticRegexReplace", translate_static_regex_replace),
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StaticRegexReplace", translate_static_regex_replace),                       \
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFind", translate_lookup_table_find_op),                          \
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFindV2", translate_lookup_table_find_op)
 #else
 #define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
 #endif
