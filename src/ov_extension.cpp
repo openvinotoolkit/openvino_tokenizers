@@ -25,6 +25,9 @@
 #define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
 #endif
 
+#include <openvino/frontend/tensorflow/extension/conversion.hpp>
+#include <openvino/frontend/tensorflow/node_context.hpp>
+
 // clang-format off
 //! [ov_extension:entry_point]
 OPENVINO_CREATE_EXTENSIONS(
