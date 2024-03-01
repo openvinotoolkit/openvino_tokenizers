@@ -7,8 +7,6 @@
 #    pragma warning(disable : 4275)
 #endif
 
-#include <algorithm>
-
 #include "vocab_encoder.hpp"
 #include "utils.hpp"
 
