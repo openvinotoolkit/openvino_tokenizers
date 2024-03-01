@@ -4,14 +4,23 @@
 
 set(TARGET_NAME "openvino_tokenizers")
 
-FILE(GLOB SRC *.cpp)
-add_library(${TARGET_NAME} SHARED ${SRC})
-target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
-target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
-
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
+
+function(ov_tokenizers_set_cxx_standard)
+  foreach(build_type "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
+    set(flag_var "CMAKE_CXX_FLAGS${build_type}")
+    string(REPLACE "--std=c++11" "" ${flag_var} "${${flag_var}}")
+    set(${flag_var} "${${flag_var}}" PARENT_SCOPE)
+  endforeach()
+
+  set(CMAKE_CXX_STANDARD 17 PARENT_SCOPE)
+  set(CMAKE_CXX_EXTENSIONS OFF PARENT_SCOPE)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
+endfunction()
+
+ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -28,18 +37,13 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # C4244: 'argument' : conversion from 'type1' to 'type2', possible loss of data
     # C4267: 'var' : conversion from 'size_t' to 'type', possible loss of data
     # C4700: uninitialized local variable 'var' used
-    set(c_cxx_flags "/wd4146 /wd4244 /wd4267 /wd4700")
+    set(c_cxx_flags "/wd4146 /wd4244 /wd4267 /wd4700 /wd4703")
 endif()
 
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-Wsuggest-override" SUGGEST_OVERRIDE_SUPPORTED)
 if(SUGGEST_OVERRIDE_SUPPORTED)
     set(cxx_flags "${cxx_flags} -Wno-suggest-override")
-endif()
-
-if(WIN32 AND X86_64)
-  # disable compiler warning C4703
-  set(cxx_flags "${cxx_flags} /wd4703")
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${cxx_flags} ${c_cxx_flags}")
@@ -148,12 +152,33 @@ else()
   set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER)
   include("${fast_tokenizer_SOURCE_DIR}/FastTokenizer.cmake")
   set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ${_old_CMAKE_FIND_ROOT_PATH_MODE_LIBRARY})
+  # since FastTokenizers.cmake overrides C++ standard, let's override it once again to required one
+  ov_tokenizers_set_cxx_standard()
 
   if(WIN32 AND X86_64)
       # we use re2 library in regex_normalization operation, so have to add to this list
       # because prebuilt fast_tokenizers package does not provide this library
       list(APPEND FAST_TOKENIZER_LIBS re2)
   endif()
+endif()
+
+#
+# Build library
+#
+
+file(GLOB SRC *.cpp)
+if(NOT OpenVINO_Frontend_TensorFlow_FOUND)
+  list(REMOVE_ITEM SRC ${CMAKE_CURRENT_SOURCE_DIR}/tensorflow_translators.cpp)
+endif()
+
+add_library(${TARGET_NAME} SHARED ${SRC})
+
+target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
+target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
+
+if(OpenVINO_Frontend_TensorFlow_FOUND)
+  target_link_libraries(${TARGET_NAME} PRIVATE openvino::frontend::tensorflow)
+  target_compile_definitions(${TARGET_NAME} PRIVATE OpenVINO_Frontend_TensorFlow_FOUND)
 endif()
 
 #
@@ -177,9 +202,6 @@ endif()
 
 target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS} sentencepiece-static)
 
-# string_view is used from cxx17
-set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 17)
-
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
@@ -187,11 +209,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 # Post build steps to copy core_tokenizers dependencies
 #
 
-if(BUILD_FAST_TOKENIZERS)
-  install(TARGETS core_tokenizers
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-else()
+if(NOT BUILD_FAST_TOKENIZERS)
   if(WIN32 AND X86_64)
     set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/core_tokenizers.dll"
                    "${fast_tokenizer_SOURCE_DIR}/third_party/lib/icudt70.dll"
@@ -201,14 +219,49 @@ else()
   elseif(APPLE)
     set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.dylib")
   endif()
-endif()
 
-# post build steps
-if(extra_libs)
   # post build steps
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${extra_libs} $<TARGET_FILE_DIR:${TARGET_NAME}>)
+endif()
 
+#
+# Set install RPATH
+#
+
+# setting RPATH / LC_RPATH depending on platform
+if(LINUX)
+  # to find libcore_tokenizer.so in the same folder
+  set(rpaths "$ORIGIN")
+elseif(APPLE)
+  # to find libcore_tokenizer.dylib in the same folder
+  set(rpaths "@loader_path")
+  if(DEFINED SKBUILD)
+    # in case we build pip package, we need to refer to libopenvino.dylib from 'openvino' package
+    list(APPEND rpaths "@loader_path/../../openvino/libs")
+  endif()
+endif()
+
+if(rpaths)
+  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "${rpaths}")
+endif()
+
+#
+# Installation
+#
+
+include(GNUInstallDirs)
+
+# Installing the extension module to the root of the package
+install(TARGETS ${TARGET_NAME}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+if(BUILD_FAST_TOKENIZERS)
+  install(TARGETS core_tokenizers
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+else()
   if(WIN32)
     set(extra_libs_location ${CMAKE_INSTALL_BINDIR})
   else()
@@ -217,16 +270,10 @@ if(extra_libs)
   install(FILES ${extra_libs} DESTINATION ${extra_libs_location})
 endif()
 
-if(rpaths)
-  set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "${rpaths}")
-endif()
+#
+# Cpack configuration
+#
 
-# Installing the extension module to the root of the package
-install(TARGETS ${TARGET_NAME}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-# cpack configuration
 set(CPACK_PACKAGE_NAME ${TARGET_NAME})
 set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}")
 set(CPACK_SOURCE_GENERATOR "") # not used
