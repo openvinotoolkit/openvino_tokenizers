@@ -54,7 +54,7 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
     std::map<std::vector<uint8_t>, int32_t> vocab;
     for (size_t i = 0; i < vocab_size; ++i) {
-        std::vector<uint8_t> token = std::vector(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
+        std::vector<uint8_t> token = std::vector<uint8_t>(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
         vocab[token] = vocab_values[i];
     };
 
@@ -66,7 +66,7 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto token_ids = outputs[0].data<int32_t>();
 
     for (size_t element_idx = 0; element_idx < num_elements; ++element_idx) {
-        auto element = vocab.find(std::vector(chars + begins[element_idx], chars + ends[element_idx]));
+        auto element = vocab.find(std::vector<uint8_t>(chars + begins[element_idx], chars + ends[element_idx]));
         if (element == vocab.end()) {
             token_ids[element_idx] = default_value;
         } else {
