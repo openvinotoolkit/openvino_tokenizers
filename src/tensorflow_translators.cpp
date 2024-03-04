@@ -17,6 +17,7 @@
 #include "normalize_unicode.hpp"
 #include "regex_normalization.hpp"
 #include "regex_split.hpp"
+#include "vocab_encoder.hpp"
 
 #include "wordpiece_tokenizer.hpp"
 
@@ -179,10 +180,12 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::Node
     auto default_value = node.get_input(2);
 
     auto key_type = table_handle->get_key_type();
+    auto value_type = default_value.get_element_type();
     TENSORFLOW_OP_VALIDATION(
         node,
-        key_type.is_integral_number(),
-        "[TensorFlow Frontend] internal error: LookupTableFind is only supported for integer keys");
+        key_type.is_integral_number() || (key_type == element::string && value_type == element::i64),
+        "[TensorFlow Frontend] internal error: LookupTableFind is supported two cases: "
+        "1. integer keys with any value type; 2. string keys with i64 values.");
 
     auto all_keys = table_handle->get_keys();
     auto all_values = table_handle->get_values();
@@ -191,6 +194,28 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::Node
     auto target_shape = std::make_shared<Constant>(element::i32, Shape{ 1 }, std::vector<int32_t>{-1});
     all_keys = std::make_shared<Reshape>(all_keys, target_shape, false);
     all_values = std::make_shared<Reshape>(all_values, target_shape, false);
+
+    if (key_type == element::string && value_type == element::i64) {
+        // VocabEncoder has limitation that is support of only i32 value type
+        // so prepare values format to i32 on inputs
+        // and cast output tensor to i64 as required by TensorFlow
+        default_value = std::make_shared<Convert>(default_value, element::i32);
+        all_values = std::make_shared<Convert>(all_values, element::i32);
+
+        // unpack string tensor for required keys and all keys from vocabulary
+        ov::OutputVector unpacked_keys = pre_translate_string_tensor_input(keys);
+        ov::OutputVector unpacked_all_keys = pre_translate_string_tensor_input(all_keys);
+
+        ov::OutputVector arguments = unpacked_keys;
+        arguments.insert(arguments.end(), unpacked_all_keys.begin(), unpacked_all_keys.end());
+        arguments.push_back(all_values);
+        arguments.push_back(default_value);
+        auto vocab_encoder = std::make_shared<VocabEncoder>(arguments);
+        auto tokens = std::make_shared<Convert>(vocab_encoder, element::i64);
+        set_node_name(node.get_name(), tokens);
+
+        return { tokens };
+    }
 
     // update all values with default value and all keys
     auto default_value_shape = std::make_shared<Constant>(element::i32, Shape{ 1 }, std::vector<int32_t>{1});
