@@ -105,6 +105,7 @@ bpe_models = [
     "bigscience/bloom",
     "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
     "Salesforce/codegen-16B-multi",
+    "stabilityai/stablelm-2-1_6b",
     # "google/flan-t5-xxl",  # needs Precompiled/CharsMap
     # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
@@ -123,7 +124,6 @@ sentencepiece_models = [
     "facebook/musicgen-small",
 ]
 tiktiken_models = [
-    "stabilityai/stablelm-2-1_6b",
     "Qwen/Qwen-14B-Chat",
     "Salesforce/xgen-7b-8k-base",
 ]
