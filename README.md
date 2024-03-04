@@ -184,19 +184,17 @@ print(openvino_output["string_output"])
 ```python
 import numpy as np
 from openvino import compile_model, convert_model
-from transformers import AutoModelForCausalLM, AutoTokenizer
 from openvino_tokenizers import add_greedy_decoding, convert_tokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Use different repo for the tokenizer because the original repo doesn't have .model file
-# Sentencepiece(Unigram) tokenizer supported only with .model file
-tokenizer_checkpoint = "microsoft/Llama2-7b-WhoIsHarryPotter"
-model_checkpoint = "nickypro/tinyllama-15M"
-hf_tokenizer = AutoTokenizer.from_pretrained(tokenizer_checkpoint)
+
+model_checkpoint = "JackFram/llama-68m"
+hf_tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 hf_model = AutoModelForCausalLM.from_pretrained(model_checkpoint, use_cache=False)
 
 # convert hf tokenizer
-text_input = ["Quick brown fox was"]
-ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
+text_input = ["Quick brown fox jumped "]
+ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True, skip_special_tokens=True)
 compiled_tokenizer = compile_model(ov_tokenizer)
 
 # transform input text into tokens
@@ -212,20 +210,20 @@ compiled_model = compile_model(ov_model_with_greedy_decoding)
 new_tokens_size = 10
 prompt_size = ov_input["input_ids"].shape[-1]
 input_dict = {
-  output.any_name: np.hstack([tensor, np.zeros(shape=(1, new_tokens_size), dtype=np.int_)])
-  for output, tensor in ov_input.items()
+    output.any_name: np.hstack([tensor, np.zeros(shape=(1, new_tokens_size), dtype=np.int_)])
+    for output, tensor in ov_input.items()
 }
 for idx in range(prompt_size, prompt_size + new_tokens_size):
-  output = compiled_model(input_dict)["token_ids"]
-  input_dict["input_ids"][:, idx] = output[:, idx - 1]
-  input_dict["attention_mask"][:, idx] = 1
+    output = compiled_model(input_dict)["token_ids"]
+    input_dict["input_ids"][:, idx] = output[:, idx - 1]
+    input_dict["attention_mask"][:, idx] = 1
 ov_token_ids = input_dict["input_ids"]
 
 hf_token_ids = hf_model.generate(
-  **hf_input,
-  min_new_tokens=new_tokens_size,
-  max_new_tokens=new_tokens_size,
-  temperature=0,  # greedy decoding
+    **hf_input,
+    min_new_tokens=new_tokens_size,
+    max_new_tokens=new_tokens_size,
+    temperature=0,  # greedy decoding
 )
 
 # decode model output
@@ -233,9 +231,10 @@ compiled_detokenizer = compile_model(ov_detokenizer)
 ov_output = compiled_detokenizer(ov_token_ids)["string_output"]
 hf_output = hf_tokenizer.batch_decode(hf_token_ids, skip_special_tokens=True)
 print(f"OpenVINO output string: `{ov_output}`")
-# OpenVINO output string: `['Quick brown fox was walking through the forest. He was looking for something']`
+# OpenVINO output string: `['<s> Quick brown fox was walking through the forest. He was looking for something']`
 print(f"HuggingFace output string: `{hf_output}`")
 # HuggingFace output string: `['Quick brown fox was walking through the forest. He was looking for something']`
+
 ```
 
 ## Supported Tokenizer Types
