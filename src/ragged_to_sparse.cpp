@@ -30,7 +30,7 @@ bool RaggedToSparse::evaluate(ov::TensorVector& outputs, const ov::TensorVector&
 
     const auto last_element_index = inputs[1].get_size() - 1;
     const auto num_elements = ends[last_element_index] - begins[0];
-    outputs[0].set_shape({num_elements, 2});
+    outputs[0].set_shape(ov::Shape{num_elements, 2});
 
     auto batch_size = inputs[0].get_size();
 
