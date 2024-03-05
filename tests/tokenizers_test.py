@@ -111,17 +111,18 @@ bpe_models = [
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
 ]
 sentencepiece_models = [
-    "codellama/CodeLlama-7b-hf",
-    "camembert-base",
-    "NousResearch/Llama-2-13b-hf",
-    "xlm-roberta-base",
-    "microsoft/deberta-v3-base",
-    "xlnet-base-cased",
-    # "THUDM/chatglm-6b",  # hf_tokenizer init error
-    "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
-    "THUDM/chatglm3-6b",
-    "t5-base",
-    "facebook/musicgen-small",
+    "stabilityai/stablelm-2-1_6b"
+    # "codellama/CodeLlama-7b-hf",
+    # "camembert-base",
+    # "NousResearch/Llama-2-13b-hf",
+    # "xlm-roberta-base",
+    # "microsoft/deberta-v3-base",
+    # "xlnet-base-cased",
+    # # "THUDM/chatglm-6b",  # hf_tokenizer init error
+    # "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
+    # "THUDM/chatglm3-6b",
+    # "t5-base",
+    # "facebook/musicgen-small",
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
