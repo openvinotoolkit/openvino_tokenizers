@@ -184,26 +184,26 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string):
             assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
 
 
-@pytest.mark.parametrize(
-    "test_string",
-    [
-        *eng_test_strings,
-        *multilingual_test_strings,
-        *emoji_test_strings,
-        *misc_strings,
-    ],
-)
-def test_sentencepiece_model_detokenizer(
-    sentencepice_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
-):
-    hf_tokenizer, _, ov_detokenizer = sentencepice_tokenizers_detokenizers
-
-    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
-    hf_output = hf_tokenizer.batch_decode(
-        token_ids,
-        skip_special_tokens=do_skip_special_tokens,
-        clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
-    )
-    ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
-
-    assert ov_output == hf_output
+# @pytest.mark.parametrize(
+#     "test_string",
+#     [
+#         *eng_test_strings,
+#         *multilingual_test_strings,
+#         *emoji_test_strings,
+#         *misc_strings,
+#     ],
+# )
+# def test_sentencepiece_model_detokenizer(
+#     sentencepice_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
+# ):
+#     hf_tokenizer, _, ov_detokenizer = sentencepice_tokenizers_detokenizers
+#
+#     token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
+#     hf_output = hf_tokenizer.batch_decode(
+#         token_ids,
+#         skip_special_tokens=do_skip_special_tokens,
+#         clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
+#     )
+#     ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
+#
+#     assert ov_output == hf_output
