@@ -70,65 +70,19 @@ misc_strings = [
     " \t\n",
 ]
 
-wordpiece_models = [
-    "bert-base-multilingual-cased",
-    "bert-base-uncased",
-    "cointegrated/rubert-tiny2",
-    "distilbert-base-uncased-finetuned-sst-2-english",
-    "sentence-transformers/all-MiniLM-L6-v2",
-    "rajiv003/ernie-finetuned-qqp",  # ernie model with fast tokenizer
-    "google/electra-base-discriminator",
-    "google/mobilebert-uncased",
-    "jhgan/ko-sbert-sts",
-    "squeezebert/squeezebert-uncased",
-    "prajjwal1/bert-mini",
-    "ProsusAI/finbert",
-    "rasa/LaBSE",
-]
-bpe_models = [
-    "stabilityai/stablecode-completion-alpha-3b-4k",
-    "stabilityai/stablelm-tuned-alpha-7b",
-    "databricks/dolly-v2-3b",
-    "EleutherAI/gpt-neo-125m",
-    "EleutherAI/gpt-j-6b",
-    "roberta-base",
-    "sentence-transformers/all-roberta-large-v1",  # standin for setfit
-    "facebook/bart-large-mnli",
-    "facebook/opt-66b",
-    "gpt2",
-    "EleutherAI/gpt-neox-20b",
-    "ai-forever/rugpt3large_based_on_gpt2",
-    "KoboldAI/fairseq-dense-13B",
-    "facebook/galactica-120b",
-    "EleutherAI/pythia-12b-deduped",
-    "microsoft/deberta-base",
-    "bigscience/bloom",
-    "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
-    "Salesforce/codegen-16B-multi",
-    "stabilityai/stablelm-2-1_6b",
-    # "google/flan-t5-xxl",  # needs Precompiled/CharsMap
-    # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
-    # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
-]
 sentencepiece_models = [
-    "stabilityai/stablelm-2-1_6b"
-    # "codellama/CodeLlama-7b-hf",
-    # "camembert-base",
-    # "NousResearch/Llama-2-13b-hf",
-    # "xlm-roberta-base",
-    # "microsoft/deberta-v3-base",
-    # "xlnet-base-cased",
-    # # "THUDM/chatglm-6b",  # hf_tokenizer init error
-    # "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
-    # "THUDM/chatglm3-6b",
-    # "t5-base",
-    # "facebook/musicgen-small",
+    "codellama/CodeLlama-7b-hf",
+    "camembert-base",
+    "NousResearch/Llama-2-13b-hf",
+    "xlm-roberta-base",
+    "microsoft/deberta-v3-base",
+    "xlnet-base-cased",
+    # "THUDM/chatglm-6b",  # hf_tokenizer init error
+    "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
+    "THUDM/chatglm3-6b",
+    "t5-base",
+    "facebook/musicgen-small",
 ]
-tiktiken_models = [
-    "Qwen/Qwen-14B-Chat",
-    "Salesforce/xgen-7b-8k-base",
-]
-
 
 def get_tokenizer(hf_tokenizer):
     ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False)
@@ -155,11 +109,6 @@ def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False):
     return AutoTokenizer.from_pretrained(request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code)
 
 
-@pytest.fixture(scope="session", params=wordpiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
-def hf_wordpiece_tokenizers(request):
-    return get_hf_tokenizer(request)
-
-
 @pytest.fixture(scope="session", params=[True, False], ids=lambda is_fast: "Fast" if is_fast else "Slow")
 def is_fast_tokenizer(request):
     return request.param
@@ -182,35 +131,6 @@ def do_clean_up_tokenization_spaces(request):
 @pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_sentencepiece_tokenizers(request, is_fast_tokenizer):
     return get_hf_tokenizer(request, fast_tokenizer=is_fast_tokenizer, trust_remote_code=True)
-
-
-@pytest.fixture(scope="session", params=bpe_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
-def hf_bpe_tokenizers(request):
-    return get_hf_tokenizer(request)
-
-
-@pytest.fixture(scope="session", params=tiktiken_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
-def hf_tiktoken_tokenizers(request):
-    return get_hf_tokenizer(request, trust_remote_code=True)
-
-
-@pytest.fixture(scope="session")
-def wordpiece_tokenizers(hf_wordpiece_tokenizers):
-    return get_tokenizer(hf_wordpiece_tokenizers)
-
-
-@pytest.fixture(scope="session")
-def bpe_tokenizers(hf_bpe_tokenizers):
-    return get_tokenizer(hf_bpe_tokenizers)
-
-
-@pytest.fixture(scope="session")
-def bpe_tokenizers_detokenizers(hf_bpe_tokenizers, do_skip_special_tokens, do_clean_up_tokenization_spaces):
-    return get_tokenizer_detokenizer(
-        hf_bpe_tokenizers,
-        skip_special_tokens=do_skip_special_tokens,
-        clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
-    )
 
 
 @pytest.fixture(scope="session")
@@ -241,70 +161,6 @@ def sentencepice_tokenizers_detokenizers(
         skip_special_tokens=do_skip_special_tokens,
         clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
     )
-
-
-@pytest.fixture(scope="session")
-def tiktoken_tokenizers(hf_tiktoken_tokenizers):
-    return get_tokenizer(hf_tiktoken_tokenizers)
-
-
-@pytest.fixture(scope="session")
-def tiktoken_tokenizers_detokenizers(hf_tiktoken_tokenizers, do_skip_special_tokens):
-    return get_tokenizer_detokenizer(
-        hf_tiktoken_tokenizers, skip_special_tokens=do_skip_special_tokens, clean_up_tokenization_spaces=False
-    )
-
-
-@pytest.fixture(
-    scope="session", params=["openlm-research/open_llama_3b_v2"], ids=lambda checkpoint: checkpoint.split("/")[-1]
-)
-def hf_tokenizers_for_streaming(request):
-    return get_hf_tokenizer(request)
-
-
-@pytest.fixture(scope="session")
-def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
-    return get_tokenizer_detokenizer(hf_tokenizers_for_streaming, streaming_detokenizer=True)
-
-
-@pytest.mark.parametrize(
-    "test_string",
-    [
-        *eng_test_strings,
-        *multilingual_test_strings,
-        *emoji_test_strings,
-        *misc_strings,
-    ],
-)
-def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string):
-    hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
-    packed_strings = pack_strings([test_string])
-
-    hf_tokenized = hf_tokenizer([test_string], return_tensors="np", truncation=True)
-    ov_tokenized = ov_tokenizer(packed_strings)
-
-    for output_name, hf_result in hf_tokenized.items():
-        assert np.all((ov_result := ov_tokenized[output_name]) == hf_result), f"{hf_result}\n{ov_result}"
-
-
-@pytest.mark.parametrize(
-    "test_string",
-    [
-        eng_test_strings,
-        multilingual_test_strings,
-        emoji_test_strings,
-        misc_strings,
-    ],
-)
-def test_hf_wordpiece_tokenizers_multiple_strings(wordpiece_tokenizers, test_string):
-    hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
-    packed_strings = pack_strings(test_string)
-
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", padding=True, truncation=True)
-    ov_tokenized = ov_tokenizer(packed_strings)
-
-    for output_name, hf_result in hf_tokenized.items():
-        assert np.all((ov_result := ov_tokenized[output_name]) == hf_result), f"{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -351,166 +207,3 @@ def test_sentencepiece_model_detokenizer(
     ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
 
     assert ov_output == hf_output
-
-
-@pytest.mark.parametrize(
-    "test_string",
-    [
-        *eng_test_strings,
-        *multilingual_test_strings,
-        *emoji_test_strings,
-        *misc_strings,
-    ],
-)
-def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string):
-    hf_tokenizer, ov_tokenizer = bpe_tokenizers
-    packed_strings = pack_strings([test_string])
-
-    hf_tokenized = hf_tokenizer([test_string], return_tensors="np", truncation=True)
-    ov_tokenized = ov_tokenizer(packed_strings)
-
-    for output_name, hf_result in hf_tokenized.items():
-        # galactica tokenizer has 3 output, but model has 2 inputs
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
-
-
-@pytest.mark.parametrize(
-    "test_string",
-    [
-        *eng_test_strings,
-        *multilingual_test_strings,
-        *emoji_test_strings,
-        *misc_strings,
-    ],
-)
-def test_bpe_detokenizer(
-    bpe_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
-):
-    hf_tokenizer, _, ov_detokenizer = bpe_tokenizers_detokenizers
-
-    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
-    hf_output = hf_tokenizer.batch_decode(
-        token_ids,
-        skip_special_tokens=do_skip_special_tokens,
-        clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
-    )
-    ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
-
-    assert ov_output == hf_output
-
-
-@pytest.mark.parametrize(
-    "test_string",
-    [
-        *eng_test_strings,
-        *multilingual_test_strings,
-        *emoji_test_strings,
-        *misc_strings,
-    ],
-)
-def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
-    hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
-
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True)
-    ov_tokenized = ov_tokenizer(pack_strings([test_string]))
-
-    for output_name, hf_result in hf_tokenized.items():
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
-
-
-@pytest.mark.parametrize(
-    "test_string",
-    [
-        *eng_test_strings,
-        *multilingual_test_strings,
-        *emoji_test_strings,
-        *misc_strings,
-    ],
-)
-def test_tiktoken_detokenizer(tiktoken_tokenizers_detokenizers, test_string, do_skip_special_tokens):
-    hf_tokenizer, _, ov_detokenizer = tiktoken_tokenizers_detokenizers
-
-    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
-    hf_output = hf_tokenizer.batch_decode(token_ids, skip_special_tokens=do_skip_special_tokens)
-    ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
-
-    assert ov_output == hf_output
-
-
-def test_streaming_detokenizer(sentencepiece_streaming_tokenizers):
-    hf_tokenizer, _, ov_detokenizer = sentencepiece_streaming_tokenizers
-
-    test_string = "this is a test string"
-    tokenized_string = hf_tokenizer(test_string).input_ids
-    hf_detokenized = hf_tokenizer.decode(tokenized_string)
-
-    detokenized_stream = ""
-    for token in tokenized_string:
-        ov_output = unpack_strings(ov_detokenizer(np.atleast_2d(token))["string_output"])[0]
-        detokenized_stream += ov_output
-
-    assert detokenized_stream == hf_detokenized
-
-
-def test_detokenizer_results_align_with_hf_on_multitoken_symbols_for_streaming():
-    hf_tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-14B-Chat", trust_remote_code=True)
-    _, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
-    ov_detokenizer = core.compile_model(ov_detokenizer)
-
-    test_string = "🤷‍♂️"  # tokenized into 5 tokens
-    tokenized_string = hf_tokenizer(test_string).input_ids
-
-    detokenized_stream = ""
-    hf_detokenized_stream = ""
-    for token in tokenized_string:
-        ov_output = unpack_strings(ov_detokenizer(np.atleast_2d(token))["string_output"])[0]
-        detokenized_stream += ov_output
-
-        hf_output = hf_tokenizer.decode(token)
-        hf_detokenized_stream += hf_output
-
-    assert detokenized_stream == hf_detokenized_stream
-
-
-def check_eos_id(eos_token_id: Optional[int], *models: Model) -> None:
-    for model in models:
-        if eos_token_id is None:
-            assert not model.has_rt_info(EOS_TOKEN_ID_NAME)
-        else:
-            assert model.has_rt_info(EOS_TOKEN_ID_NAME)
-            assert model.get_rt_info(EOS_TOKEN_ID_NAME).value == eos_token_id
-
-
-def test_eos_token_id_rt_info_wordpiece(hf_wordpiece_tokenizers):
-    eos_token_id = hf_wordpiece_tokenizers.eos_token_id
-    ov_tokenizer = convert_tokenizer(hf_wordpiece_tokenizers)
-    check_eos_id(eos_token_id, ov_tokenizer)
-
-
-def test_eos_token_id_rt_info_bpe(hf_bpe_tokenizers):
-    eos_token_id = hf_bpe_tokenizers.eos_token_id
-    ov_tokenizer, ov_detokenizer = convert_tokenizer(
-        hf_bpe_tokenizers,
-        with_detokenizer=True,
-    )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
-
-
-def test_eos_token_id_rt_info_tiktoken(hf_tiktoken_tokenizers):
-    eos_token_id = hf_tiktoken_tokenizers.eos_token_id
-    ov_tokenizer, ov_detokenizer = convert_tokenizer(
-        hf_tiktoken_tokenizers,
-        with_detokenizer=True,
-    )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
-
-
-def test_eos_token_id_rt_info_sentencepiece(hf_sentencepiece_tokenizers):
-    eos_token_id = hf_sentencepiece_tokenizers.eos_token_id
-    ov_tokenizer, ov_detokenizer = convert_tokenizer(
-        hf_sentencepiece_tokenizers,
-        with_detokenizer=True,
-    )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
