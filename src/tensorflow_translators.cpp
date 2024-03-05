@@ -281,7 +281,6 @@ ov::OutputVector translate_string_split(const ov::frontend::NodeContext& node) {
         std::string new_sep_value = "[\\s\\p{Zs}]+";
         sep = std::make_shared<Constant>(element::u8, Shape{ new_sep_value.length() }, (const void*)new_sep_value.data());
     }
-    auto sep_constant = std::make_shared<Constant>(element::u8, Shape{ sep_value[0].length() }, (const void*)sep_value[0].data());
     auto maxsplit = node.get_attribute<int32_t>("maxsplit", -1);
 
     // compute batch_dim to generate ragged_begins and ragged_ends for RegexSplit
