@@ -15,7 +15,7 @@
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RegexSplitWithOffsets", translate_regex_split_with_offsets),                \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("NormalizeUTF8", translate_normalize_utf8),                                  \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("CaseFoldUTF8", translate_case_fold_utf8),                                   \
-    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("SentencepieceOp", translate_sentencepiece_op),                              \
+//    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("SentencepieceOp", translate_sentencepiece_op),                              \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RaggedTensorToSparse", translate_sentencepiece_tokenizer),                  \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StringLower", translate_string_lower),                                      \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StaticRegexReplace", translate_static_regex_replace),                       \
