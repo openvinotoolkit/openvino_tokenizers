@@ -278,7 +278,7 @@ ov::OutputVector translate_string_split(const ov::frontend::NodeContext& node) {
         inputs.push_back(pattern_constant);
         inputs.push_back(rewrite_constant);
         unpacked_input = std::make_shared<RegexNormalization>(inputs, true)->outputs();
-        std::string new_sep_value = "\\s{1,}";
+        std::string new_sep_value = "[\\s\\p{Zs}]+";
         sep = std::make_shared<Constant>(element::u8, Shape{ new_sep_value.length() }, (const void*)new_sep_value.data());
     }
     auto sep_constant = std::make_shared<Constant>(element::u8, Shape{ sep_value[0].length() }, (const void*)sep_value[0].data());
