@@ -72,16 +72,16 @@ misc_strings = [
 
 sentencepiece_models = [
     "codellama/CodeLlama-7b-hf",
-    "camembert-base",
-    "NousResearch/Llama-2-13b-hf",
-    "xlm-roberta-base",
-    "microsoft/deberta-v3-base",
-    "xlnet-base-cased",
-    # "THUDM/chatglm-6b",  # hf_tokenizer init error
-    "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
-    "THUDM/chatglm3-6b",
-    "t5-base",
-    "facebook/musicgen-small",
+    # "camembert-base",
+    # "NousResearch/Llama-2-13b-hf",
+    # "xlm-roberta-base",
+    # "microsoft/deberta-v3-base",
+    # "xlnet-base-cased",
+    # # "THUDM/chatglm-6b",  # hf_tokenizer init error
+    # "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
+    # "THUDM/chatglm3-6b",
+    # "t5-base",
+    # "facebook/musicgen-small",
 ]
 
 def get_tokenizer(hf_tokenizer):
