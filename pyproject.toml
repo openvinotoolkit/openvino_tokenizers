@@ -18,7 +18,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "openvino"
+    "openvino==2024.0.0"
 ]
 
 [project.optional-dependencies]
