@@ -46,8 +46,8 @@ jobs:
       - name: Download OpenVINO build
         id: openvino_download
         run: |
-          rm -rf ${COVERITY_TOOL_DIR} && mkdir -p ${COVERITY_TOOL_DIR}
-          pushd ${COVERITY_TOOL_DIR}
+          rm -rf ${INSTALL_DIR} && mkdir -p ${INSTALL_DIR}
+          pushd ${INSTALL_DIR}
             wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O ov_package.tgz
             tar xvf ov_package.tgz && rm ov_package.tgz
           popd
