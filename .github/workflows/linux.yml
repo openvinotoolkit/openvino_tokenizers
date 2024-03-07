@@ -47,10 +47,8 @@ jobs:
         id: openvino_download
         run: |
           rm -rf ${INSTALL_DIR} && mkdir -p ${INSTALL_DIR}
-          pushd ${INSTALL_DIR}
-            wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O ov_package.tgz
-            tar xvf ov_package.tgz && rm ov_package.tgz
-          popd
+          wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O ov_package.tgz
+          tar xvf ov_package.tgz -C ${INSTALL_DIR}
         continue-on-error: true
 
       - name: Clone OpenVINO
