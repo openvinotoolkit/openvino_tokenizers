@@ -14,6 +14,8 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
+  OV_BRANCH: 'releases/2023/3'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/l_openvino_toolkit_ubuntu20_2023.3.0.13775.ceeafaf64f3_x86_64.tgz'
 
 jobs:
   openvino_build:
@@ -41,13 +43,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install --assume-yes --no-install-recommends git ca-certificates
 
+      - name: Download OpenVINO build
+        id: openvino_download
+        run: |
+          rm -rf ${COVERITY_TOOL_DIR} && mkdir -p ${COVERITY_TOOL_DIR}
+          pushd ${COVERITY_TOOL_DIR}
+            wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O ov_package.tgz
+            tar xvf ov_package.tgz && rm ov_package.tgz
+          popd
+        continue-on-error: true
+
       - name: Clone OpenVINO
+        if: steps.openvino_download.outcome != 'success'
         uses: actions/checkout@v4
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
           submodules: 'true'
-          ref: 'releases/2023/3'
+          ref: ${{ env.OV_BRANCH}}
 
       #
       # Dependencies
@@ -171,7 +184,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: 'releases/2023/3'
+          ref: ${{ env.OV_BRANCH }}
           sparse-checkout: |
             install_build_dependencies.sh
 
