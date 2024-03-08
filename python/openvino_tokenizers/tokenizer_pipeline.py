@@ -2,6 +2,7 @@
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+from __future__ import annotations
 import logging
 import weakref
 from dataclasses import dataclass, field
