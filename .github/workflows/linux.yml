@@ -32,6 +32,7 @@ jobs:
         id: openvino_download
         run: |
           wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.tar.gz
+          tar -tvf openvino_package.tar.gz
 
       #
       # Upload to artifacts
