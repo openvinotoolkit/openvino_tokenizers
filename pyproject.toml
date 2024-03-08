@@ -82,7 +82,7 @@ cmake.args = [
     "-DCMAKE_INSTALL_BINDIR=lib",
     "-DCMAKE_INSTALL_LIBDIR=lib"
 ]
-cmake.targets = ["openvino_tokenizers"]
+cmake.targets = ["user_ov_extensions"]
 wheel.build-tag = "000"
 wheel.packages = ["python/openvino_tokenizers"]
 wheel.install-dir = "openvino_tokenizers"
