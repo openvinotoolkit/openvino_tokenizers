@@ -15,7 +15,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'releases/2023/3'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/l_openvino_toolkit_ubuntu20_2023.3.0.13775.ceeafaf64f3_x86_64.tgz'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/l_openvino_toolkit_ubuntu20_2023.3.0.13775.ceeafaf64f3_x86_64.tgz_x'
 
 jobs:
   openvino_download:
@@ -268,7 +268,7 @@ jobs:
 
   openvino_tokenizers_tests:
     name: OpenVINO tokenizers tests
-    needs: [ openvino_tokenizers ]
+    needs: [ openvino_download, openvino_build, openvino_tokenizers]
     if: always() && needs.openvino_tokenizers.result == 'success'
     timeout-minutes: 25
     defaults:
@@ -306,19 +306,25 @@ jobs:
           name: openvino_package
           path: ${{ env.INSTALL_DIR }}
 
-      - name: Extract OpenVINO packages
+      - name: Extract OpenVINO build artifacts
+        if: needs.openvino_build.status == 'success'
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
           popd
 
-      # - name: Install OpenVINO Python wheel
-      #   run: |
-      #     # Find and install wheel
-      #     pushd ${INSTALL_DIR}/tools
-      #       wheel_name=$(find . -name 'openvino-*.whl')
-      #       python3 -m pip install $wheel_name
-      #     popd
+      - name: Extract OpenVINO build package
+        if: needs.openvino_download.status == 'success'
+        run: tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
+
+      - name: Install OpenVINO Python wheel
+        if: needs.openvino_build.status == 'success'
+        run: |
+          # Find and install wheel
+          pushd ${INSTALL_DIR}/tools
+            wheel_name=$(find . -name 'openvino-*.whl')
+            python3 -m pip install $wheel_name
+          popd
 
       - name: Install OpenVINO tokenizers wheel
         run: |
@@ -328,9 +334,16 @@ jobs:
             python3 -m pip install $wheel_name[dev]
           popd
 
-      - name: Tokenizers regression tests
+      - name: Tokenizers regression tests (using openvino python modules)
+        if: needs.openvino_download.status == 'success'
         run: |
           source ${INSTALL_DIR}/setupvars.sh
+          python3 -m pytest tokenizers_test.py
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
+
+      - name: Tokenizers regression tests (using openvino python wheel)
+        if: needs.openvino_build.status == 'success'
+        run: |
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
