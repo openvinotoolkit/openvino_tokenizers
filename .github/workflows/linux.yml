@@ -19,6 +19,8 @@ env:
 
 jobs:
   openvino_download:
+    outputs:
+      status: ${{ steps.openvino_download.conclusion }}
     timeout-minutes: 10
     defaults:
       run:
@@ -49,7 +51,7 @@ jobs:
 
   openvino_build:
     needs: [openvino_download]
-    if: needs.openvino_download.result != 'success'
+    if: needs.openvino_download.outputs.status != 'success'
     timeout-minutes: 150
     defaults:
       run:
