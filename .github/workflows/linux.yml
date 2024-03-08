@@ -225,7 +225,7 @@ jobs:
       - name: Extract OpenVINO packages
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
       #
