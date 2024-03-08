@@ -170,7 +170,9 @@ jobs:
   openvino_tokenizers:
     name: OpenVINO tokenizers extension
     needs: [ openvino_download, openvino_build ]
-    if: needs.bopenvino_download.result == 'success' || needs.openvino_build.result == 'success'
+    if: |
+      always() &&
+      (needs.openvino_download.result == 'success' || needs.openvino_build.result == 'success')
     timeout-minutes: 25
     defaults:
       run:
