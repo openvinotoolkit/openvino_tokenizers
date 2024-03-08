@@ -20,7 +20,7 @@ env:
 jobs:
   openvino_download:
     outputs:
-      status: ${{ steps.openvino_download.conclusion }}
+      status: ${{ steps.openvino_download.outcome }}
     timeout-minutes: 10
     defaults:
       run:
