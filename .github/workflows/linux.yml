@@ -15,7 +15,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'releases/2023/3'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/l_openvino_toolkit_ubuntu20_2023.3.0.13775.ceeafaf64f3_x86_64.tgz_x'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/linux/l_openvino_toolkit_ubuntu20_2023.3.0.13775.ceeafaf64f3_x86_64.tgz'
 
 jobs:
   openvino_download:
@@ -42,7 +42,7 @@ jobs:
       #
 
       - name: Upload openvino package
-        if: ${{ always() }}
+        if: steps.openvino_download.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: openvino_package
@@ -185,7 +185,7 @@ jobs:
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
-      (needs.openvino_download.result == 'success' || needs.openvino_build.result == 'success')
+      (needs.openvino_download.outputs.status == 'success' || needs.openvino_build.result == 'success')
     timeout-minutes: 25
     defaults:
       run:
@@ -310,18 +310,18 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO build artifacts
-        if: needs.openvino_build.status == 'success'
+        if: needs.openvino_build.result == 'success'
         run: |
           pushd ${INSTALL_DIR}
             tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
           popd
 
       - name: Extract OpenVINO build package
-        if: needs.openvino_download.status == 'success'
+        if: needs.openvino_download.outputs.status == 'success'
         run: tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
 
       - name: Install OpenVINO Python wheel
-        if: needs.openvino_build.status == 'success'
+        if: needs.openvino_build.result == 'success'
         run: |
           # Find and install wheel
           pushd ${INSTALL_DIR}/tools
@@ -338,14 +338,14 @@ jobs:
           popd
 
       - name: Tokenizers regression tests (using openvino python modules)
-        if: needs.openvino_download.status == 'success'
+        if: needs.openvino_download.outputs.status == 'success'
         run: |
           source ${INSTALL_DIR}/setupvars.sh
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
       - name: Tokenizers regression tests (using openvino python wheel)
-        if: needs.openvino_build.status == 'success'
+        if: needs.openvino_build.result == 'success'
         run: |
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
