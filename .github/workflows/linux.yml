@@ -309,16 +309,16 @@ jobs:
       - name: Extract OpenVINO packages
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
-      - name: Install OpenVINO Python wheel
-        run: |
-          # Find and install wheel
-          pushd ${INSTALL_DIR}/tools
-            wheel_name=$(find . -name 'openvino-*.whl')
-            python3 -m pip install $wheel_name
-          popd
+      # - name: Install OpenVINO Python wheel
+      #   run: |
+      #     # Find and install wheel
+      #     pushd ${INSTALL_DIR}/tools
+      #       wheel_name=$(find . -name 'openvino-*.whl')
+      #       python3 -m pip install $wheel_name
+      #     popd
 
       - name: Install OpenVINO tokenizers wheel
         run: |
