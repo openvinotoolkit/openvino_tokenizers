@@ -82,7 +82,7 @@ cmake.build-type = "Release"
 cmake.args = [
     "-DCMAKE_INSTALL_BINDIR=lib",
     "-DCMAKE_INSTALL_LIBDIR=lib",
-    "-BUILD_FAST_TOKENIZERS=ON"
+    "-DBUILD_FAST_TOKENIZERS=ON"
 ]
 cmake.targets = ["openvino_tokenizers"]
 wheel.build-tag = "000"
