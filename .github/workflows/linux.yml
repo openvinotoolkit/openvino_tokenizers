@@ -32,8 +32,8 @@ jobs:
         id: openvino_download
         run: |
           rm -rf ${INSTALL_DIR} && mkdir -p ${INSTALL_DIR}
-          wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O ov_package.tgz
-          tar xvf ov_package.tgz -C ${INSTALL_DIR}
+          wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.tar.gz
+          tar xvf openvino_package.tar.gz -C ${INSTALL_DIR}
         continue-on-error: true
 
   openvino_build:
@@ -169,7 +169,8 @@ jobs:
 
   openvino_tokenizers:
     name: OpenVINO tokenizers extension
-    needs: [ openvino_build ]
+    needs: [ openvino_download, openvino_build ]
+    if: needs.bopenvino_download.result == 'success' || needs.openvino_build.result == 'success'
     timeout-minutes: 25
     defaults:
       run:
