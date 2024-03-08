@@ -33,6 +33,7 @@ jobs:
         run: |
           wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.tar.gz
           tar -tvf openvino_package.tar.gz
+        continue-on-error: true
 
       #
       # Upload to artifacts
@@ -47,7 +48,7 @@ jobs:
           if-no-files-found: 'error'
 
   openvino_build:
-    needs: openvino_download
+    needs: [openvino_download]
     if: needs.openvino_download.result != 'success'
     timeout-minutes: 150
     defaults:
