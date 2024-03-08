@@ -360,14 +360,19 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
 
     auto ragged_to_dense = std::make_shared<RaggedToDense>(ov::OutputVector{ begins, ends, values, longest_row_size, default_value })->output(0);
 
-    // compute max shape since TensorFlow can perform padding by ragged and batch dimensions
-    // and perform padding be default value until it receives max shape
-    auto max_shape = std::make_shared<Concat>(ov::OutputVector{ rpt_shape_minus_one, longest_row_size }, 0)->output(0);
-    max_shape = std::make_shared<Maximum>(shape, max_shape);
+    // adjust shape value since it can contain -1 value that means a dimension must be deduced based on minimal dimension size
+    // to store output tensor
+    auto replace_shape = std::make_shared<Concat>(ov::OutputVector{ rpt_shape_minus_one, longest_row_size }, 0)->output(0);
+    auto const_zero = std::make_shared<Constant>(ov::element::i32, Shape{}, 0);
+    auto shape_less_zero = std::make_shared<Less>(shape, const_zero);
+    shape = std::make_shared<Select>(shape_less_zero, replace_shape, shape);
+
+    auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 2 }, std::vector<int32_t>{0, 0});
+    // note that replace_shape to be equal a shape of ragged_to_dense
+    // Pad operation removes (or crops) if padding number is negative
+    auto pads_end = std::make_shared<Subtract>(shape, replace_shape);
     auto squeeze_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
     auto pad_value = std::make_shared<Squeeze>(default_value, squeeze_axis);
-    auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 2 }, std::vector<int32_t>{0, 0});
-    auto pads_end = std::make_shared<Subtract>(max_shape, shape);
     auto result_dense_tensor = std::make_shared<Pad>(ragged_to_dense, pads_begin, pads_end, pad_value, ov::op::PadMode::CONSTANT)->output(0);
 
     result_dense_tensor.get_node_shared_ptr()->set_friendly_name(node_name);
