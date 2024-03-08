@@ -15,6 +15,7 @@
 #include "sentence_piece.hpp"
 #include "case_fold.hpp"
 #include "normalize_unicode.hpp"
+#include "ragged_to_dense.hpp"
 #include "ragged_to_sparse.hpp"
 #include "regex_normalization.hpp"
 #include "regex_split.hpp"
@@ -316,4 +317,66 @@ ov::OutputVector translate_string_split(const ov::frontend::NodeContext& node) {
     shape.set_names({ node_name + ":2" });
 
     return ov::OutputVector{ indices, values, shape };
+}
+
+ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeContext& node) {
+    auto node_name = node.get_name();
+    auto node_input_size = node.get_input_size();
+    TENSORFLOW_OP_VALIDATION(node, node_input_size == 4, "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only with one row partition tensor");
+    auto shape = node.get_input(0);
+    auto values = node.get_input(1);
+    auto default_value = node.get_input(2);
+    auto row_partition_tensor = node.get_input(3);
+    auto row_partition_types = node.get_attribute<std::vector<std::string>>("row_partition_types");
+    TENSORFLOW_OP_VALIDATION(node, row_partition_types.size() == 1,
+        "[TensorFlow Frontend] inconsistent model: RaggedTensorToTensor must have one row_partition_type");
+    TENSORFLOW_OP_VALIDATION(node, row_partition_types[0] == "ROW_SPLITS",
+        "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for ROW_SPLITS type");
+    // currently we support only shape for 2D tensor in output
+    // for example, shape can be equal to [2, 5] or [-1, 8]
+    TENSORFLOW_OP_VALIDATION(node, shape.get_partial_shape().is_static() && shape.get_shape() == ov::Shape{ 2 },
+        "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for 2D ragged tensor on input");
+
+    // since begins, ends and target shape are expected to be of int32 type
+    shape = std::make_shared<Convert>(shape, ov::element::i32);
+    row_partition_tensor = std::make_shared<Convert>(row_partition_tensor, ov::element::i32);
+
+    // compute vectors of begins and ends
+    auto rpt_shape = std::make_shared<ShapeOf>(row_partition_tensor, ov::element::i32)->output(0);
+    auto const_one = std::make_shared<Constant>(ov::element::i32, Shape{}, 1);
+    auto rpt_shape_minus_one = std::make_shared<Subtract>(rpt_shape, const_one);
+    auto begins_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+    auto ends_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
+    auto step = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
+    auto begins = std::make_shared<Slice>(row_partition_tensor, begins_start, rpt_shape_minus_one, step);
+    auto ends = std::make_shared<Slice>(row_partition_tensor, ends_start, rpt_shape, step);
+
+    // since shape can contain -1 dimension that means dimension size will be defined automatically
+    // such shape must be adjusted based on other inputs to RaggedTensorToTensor
+    // compute the longest row in a tensor
+    auto longest_row_size = std::make_shared<Subtract>(ends, begins)->output(0);
+    auto reduce_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+    longest_row_size = std::make_shared<ReduceMax>(longest_row_size, reduce_axis, true);
+
+    auto ragged_to_dense = std::make_shared<RaggedToDense>(ov::OutputVector{ begins, ends, values, longest_row_size, default_value })->output(0);
+
+    // adjust shape value since it can contain -1 value that means a dimension must be deduced based on minimal dimension size
+    // to store output tensor
+    auto replace_shape = std::make_shared<Concat>(ov::OutputVector{ rpt_shape_minus_one, longest_row_size }, 0)->output(0);
+    auto const_zero = std::make_shared<Constant>(ov::element::i32, Shape{}, 0);
+    auto shape_less_zero = std::make_shared<Less>(shape, const_zero);
+    shape = std::make_shared<Select>(shape_less_zero, replace_shape, shape);
+
+    auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 2 }, std::vector<int32_t>{0, 0});
+    // note that replace_shape to be equal a shape of ragged_to_dense
+    // Pad operation removes (or crops) if padding number is negative
+    auto pads_end = std::make_shared<Subtract>(shape, replace_shape);
+    auto squeeze_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+    auto pad_value = std::make_shared<Squeeze>(default_value, squeeze_axis);
+    auto result_dense_tensor = std::make_shared<Pad>(ragged_to_dense, pads_begin, pads_end, pad_value, ov::op::PadMode::CONSTANT)->output(0);
+
+    result_dense_tensor.get_node_shared_ptr()->set_friendly_name(node_name);
+    result_dense_tensor.set_names({ node_name + ":0" });
+
+    return { result_dense_tensor };
 }

@@ -19,3 +19,4 @@ ov::OutputVector translate_static_regex_replace(const ov::frontend::NodeContext&
 ov::OutputVector translate_regex_split_with_offsets(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node);
+ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeContext& node);
