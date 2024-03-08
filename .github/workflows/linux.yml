@@ -330,6 +330,7 @@ jobs:
 
       - name: Tokenizers regression tests
         run: |
+          source ${INSTALL_DIR}/setupvars.sh
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
