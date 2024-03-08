@@ -259,7 +259,7 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::Node
     return { lookup_values };
 }
 
-ov::OutputVector translate_string_split(const ov::frontend::NodeContext& node) {
+NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 2, "StringSplitV2 expects two inputs (1D input and separator)");
     auto input = node.get_input(0);
@@ -316,7 +316,13 @@ ov::OutputVector translate_string_split(const ov::frontend::NodeContext& node) {
     shape = std::make_shared<Convert>(shape, element::i64);
     shape.set_names({ node_name + ":2" });
 
-    return ov::OutputVector{ indices, values, shape };
+    // create named outputs for the conversion extension
+    NamedOutputVector named_results;
+    named_results.push_back({ "indices", indices });
+    named_results.push_back({ "values", values });
+    named_results.push_back({ "shape", shape });
+
+    return named_results;
 }
 
 ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeContext& node) {
