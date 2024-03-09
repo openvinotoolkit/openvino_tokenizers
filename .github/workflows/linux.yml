@@ -26,8 +26,6 @@ jobs:
       run:
         shell: bash
     runs-on: ubuntu-20.04
-    env:
-      INSTALL_DIR: ${{ github.workspace }}/openvino/install
 
     steps:
       - name: Download OpenVINO build

@@ -15,9 +15,42 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '10.12'
+  OV_BRANCH: 'releases/2023/3'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/macos/m_openvino_toolkit_macos_10_15_2023.3.0.13775.ceeafaf64f3_x86_64.tgz'
 
 jobs:
+  openvino_download:
+    outputs:
+      status: ${{ steps.openvino_download.outcome }}
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Download OpenVINO build
+        id: openvino_download
+        run: |
+          wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.tar.gz
+          tar -tvf openvino_package.tar.gz
+        continue-on-error: true
+
+      #
+      # Upload to artifacts
+      #
+
+      - name: Upload openvino package
+        if: steps.openvino_download.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openvino_package
+          path: openvino_package.tar.gz
+          if-no-files-found: 'error'
+
   openvino_build:
+    needs: [openvino_download]
+    if: needs.openvino_download.outputs.status != 'success'
     timeout-minutes: 150
     defaults:
       run:
@@ -138,7 +171,10 @@ jobs:
 
   openvino_tokenizers:
     name: OpenVINO tokenizers extension
-    needs: [ openvino_build ]
+    needs: [ openvino_download, openvino_build ]
+    if: |
+      always() &&
+      (needs.openvino_download.outputs.status == 'success' || needs.openvino_build.result == 'success')
     timeout-minutes: 25
     defaults:
       run:
@@ -181,7 +217,7 @@ jobs:
       - name: Extract OpenVINO packages
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
       #
@@ -223,7 +259,7 @@ jobs:
 
   openvino_tokenizers_tests:
     name: OpenVINO tokenizers tests
-    needs: [ openvino_tokenizers ]
+    needs: [ openvino_download, openvino_build, openvino_tokenizers]
     timeout-minutes: 25
     defaults:
       run:
@@ -263,10 +299,11 @@ jobs:
       - name: Extract OpenVINO packages
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
       - name: Install OpenVINO Python wheel
+        if: needs.openvino_build.result == 'success'
         run: |
           # Find and install wheel
           pushd ${INSTALL_DIR}/tools
@@ -282,7 +319,13 @@ jobs:
             python3 -m pip install $wheel_name[dev]
           popd
 
-      - name: Tokenizers regression tests
+      - name: Tokenizers regression tests (using openvino python modules)
+        run: |
+          source ${INSTALL_DIR}/setupvars.sh
+          python3 -m pytest tokenizers_test.py
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
+
+      - name: Tokenizers regression tests (using openvino python wheel)
         run: |
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
