@@ -14,8 +14,8 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: 'releases/2023/3'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2023.3/windows/w_openvino_toolkit_windows_2023.3.0.13775.ceeafaf64f3_x86_64.zip'
+  OV_BRANCH: 'master'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/2024.1.0-14673-1ea296d8bc2/w_openvino_toolkit_windows_2024.1.0.dev20240308_x86_64.zip'
 
 jobs:
   openvino_download:
@@ -74,7 +74,7 @@ jobs:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
           submodules: 'true'
-          ref: 'releases/2023/3'
+          ref: ${{ env.OV_BRANCH }}
 
       #
       # Dependencies
@@ -206,7 +206,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: 'releases/2023/3'
+          ref: ${{ env.OV_BRANCH }}
           sparse-checkout: |
             install_build_dependencies.sh
 
