@@ -32,12 +32,9 @@ jobs:
         id: openvino_download
         run: |
           wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.zip
-          tar -tvf openvino_package.zip
+          unzip -l openvino_package.zip
         continue-on-error: true
 
-      - name: Download OpenVINO build
-        run: |
-          Invoke-WebRequest ${{ env.OV_TARBALL}} -OutFile openvino_package.zip -MaximumRetryCount 10
       #
       # Upload to artifacts
       #
