@@ -152,8 +152,8 @@ jobs:
 
       - name: Cmake install - OpenVINO
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }} -P ${{ env.BUILD_DIR }}/cmake_install.cmake
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }} -DCOMPONENT=python_wheels -P ${{ env.BUILD_DIR }}/cmake_install.cmake
+          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -P ${{ env.BUILD_DIR }}/cmake_install.cmake
+          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -DCOMPONENT=python_wheels -P ${{ env.BUILD_DIR }}/cmake_install.cmake
 
       - name: Pack Artifacts
         run: |
@@ -225,7 +225,8 @@ jobs:
       - name: Extract OpenVINO packages
         run: |
           pushd ${{ env.INSTALL_DIR }}
-            Expand-Archive openvino_package.zip -DestinationPath "${{ env.INSTALL_DIR }}"
+            Expand-Archive openvino_package.zip -DestinationPath ./tmp
+            mv ./tmp/*/* .
           popd
 
       #
@@ -307,7 +308,8 @@ jobs:
       - name: Extract OpenVINO packages
         run: |
           pushd ${{ env.INSTALL_DIR }}
-            Expand-Archive openvino_package.zip -DestinationPath "${{ env.INSTALL_DIR }}"
+            Expand-Archive openvino_package.zip -DestinationPath ./tmp
+            mv ./tmp/*/* .
           popd
 
       - name: Install OpenVINO Python wheel
