@@ -334,6 +334,7 @@ jobs:
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
       - name: Tokenizers regression tests
+        if: needs.openvino_build.result == 'success'
         run: |
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
