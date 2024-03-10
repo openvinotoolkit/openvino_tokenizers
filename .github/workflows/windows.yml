@@ -90,7 +90,6 @@ jobs:
         run: |
           # For Python API: build and wheel packaging
           python3 -m pip install -r ${env:OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
-          python3 -m pip install -r ${env:OPENVINO_REPO}/src/bindings/python/src/compatibility/openvino/requirements-dev.txt
 
       - name: Install build dependencies
         run: |
@@ -243,10 +242,9 @@ jobs:
       #
 
       - name: Build tokenizers wheel
-        shell: cmd
         run: |
-          call "${{ env.INSTALL_DIR }}\\setupvars.bat"
-          python3 -m build --wheel --outdir ${{ env.BUILD_DIR }} ${{ env.OPENVINO_TOKENIZERS_REPO }}
+          . "${{ env.INSTALL_DIR }}/setupvars.ps1"
+          python3 -m build --wheel --outdir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
@@ -327,9 +325,8 @@ jobs:
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
-        shell: cmd
         run: |
-          call "${{ env.INSTALL_DIR }}\\setupvars.bat"
+          . "${{ env.INSTALL_DIR }}/setupvars.ps1"
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
