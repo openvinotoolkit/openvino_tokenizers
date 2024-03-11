@@ -4,6 +4,8 @@
 
 set(TARGET_NAME "openvino_tokenizers")
 
+set_target_properties(${TARGET_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
