@@ -348,7 +348,7 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
     shape = std::make_shared<Convert>(shape, ov::element::i32);
 
     ov::Output<ov::Node> begins, ends;
-    ov::Output<ov::Node> longest_batch;
+    ov::Output<ov::Node> longest_batch, longest_row_size;
     if (row_partition_types == std::vector<std::string>{"ROW_SPLITS"}) {
         auto row_partition_tensor = node.get_input(3);
         row_partition_tensor = std::make_shared<Convert>(row_partition_tensor, ov::element::i32);
@@ -363,6 +363,13 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
         begins = std::make_shared<Slice>(row_partition_tensor, begins_start, rpt_shape_minus_one, step);
         ends = std::make_shared<Slice>(row_partition_tensor, ends_start, rpt_shape, step);
         longest_batch = rpt_shape_minus_one;
+
+        // since shape can contain -1 dimension that means dimension size will be defined automatically
+        // such shape must be adjusted based on other inputs to RaggedTensorToTensor
+        // compute the longest row in a tensor
+        longest_row_size = std::make_shared<Subtract>(ends, begins)->output(0);
+        auto reduce_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+        longest_row_size = std::make_shared<ReduceMax>(longest_row_size, reduce_axis, true);
     }
     else {
         auto first_dim_size = node.get_input(3);
@@ -377,14 +384,24 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
         begins = ragged_to_ragged->output(0);
         ends = ragged_to_ragged->output(1);
         longest_batch = first_dim_size;
-    }
 
-    // since shape can contain -1 dimension that means dimension size will be defined automatically
-    // such shape must be adjusted based on other inputs to RaggedTensorToTensor
-    // compute the longest row in a tensor
-    auto longest_row_size = std::make_shared<Subtract>(ends, begins)->output(0);
-    auto reduce_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
-    longest_row_size = std::make_shared<ReduceMax>(longest_row_size, reduce_axis, true);
+        // compute longest_row_size
+        auto scalar_shape = std::make_shared<Constant>(ov::element::i32, Shape{ 0 }, std::vector<int32_t>{});
+        first_dim_size = std::make_shared<Reshape>(first_dim_size, scalar_shape, false);
+        auto const_zero = std::make_shared<Constant>(ov::element::i32, Shape{}, 0);
+        auto const_one = std::make_shared<Constant>(ov::element::i32, Shape{}, 1);
+        auto range_row_ids = std::make_shared<Range>(const_zero, first_dim_size, const_one, ov::element::i32)->output(0);
+        auto unsqueeze_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1)->output(0);
+        range_row_ids = std::make_shared<Unsqueeze>(range_row_ids, unsqueeze_axis);
+        unsqueeze_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0)->output(0);
+        value_rowids = std::make_shared<Unsqueeze>(value_rowids, unsqueeze_axis);
+        auto mask = std::make_shared<Equal>(range_row_ids, value_rowids)->output(0);
+        mask = std::make_shared<Select>(mask, const_one, const_zero);
+        auto reduce_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1)->output(0);
+        longest_row_size = std::make_shared<ReduceSum>(mask, reduce_axis, false);
+        reduce_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0)->output(0);
+        longest_row_size = std::make_shared<ReduceMax>(longest_row_size, reduce_axis, true);
+    }
 
     auto ragged_to_dense = std::make_shared<RaggedToDense>(ov::OutputVector{ begins, ends, values, longest_row_size, default_value })->output(0);
 
