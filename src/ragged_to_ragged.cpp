@@ -34,7 +34,7 @@ bool RaggedToRagged::evaluate(ov::TensorVector& outputs, const ov::TensorVector&
     outputs[1].set_shape(ov::Shape{ batch_size });
 
     auto begins = outputs[0].data<int32_t>();
-    auto ends = outputs[0].data<int32_t>();
+    auto ends = outputs[1].data<int32_t>();
 
     // prev_row_id_idx stores value idx for previous row
     int32_t prev_row_id_idx = 0;
