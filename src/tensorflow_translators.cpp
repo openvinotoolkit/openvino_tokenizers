@@ -14,9 +14,11 @@
 #include "string_tensor_unpack.hpp"
 #include "sentence_piece.hpp"
 #include "case_fold.hpp"
+#include "equal_str.hpp"
 #include "normalize_unicode.hpp"
 #include "ragged_to_dense.hpp"
 #include "ragged_to_sparse.hpp"
+#include "ragged_to_ragged.hpp"
 #include "regex_normalization.hpp"
 #include "regex_split.hpp"
 #include "vocab_encoder.hpp"
@@ -328,15 +330,14 @@ NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) 
 ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
     auto node_input_size = node.get_input_size();
-    TENSORFLOW_OP_VALIDATION(node, node_input_size == 4, "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only with one row partition tensor");
+    TENSORFLOW_OP_VALIDATION(node, node_input_size == 4 || node_input_size == 5,
+        "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only with one row partition tensor");
     auto shape = node.get_input(0);
     auto values = node.get_input(1);
     auto default_value = node.get_input(2);
-    auto row_partition_tensor = node.get_input(3);
     auto row_partition_types = node.get_attribute<std::vector<std::string>>("row_partition_types");
-    TENSORFLOW_OP_VALIDATION(node, row_partition_types.size() == 1,
-        "[TensorFlow Frontend] inconsistent model: RaggedTensorToTensor must have one row_partition_type");
-    TENSORFLOW_OP_VALIDATION(node, row_partition_types[0] == "ROW_SPLITS",
+    TENSORFLOW_OP_VALIDATION(node, (row_partition_types == std::vector<std::string>{"ROW_SPLITS"}) ||
+        (row_partition_types == std::vector<std::string>{"FIRST_DIM_SIZE", "VALUE_ROWIDS"}),
         "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for ROW_SPLITS type");
     // currently we support only shape for 2D tensor in output
     // for example, shape can be equal to [2, 5] or [-1, 8]
@@ -345,17 +346,38 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
 
     // since begins, ends and target shape are expected to be of int32 type
     shape = std::make_shared<Convert>(shape, ov::element::i32);
-    row_partition_tensor = std::make_shared<Convert>(row_partition_tensor, ov::element::i32);
 
-    // compute vectors of begins and ends
-    auto rpt_shape = std::make_shared<ShapeOf>(row_partition_tensor, ov::element::i32)->output(0);
-    auto const_one = std::make_shared<Constant>(ov::element::i32, Shape{}, 1);
-    auto rpt_shape_minus_one = std::make_shared<Subtract>(rpt_shape, const_one);
-    auto begins_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
-    auto ends_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
-    auto step = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
-    auto begins = std::make_shared<Slice>(row_partition_tensor, begins_start, rpt_shape_minus_one, step);
-    auto ends = std::make_shared<Slice>(row_partition_tensor, ends_start, rpt_shape, step);
+    ov::Output<ov::Node> begins, ends;
+    ov::Output<ov::Node> longest_batch;
+    if (row_partition_types == std::vector<std::string>{"ROW_SPLITS"}) {
+        auto row_partition_tensor = node.get_input(3);
+        row_partition_tensor = std::make_shared<Convert>(row_partition_tensor, ov::element::i32);
+
+        // compute vectors of begins and ends
+        auto rpt_shape = std::make_shared<ShapeOf>(row_partition_tensor, ov::element::i32)->output(0);
+        auto const_one = std::make_shared<Constant>(ov::element::i32, Shape{}, 1);
+        auto rpt_shape_minus_one = std::make_shared<Subtract>(rpt_shape, const_one)->output(0);
+        auto begins_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+        auto ends_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
+        auto step = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
+        begins = std::make_shared<Slice>(row_partition_tensor, begins_start, rpt_shape_minus_one, step);
+        ends = std::make_shared<Slice>(row_partition_tensor, ends_start, rpt_shape, step);
+        longest_batch = rpt_shape_minus_one;
+    }
+    else {
+        auto first_dim_size = node.get_input(3);
+        auto value_rowids = node.get_input(4);
+
+        first_dim_size = std::make_shared<Convert>(first_dim_size, ov::element::i32);
+        auto new_first_dim_size_shape = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
+        first_dim_size = std::make_shared<Reshape>(first_dim_size, new_first_dim_size_shape, false);
+        value_rowids = std::make_shared<Convert>(value_rowids, ov::element::i32);
+
+        auto ragged_to_ragged = std::make_shared<RaggedToRagged>(ov::OutputVector{ value_rowids , first_dim_size });
+        begins = ragged_to_ragged->output(0);
+        ends = ragged_to_ragged->output(1);
+        longest_batch = first_dim_size;
+    }
 
     // since shape can contain -1 dimension that means dimension size will be defined automatically
     // such shape must be adjusted based on other inputs to RaggedTensorToTensor
@@ -368,7 +390,7 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
 
     // adjust shape value since it can contain -1 value that means a dimension must be deduced based on minimal dimension size
     // to store output tensor
-    auto replace_shape = std::make_shared<Concat>(ov::OutputVector{ rpt_shape_minus_one, longest_row_size }, 0)->output(0);
+    auto replace_shape = std::make_shared<Concat>(ov::OutputVector{ longest_batch, longest_row_size }, 0)->output(0);
     auto const_zero = std::make_shared<Constant>(ov::element::i32, Shape{}, 0);
     auto shape_less_zero = std::make_shared<Less>(shape, const_zero);
     shape = std::make_shared<Select>(shape_less_zero, replace_shape, shape);
@@ -385,4 +407,32 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
     result_dense_tensor.set_names({ node_name + ":0" });
 
     return { result_dense_tensor };
+}
+
+ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
+    auto node_name = node.get_name();
+    auto node_input_size = node.get_input_size();
+    TENSORFLOW_OP_VALIDATION(node, node_input_size == 2,
+        "[TensorFlow Frontend] inconsistent model: Equal must have two inputs");
+    auto input1 = node.get_input(0);
+    auto input2 = node.get_input(0);
+
+    ov::Output<ov::Node> result;
+    if (input1.get_element_type() == ov::element::string ||
+        input2.get_element_type() == ov::element::string) {
+        ov::OutputVector unpacked_input1 = pre_translate_string_tensor_input(input1);
+        ov::OutputVector unpacked_input2 = pre_translate_string_tensor_input(input2);
+        ov::OutputVector inputs = unpacked_input1;
+        inputs.insert(inputs.end(), unpacked_input2.begin(), unpacked_input2.end());
+
+        result = std::make_shared<EqualStr>(inputs)->output(0);
+    }
+    else {
+        result = std::make_shared<Equal>(input1, input2)->output(0);
+    }
+
+    result.get_node_shared_ptr()->set_friendly_name(node_name);
+    result.set_names({ node_name + ":0" });
+
+    return { result };
 }
