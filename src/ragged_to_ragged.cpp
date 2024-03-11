@@ -54,9 +54,10 @@ bool RaggedToRagged::evaluate(ov::TensorVector& outputs, const ov::TensorVector&
             }
 
             int32_t idx = prev_row_id + 1;
-            while (idx++ < curr_row_id) {
+            while (idx < curr_row_id) {
                 begins[idx] = rowids_idx;
                 ends[idx] = rowids_idx;
+                ++idx;
             }
 
             prev_row_id_idx = rowids_idx;
@@ -71,7 +72,7 @@ bool RaggedToRagged::evaluate(ov::TensorVector& outputs, const ov::TensorVector&
         }
     }
 
-    prev_row_id = (prev_row_id < 0) ? 0 : prev_row_id;
+    prev_row_id = (prev_row_id < 0) ? 0 : prev_row_id + 1;
     for (int32_t batch_idx = prev_row_id; batch_idx < batch_size; ++batch_idx) {
         begins[batch_idx] = prev_row_id_idx;
         ends[batch_idx] = prev_row_id_idx;
