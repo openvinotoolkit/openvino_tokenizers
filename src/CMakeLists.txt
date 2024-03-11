@@ -201,6 +201,7 @@ if(CMAKE_CL_64)
 endif()
 
 target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS} sentencepiece-static)
+target_link_options(${TARGET_NAME} PRIVATE LINKER:-dead_strip)
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
