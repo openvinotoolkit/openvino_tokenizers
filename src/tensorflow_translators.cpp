@@ -415,7 +415,7 @@ ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
     TENSORFLOW_OP_VALIDATION(node, node_input_size == 2,
         "[TensorFlow Frontend] inconsistent model: Equal must have two inputs");
     auto input1 = node.get_input(0);
-    auto input2 = node.get_input(0);
+    auto input2 = node.get_input(1);
 
     ov::Output<ov::Node> result;
     if (input1.get_element_type() == ov::element::string ||
