@@ -21,7 +21,7 @@ void EqualStr::validate_and_infer_types() {
     OPENVINO_ASSERT(ends_type1 == element::i32 && ends_type2 == element::i32,
         "Expected an i32 ends for string tensor representation.");
 
-    set_output_type(0, ov::element::boolean, PartialShape({ Dimension::dynamic() }));
+    set_output_type(0, ov::element::i32, PartialShape({ Dimension::dynamic() }));
 }
 
 bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
@@ -36,20 +36,23 @@ bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
     size_t num_elems2 = inputs[3].get_size();
     size_t num_elems = std::max(num_elems1, num_elems2);
     outputs[0].set_shape(ov::Shape{ num_elems });
-    auto result = outputs[0].data<bool>();
+    auto result = outputs[0].data<int32_t>();
 
     for (size_t idx = 0; idx < num_elems; ++idx) {
         // handle indices due to broadcasting case
         size_t idx1 = (idx < num_elems1) ? idx : 0;
         size_t idx2 = (idx < num_elems2) ? idx : 0;
-        
+
         std::vector<uint8_t> op1(chars1 + begins1[idx1], chars1 + ends1[idx1]);
         std::vector<uint8_t> op2(chars2 + begins2[idx2], chars2 + ends2[idx2]);
+
+        std::string str1(chars1 + begins1[idx1], chars1 + ends1[idx1]);
+        std::string str2(chars2 + begins2[idx2], chars2 + ends2[idx1]);
         if (op1 == op2) {
-            result[idx] = true;
+            result[idx] = 1;
         }
         else {
-            result[idx] = false;
+            result[idx] = 0;
         }
     }
     return true;
