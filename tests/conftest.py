@@ -99,7 +99,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
         return
 
     parent = os.path.commonprefix([item.nodeid for item in session.items]).strip("[]")
-    print(f'!!!{parent}!!!')
     with open(PASS_RATES_FILE) as f:
         previous_rates = json.load(f)
 
