@@ -332,14 +332,13 @@ jobs:
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
         run: |
-          pushd ${OPENVINO_TOKENIZERS_REPO}/tests
-            source ${INSTALL_DIR}/setupvars.sh
-            python3 -m pytest tokenizers_test.py
-          popd
+          source ${INSTALL_DIR}/setupvars.sh
+          python3 -m pytest tokenizers_test.py
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
       - name: Tokenizers regression tests (using openvino python wheel)
         if: needs.openvino_build.result == 'success'
         run: |
-          pushd ${OPENVINO_TOKENIZERS_REPO}/tests
-            python3 -m pytest tokenizers_test.py
-          popd
+          python3 -m pytest tokenizers_test.py
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
+
