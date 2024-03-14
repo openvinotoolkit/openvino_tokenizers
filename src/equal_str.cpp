@@ -42,9 +42,25 @@ bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
         // handle indices due to broadcasting case
         size_t idx1 = (idx < num_elems1) ? idx : 0;
         size_t idx2 = (idx < num_elems2) ? idx : 0;
+        auto begin1 = begins1[idx1];
+        auto begin2 = begins2[idx2];
+        auto end1 = ends1[idx1];
+        auto end2 = ends2[idx2];
+        end1 = (end1 < begin1 ? begin1 : end1);
+        end2 = (end2 < begin2 ? begin2 : end2);
 
-        std::vector<uint8_t> op1(chars1 + begins1[idx1], chars1 + ends1[idx1]);
-        std::vector<uint8_t> op2(chars2 + begins2[idx2], chars2 + ends2[idx2]);
+        if (end1 - begin1 == 0 && end2 - begin2 != 0) {
+            result[idx] = 0;
+        }
+        else if (end1 - begin1 != 0 && end2 - begin2 == 0) {
+            result[idx] = 0;
+        }
+        else if (end1 - begin1 == 0 && end2 - begin2 == 0) {
+            result[idx] = 1;
+        }
+
+        std::vector<uint8_t> op1(chars1 + begin1, chars1 + end1);
+        std::vector<uint8_t> op2(chars2 + begin2, chars2 + end2);
         if (op1 == op2) {
             result[idx] = 1;
         }
