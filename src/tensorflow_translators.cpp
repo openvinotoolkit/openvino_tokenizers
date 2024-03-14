@@ -442,7 +442,9 @@ ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
         ov::OutputVector inputs = unpacked_input1;
         inputs.insert(inputs.end(), unpacked_input2.begin(), unpacked_input2.end());
 
-        result = std::make_shared<EqualStr>(inputs)->output(0);
+        auto equal_str = std::make_shared<EqualStr>(inputs)->output(0);
+        auto const_one = std::make_shared<Constant>(ov::element::i32, ov::Shape{}, 1);
+        result = std::make_shared<Equal>(equal_str, const_one);
     }
     else {
         result = std::make_shared<Equal>(input1, input2)->output(0);
