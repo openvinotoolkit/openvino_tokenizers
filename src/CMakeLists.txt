@@ -61,11 +61,14 @@ include(FetchContent)
 
 FetchContent_Declare(
   sentencepiece
-  URL      https://github.com/google/sentencepiece/archive/refs/tags/v0.1.99.tar.gz
-  URL_HASH SHA256=63617eaf56c7a3857597dcd8780461f57dd21381b56a27716ef7d7e02e14ced4
+  URL      https://github.com/google/sentencepiece/archive/refs/tags/v0.2.0.tar.gz
+  URL_HASH SHA256=9970f0a0afee1648890293321665e5b2efa04eaec9f1671fcf8048f456f5bb86
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
+  set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
+  set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
+  set(SPM_USE_BUILTIN_PROTOBUF ON)
   FetchContent_Populate(sentencepiece)
   add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
