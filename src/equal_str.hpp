@@ -8,6 +8,8 @@
 
 // EqualStr compares two unpacked string tensors and outputs 1D boolean tensor
 // The operation is only applicable if output shape of string tensor corresponds to 1D tensor
+// It outputs i32 tensor: 1 means elements to be equal, 0 - otherwise
+// Op extension must not output boolean due to current limitation in plugins that is why i32 is selected
 class EqualStr : public ov::op::Op {
 public:
     OPENVINO_OP("EqualStr");
