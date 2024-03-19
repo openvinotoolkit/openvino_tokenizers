@@ -58,6 +58,11 @@ void RegexNormalization::validate_and_infer_types() {
 
 
 bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    if (m_search_pattern_re == nullptr) {
+        auto search_pattern = absl::string_view(inputs[3].data<const char>(), inputs[3].get_size());
+        m_replace_pattern = absl::string_view(inputs[4].data<const char>(), inputs[4].get_size());
+        m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
+    };
     return evaluate_normalization_helper(
         outputs, inputs,
         [this](const std::string& str) {

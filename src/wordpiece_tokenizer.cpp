@@ -33,30 +33,6 @@ WordpieceTokenizer::WordpieceTokenizer(
     m_suffix_indicator(suffix_indicator),
     m_max_bytes_per_word(max_bytes_per_word) {
 
-    if (m_tokenizer == nullptr) {
-        // vocab constant folding doesn't work, get packed constant
-        auto packed_vocab_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr()->get_input_node_shared_ptr(0));
-        auto packed_vocab_buf = static_cast<const char*>(packed_vocab_const->get_data_ptr());
-        auto vocab_size = *reinterpret_cast<const int32_t*>(packed_vocab_buf + 0);
-        auto vocab_begins = reinterpret_cast<const int32_t*>(packed_vocab_buf + 4);
-        auto vocab_ends = reinterpret_cast<const int32_t*>(packed_vocab_buf + 4 + 4);
-        auto vocab_chars = packed_vocab_buf + 4 + 4 + 4 * vocab_size;
-
-        auto unk_token_id_const = as_type_ptr<Constant>(arguments[8].get_node_shared_ptr());
-        auto unk_token_id  = *static_cast<const int32_t*>(unk_token_id_const->get_data_ptr());
-
-        core::Vocab vocab;
-        std::string unk_token;
-        if(unk_token_id < 0)
-            unk_token_id += vocab_size;
-        for(size_t id = 0; id < vocab_size; ++id) {
-            auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
-            vocab[token] = int32_t(id); // TODO: Check range
-            if(id == unk_token_id)
-                unk_token = token;
-        }
-        m_tokenizer = std::make_shared<models::FastWordPiece>(vocab, unk_token, m_max_bytes_per_word, m_suffix_indicator, true);
-    }
     constructor_validate_and_infer_types();
 }
 
@@ -69,6 +45,27 @@ void WordpieceTokenizer::validate_and_infer_types() {
 
 
 bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    if (m_tokenizer == nullptr) {
+        auto vocab_begins = inputs[5].data<const int32_t>();
+        auto vocab_ends   = inputs[6].data<const int32_t>();
+        auto vocab_chars  = inputs[7].data<const uint8_t>();
+        auto vocab_size   = inputs[6].get_size();
+
+        auto unk_token_id = *inputs[8].data<const int32_t>();
+        core::Vocab vocab;
+        std::string unk_token;
+        if(unk_token_id < 0)
+            unk_token_id += vocab_size;
+
+        for(size_t id = 0; id < vocab_size; ++id) {
+            auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
+            vocab[token] = int32_t(id); // TODO: Check range
+            if (id == unk_token_id)
+                unk_token = token;
+        }
+        m_tokenizer = std::make_shared<models::FastWordPiece>(vocab, unk_token, m_max_bytes_per_word, m_suffix_indicator, true);
+    };
+
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();
