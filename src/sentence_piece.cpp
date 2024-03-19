@@ -20,72 +20,60 @@ using namespace ov;
 using namespace ov::frontend;
 using namespace ov::opset13;
 
-// TODO: Replace shape_size(t.get_shape()) by t.get_size(), where t is ov::Tensor
 
-SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, int32_t nbest_size, float alpha,
-    bool add_bos, bool add_eos, bool reverse) : m_sp(std::make_shared<SentencePieceProcessor>()),
-    m_nbest_size(nbest_size), m_alpha(alpha), m_add_bos(add_bos), m_add_eos(add_eos),
-    m_reverse(reverse), Op(args) {
+std::string form_extra_options(bool add_bos, bool add_eos, bool reverse) {
+    std::string extra_options = "";
+    if (add_bos) {
+        extra_options += "bos";
+    }
+    if (add_eos) {
+        extra_options = extra_options.empty() ? extra_options : extra_options + ":";
+        extra_options += "eos";
+    }
+    if (reverse) {
+        extra_options = extra_options.empty() ? extra_options : extra_options + ":";
+        extra_options += "reverse";
+    }
+    return extra_options;
+}
+
+void init_sp_model(const OutputVector& args, std::shared_ptr<SentencePieceProcessor>& sp) {
     auto sp_model_const = as_type_ptr<Constant>(args[0].get_node_shared_ptr());
     FRONT_END_GENERAL_CHECK(sp_model_const, "SentencepieceTokenizer expects SentencePiece model to be constant.");
     auto spm_model = static_cast<const char*>(sp_model_const->get_data_ptr());
     auto spm_model_size = sp_model_const->get_byte_size();
 
-    // configure SentencePieceProcessor
     std::string model_proto(spm_model, spm_model_size);
-    CHECK_OK(m_sp->LoadFromSerializedProto(model_proto));
+    CHECK_OK(sp->LoadFromSerializedProto(model_proto));
+}
 
-    // form extra options to configure SentencePieceProcessor
-    std::string extra_options = "";
-    if (m_add_bos) {
-        extra_options += "bos";
-    }
-    if (m_add_eos) {
-        extra_options = extra_options.empty() ? extra_options : extra_options + ":";
-        extra_options += "eos";
-    }
-    /* TODO: TF ignores this option, so we are ignoring it as well; need to understand what should we do
-    if (m_reverse) {
-        extra_options = extra_options.empty() ? extra_options : extra_options + ":";
-        extra_options += "reverse";
-    }
-    */
-    // example of extra_options, if "bos:eos:reverse"
-    CHECK_OK(m_sp->SetEncodeExtraOptions(extra_options));
+void init_sp_model_in_eval(const TensorVector& inputs, std::shared_ptr<SentencePieceProcessor>& sp) {
+    auto spm_model = inputs[0].data<const char>();
+    auto spm_model_size = inputs[0].get_size();
+    std::string model_proto(spm_model, spm_model_size);
+    CHECK_OK(sp->LoadFromSerializedProto(model_proto));
+}
+
+// TODO: Replace shape_size(t.get_shape()) by t.get_size(), where t is ov::Tensor
+SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, int32_t nbest_size, float alpha,
+    bool add_bos, bool add_eos, bool reverse) : m_sp(std::make_shared<SentencePieceProcessor>()),
+    m_nbest_size(nbest_size), m_alpha(alpha), m_add_bos(add_bos), m_add_eos(add_eos),
+    m_reverse(reverse), Op(args) {
+
+    init_sp_model(args, m_sp);
+    CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, m_reverse)));
     constructor_validate_and_infer_types();
 }
 
-SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, const std::shared_ptr<sentencepiece::SentencePieceProcessor>& sp,
+SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, const std::shared_ptr<SentencePieceProcessor>& sp,
     int32_t nbest_size, float alpha, bool add_bos, bool add_eos, bool reverse) :
     m_sp((sp == nullptr) ? std::make_shared<SentencePieceProcessor>(): sp),
     m_nbest_size(nbest_size), m_alpha(alpha), m_add_bos(add_bos), m_add_eos(add_eos),
     m_reverse(reverse), Op(args) {
     // constructor above without sp argument never called when the node is created with python factory, so need to init and cache m_sp here
     if (!m_sp->status().ok()) {
-        auto sp_model_const = as_type_ptr<Constant>(args[0].get_node_shared_ptr());
-        FRONT_END_GENERAL_CHECK(sp_model_const, "SentencepieceTokenizer expects SentencePiece model to be constant.");
-        auto spm_model = static_cast<const char*>(sp_model_const->get_data_ptr());
-        auto spm_model_size = sp_model_const->get_byte_size();
-
-        // configure SentencePieceProcessor
-        std::string model_proto(spm_model, spm_model_size);
-        CHECK_OK(m_sp->LoadFromSerializedProto(model_proto));
-
-        // form extra options to configure SentencePieceProcessor
-        std::string extra_options = "";
-        if (m_add_bos) {
-            extra_options += "bos";
-        }
-        if (m_add_eos) {
-            extra_options = extra_options.empty() ? extra_options : extra_options + ":";
-            extra_options += "eos";
-        }
-        if (m_reverse) {
-            extra_options = extra_options.empty() ? extra_options : extra_options + ":";
-            extra_options += "reverse";
-        }
-        // example of extra_options, if "bos:eos:reverse"
-        CHECK_OK(m_sp->SetEncodeExtraOptions(extra_options));
+        init_sp_model(args, m_sp);
+        CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, m_reverse)));
     };
     constructor_validate_and_infer_types();
 }
@@ -124,6 +112,12 @@ bool SentencepieceTokenizer::visit_attributes(AttributeVisitor& visitor) {
 }
 
 bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector& inputs) const {
+    if (m_sp == nullptr) {
+        m_sp = std::make_shared<SentencePieceProcessor>();
+        init_sp_model_in_eval(inputs, m_sp);
+        CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, m_reverse)));
+    };
+
     std::vector<int64_t> sparse_indices;
     std::vector<int32_t> sparse_values;
     std::vector<int64_t> sparse_dense_shape;
@@ -201,14 +195,7 @@ std::shared_ptr<Node> SentencepieceTokenizer::clone_with_new_inputs(const Output
 
 SentencepieceDetokenizer::SentencepieceDetokenizer(const OutputVector& args) :
     m_sp(std::make_shared<SentencePieceProcessor>()), Op(args) {
-    auto sp_model_const = as_type_ptr<Constant>(args[0].get_node_shared_ptr());
-    OPENVINO_ASSERT(sp_model_const, "SentencepieceDetokenizer expects SentencePiece model to be constant.");
-    auto spm_model = static_cast<const char*>(sp_model_const->get_data_ptr());
-    auto spm_model_size = sp_model_const->get_byte_size();
-
-    // configure SentencePieceProcessor
-    std::string model_proto(spm_model, spm_model_size);
-    CHECK_OK(m_sp->LoadFromSerializedProto(model_proto));
+    init_sp_model(args, m_sp);
     constructor_validate_and_infer_types();
 }
 
@@ -216,14 +203,7 @@ SentencepieceDetokenizer::SentencepieceDetokenizer(const OutputVector& args, con
     m_sp((sp == nullptr) ? std::make_shared<SentencePieceProcessor>(): sp), Op(args) {
     // constructor above without sp argument never called when the node is created with python factory, so need to init and cache m_sp here
     if (!m_sp->status().ok()) {
-        auto sp_model_const = as_type_ptr<Constant>(args[0].get_node_shared_ptr());
-        OPENVINO_ASSERT(sp_model_const, "SentencepieceDetokenizer expects SentencePiece model to be constant.");
-        auto spm_model = static_cast<const char*>(sp_model_const->get_data_ptr());
-        auto spm_model_size = sp_model_const->get_byte_size();
-
-        // configure SentencePieceProcessor
-        std::string model_proto(spm_model, spm_model_size);
-        CHECK_OK(m_sp->LoadFromSerializedProto(model_proto));
+        init_sp_model(args, m_sp);
     };
     constructor_validate_and_infer_types();
 }
@@ -242,6 +222,11 @@ bool SentencepieceDetokenizer::visit_attributes(AttributeVisitor& visitor) {
 }
 
 bool SentencepieceDetokenizer::evaluate(TensorVector& outputs, const TensorVector& inputs) const {
+    if (m_sp == nullptr) {
+        m_sp = std::make_shared<SentencePieceProcessor>();
+        init_sp_model_in_eval(inputs, m_sp);
+    };
+
     auto batch_size = inputs[1].get_shape()[0];
     auto seq_len    = inputs[1].get_shape()[1];
     auto input_data = inputs[1].data<const int32_t>();
@@ -286,14 +271,7 @@ std::shared_ptr<Node> SentencepieceDetokenizer::clone_with_new_inputs(const Outp
 
 SentencepieceStreamDetokenizer::SentencepieceStreamDetokenizer(const OutputVector& args) :
     m_sp(std::make_shared<SentencePieceProcessor>()), Op(args) {
-    auto sp_model_const = as_type_ptr<Constant>(args[0].get_node_shared_ptr());
-    OPENVINO_ASSERT(sp_model_const, "SentencepieceDetokenizer expects SentencePiece model to be constant.");
-    auto spm_model = static_cast<const char*>(sp_model_const->get_data_ptr());
-    auto spm_model_size = sp_model_const->get_byte_size();
-
-    // configure SentencePieceProcessor
-    std::string model_proto(spm_model, spm_model_size);
-    CHECK_OK(m_sp->LoadFromSerializedProto(model_proto));
+    init_sp_model(args, m_sp);
     constructor_validate_and_infer_types();
 }
 
@@ -301,14 +279,7 @@ SentencepieceStreamDetokenizer::SentencepieceStreamDetokenizer(const OutputVecto
     m_sp((sp == nullptr) ? std::make_shared<SentencePieceProcessor>(): sp), Op(args) {
     // constructor above without sp argument never called when the node is created with python factory, so need to init and cache m_sp here
     if (!m_sp->status().ok()) {
-        auto sp_model_const = as_type_ptr<Constant>(args[0].get_node_shared_ptr());
-        OPENVINO_ASSERT(sp_model_const, "SentencepieceDetokenizer expects SentencePiece model to be constant.");
-        auto spm_model = static_cast<const char*>(sp_model_const->get_data_ptr());
-        auto spm_model_size = sp_model_const->get_byte_size();
-
-        // configure SentencePieceProcessor
-        std::string model_proto(spm_model, spm_model_size);
-        CHECK_OK(m_sp->LoadFromSerializedProto(model_proto));
+        init_sp_model(args, m_sp);
     };
     constructor_validate_and_infer_types();
 }
@@ -327,6 +298,11 @@ bool SentencepieceStreamDetokenizer::visit_attributes(AttributeVisitor& visitor)
 }
 
 bool SentencepieceStreamDetokenizer::evaluate(TensorVector& outputs, const TensorVector& inputs) const {
+    if (m_sp == nullptr) {
+        m_sp = std::make_shared<SentencePieceProcessor>();
+        init_sp_model_in_eval(inputs, m_sp);
+    };
+
     auto batch_size = inputs[1].get_shape()[0];
     auto seq_len    = inputs[1].get_shape()[1];
     auto input_data = inputs[1].data<const int32_t>();
