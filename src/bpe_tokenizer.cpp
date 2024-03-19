@@ -46,14 +46,24 @@ BPETokenizer::BPETokenizer(
     m_end_suffix(end_suffix),
     m_byte_fallback(byte_fallback) {
 
+    constructor_validate_and_infer_types();
+}
+
+
+void BPETokenizer::validate_and_infer_types() {
+    check_ragged_string_input(this, 0);
+    check_string_input(this, 5);
+    check_string_input(this, 8);
+    set_ragged_output(this, 0, get_input_partial_shape(0), element::i32);
+}
+
+bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     if (m_tokenizer == nullptr) {
-        // vocab constant folding doesn't work, get packed constant
-        auto packed_vocab_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr()->get_input_node_shared_ptr(0));
-        auto packed_vocab_buf = static_cast<const char*>(packed_vocab_const->get_data_ptr());
-        auto vocab_size = *reinterpret_cast<const int32_t*>(packed_vocab_buf + 0);
-        auto vocab_begins = reinterpret_cast<const int32_t*>(packed_vocab_buf + 4);
-        auto vocab_ends = reinterpret_cast<const int32_t*>(packed_vocab_buf + 4 + 4);
-        auto vocab_chars = packed_vocab_buf + 4 + 4 + 4 * vocab_size;
+        // cache tokenizer
+        auto vocab_begins = inputs[5].data<const int32_t>();
+        auto vocab_ends   = inputs[6].data<const int32_t>();
+        auto vocab_chars  = inputs[7].data<const uint8_t>();
+        auto vocab_size   = inputs[6].get_size();
 
         core::Vocab vocab;
         for(size_t id = 0; id < vocab_size; ++id) {
@@ -61,12 +71,10 @@ BPETokenizer::BPETokenizer(
             vocab[token] = int32_t(id); // TODO: Check range
         }
 
-        auto packed_merges_const = as_type_ptr<Constant>(arguments[8].get_node_shared_ptr()->get_input_node_shared_ptr(0));
-        auto packed_merges_buf = static_cast<const char*>(packed_merges_const->get_data_ptr());
-        auto merges_size = *reinterpret_cast<const int32_t*>(packed_merges_buf + 0);
-        auto merges_begins = reinterpret_cast<const int32_t*>(packed_merges_buf + 4);
-        auto merges_ends = reinterpret_cast<const int32_t*>(packed_merges_buf + 4 + 4);
-        auto merges_chars = packed_merges_buf + 4 + 4 + 4 * merges_size;
+        auto merges_begins = inputs[8].data<const int32_t>();
+        auto merges_ends   = inputs[9].data<const int32_t>();
+        auto merges_chars  = inputs[10].data<const uint8_t>();
+        auto merges_size   = inputs[8].get_size();
 
         core::Merges merges;
         std::string delim = " ";
@@ -103,20 +111,8 @@ BPETokenizer::BPETokenizer(
             end_suffix,
             m_fuse_unk
         );
-    }
+    };
 
-    constructor_validate_and_infer_types();
-}
-
-
-void BPETokenizer::validate_and_infer_types() {
-    check_ragged_string_input(this, 0);
-    check_string_input(this, 5);
-    check_string_input(this, 8);
-    set_ragged_output(this, 0, get_input_partial_shape(0), element::i32);
-}
-
-bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();
