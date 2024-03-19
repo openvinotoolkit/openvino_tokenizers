@@ -54,7 +54,6 @@ void init_sp_model_in_eval(const TensorVector& inputs, std::shared_ptr<SentenceP
     CHECK_OK(sp->LoadFromSerializedProto(model_proto));
 }
 
-// TODO: Replace shape_size(t.get_shape()) by t.get_size(), where t is ov::Tensor
 SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, int32_t nbest_size, float alpha,
     bool add_bos, bool add_eos, bool reverse) : m_sp(std::make_shared<SentencePieceProcessor>()),
     m_nbest_size(nbest_size), m_alpha(alpha), m_add_bos(add_bos), m_add_eos(add_eos),
