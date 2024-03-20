@@ -34,7 +34,10 @@ bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
 
     size_t num_elems1 = inputs[0].get_size();
     size_t num_elems2 = inputs[3].get_size();
-    size_t num_elems = std::max(num_elems1, num_elems2);
+
+    // in case broadcasting with at least one input empty tensor
+    // output tensor must be also empty according to TensorFlow
+    size_t num_elems = (num_elems1 == 0 || num_elems2 == 0) ? 0 : std::max(num_elems1, num_elems2);
     outputs[0].set_shape(ov::Shape{ num_elems });
     auto result = outputs[0].data<int32_t>();
 
@@ -46,16 +49,14 @@ bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
         auto begin2 = begins2[idx2];
         auto end1 = ends1[idx1];
         auto end2 = ends2[idx2];
-        end1 = (end1 < begin1 ? begin1 : end1);
-        end2 = (end2 < begin2 ? begin2 : end2);
 
-        if (end1 - begin1 == 0 && end2 - begin2 != 0) {
+        if (end1 == begin1 && end2 != begin2) {
             result[idx] = 0;
         }
-        else if (end1 - begin1 != 0 && end2 - begin2 == 0) {
+        else if (end1 != begin1 && end2 == begin2) {
             result[idx] = 0;
         }
-        else if (end1 - begin1 == 0 && end2 - begin2 == 0) {
+        else if (end1 == begin1 && end2 == begin2) {
             result[idx] = 1;
         }
 
