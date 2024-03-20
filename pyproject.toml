@@ -19,7 +19,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "openvino~=2024.1.0.0"
+    # support of nightly openvino packages with dev suffix
+    "openvino~=2024.1.0.0.dev"
 ]
 
 [project.optional-dependencies]
