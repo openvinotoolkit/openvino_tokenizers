@@ -16,8 +16,8 @@ OpenVINO Tokenizers adds text processing operations to OpenVINO.
 python3 -m venv venv
 source venv/bin/activate
  # or
-conda create --name openvino_tokenizer
-conda activate openvino_tokenizer
+conda create --name openvino_tokenizers
+conda activate openvino_tokenizers
 ```
 
 ### Minimal Installation
@@ -38,12 +38,26 @@ pip install openvino-tokenizers[transformers]
 conda install -c conda-forge openvino openvino-tokenizers && pip install transformers[sentencepiece] tiktoken
 ```
 
-### Build and install from source after [OpenVINO installation](https://docs.openvino.ai/2023.2/openvino_docs_install_guides_overview.html)
+### Install Pre-Release Version
+
+Use `openvino-tokenizrs[transformers]` to install tokenizers conversion dependencies.
+```bash
+pip install --pre -U openvino openvino-tokenizers --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
+```
+
+### Build and Install from Source
+
+Install [OpenVINO archive](https://docs.openvino.ai/2024/get-started/install-openvino.html) distribution. Use `--no-deps` to avoid OpenVINO installation from PyPI.
+
 ```bash
 source path/to/installed/openvino/setupvars.sh
 git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
 cd openvino_tokenizers
-pip install .[transformers]
+pip install --no-deps .
+```
+That will be equivalent of minimal installation. Install tokenizers conversion dependencies if needed:
+```bash
+pip install transformers[sentencepiece] tiktoken
 ```
 
 ### Build and install for development
@@ -53,7 +67,7 @@ git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
 cd openvino_tokenizers
 pip install -e .[all]
 # verify installation by running tests
-cd python/tests/
+cd tests/
 pytest .
 ```
 
