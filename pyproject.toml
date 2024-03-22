@@ -88,7 +88,7 @@ sdist.cmake = true
 sdist.exclude = ["dist", "tests", "examples", "python/tests"]
 
 [[tool.scikit-build.generate]]
-path = "__version__.py"
+path = "openvino_tokenizers/__version__.py"
 template = '''
 __version__ = "${version}"
 '''
