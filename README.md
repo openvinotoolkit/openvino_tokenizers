@@ -38,9 +38,9 @@ pip install openvino-tokenizers[transformers]
 conda install -c conda-forge openvino openvino-tokenizers && pip install transformers[sentencepiece] tiktoken
 ```
 
-### Install Pre-Release Version
+### Install Pre-release Version
 
-Use `openvino-tokenizrs[transformers]` to install tokenizers conversion dependencies.
+Use `openvino-tokenizers[transformers]` to install tokenizers conversion dependencies.
 ```bash
 pip install --pre -U openvino openvino-tokenizers --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
 ```
@@ -55,7 +55,7 @@ git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
 cd openvino_tokenizers
 pip install --no-deps .
 ```
-That will be equivalent of minimal installation. Install tokenizers conversion dependencies if needed:
+This command is the equivalent of minimal installation. Install tokenizers conversion dependencies if needed:
 ```bash
 pip install transformers[sentencepiece] tiktoken
 ```
