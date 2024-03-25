@@ -15,7 +15,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: '902f1b1af0f5abff87c32dca62d261ce5d1d01c2'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/2024.1.0-14797-12404fcc8b8/l_openvino_toolkit_ubuntu20_2024.1.0.dev20240321_x86_64.tgz'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/2024.1.0-14819-791feb469f8/l_openvino_toolkit_ubuntu20_2024.1.0.dev20240322_x86_64.tgz'
 
 jobs:
   openvino_download:
