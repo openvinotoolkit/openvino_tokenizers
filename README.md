@@ -248,7 +248,35 @@ print(f"OpenVINO output string: `{ov_output}`")
 # OpenVINO output string: `['<s> Quick brown fox was walking through the forest. He was looking for something']`
 print(f"HuggingFace output string: `{hf_output}`")
 # HuggingFace output string: `['Quick brown fox was walking through the forest. He was looking for something']`
+```
 
+### Tensorflow Text Integration
+
+OpenVINO Tokenizers contains converters for some Tensorflow Text operations. 
+For now only the MUSE model has been supported. 
+Here is an example of the model conversion and inference:
+
+```python
+import numpy as np
+import tensorflow_hub as hub
+import tensorflow_text  # register tf text ops
+from openvino import convert_model, compile_model
+import openvino_tokenizers  # register ov tokenizer ops and translators
+
+
+sentences = ["dog",  "I cuccioli sono carini.", "私は犬と一緒にビーチを散歩するのが好きです"]
+tf_embed = hub.load(
+    "https://www.kaggle.com/models/google/universal-sentence-encoder/frameworks/"
+    "TensorFlow2/variations/multilingual/versions/2"
+)
+# convert model that uses Sentencepiece tokenizer op from TF Text
+ov_model = convert_model(tf_embed)
+ov_embed = compile_model(ov_model, "CPU")
+
+ov_result = ov_embed(sentences)[ov_embed.output()]
+tf_result = tf_embed(sentences)
+
+assert np.all(np.isclose(ov_result, tf_result, atol=1e-4))
 ```
 
 ## Supported Tokenizer Types
