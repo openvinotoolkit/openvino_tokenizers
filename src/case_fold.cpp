@@ -20,20 +20,22 @@ void CaseFold::validate_and_infer_types() {
 }
 
 bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    return evaluate_normalization_helper(
-        outputs, inputs,
-        [&](const std::string& str) {
-            if (m_encoding.empty()) {
-                for (char ch : str) {
-                    if (ch < 0 || ch > 127) {
-                        OPENVINO_THROW(
-                            "CaseFold operation works with ascii chars only. "
-                            "Use CaseFold with encoding=\"utf-8\" or filter non-ascii chars from the input."
-                        );
-                    };
+    if (m_encoding.empty()) {
+        return evaluate_normalization_helper(
+            outputs, inputs,
+            [](const std::string& str) {
+                std::string result = "";
+                for (unsigned char ch : str) {
+                    result += ('A' <= ch && ch <= 'Z' ) ? ch + 32 : ch;
                 };
-            };
-            using namespace paddlenlp::fast_tokenizer;
-            return normalizers::NormalizedString(str).Lowercase().GetStr();
-        });
+                return result;
+            });
+    } else {
+        return evaluate_normalization_helper(
+            outputs, inputs,
+            [](const std::string& str) {
+                using namespace paddlenlp::fast_tokenizer;
+                return normalizers::NormalizedString(str).Lowercase().GetStr();
+            });
+        }
 }
