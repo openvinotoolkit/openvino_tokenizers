@@ -250,11 +250,11 @@ print(f"HuggingFace output string: `{hf_output}`")
 # HuggingFace output string: `['Quick brown fox was walking through the forest. He was looking for something']`
 ```
 
-### Tensorflow Text Integration
+### TensorFlow Text Integration
 
-OpenVINO Tokenizers includes converters for some Tensorflow Text operations. 
-For now, only the MUSE model has been supported. 
-Here is an example of the model conversion and inference:
+OpenVINO Tokenizers include converters for certain TensorFlow Text operations. 
+Currently, only the MUSE model is supported. 
+Here is an example of model conversion and inference:
 
 ```python
 import numpy as np
