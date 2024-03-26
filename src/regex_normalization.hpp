@@ -46,7 +46,7 @@ public:
         return true;
     }
 private:
-    std::shared_ptr<re2::RE2> m_search_pattern_re;
-    absl::string_view m_replace_pattern;
+    mutable std::shared_ptr<re2::RE2> m_search_pattern_re;
+    mutable absl::string_view m_replace_pattern;
     bool m_global_replace = true;
 };

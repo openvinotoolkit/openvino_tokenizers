@@ -51,7 +51,7 @@ public:
     }
 
 private:
-    std::shared_ptr<models::FastWordPiece> m_tokenizer;
+    mutable std::shared_ptr<models::FastWordPiece> m_tokenizer;
     std::string m_suffix_indicator = "##";
     int m_max_bytes_per_word = 100;   // TODO: Can it be done outside the op as preprocessing of the input?
 };

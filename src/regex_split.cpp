@@ -70,6 +70,11 @@ void RegexSplit::validate_and_infer_types() {
 }
 
 bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    if (m_pretokenizer == nullptr) {
+        auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
+        m_pretokenizer = std::make_shared<pretokenizers::SplitPreTokenizer>(split_pattern, split_modes.at(m_behaviour), m_invert);
+    };
+
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();
