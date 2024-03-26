@@ -63,7 +63,7 @@ public:
     }
 
 private:
-    std::shared_ptr<models::BPE> m_tokenizer;
+    mutable std::shared_ptr<models::BPE> m_tokenizer;
     std::string m_unk_token;
     bool m_fuse_unk = false;
     std::string m_suffix_indicator;

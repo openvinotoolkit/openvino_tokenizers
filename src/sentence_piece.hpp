@@ -31,7 +31,7 @@ namespace TemplateExtension {
         bool has_evaluate() const override;
 
     private:
-        std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
+        mutable std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
         int32_t m_nbest_size;
         float m_alpha;
         bool m_add_bos;
@@ -60,7 +60,7 @@ namespace TemplateExtension {
         bool has_evaluate() const override;
 
     private:
-        std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
+        mutable std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
     };
 
 
@@ -84,6 +84,6 @@ namespace TemplateExtension {
         bool has_evaluate() const override;
 
     private:
-        std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
+        mutable std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
     };
 }  // namespace TemplateExtension

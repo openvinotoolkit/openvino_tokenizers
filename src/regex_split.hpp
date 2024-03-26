@@ -46,7 +46,7 @@ public:
     }
 
 private:
-    std::shared_ptr<pretokenizers::SplitPreTokenizer> m_pretokenizer;
+    mutable std::shared_ptr<pretokenizers::SplitPreTokenizer> m_pretokenizer;
     std::string m_behaviour = "remove";
     bool m_invert = false;
     int m_max_splits = -1;
