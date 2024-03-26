@@ -14,7 +14,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: 'master'
+  OV_BRANCH: 'refs/pull/23663/head'
   OV_TARBALL: ''
 
 jobs:
@@ -133,7 +133,7 @@ jobs:
             -DENABLE_SAMPLES=OFF \
             -DENABLE_OV_ONNX_FRONTEND=OFF \
             -DENABLE_OV_PADDLE_FRONTEND=OFF \
-            -DENABLE_OV_PYTORCH_FRONTEND=ON \
+            -DENABLE_OV_PYTORCH_FRONTEND=OFF \
             -DENABLE_OV_TF_FRONTEND=ON \
             -DENABLE_OV_TF_LITE_FRONTEND=OFF \
             -DENABLE_INTEL_GPU=OFF \
