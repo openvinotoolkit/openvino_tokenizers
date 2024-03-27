@@ -51,6 +51,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<VocabDecoder>>(),
             std::make_shared<ov::OpExtension<CharsToBytes>>(),
             std::make_shared<ov::OpExtension<TrieTokenizer>>(),
+            std::make_shared<ov::OpExtension<FuzeRagged>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceTokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceDetokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceStreamDetokenizer>>(),

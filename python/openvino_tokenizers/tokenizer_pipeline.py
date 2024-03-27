@@ -9,7 +9,7 @@ import weakref
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from itertools import chain, islice
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from openvino.runtime import Model, Output, PartialShape, Type, op
@@ -362,6 +362,24 @@ class VocabEncoderStep(TokenizationModelStep):
 class TrieTokenizerStep(TokenizationModelStep):
     vocab: List[str] = field(repr=False)
     indices: List[int] = field(repr=False)
+
+    def __post_init__(self):
+        if len(self.vocab) != len(self.indices):
+            raise UserInputError("Vocab and Indices must be the same length.")
+
+        self.vocab, self.indices = self.fill_vocab(self.vocab, self.indices)
+
+    @staticmethod
+    def fill_vocab(vocab: List[str], indices: List[int]) -> Tuple[List[str], List[int]]:
+        max_idx = max(indices)
+        new_indicies = list(range(max_idx + 1))
+
+        idx_to_token = dict(zip(indices, vocab))
+        new_vocab = []
+        for idx in new_indicies:
+            new_vocab.append(idx_to_token.get(idx, ""))
+
+        return new_vocab, new_indicies
 
     @classmethod
     def from_rwkv_vocab(cls, vocab_file_strings: Iterator[str]) -> TrieTokenizerStep:
@@ -785,17 +803,21 @@ class DecodingStep(BasePipelineStep):
 
 @dataclass
 class VocabDecoderStep(DecodingStep):
+    vocab: Optional[List[str]] = None
     skip_tokens: Optional[List[int]] = None
 
     def __post_init__(self):
         if self.skip_tokens is None:
-            self.skip_tokens = self.get_pipeline().skip_tokens or {}
+            self.skip_tokens = self.get_pipeline().skip_tokens if self.get_pipeline() is not None else {}
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
-        return self.get_pipeline().vocab_node_outputs
+        return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(self.get_vocab_node_outputs())
+        vocab_outputs = self.get_vocab_node_outputs()
+        if vocab_outputs is None:
+            vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
+        input_nodes.extend(vocab_outputs)
         return _get_factory().create("VocabDecoder", input_nodes, {"skip_tokens": self.skip_tokens}).outputs()
 
 

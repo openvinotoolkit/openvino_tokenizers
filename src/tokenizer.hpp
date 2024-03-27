@@ -24,5 +24,6 @@
 #include "vocab_encoder.hpp"
 #include "chars_to_bytes.hpp"
 #include "trie_tokenizer.hpp"
+#include "fuze.hpp"
 
 #include "tensorflow_translators.hpp"
