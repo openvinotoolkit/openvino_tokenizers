@@ -9,7 +9,7 @@ import weakref
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from itertools import chain, islice
-from typing import Any, Dict, List, Optional, Union, Iterator
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import numpy as np
 from openvino.runtime import Model, Output, PartialShape, Type, op
@@ -352,7 +352,7 @@ class VocabEncoderStep(TokenizationModelStep):
             (
                 *self.create_string_constant_node(self.vocab).outputs(),
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
-                make_constant_node(self.default_value, Type.i32)  # default_value
+                make_constant_node(self.default_value, Type.i32),  # default_value
             )
         )
         return _get_factory().create("VocabEncoder", input_nodes).outputs()
@@ -382,6 +382,7 @@ class TrieTokenizerStep(TokenizationModelStep):
             )
         )
         return _get_factory().create("TrieTokenizer", input_nodes).outputs()
+
 
 @dataclass
 class WordPieceTokenizationStep(TokenizationModelStep):
