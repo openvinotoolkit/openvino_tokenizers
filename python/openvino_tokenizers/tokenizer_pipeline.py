@@ -9,7 +9,7 @@ import weakref
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from itertools import chain, islice
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Iterator
 
 import numpy as np
 from openvino.runtime import Model, Output, PartialShape, Type, op
@@ -348,7 +348,6 @@ class VocabEncoderStep(TokenizationModelStep):
         return self.get_pipeline().vocab_node_outputs
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        self.create_string_constant_node(self.vocab).outputs()
         input_nodes.extend(
             (
                 *self.create_string_constant_node(self.vocab).outputs(),
@@ -358,6 +357,31 @@ class VocabEncoderStep(TokenizationModelStep):
         )
         return _get_factory().create("VocabEncoder", input_nodes).outputs()
 
+
+@dataclass
+class TrieTokenizerStep(TokenizationModelStep):
+    vocab: List[str] = field(repr=False)
+    indices: List[int] = field(repr=False)
+
+    @classmethod
+    def from_rwkv_vocab(cls, vocab_file_strings: Iterator[str]) -> TrieTokenizerStep:
+        vocab = []
+        indices = []
+        for line in vocab_file_strings:
+            x = eval(line.split(" ", 1)[1].rsplit(" ", 1)[0])
+            idx = int(line.split(" ")[0])
+            vocab.append(x)
+            indices.append(idx)
+        return cls(vocab, indices)
+
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        input_nodes.extend(
+            (
+                *self.create_string_constant_node(self.vocab).outputs(),
+                make_constant_node(np.array(self.indices, dtype=np.int32), Type.i32),
+            )
+        )
+        return _get_factory().create("TrieTokenizer", input_nodes).outputs()
 
 @dataclass
 class WordPieceTokenizationStep(TokenizationModelStep):
