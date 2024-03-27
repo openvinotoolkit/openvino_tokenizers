@@ -80,11 +80,11 @@ bool TrieTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
     auto chars  = inputs[4].data<const uint8_t>();
     auto batch_size = inputs[0].get_size();
 
-    outputs[0].set_shape(inputs[0].get_shape());
-    outputs[1].set_shape(inputs[1].get_shape());
+    outputs[0].set_shape(inputs[2].get_shape());
+    outputs[1].set_shape(inputs[3].get_shape());
     // FIXME: Not accurate estimation as there is theoretical possibility for re-use the same symbol area
     // to represent different elements in ragged tensor
-    outputs[2].set_shape({inputs[2].get_size()});
+    outputs[2].set_shape({inputs[4].get_size()});
 
 
     // Get pointers in the output tensors
