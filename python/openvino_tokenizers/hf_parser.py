@@ -501,7 +501,7 @@ def convert_sentencepiece_model_tokenizer(
         attention_mask = _get_factory().create(
             "ScatterNDUpdate",
             [
-                broadcast,
+                opset.broadcast(make_constant_node(0, values.element_type), dense_shape),
                 indices,
                 opset.broadcast(
                     make_constant_node(1, values.element_type),
