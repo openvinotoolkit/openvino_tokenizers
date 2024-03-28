@@ -1,0 +1,72 @@
+from typing import List, Tuple
+
+from openvino import Model, PartialShape, Type
+from openvino.runtime import op
+from openvino.runtime import opset12 as opset
+from openvino.runtime.utils.types import make_constant_node
+
+from openvino_tokenizers import _get_factory
+from openvino_tokenizers.tokenizer_pipeline import (
+    BasePipelineStep,
+    RegexDecodingStep,
+    TokenizerPipeline,
+    TrieTokenizerStep,
+)
+from openvino_tokenizers.utils import change_inputs_type, change_outputs_type
+
+
+def build_rwkv_tokenizer(
+    rwkv_vocab: List[str],
+    clean_up_tokenization_spaces: bool = False,
+    tokenizer_output_type: Type = Type.i64,
+    detokenizer_input_type: Type = Type.i64,
+) -> Tuple[Model, Model]:
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    input_node.set_friendly_name("string_input")
+
+    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    trie_node = TrieTokenizerStep.from_rwkv_vocab(rwkv_vocab)
+    output = trie_node.get_ov_subgraph(TokenizerPipeline.add_ragged_dimension(output))
+
+    max_length = opset.reduce_max(
+        opset.subtract(output[1], output[0]),
+        make_constant_node(0, Type.i32),
+    )
+
+    output = (
+        _get_factory()
+        .create(
+            "RaggedToDense",
+            [
+                *output,
+                *max_length.outputs(),
+                *make_constant_node(0, Type.i32).outputs(),  # default value
+            ],
+        )
+        .outputs()[:1]
+    )
+
+    tokenizer = Model(output, [input_node], "RWKVTokenizer")
+
+    detokenizer_input = op.Parameter(Type.i32, PartialShape(["?", "?"]))
+    *detokenizer_output, chars = (
+        _get_factory()
+        .create(
+            "VocabDecoder",
+            [*detokenizer_input.outputs(), *BasePipelineStep.create_string_constant_node(trie_node.vocab).outputs()],
+        )
+        .outputs()
+    )
+    detokenizer_output = _get_factory().create("FuzeRagged", detokenizer_output).outputs() + [chars]
+
+    if clean_up_tokenization_spaces:
+        RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer_output)
+
+    detokenizer_output = _get_factory().create("StringTensorPack", detokenizer_output).outputs()
+
+    detokenizer = Model(detokenizer_output, [detokenizer_input], "RWKVDetokenizer")
+
+    (change_outputs_type(tokenizer, tokenizer_output_type),)
+    change_inputs_type(detokenizer, detokenizer_input_type)
+
+    return tokenizer, detokenizer

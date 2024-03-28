@@ -13,6 +13,7 @@ import openvino
 from openvino.runtime.utils.node_factory import NodeFactory
 
 from .__version__ import __version__
+from .build_tokenizer import build_rwkv_tokenizer
 from .convert_tokenizer import convert_tokenizer
 from .str_pack import pack_strings, unpack_strings
 from .utils import add_greedy_decoding, connect_models
