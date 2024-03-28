@@ -5,6 +5,7 @@ from openvino.runtime import op
 from openvino.runtime import opset12 as opset
 from openvino.runtime.utils.types import make_constant_node
 
+from openvino_tokenizers.constants import DETOKENIZER_NAME, STRING_OUTPUT_NAME, TOKEN_IDS_INPUT_NAME, TOKENIZER_NAME
 from openvino_tokenizers.tokenizer_pipeline import (
     BasePipelineStep,
     RegexDecodingStep,
@@ -46,8 +47,9 @@ def build_rwkv_tokenizer(
         )
         .outputs()[:1]
     )
+    output[0].tensor.add_names({TOKEN_IDS_INPUT_NAME})
 
-    tokenizer = Model(output, [input_node], "RWKVTokenizer")
+    tokenizer = Model(output, [input_node], TOKENIZER_NAME)
 
     detokenizer_input = op.Parameter(Type.i32, PartialShape(["?", "?"]))
     *detokenizer_output, chars = (
@@ -64,10 +66,11 @@ def build_rwkv_tokenizer(
         RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer_output)
 
     detokenizer_output = _get_factory().create("StringTensorPack", detokenizer_output).outputs()
+    detokenizer_output[0].add_names({STRING_OUTPUT_NAME})
 
-    detokenizer = Model(detokenizer_output, [detokenizer_input], "RWKVDetokenizer")
+    detokenizer = Model(detokenizer_output, [detokenizer_input], DETOKENIZER_NAME)
 
-    (change_outputs_type(tokenizer, tokenizer_output_type),)
+    change_outputs_type(tokenizer, tokenizer_output_type)
     change_inputs_type(detokenizer, detokenizer_input_type)
 
     return tokenizer, detokenizer
