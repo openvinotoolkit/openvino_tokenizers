@@ -275,11 +275,11 @@ class TransformersTokenizerPipelineParser:
 
     def add_padding(self) -> None:
         if self.tokenizer_json["padding"] is not None:
-            self.pipeline.add_steps(PaddingStep.from_hf_json(self.tokenizer_json))
-            self.pipeline[-1].set_token_id(self.pipeline.vocab)
+            self.pipeline.add_steps(PaddingStep.from_hf_json(tokenizer_json=self.tokenizer_json))
+            self.pipeline[-1].set_token_id(vocab=self.pipeline.vocab)
         elif self.original_tokenizer.pad_token is not None:
             self.pipeline.add_steps(PaddingStep(token=self.original_tokenizer.pad_token))
-            self.pipeline[-1].set_token_id(self.pipeline.vocab)
+            self.pipeline[-1].set_token_id(vocab=self.pipeline.vocab)
         else:
             self.pipeline.add_steps(PaddingStep())
 
@@ -293,14 +293,14 @@ class TransformersTokenizerPipelineParser:
 
         skip_tokens = parse_special_tokens(self.original_tokenizer) if skip_special_tokens else {}
         if self.tokenizer_json["decoder"]["type"] == "ByteLevel":
-            self.pipeline.add_steps(VocabDecoderStep(list(skip_tokens)))
+            self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens)))
             self.pipeline.add_steps(CharsToBytesStep())
 
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
-            self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix))
+            self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
 
         if prefix := self.tokenizer_json["model"].get("continuing_subword_prefix"):
-            self.pipeline.add_steps(RegexDecodingStep.replace_continuing_subword_prefix(prefix))
+            self.pipeline.add_steps(RegexDecodingStep.replace_continuing_subword_prefix(prefix=prefix))
 
         if clean_up_tokenization_spaces is None:
             clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces

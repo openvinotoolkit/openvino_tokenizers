@@ -814,8 +814,9 @@ class VocabDecoderStep(DecodingStep):
         return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        vocab_outputs = self.get_vocab_node_outputs()
-        if vocab_outputs is None:
+        if self.vocab is None:
+            vocab_outputs = self.get_vocab_node_outputs()
+        else:
             vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
         input_nodes.extend(vocab_outputs)
         return _get_factory().create("VocabDecoder", input_nodes, {"skip_tokens": self.skip_tokens}).outputs()
