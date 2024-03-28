@@ -372,22 +372,22 @@ class TrieTokenizerStep(TokenizationModelStep):
     @staticmethod
     def fill_vocab(vocab: List[str], indices: List[int]) -> Tuple[List[str], List[int]]:
         max_idx = max(indices)
-        new_indicies = list(range(max_idx + 1))
+        new_indices = list(range(max_idx + 1))
 
         idx_to_token = dict(zip(indices, vocab))
         new_vocab = []
-        for idx in new_indicies:
+        for idx in new_indices:
             new_vocab.append(idx_to_token.get(idx, ""))
 
-        return new_vocab, new_indicies
+        return new_vocab, new_indices
 
     @classmethod
     def from_rwkv_vocab(cls, vocab_file_strings: Iterator[str]) -> TrieTokenizerStep:
         vocab = []
         indices = []
         for line in vocab_file_strings:
-            x = eval(line.split(" ", 1)[1].rsplit(" ", 1)[0])
             idx = int(line.split(" ")[0])
+            x = eval(line.split(" ", 1)[1].rsplit(" ", 1)[0])
             vocab.append(x)
             indices.append(idx)
         return cls(vocab, indices)
