@@ -603,7 +603,7 @@ def convert_tiktoken_model_tokenizer(
             BPETokenizationStep.from_tiktoken_encoding(encoding),
             TruncationStep.from_hf_object(hf_tokenizer),
             PaddingStep(pad_right=(hf_tokenizer.padding_side == "right")),
-            VocabDecoderStep(skip_tokens),
+            VocabDecoderStep(skip_tokens=skip_tokens),
             CharsToBytesStep(),
         ]
     )
