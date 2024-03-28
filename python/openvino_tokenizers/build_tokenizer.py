@@ -5,7 +5,6 @@ from openvino.runtime import op
 from openvino.runtime import opset12 as opset
 from openvino.runtime.utils.types import make_constant_node
 
-from openvino_tokenizers import _get_factory
 from openvino_tokenizers.tokenizer_pipeline import (
     BasePipelineStep,
     RegexDecodingStep,
@@ -21,6 +20,8 @@ def build_rwkv_tokenizer(
     tokenizer_output_type: Type = Type.i64,
     detokenizer_input_type: Type = Type.i64,
 ) -> Tuple[Model, Model]:
+    from openvino_tokenizers import _get_factory
+
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
 
