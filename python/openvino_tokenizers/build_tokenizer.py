@@ -66,7 +66,7 @@ def build_rwkv_tokenizer(
         RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer_output)
 
     detokenizer_output = _get_factory().create("StringTensorPack", detokenizer_output).outputs()
-    detokenizer_output[0].add_names({STRING_OUTPUT_NAME})
+    detokenizer_output[0].tensor.add_names({STRING_OUTPUT_NAME})
 
     detokenizer = Model(detokenizer_output, [detokenizer_input], DETOKENIZER_NAME)
 

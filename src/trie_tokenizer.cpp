@@ -69,7 +69,7 @@ bool TrieTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
         OPENVINO_ASSERT(inputs[5].get_size() == inputs[8].get_size(), "Vocab size must be equal to Indices size");
 
         for(size_t idx = 0; idx < vocab_size; ++idx) {
-            const auto token = std::vector(vocab_chars + vocab_begins[idx], vocab_chars + vocab_ends[idx]);
+            const auto token = std::vector<unsigned char>(vocab_chars + vocab_begins[idx], vocab_chars + vocab_ends[idx]);
             m_trie->add(token, indices[idx]);
         }
     }
