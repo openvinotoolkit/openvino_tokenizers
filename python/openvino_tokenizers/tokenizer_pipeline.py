@@ -9,7 +9,7 @@ import weakref
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from itertools import chain, islice
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from openvino.runtime import Model, Output, PartialShape, Type, op
@@ -348,15 +348,58 @@ class VocabEncoderStep(TokenizationModelStep):
         return self.get_pipeline().vocab_node_outputs
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        self.create_string_constant_node(self.vocab).outputs()
         input_nodes.extend(
             (
                 *self.create_string_constant_node(self.vocab).outputs(),
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
-                make_constant_node(self.default_value, Type.i32)  # default_value
+                make_constant_node(self.default_value, Type.i32),  # default_value
             )
         )
         return _get_factory().create("VocabEncoder", input_nodes).outputs()
+
+
+@dataclass
+class TrieTokenizerStep(TokenizationModelStep):
+    vocab: List[str] = field(repr=False)
+    indices: List[int] = field(repr=False)
+
+    def __post_init__(self):
+        if len(self.vocab) != len(self.indices):
+            raise UserInputError("Vocab and Indices must be the same length.")
+
+        self.vocab, self.indices = self.fill_vocab(self.vocab, self.indices)
+
+    @staticmethod
+    def fill_vocab(vocab: List[str], indices: List[int]) -> Tuple[List[str], List[int]]:
+        max_idx = max(indices)
+        new_indices = list(range(max_idx + 1))
+
+        idx_to_token = dict(zip(indices, vocab))
+        new_vocab = []
+        for idx in new_indices:
+            new_vocab.append(idx_to_token.get(idx, ""))
+
+        return new_vocab, new_indices
+
+    @classmethod
+    def from_rwkv_vocab(cls, vocab_file_strings: Iterator[str]) -> TrieTokenizerStep:
+        vocab = []
+        indices = []
+        for line in vocab_file_strings:
+            idx = int(line.split(" ")[0])
+            x = eval(line.split(" ", 1)[1].rsplit(" ", 1)[0])
+            vocab.append(x)
+            indices.append(idx)
+        return cls(vocab, indices)
+
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        input_nodes.extend(
+            (
+                *self.create_string_constant_node(self.vocab).outputs(),
+                make_constant_node(np.array(self.indices, dtype=np.int32), Type.i32),
+            )
+        )
+        return _get_factory().create("TrieTokenizer", input_nodes).outputs()
 
 
 @dataclass
@@ -760,17 +803,22 @@ class DecodingStep(BasePipelineStep):
 
 @dataclass
 class VocabDecoderStep(DecodingStep):
+    vocab: Optional[List[str]] = None
     skip_tokens: Optional[List[int]] = None
 
     def __post_init__(self):
         if self.skip_tokens is None:
-            self.skip_tokens = self.get_pipeline().skip_tokens or {}
+            self.skip_tokens = self.get_pipeline().skip_tokens if self.get_pipeline() is not None else {}
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
-        return self.get_pipeline().vocab_node_outputs
+        return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(self.get_vocab_node_outputs())
+        if self.vocab is None:
+            vocab_outputs = self.get_vocab_node_outputs()
+        else:
+            vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
+        input_nodes.extend(vocab_outputs)
         return _get_factory().create("VocabDecoder", input_nodes, {"skip_tokens": self.skip_tokens}).outputs()
 
 
