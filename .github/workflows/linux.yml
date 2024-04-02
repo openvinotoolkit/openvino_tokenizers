@@ -74,10 +74,16 @@ jobs:
       - name: Set apt retries
         run: echo 'Acquire::Retries "10";' | sudo tee -a /etc/apt/apt.conf.d/80-retries > /dev/null
 
+      - name: Set node.js
+        run: |
+          sudo apt-get remove --assume-yes nodejs
+          sudo apt-get install -yf --assume-yes nvm
+          nvm install 16.15.1
+
       - name: Install git
         run: |
           sudo apt-get update
-          sudo apt-get install -yf --assume-yes --no-install-recommends nodejs git ca-certificates
+          sudo apt-get install -yf --assume-yes --no-install-recommends git ca-certificates
 
       - name: Clone OpenVINO
         uses: actions/checkout@v4
