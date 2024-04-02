@@ -77,10 +77,10 @@ jobs:
       - name: Install git
         run: |
           sudo apt-get update
-          sudo apt-get install -yf --assume-yes --no-install-recommends git ca-certificates
+          sudo apt-get install -yf --assume-yes --no-install-recommends nodejs git ca-certificates
 
       - name: Clone OpenVINO
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
