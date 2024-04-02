@@ -80,7 +80,7 @@ jobs:
           sudo apt-get install -yf --assume-yes --no-install-recommends git ca-certificates
 
       - name: Clone OpenVINO
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
