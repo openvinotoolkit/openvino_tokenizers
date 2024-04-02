@@ -79,6 +79,7 @@ jobs:
           sudo apt-get remove --assume-yes nodejs npm
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
           sudo chmod +x ~/.nvm/nvm.sh
+          source ~/.bashrc
           nvm install 16
 
       - name: Install git
