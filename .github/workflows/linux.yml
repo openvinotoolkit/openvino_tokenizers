@@ -74,18 +74,18 @@ jobs:
       - name: Set apt retries
         run: echo 'Acquire::Retries "10";' | sudo tee -a /etc/apt/apt.conf.d/80-retries > /dev/null
 
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yf --assume-yes --no-install-recommends git ca-certificates wget
+
       - name: Set node.js
         run: |
           sudo apt-get remove --assume-yes nodejs npm
           wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
           sudo chmod +x ~/.nvm/nvm.sh
           source ~/.bashrc
-          nvm install 16
-
-      - name: Install git
-        run: |
-          sudo apt-get update
-          sudo apt-get install -yf --assume-yes --no-install-recommends git ca-certificates
+              nvm install 16
 
       - name: Clone OpenVINO
         uses: actions/checkout@v4
