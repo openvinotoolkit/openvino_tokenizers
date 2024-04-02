@@ -76,9 +76,10 @@ jobs:
 
       - name: Set node.js
         run: |
-          sudo apt-get remove --assume-yes nodejs
-          sudo apt-get install -yf --assume-yes nvm
-          nvm install 16.15.1
+          sudo apt-get remove --assume-yes nodejs npm
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          sudo chmod +x ~/.nvm/nvm.sh
+          nvm install 16
 
       - name: Install git
         run: |
