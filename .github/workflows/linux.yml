@@ -84,8 +84,9 @@ jobs:
           sudo apt-get remove --assume-yes nodejs npm
           wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
           sudo chmod +x ~/.nvm/nvm.sh
-          source ~/.bashrc
-              nvm install 16
+
+      - name: Install node.js
+        run: nvm install 16
 
       - name: Clone OpenVINO
         uses: actions/checkout@v4
