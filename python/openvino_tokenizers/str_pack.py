@@ -35,7 +35,7 @@ def pack_strings(strings: List[str]) -> NDArray:
     offset = 0
     buffer.write(to_bytes(offset))
     for string in strings:
-        byte_string = string.encode("utf-8") if isinstance(string, str) else string
+        byte_string = string.encode("utf-8")
         offset += len(byte_string)
 
         buffer.write(to_bytes(offset))
