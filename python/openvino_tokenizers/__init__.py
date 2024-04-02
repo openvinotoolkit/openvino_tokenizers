@@ -12,6 +12,11 @@ from typing import Callable
 import openvino
 from openvino.runtime.utils.node_factory import NodeFactory
 
+from .__version__ import __version__
+from .convert_tokenizer import convert_tokenizer
+from .str_pack import pack_strings, unpack_strings
+from .utils import add_greedy_decoding, connect_models
+
 
 _ext_name = "openvino_tokenizers"
 if sys.platform == "win32":
@@ -84,10 +89,3 @@ def _get_factory_callable() -> Callable[[], NodeFactory]:
 
 
 _get_factory = _get_factory_callable()
-
-# some files uses _get_factory function
-from .__version__ import __version__  # noqa
-from .build_tokenizer import build_rwkv_tokenizer  # noqa
-from .convert_tokenizer import convert_tokenizer  # noqa
-from .str_pack import pack_strings, unpack_strings  # noqa
-from .utils import add_greedy_decoding, connect_models  # noqa
