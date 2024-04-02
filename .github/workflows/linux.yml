@@ -68,6 +68,9 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/openvino/build
 
     steps:
+      - name: Check sudo
+        run: if [ "$(id -u)" -eq 0 ]; then apt update && apt --assume-yes install sudo; fi
+
       - name: Set apt retries
         run: echo 'Acquire::Retries "10";' | sudo tee -a /etc/apt/apt.conf.d/80-retries > /dev/null
 
