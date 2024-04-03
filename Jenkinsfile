@@ -10,10 +10,10 @@ properties([
                      name: 'propagateStatus'),
         booleanParam(defaultValue: false,
                description: 'If true, forces running pre-commit scope',
-               name: 'forceRunPrecommitScope')
+               name: 'forceRunPrecommitScope'),
         string(defaultValue: 'pull/908/head',
                description: 'Pipeline shared library version (branch/tag/commit). Determined automatically if empty',
-               name: 'library_version'),
+               name: 'library_version')
     ])
 ])
 loadOpenVinoLibrary {
