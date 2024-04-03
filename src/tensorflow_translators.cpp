@@ -123,7 +123,11 @@ NamedOutputVector translate_ragged_tensor_to_sparse(const NodeContext& node) {
 
     // set tensor names
     sparse_indices.add_names({ node_name + ":0" });
-    sparse_values.add_names({ node_name + ":1" });
+    if (!ov::as_type_ptr<Parameter>(sparse_values.get_node_shared_ptr())) {
+        // for a case without SentencePiece tokenizer
+        // we must not corrupt input tensor name due to skip connection
+        sparse_values.add_names({ node_name + ":1" });
+    }
     sparse_dense_shape.add_names({ node_name + ":2" });
 
     // create named outputs for the conversion extension
