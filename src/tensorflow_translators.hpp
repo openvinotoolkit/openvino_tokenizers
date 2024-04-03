@@ -12,7 +12,7 @@ ov::frontend::NamedOutputVector translate_string_split(const ov::frontend::NodeC
 #endif
 
 ov::OutputVector translate_sentencepiece_op(const ov::frontend::NodeContext& node);
-ov::frontend::NamedOutputVector translate_sentencepiece_tokenizer(const ov::frontend::NodeContext& node);
+ov::frontend::NamedOutputVector translate_ragged_tensor_to_sparse(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_case_fold_utf8(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_normalize_utf8(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_static_regex_replace(const ov::frontend::NodeContext& node);
