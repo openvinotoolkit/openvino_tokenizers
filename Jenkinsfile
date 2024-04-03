@@ -11,7 +11,7 @@ properties([
         booleanParam(defaultValue: false,
                description: 'If true, forces running pre-commit scope',
                name: 'forceRunPrecommitScope'),
-        string(defaultValue: 'pull/908/head',
+        string(defaultValue: '',
                description: 'Pipeline shared library version (branch/tag/commit). Determined automatically if empty',
                name: 'library_version')
     ])
