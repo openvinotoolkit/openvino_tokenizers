@@ -10,7 +10,7 @@ properties([
                      name: 'propagateStatus'),
         string(defaultValue: '',
                description: 'Pipeline shared library version (branch/tag/commit). Determined automatically if empty',
-               name: 'library_version')
+               name: 'library_version'),
         string(defaultValue: '',
                description: 'Event type, pre_commit | commit. Determined automatically if empty',
                name: 'eventType')
