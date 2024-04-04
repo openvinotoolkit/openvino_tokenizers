@@ -298,9 +298,9 @@ rwkv_vocab_url = (
 )
 
 with urlopen(rwkv_vocab_url) as vocab_file:
-    vocab = list(map(bytes.decode, vocab_file))
+    vocab = map(bytes.decode, vocab_file)
+    tokenizer, detokenizer = build_rwkv_tokenizer(vocab)
 
-tokenizer, detokenizer = build_rwkv_tokenizer(vocab)
 tokenizer, detokenizer = compile_model(tokenizer), compile_model(detokenizer)
 
 print(tokenized := tokenizer(["Test string"])["input_ids"])  # [[24235 47429]]
