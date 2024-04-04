@@ -9,7 +9,7 @@ import weakref
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from itertools import chain, islice
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from openvino.runtime import Model, Output, PartialShape, Type, op
@@ -382,7 +382,7 @@ class TrieTokenizerStep(TokenizationModelStep):
         return new_vocab, new_indices
 
     @classmethod
-    def from_rwkv_vocab(cls, vocab_file_strings: Iterator[str]) -> TrieTokenizerStep:
+    def from_rwkv_vocab(cls, vocab_file_strings: Iterable[str]) -> TrieTokenizerStep:
         vocab = []
         indices = []
         for line in vocab_file_strings:

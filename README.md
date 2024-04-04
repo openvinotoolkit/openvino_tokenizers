@@ -1,5 +1,7 @@
 # OpenVINO Tokenizers
 
+[![Downloads](https://static.pepy.tech/badge/openvino-tokenizers)](https://pepy.tech/project/openvino-tokenizers)
+
 OpenVINO Tokenizers adds text processing operations to OpenVINO.
 
 ## Features
@@ -59,6 +61,9 @@ This command is the equivalent of minimal installation. Install tokenizers conve
 ```bash
 pip install transformers[sentencepiece] tiktoken
 ```
+:warning: Latest commit of OpenVINO Tokenizers might rely on features that are not present in the release OpenVINO version. 
+Use [a nightly build](https://docs.openvino.ai/2024/get-started/install-openvino.html?VERSION=NIGHTLY) of OpenVINO or build 
+OpenVINO Tokenizers from a release branch if you have issues with the build process.
 
 ### Build and install for development
 ```bash
@@ -279,6 +284,29 @@ tf_result = tf_embed(sentences)
 assert np.all(np.isclose(ov_result, tf_result, atol=1e-4))
 ```
 
+### RWKV Tokenizer
+
+```python
+from urllib.request import urlopen
+
+from openvino import compile_model
+from openvino_tokenizers import build_rwkv_tokenizer
+
+
+rwkv_vocab_url = (
+    "https://raw.githubusercontent.com/BlinkDL/ChatRWKV/main/tokenizer/rwkv_vocab_v20230424.txt"
+)
+
+with urlopen(rwkv_vocab_url) as vocab_file:
+    vocab = list(map(bytes.decode, vocab_file))
+
+tokenizer, detokenizer = build_rwkv_tokenizer(vocab)
+tokenizer, detokenizer = compile_model(tokenizer), compile_model(detokenizer)
+
+print(tokenized := tokenizer(["Test string"])["input_ids"])  # [[24235 47429]]
+print(detokenizer(tokenized)["string_output"])  # ['Test string']
+```
+
 ## Supported Tokenizer Types
 
 | Huggingface <br/>Tokenizer Type | Tokenizer Model Type | Tokenizer | Detokenizer |
@@ -288,6 +316,7 @@ assert np.all(np.isclose(ov_result, tf_result, atol=1e-4))
 |                                 | Unigram              | ❌         | ❌          |
 | Legacy                          | SentencePiece .model | ✅        | ✅          |
 | Custom                          | tiktoken             | ✅        | ✅          |
+| RWKV                            | Trie                 | ✅        | ✅          |
 
 ## Test Results
 
