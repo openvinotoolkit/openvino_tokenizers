@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Iterable, Tuple
 
 from openvino import Model, PartialShape, Type
 from openvino.runtime import op
@@ -16,7 +16,7 @@ from openvino_tokenizers.utils import change_inputs_type, change_outputs_type
 
 
 def build_rwkv_tokenizer(
-    rwkv_vocab: List[str],
+    rwkv_vocab: Iterable[str],
     clean_up_tokenization_spaces: bool = False,
     tokenizer_output_type: Type = Type.i64,
     detokenizer_input_type: Type = Type.i64,
