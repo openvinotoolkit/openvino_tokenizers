@@ -5,10 +5,8 @@
 #pragma once
 #include <vector>
 #include <openvino/op/op.hpp>
-#include "openvino/opsets/opset13.hpp"
 
 using namespace ov;
-using namespace ov::opset13;
 
 
 class VocabEncoder : public ov::op::Op {
@@ -16,14 +14,21 @@ public:
     OPENVINO_OP("VocabEncoder");
 
     VocabEncoder () = default;
-    VocabEncoder(
-        const ov::OutputVector& arguments
-    );
+
+    VocabEncoder(const ov::OutputVector& arguments) :
+        ov::op::Op(arguments) {
+        constructor_validate_and_infer_types();
+    }
+
+    VocabEncoder(const ov::OutputVector& arguments, std::shared_ptr<std::map<std::vector<unsigned char>, int32_t>> vocab) :
+        ov::op::Op(arguments), m_vocab(vocab) {
+        constructor_validate_and_infer_types();
+    }
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<VocabEncoder>(inputs);
+        return std::make_shared<VocabEncoder>(inputs, m_vocab);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -35,4 +40,6 @@ public:
     bool has_evaluate() const override {
         return true;
     }
+private:
+    mutable std::shared_ptr<std::map<std::vector<unsigned char>, int32_t>> m_vocab;
 };
