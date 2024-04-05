@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '10.12'
-  OV_BRANCH: 'master'
+  OV_BRANCH: 'releases/2024/1'
   OV_TARBALL: ''
 
 jobs:
