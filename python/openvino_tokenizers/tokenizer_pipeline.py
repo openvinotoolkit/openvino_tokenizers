@@ -811,6 +811,14 @@ class TokenizerPipeline:
     def __getitem__(self, item: int) -> BasePipelineStep:
         return self.steps[item]
 
+    @staticmethod
+    def get_eos_token_id(hf_tokenizer) -> Optional[int]:
+        if hf_tokenizer.eos_token_id is not None:
+            return hf_tokenizer.eos_token_id
+
+        # qwen uses eod_id attrubute
+        return getattr(hf_tokenizer, "eod_id", None)
+
     def get_tokenizer_ov_subgraph(self) -> Model:
         string_inputs = [op.Parameter(Type.string, PartialShape(["?"])) for _ in range(self.number_of_inputs)]
 
