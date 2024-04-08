@@ -156,8 +156,8 @@ class TransformersTokenizerPipelineParser:
             ),
         ]:
             add_steps()
+        self.pipeline.eos_token_id = pipeline.get_eos_token_id(self.original_tokenizer)
 
-        self.pipeline.eos_token_id = self.pipeline.get_eos_token_id(self.original_tokenizer)
         return self.pipeline
 
     normalizers_map: Dict[
