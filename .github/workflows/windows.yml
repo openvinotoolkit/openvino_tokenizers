@@ -323,6 +323,8 @@ jobs:
           # Find and install wheel
           $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\ov_tokenizers" -Filter openvino_tokenizers*.whl | % { $_.FullName }
           python3 -m pip install "$ovCoreWheelPath[all]"
+        env:
+          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
