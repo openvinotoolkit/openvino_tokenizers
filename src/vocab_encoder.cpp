@@ -13,12 +13,6 @@
 using namespace ov;
 
 
-VocabEncoder::VocabEncoder (const ov::OutputVector& arguments) :
-    ov::op::Op(arguments) {
-    constructor_validate_and_infer_types();
-}
-
-
 void VocabEncoder::validate_and_infer_types() {
     // main string input
     check_string_input(this, 0);
@@ -44,19 +38,21 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
 
-    // vocab string keys
-    auto vocab_begins = inputs[3].data<const int32_t>();
-    auto vocab_ends   = inputs[4].data<const int32_t>();
-    auto vocab_chars  = inputs[5].data<const uint8_t>();
+    if (m_vocab == nullptr) {
+        // vocab string keys
+        auto vocab_begins = inputs[3].data<const int32_t>();
+        auto vocab_ends   = inputs[4].data<const int32_t>();
+        auto vocab_chars  = inputs[5].data<const uint8_t>();
 
-    auto vocab_values = inputs[6].data<const int32_t>();
-    auto vocab_size = inputs[6].get_size();
+        auto vocab_values = inputs[6].data<const int32_t>();
+        auto vocab_size = inputs[6].get_size();
 
-    std::map<std::vector<uint8_t>, int32_t> vocab;
-    for (size_t i = 0; i < vocab_size; ++i) {
-        std::vector<uint8_t> token = std::vector<uint8_t>(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
-        vocab[token] = vocab_values[i];
-    };
+        m_vocab = std::make_shared<std::map<std::vector<unsigned char>, int32_t>>();
+        for (size_t i = 0; i < vocab_size; ++i) {
+            std::vector<uint8_t> token = std::vector<uint8_t>(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
+            m_vocab->insert(std::pair{token, vocab_values[i]});
+        };
+    }
 
     auto default_value = *inputs[7].data<const int32_t>();
     const size_t num_elements = inputs[0].get_size();
@@ -66,8 +62,8 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto token_ids = outputs[0].data<int32_t>();
 
     for (size_t element_idx = 0; element_idx < num_elements; ++element_idx) {
-        auto element = vocab.find(std::vector<uint8_t>(chars + begins[element_idx], chars + ends[element_idx]));
-        if (element == vocab.end()) {
+        auto element = m_vocab->find(std::vector<uint8_t>(chars + begins[element_idx], chars + ends[element_idx]));
+        if (element == m_vocab->end()) {
             token_ids[element_idx] = default_value;
         } else {
             token_ids[element_idx] = element->second;
