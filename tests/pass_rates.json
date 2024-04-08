@@ -1,5 +1,3 @@
 {
-    "tests/tokenizers_test.py::test_": 0.8713874640310272,
-    "tokenizers_test.py::test_": 0.8713874640310272,
-    "tokenizers_test.py::test_hf_bpe_tokenizers_outputs[MiniLM-L6-H384-uncased-sst2-": 0.8055555555555556
+    "tests/tokenizers_test.py::test_": 0.8713874640310272
 }
