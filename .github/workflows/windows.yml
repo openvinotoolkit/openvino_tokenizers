@@ -194,6 +194,8 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}\\openvino\\install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\\openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}\\openvino_tokenizers\\build
+      CCACHE_DIR: ${{ github.workspace }}\\ccache
+      CCACHE_MAXSIZE: 50Mi
 
     steps:
       - name: Clone Openvino tokenizers
@@ -238,18 +240,34 @@ jobs:
           # wheel packaging
           python3 -m pip install -r ${env:OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
 
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          save-always: true
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-ccache
+
       #
       # Build
       #
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
 
       - name: Build tokenizers wheel
         run: |
           . "${{ env.INSTALL_DIR }}/setupvars.ps1"
           python3 -m build --wheel --outdir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
         env:
-          CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
+          CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF -DCMAKE_VERBOSE_MAKEFILE=ON'
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+          CMAKE_C_COMPILER_LAUNCHER: ccache
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           SKBUILD_WHEEL_BUILD_TAG: ${{ github.run_number }}
+
+      - name: Show ccache stats
+        run: ccache --show-stats
 
       #
       # Upload build artifacts
