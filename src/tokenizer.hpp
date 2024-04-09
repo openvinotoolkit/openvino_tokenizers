@@ -20,6 +20,7 @@
 #include "ragged_to_dense.hpp"
 #include "ragged_to_sparse.hpp"
 #include "ragged_to_ragged.hpp"
+#include "string_to_hash_bucket.hpp"
 #include "vocab_decoder.hpp"
 #include "vocab_encoder.hpp"
 #include "chars_to_bytes.hpp"
