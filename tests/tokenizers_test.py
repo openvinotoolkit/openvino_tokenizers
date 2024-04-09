@@ -498,7 +498,7 @@ def test_eos_token_id_rt_info_bpe(hf_bpe_tokenizers):
 
 
 def test_eos_token_id_rt_info_tiktoken(hf_tiktoken_tokenizers):
-    eos_token_id = hf_tiktoken_tokenizers.eos_token_id
+    eos_token_id = hf_tiktoken_tokenizers.eos_token_id or hf_tiktoken_tokenizers.eod_id
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_tiktoken_tokenizers,
         with_detokenizer=True,
