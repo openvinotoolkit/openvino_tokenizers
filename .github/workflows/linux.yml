@@ -247,8 +247,8 @@ jobs:
         run: |
           ln -s $(which ccache) /usr/local/bin/gcc
           ln -s $(which ccache) /usr/local/bin/g++
-          ln -s $(which ccache) /usr/bin/сс
-          ln -s $(which ccache) /usr/bin/с++
+          sudo ln -s $(which ccache) /usr/bin/сс
+          sudo ln -s $(which ccache) /usr/bin/с++
 
       - name: Setup ccache
         uses: actions/cache@v4
