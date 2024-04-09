@@ -21,6 +21,7 @@
 #include "ragged_to_ragged.hpp"
 #include "regex_normalization.hpp"
 #include "regex_split.hpp"
+#include "string_to_hash_bucket.hpp"
 #include "vocab_encoder.hpp"
 
 #include "wordpiece_tokenizer.hpp"
@@ -490,5 +491,23 @@ ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
     result.get_node_shared_ptr()->set_friendly_name(node_name);
     result.set_names({ node_name + ":0" });
 
+    return { result };
+}
+
+ov::OutputVector translate_string_to_hash_bucket_fast(const ov::frontend::NodeContext& node) {
+    auto node_name = node.get_name();
+    auto node_input_size = node.get_input_size();
+    TENSORFLOW_OP_VALIDATION(node, node_input_size == 1,
+        "[TensorFlow Frontend] inconsistent model: StringToHashBucketFast must have one input");
+    auto input = node.get_input(0);
+    auto num_buckets = node.get_attribute<int32_t>("num_buckets");
+    TENSORFLOW_OP_VALIDATION(node, num_buckets > 0,
+        "[TensorFlow Frontend] inconsistent model: num_buckets for StringToHashBucketFast must be positive");
+
+    ov::OutputVector unpacked_input = pre_translate_string_tensor_input(input);
+    ov::Output<ov::Node> result = std::make_shared<StringToHashBucket>(unpacked_input, num_buckets);
+
+    result.get_node_shared_ptr()->set_friendly_name(node_name);
+    result.set_names({ node_name + ":0" });
     return { result };
 }

@@ -23,7 +23,8 @@
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFindV2", translate_lookup_table_find_op),                        \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StringSplitV2", translate_string_split),                                    \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RaggedTensorToTensor", translate_ragged_tensor_to_tensor),                  \
-    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("Equal", translate_equal)
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("Equal", translate_equal),                                                   \
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StringToHashBucketFast", translate_string_to_hash_bucket_fast)
 #else
 #define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
 #endif
@@ -47,6 +48,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<RaggedToDense>>(),
             std::make_shared<ov::OpExtension<RaggedToSparse>>(),
             std::make_shared<ov::OpExtension<RaggedToRagged>>(),
+            std::make_shared<ov::OpExtension<StringToHashBucket>>(),
             std::make_shared<ov::OpExtension<VocabEncoder>>(),
             std::make_shared<ov::OpExtension<VocabDecoder>>(),
             std::make_shared<ov::OpExtension<CharsToBytes>>(),
