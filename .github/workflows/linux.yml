@@ -245,9 +245,8 @@ jobs:
 
       - name: Link ccache
         run: |
-          cp ccache /usr/local/bin/
-          ln -s ccache /usr/local/bin/gcc
-          ln -s ccache /usr/local/bin/g++
+          ln -s $(which ccache) /usr/local/bin/gcc
+          ln -s $(which ccache) /usr/local/bin/g++
 
       - name: Setup ccache
         uses: actions/cache@v4
