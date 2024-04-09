@@ -500,7 +500,7 @@ ov::OutputVector translate_string_to_hash_bucket_fast(const ov::frontend::NodeCo
     TENSORFLOW_OP_VALIDATION(node, node_input_size == 1,
         "[TensorFlow Frontend] inconsistent model: StringToHashBucketFast must have one input");
     auto input = node.get_input(0);
-    auto num_buckets = node.get_attribute<int32_t>("num_buckets");
+    auto num_buckets = node.get_attribute<int64_t>("num_buckets");
     TENSORFLOW_OP_VALIDATION(node, num_buckets > 0,
         "[TensorFlow Frontend] inconsistent model: num_buckets for StringToHashBucketFast must be positive");
 

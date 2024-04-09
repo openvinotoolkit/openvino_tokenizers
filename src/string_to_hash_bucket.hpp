@@ -13,7 +13,7 @@ public:
 
     StringToHashBucket() = default;
 
-    StringToHashBucket(ov::OutputVector inputs, int32_t num_buckets)
+    StringToHashBucket(ov::OutputVector inputs, int64_t num_buckets)
         : m_num_buckets(num_buckets), ov::op::Op(inputs) {
         constructor_validate_and_infer_types();
     }
@@ -37,5 +37,5 @@ public:
     bool evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const override;
 
 private:
-    int32_t m_num_buckets;
+    int64_t m_num_buckets;
 };

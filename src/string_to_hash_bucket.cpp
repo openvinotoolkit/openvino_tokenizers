@@ -206,11 +206,11 @@ bool StringToHashBucket::evaluate(ov::TensorVector& outputs, const ov::TensorVec
 
     auto output_shape = inputs[0].get_shape();
     outputs[0].set_shape(output_shape);
-    auto result = outputs[0].data<int32_t>();
+    auto result = outputs[0].data<int64_t>();
 
     auto num_elems = inputs[0].get_size();
     for (size_t ind = 0; ind < num_elems; ++ind) {
-        OPENVINO_ASSERT(begins[ind] < ends[ind]);
+        OPENVINO_ASSERT(begins[ind] <= ends[ind]);
         result[ind] = hash64(chars + begins[ind], static_cast<size_t>(ends[ind] - begins[ind])) % m_num_buckets;
     }
 
