@@ -31,9 +31,19 @@ namespace {
         return result;
     }
 
+#if defined(_MSC_VER)
+
     uint64_t rotate(uint64_t val, int shift) {
         return sizeof(unsigned long) == sizeof(val) ? _lrotr(val, shift) : basic_rotate64(val, shift);
     }
+
+#else
+
+    uint64_t rotate(uint64_t val, int shift) {
+        return basic_rotate64(val, shift);
+    }
+
+#endif
 
     uint64_t hash_len17_to_32(const char* s, size_t len) {
         uint64_t mul = k2 + len * 2;
