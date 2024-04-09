@@ -243,6 +243,12 @@ jobs:
           # wheel packaging
           python3 -m pip install -r ${OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
 
+      - name: Link ccache
+        run: |
+          cp ccache /usr/local/bin/
+          ln -s ccache /usr/local/bin/gcc
+          ln -s ccache /usr/local/bin/g++
+
       - name: Setup ccache
         uses: actions/cache@v4
         with:
