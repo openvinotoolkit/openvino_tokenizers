@@ -5,9 +5,12 @@
 #pragma once
 
 #include <openvino/frontend/node_context.hpp>
+
 #ifdef OpenVINO_Frontend_TensorFlow_FOUND
-#include <openvino/frontend/tensorflow/node_context.hpp>
+#  include <openvino/frontend/tensorflow/node_context.hpp>
+#  if OPENVINO_VERSION_MAJOR >= 2024 && OPENVINO_VERSION_MINOR >= 1
 ov::OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::NodeContext& node);
+#  endif
 ov::frontend::NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node);
 #endif
 

@@ -10,7 +10,7 @@
 
 #ifdef OpenVINO_Frontend_TensorFlow_FOUND
 #include <openvino/frontend/tensorflow/extension/conversion.hpp>
-#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS                                                                                     \
+#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_GENERIC                                                                             \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),  \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RegexSplitWithOffsets", translate_regex_split_with_offsets),                \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("NormalizeUTF8", translate_normalize_utf8),                                  \
@@ -19,13 +19,19 @@
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RaggedTensorToSparse", translate_ragged_tensor_to_sparse),                  \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StringLower", translate_string_lower),                                      \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StaticRegexReplace", translate_static_regex_replace),                       \
-    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFind", translate_lookup_table_find_op),                          \
-    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFindV2", translate_lookup_table_find_op),                        \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("StringSplitV2", translate_string_split),                                    \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RaggedTensorToTensor", translate_ragged_tensor_to_tensor),                  \
-    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("Equal", translate_equal)
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("Equal", translate_equal),
+#if OPENVINO_VERSION_MAJOR >= 2024 && OPENVINO_VERSION_MINOR >= 1
+#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_2024_1                                                                              \
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFind", translate_lookup_table_find_op),                          \
+    std::make_shared<ov::frontend::tensorflow::ConversionExtension>("LookupTableFindV2", translate_lookup_table_find_op),
 #else
-#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
+#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_2024_1
+#endif
+#else
+#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_GENERIC
+#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_2024_1
 #endif
 
 // clang-format off
@@ -55,7 +61,8 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceTokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceDetokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceStreamDetokenizer>>(),
-            OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
+            OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_GENERIC
+            OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_2024_1
 }));
 //! [ov_extension:entry_point]
 // clang-format on

@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "openvino/frontend/tensorflow/hash_table.hpp"
+#include "openvino/core/version.hpp"
+
+#if OPENVINO_VERSION_MAJOR >= 2024 && OPENVINO_VERSION_MINOR >= 1
+#  include "openvino/frontend/tensorflow/hash_table.hpp"
+#endif
 
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/opsets/opset13.hpp"
@@ -210,6 +214,8 @@ ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node) {
     return { string_lower_result };
 }
 
+#if OPENVINO_VERSION_MAJOR >= 2024 && OPENVINO_VERSION_MINOR >= 1
+
 OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 3, "LookupTableFind or LookupTableFindV2 expects 3 inputs");
     auto table_handle = as_type_ptr<ov::frontend::tensorflow::HashTable>(node.get_input_by_reference(0).get_node_shared_ptr());
@@ -297,6 +303,8 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::Node
 
     return { lookup_values };
 }
+
+#endif
 
 NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
