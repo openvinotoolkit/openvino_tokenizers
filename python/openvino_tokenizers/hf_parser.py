@@ -432,11 +432,13 @@ def convert_sentencepiece_model_tokenizer(
     clean_up_tokenization_spaces: Optional[bool] = False,
 ) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
-        raise OVTypeError("Cannot convert tokenizer that does not have `.model` file.")
+        raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
     with tempfile.TemporaryDirectory() as tmp:
         hf_tokenizer.save_pretrained(tmp)
         vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
+        if not vocab_file.exists():
+            raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
         add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
         modify_sentencepiece_model(
