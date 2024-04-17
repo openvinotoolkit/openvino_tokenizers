@@ -50,24 +50,19 @@ bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
         auto end1 = ends1[idx1];
         auto end2 = ends2[idx2];
 
-        if (end1 == begin1 && end2 != begin2) {
+        if ((end1 - begin1) != (end2 - begin2)) {
+            // unequal string lengths guarantees false result
             result[idx] = 0;
-        }
-        else if (end1 != begin1 && end2 == begin2) {
-            result[idx] = 0;
-        }
-        else if (end1 == begin1 && end2 == begin2) {
+            continue;
+        } else if (end1 == begin1) {
+            // both empty strings case
             result[idx] = 1;
+            continue;
         }
 
         std::vector<uint8_t> op1(chars1 + begin1, chars1 + end1);
         std::vector<uint8_t> op2(chars2 + begin2, chars2 + end2);
-        if (op1 == op2) {
-            result[idx] = 1;
-        }
-        else {
-            result[idx] = 0;
-        }
+        result[idx] = (op1 == op2 ? 1 : 0);
     }
     return true;
 }
