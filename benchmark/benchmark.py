@@ -3,14 +3,14 @@ import json
 from itertools import chain
 from random import sample, shuffle
 from time import perf_counter
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
+
 import pandas as pd
 import seaborn as sns
-
 from openvino import CompiledModel, compile_model
 from openvino_tokenizers import convert_tokenizer
 from tqdm.auto import tqdm
-from transformers import PreTrainedTokenizerBase, AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizerBase
 
 
 def sample_texts(
@@ -23,17 +23,16 @@ def sample_texts(
     dataset = [data for data in dataset if len(data["conversations"]) >= 2]
     # Only keep the first two turns of each conversation.
     dataset = [
-        (data["conversations"][0]["value"], data["conversations"][1]["value"])
-        for data in sample(dataset, k=num_texts)
+        (data["conversations"][0]["value"], data["conversations"][1]["value"]) for data in sample(dataset, k=num_texts)
     ]
     shuffle(dataset)
     return dataset
 
 
 def benchmark_tokenizers(
-        ov_tokenizer: CompiledModel,
-        hf_tokenizer: PreTrainedTokenizerBase,
-        dataset: List[Tuple[str, str]],
+    ov_tokenizer: CompiledModel,
+    hf_tokenizer: PreTrainedTokenizerBase,
+    dataset: List[Tuple[str, str]],
 ):
     columns = ["prompt", "OV", "HF"]
     results = []
@@ -70,14 +69,18 @@ def print_stats(results: pd.DataFrame) -> None:
 
 
 def build_plot(results: pd.DataFrame, save_file: Optional[str] = None, **kwargs) -> None:
-    cmap = sns.cubehelix_palette(rot=-.2, as_cmap=True)
-    plot = sns.relplot(
-        data=results,
-        x="OV",
-        y="HF",
-        hue="Prompt Length, chars",
-        palette=cmap,
-    ).set_xlabels("OpenVINO, sec").set_ylabels("Huggingface, sec")
+    cmap = sns.cubehelix_palette(rot=-0.2, as_cmap=True)
+    plot = (
+        sns.relplot(
+            data=results,
+            x="OV",
+            y="HF",
+            hue="Prompt Length, chars",
+            palette=cmap,
+        )
+        .set_xlabels("OpenVINO, sec")
+        .set_ylabels("Huggingface, sec")
+    )
 
     if (title := kwargs.get("title")) is not None:
         plot.fig.suptitle(title)
@@ -114,19 +117,13 @@ if __name__ == "__main__":
             "or a path to a saved Huggingface tokenizer directory"
         ),
     )
-    parser.add_argument(
-        "-d",
-        "--dataset",
-        type=str,
-        default=None,
-        help="Path to the dataset."
-    )
+    parser.add_argument("-d", "--dataset", type=str, default=None, help="Path to the dataset.")
     parser.add_argument(
         "-n",
         "--num_pairs",
         type=int,
         default=1000,
-        help="Number of prompt/completion pairs to sample from the dataset."
+        help="Number of prompt/completion pairs to sample from the dataset.",
     )
 
     args = parser.parse_args()
