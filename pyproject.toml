@@ -40,11 +40,17 @@ dev = [
     "pandas",
     "openvino_tokenizers[transformers, torch]"
 ]
+benchmark = [
+    "pandas",
+    "seaborn",
+    "tqdm",
+    "openvino_tokenizers[transformers]"
+]
+#  don't include fuzzing to avoid windows CI issues
 fuzzing = [
     "atheris",
     "openvino_tokenizers[transformers]"
 ]
-#  don't include fuzzing to avoid windows CI issues
 all = [
     "openvino_tokenizers[dev, transformers]"
 ]
