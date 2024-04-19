@@ -237,12 +237,14 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::Node
     all_keys = std::make_shared<Reshape>(all_keys, target_shape, false);
     all_values = std::make_shared<Reshape>(all_values, target_shape, false);
 
-    if (key_type == element::string && value_type == element::i64) {
+    if (key_type == element::string && value_type.is_integral_number()) {
         // VocabEncoder has limitation that is support of only i32 value type
         // so prepare values format to i32 on inputs
         // and cast output tensor to i64 as required by TensorFlow
-        default_value = std::make_shared<Convert>(default_value, element::i32);
-        all_values = std::make_shared<Convert>(all_values, element::i32);
+        if (value_type != ov::element::i32) {
+            default_value = std::make_shared<Convert>(default_value, element::i32);
+            all_values = std::make_shared<Convert>(all_values, element::i32);
+        }
 
         // unpack string tensor for required keys and all keys from vocabulary
         ov::OutputVector unpacked_keys = pre_translate_string_tensor_input(keys);
@@ -252,12 +254,19 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::Node
         arguments.insert(arguments.end(), unpacked_all_keys.begin(), unpacked_all_keys.end());
         arguments.push_back(all_values);
         arguments.push_back(default_value);
-        auto vocab_encoder = std::make_shared<VocabEncoder>(arguments);
-        auto tokens = std::make_shared<Convert>(vocab_encoder, element::i64);
-        set_node_name(node.get_name(), tokens);
+        auto tokens = std::make_shared<VocabEncoder>(arguments)->output(0);
 
+        if (value_type != ov::element::i32) {
+            tokens = std::make_shared<Convert>(tokens, value_type);
+        }
+
+        set_node_name(node.get_name(), tokens.get_node_shared_ptr());
         return { tokens };
     }
+    TENSORFLOW_OP_VALIDATION(
+        node,
+        key_type != element::string,
+        "[TensorFlow Frontend] internal error: LookupTableFind operation with string key is only supported for integral values");
 
     // update all values with default value and all keys
     auto default_value_shape = std::make_shared<Constant>(element::i32, Shape{ 1 }, std::vector<int32_t>{1});
