@@ -38,8 +38,9 @@ def benchmark_tokenizers(
     results = []
 
     # warmup
-    ov_tokenizer(["test"])
-    hf_tokenizer(["test"])
+    for repeat in range(1, 11):
+        ov_tokenizer(["test " * repeat])
+        hf_tokenizer(["test " * repeat])
 
     for prompt in tqdm(chain.from_iterable(dataset), total=len(dataset) * 2):
         res = [prompt]
@@ -80,6 +81,8 @@ def build_plot(results: pd.DataFrame, save_file: Optional[str] = None, **kwargs)
         )
         .set_xlabels("OpenVINO, sec")
         .set_ylabels("Huggingface, sec")
+        .set(xscale="log")
+        .set(yscale="log")
     )
 
     if (title := kwargs.get("title")) is not None:
@@ -94,7 +97,7 @@ def build_plot(results: pd.DataFrame, save_file: Optional[str] = None, **kwargs)
     return plot
 
 
-def main(checkpoint: str, dataset: str, num_pairs: int = 1000) -> None:
+def main(checkpoint: str, dataset: str, num_pairs: int = 1000, trust: bool = False, log: bool = False) -> None:
     hf_tokenizer = AutoTokenizer.from_pretrained(checkpoint)
     ov_tokenizer = compile_model(convert_tokenizer(hf_tokenizer))
 
@@ -125,6 +128,23 @@ if __name__ == "__main__":
         default=1000,
         help="Number of prompt/completion pairs to sample from the dataset.",
     )
+    parser.add_argument(
+        "--trust-remote-code",
+        "--trust_remote_code",
+        required=False,
+        action="store_true",
+        help=(
+            "Pass `trust_remote_code=True` to `AutoTokenizer.from_pretrained`. It will "
+            "execute code present on the Hub on your local machine."
+        ),
+    )
+    parser.add_argument(
+        "--log-scale",
+        "--log_scale",
+        required=False,
+        action="store_true",
+        help="Use log scale for the plot.",
+    )
 
     args = parser.parse_args()
-    main(args.model_id, args.dataset, args.num_pairs)
+    main(args.model_id, args.dataset, args.num_pairs, trust=args.trust_remote_code, log=args.log_scale)
