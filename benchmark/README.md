@@ -7,7 +7,9 @@ Use `pip install -U openvino-tokenizers[benchmark]` or `pip install -U .[benchma
 ## Usage
 
 ```shell
-usage: benchmark.py [-h] [-d DATASET] [-n NUM_PAIRS] [--trust-remote-code] [--log-scale] model_id
+usage: benchmark.py [-h] [-d DATASET] [-n NUM_PAIRS] [--trust-remote-code] [--log-scale] [--dump-latency-stats] [--print-per-layer-stats]
+                    [--tput] [--seed SEED]
+                    model_id
 
 OpenVINO Tokenizers Benchmark
 
@@ -25,6 +27,12 @@ options:
                         machine.
   --log-scale, --log_scale
                         Use log scale for the plot.
+  --dump-latency-stats, --dump_latency_stats
+                        Save csv file with latency stats.
+  --print-per-layer-stats, --print_per_layer_stats
+                        Print execution info for each tokenizer layer.
+  --tput                Use THROUGHPUT performance hint.
+  --seed SEED           Random seed for data sampling
 ```
 
 ## Download Dataset
