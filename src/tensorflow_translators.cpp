@@ -332,7 +332,6 @@ NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) 
         sep = std::make_shared<Constant>(element::u8, Shape{ new_sep_value.length() }, (const void*)new_sep_value.data());
     }
     auto maxsplit = node.get_attribute<int64_t>("maxsplit", -1);
-    TENSORFLOW_OP_VALIDATION(node, maxsplit == -1, "[TensorFlow Frontend] internal error: only maxsplit equal to -1 is supported for StringSplitV2");
 
     // compute batch_dim to generate ragged_begins and ragged_ends for RegexSplit
     auto input_shape = std::make_shared<ShapeOf>(input, element::i32);
