@@ -1,15 +1,15 @@
 import argparse
 import json
+import random
 from itertools import chain
 from random import sample, shuffle
 from time import perf_counter
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import seaborn as sns
 from openvino import AsyncInferQueue, CompiledModel, InferRequest, compile_model
-from openvino.tools.benchmark.utils.utils import print_perf_counters_sort
-from openvino.runtime import properties
+from openvino.runtime import ProfilingInfo, properties
 from openvino_tokenizers import convert_tokenizer
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
@@ -57,11 +57,22 @@ def benchmark_tokenizer_async(ov_tokenizer: CompiledModel, dataset: List[Tuple[s
     return results, data_size / elapsed
 
 
+def construct_pc_series(perf_counts: List[ProfilingInfo], stats: Dict[str, Any]) -> Dict[str, Any]:
+    for pi in perf_counts:
+        if pi.status == pi.NOT_RUN:
+            continue
+        node_name = pi.node_name
+        real_time = pi.real_time.total_seconds()
+        stats[node_name] = real_time
+
+    return stats
+
+
 def benchmark_tokenizers(
     ov_tokenizer: CompiledModel,
     hf_tokenizer: PreTrainedTokenizerBase,
     dataset: List[Tuple[str, str]],
-    per_layer_stats: bool = False
+    per_layer_stats: bool = False,
 ) -> pd.DataFrame:
     columns = ["prompt", "OV", "HF"]
     results = []
@@ -71,11 +82,12 @@ def benchmark_tokenizers(
         ov_tokenizer(["test " * repeat])
         hf_tokenizer(["test " * repeat])
 
+    ov_perf_counters = []
     for prompt in tqdm(chain.from_iterable(dataset), total=len(dataset) * 2, desc="Sync benchmark"):
         res = [prompt]
 
         ov_start = perf_counter()
-        ov_tokenizer([prompt])
+        ov_res = ov_tokenizer([prompt])
         res.append(perf_counter() - ov_start)
 
         hf_start = perf_counter()
@@ -84,8 +96,26 @@ def benchmark_tokenizers(
 
         results.append(res)
 
-    if per_layer_stats:
-        print_perf_counters_sort([ov_tokenizer._infer_request.profiling_info])
+        if per_layer_stats:
+            stats = {
+                "Prompt Length": len(prompt),
+                "# Tokens": ov_res["input_ids"].shape[-1],
+            }
+            stats = construct_pc_series(ov_tokenizer._infer_request.profiling_info, stats)
+
+            ov_perf_counters.append(stats)
+
+    if ov_perf_counters:
+        df = pd.DataFrame(ov_perf_counters)
+        model_name = hf_tokenizer.name_or_path.rsplit("/")[-1]
+        df.to_csv(f"{model_name}_pc.csv", index=False)
+
+        df_describe = df.describe(percentiles=[0.5])
+        print(
+            df_describe.T.sort_values("mean", ascending=False).to_string(
+                float_format="{:.6f}".format, formatters={"count": "{:.0f}".format}
+            )
+        )
 
     return pd.DataFrame(results, columns=columns)
 
@@ -151,8 +181,7 @@ def main(
     hf_tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=trust)
 
     hint = properties.hint.PerformanceMode.THROUGHPUT if tput else properties.hint.PerformanceMode.LATENCY
-    config = {
-        properties.hint.performance_mode(): hint}
+    config = {properties.hint.performance_mode(): hint}
     if per_layer_stats:
         config[properties.enable_profiling()] = True
 
@@ -228,8 +257,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Use THROUGHPUT performance hint.",
     )
+    parser.add_argument(
+        "--seed",
+        required=False,
+        type=int,
+        default=None,
+        help="Random seed for data sampling",
+    )
 
     args = parser.parse_args()
+    if args.seed is not None:
+        random.seed(args.seed)
+
     main(
         args.model_id,
         args.dataset,
