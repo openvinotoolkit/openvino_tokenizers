@@ -6,6 +6,7 @@ from random import sample, shuffle
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Tuple
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from openvino import AsyncInferQueue, CompiledModel, InferRequest, compile_model
@@ -140,32 +141,34 @@ def print_stats(results: pd.DataFrame, async_fps: Optional[float] = None) -> Non
     print(stats)
 
 
-def build_plot(results: pd.DataFrame, save_file: Optional[str] = None, **kwargs) -> None:
+def build_plot(results: pd.DataFrame, save_file: Optional[str] = None, **kwargs) -> plt.Figure:
     cmap = sns.cubehelix_palette(rot=-0.2, as_cmap=True)
-    plot = (
-        sns.relplot(
-            data=results,
-            x="OV_ASYNC",
-            y="HF",
-            hue="Prompt Length, chars",
-            palette=cmap,
-        )
-        .set_xlabels("OpenVINO Async, sec")
-        .set_ylabels("Huggingface, sec")
-    )
-    if kwargs.get("log"):
-        plot.set(xscale="log").set(yscale="log")
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
 
-    if (title := kwargs.get("title")) is not None:
-        plot.fig.suptitle(title)
+    max_latency_sync = max(results["OV"].max(), results["HF"].max())
+    max_latency_async = max(results["OV_ASYNC"].max(), results["HF"].max())
 
-    max_latency = max(results["OV"].max(), results["HF"].max())
-    for ax in plot.axes[0]:
+    logs = (False, False, True, True)
+    asyncs = (False, True, False, True)
+    for ax, is_log, is_async in zip(axes.flatten(), logs, asyncs):
+        max_latency = max_latency_async if is_async else max_latency_sync
         ax.plot([0, max_latency], [0, max_latency], linestyle="dashed", linewidth=1, color="r")
 
+        if is_log:
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+
+        sns.scatterplot(
+            data=results, x="OV" + "_ASYNC" * is_async, y="HF", hue="Prompt Length, chars", palette=cmap, ax=ax
+        )
+
+    if (title := kwargs.get("title")) is not None:
+        fig.suptitle(title)
+
+    plt.tight_layout()
     if save_file is not None:
-        plot.savefig(save_file)
-    return plot
+        fig.savefig(save_file)
+    return fig
 
 
 def main(
