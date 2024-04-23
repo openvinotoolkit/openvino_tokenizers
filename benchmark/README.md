@@ -7,8 +7,8 @@ Use `pip install -U openvino-tokenizers[benchmark]` or `pip install -U .[benchma
 ## Usage
 
 ```shell
-usage: benchmark.py [-h] [-d DATASET] [-n NUM_PAIRS] [--trust-remote-code] [--log-scale] [--dump-latency-stats] [--print-per-layer-stats]
-                    [--tput] [--seed SEED]
+usage: benchmark.py [-h] [-d DATASET] [-n NUM_PAIRS] [--trust-remote-code] [--dump-latency-stats] [--print-per-layer-stats] [--tput]
+                    [--seed SEED]
                     model_id
 
 OpenVINO Tokenizers Benchmark
@@ -25,8 +25,6 @@ options:
   --trust-remote-code, --trust_remote_code
                         Pass `trust_remote_code=True` to `AutoTokenizer.from_pretrained`. It will execute code present on the Hub on your local
                         machine.
-  --log-scale, --log_scale
-                        Use log scale for the plot.
   --dump-latency-stats, --dump_latency_stats
                         Save csv file with latency stats.
   --print-per-layer-stats, --print_per_layer_stats
