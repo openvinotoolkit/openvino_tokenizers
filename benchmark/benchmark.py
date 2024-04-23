@@ -176,7 +176,6 @@ def main(
     dataset: str,
     num_pairs: int = 1000,
     trust: bool = False,
-    log: bool = False,
     dump_latency: bool = False,
     per_layer_stats: bool = False,
     tput: bool = False,
@@ -202,7 +201,7 @@ def main(
     if dump_latency:
         dump_latency_stats(result_df, model_name)
 
-    build_plot(result_df, f"latency_benchmark_{model_name}.jpeg", log=log, title=f"OV vs HF Latency\n{checkpoint}")
+    build_plot(result_df, f"latency_benchmark_{model_name}.jpeg", title=f"OV vs HF Latency\n{checkpoint}")
 
 
 if __name__ == "__main__":
@@ -232,13 +231,6 @@ if __name__ == "__main__":
             "Pass `trust_remote_code=True` to `AutoTokenizer.from_pretrained`. It will "
             "execute code present on the Hub on your local machine."
         ),
-    )
-    parser.add_argument(
-        "--log-scale",
-        "--log_scale",
-        required=False,
-        action="store_true",
-        help="Use log scale for the plot.",
     )
     parser.add_argument(
         "--dump-latency-stats",
@@ -277,7 +269,6 @@ if __name__ == "__main__":
         args.dataset,
         args.num_pairs,
         trust=args.trust_remote_code,
-        log=args.log_scale,
         dump_latency=args.dump_latency_stats,
         per_layer_stats=args.print_per_layer_stats,
         tput=args.tput,
