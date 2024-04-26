@@ -129,7 +129,7 @@ def dump_latency_stats(results: pd.DataFrame, model_name: str) -> None:
     sorted_res.to_csv(f"latency_res_{model_name}.csv", index=False)
 
 
-def print_stats(results: pd.DataFrame, async_fps: Optional[float] = None) -> None:
+def print_stats(results: pd.DataFrame, async_fps: Optional[float] = None) -> Tuple[float, float, float]:
     data_size = len(results)
     ov_fps = data_size / results["OV"].sum()
     hf_fps = data_size / results["HF"].sum()
@@ -139,6 +139,7 @@ def print_stats(results: pd.DataFrame, async_fps: Optional[float] = None) -> Non
     print("Latency and prompt stats:")
     stats = results.describe().drop("count")
     print(stats)
+    return ov_fps, async_fps, hf_fps
 
 
 def build_plot(results: pd.DataFrame, save_file: Optional[str] = None, **kwargs) -> plt.Figure:
@@ -195,13 +196,19 @@ def main(
     result_df = result_df.assign(OV_ASYNC=async_results.values)
     result_df["Prompt Length, chars"] = result_df["prompt"].apply(len)
 
-    print_stats(result_df, async_fps)
+    ov_fps, async_fps, hf_fps = print_stats(result_df, async_fps)
     model_name = checkpoint.rsplit("/", 1)[-1]
 
     if dump_latency:
         dump_latency_stats(result_df, model_name)
 
-    build_plot(result_df, f"latency_benchmark_{model_name}.jpeg", title=f"OV vs HF Latency\n{checkpoint}")
+    title = (
+        f"OV vs HF Latency\n{checkpoint}\n"
+        f"OV: {ov_fps:.1f} FPS; "
+        f"OV Async {async_fps:.1f} FPS; "
+        f"HF  {hf_fps:.1f} FPS"
+    )
+    build_plot(result_df, f"latency_benchmark_{model_name}.jpeg", title=title)
 
 
 if __name__ == "__main__":
