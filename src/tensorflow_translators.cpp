@@ -481,6 +481,18 @@ ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
     auto input2 = node.get_input(1);
 
     ov::Output<ov::Node> result;
+    // Check if the inputs are complex types.
+    auto is_complex1 = ov::as_type_ptr<ComplexTypeMark>(input1.get_node_shared_ptr());
+    auto is_complex2 = ov::as_type_ptr<ComplexTypeMark>(input2.get_node_shared_ptr());
+    if (is_complex1 && is_complex2){
+        auto complex_tensor1 = is_complex1->input_value(0);
+        auto complex_tensor2 = is_complex2->input_value(0);
+        auto equal_op = std::make_shared<ov::op::v1::Equal>(complex_tensor1, complex_tensor2);
+        auto reduce_axes = std::make_shared<ov::op::v0::Constant>(ov::element::i32, ov::Shape{1}, std::vector<int32_t>{-1});
+        auto equal_reduced = std::make_shared<ov::op::v1::ReduceLogicalAnd>(equal_op, reduce_axes, false);
+        result = equal_reduced;
+    }
+    
     if (input1.get_element_type() == ov::element::string ||
         input2.get_element_type() == ov::element::string) {
         ov::OutputVector unpacked_input1 = pre_translate_string_tensor_input(input1);
