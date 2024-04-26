@@ -9,7 +9,6 @@
 
 #include "tensorflow_translators.hpp"
 #include "utils.hpp"
-#include "helper_ops/complex_type_mark.hpp"
 #include "string_tensor_pack.hpp"
 #include "string_tensor_unpack.hpp"
 #include "sentence_piece.hpp"
@@ -482,8 +481,8 @@ ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
 
     ov::Output<ov::Node> result;
     // Check if the inputs are complex types.
-    auto is_complex1 = ov::as_type_ptr<ComplexTypeMark>(input1.get_node_shared_ptr());
-    auto is_complex2 = ov::as_type_ptr<ComplexTypeMark>(input2.get_node_shared_ptr());
+    auto is_complex1 = ov::as_type_ptr<ov::frontend::ComplexTypeMark>(input1.get_node_shared_ptr());
+    auto is_complex2 = ov::as_type_ptr<ov::frontend::ComplexTypeMark>(input2.get_node_shared_ptr());
     if (is_complex1 && is_complex2){
         auto complex_tensor1 = is_complex1->input_value(0);
         auto complex_tensor2 = is_complex2->input_value(0);
