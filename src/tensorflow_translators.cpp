@@ -9,7 +9,7 @@
 
 #include "tensorflow_translators.hpp"
 #include "utils.hpp"
-
+#include "helper_ops/complex_type_mark.hpp"
 #include "string_tensor_pack.hpp"
 #include "string_tensor_unpack.hpp"
 #include "sentence_piece.hpp"
