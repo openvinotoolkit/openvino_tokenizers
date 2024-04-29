@@ -86,6 +86,7 @@ wordpiece_models = [
     "rasa/LaBSE",
 ]
 bpe_models = [
+    "NousResearch/Meta-Llama-3-8B-Instruct",
     "stabilityai/stablecode-completion-alpha-3b-4k",
     "stabilityai/stablelm-tuned-alpha-7b",
     "databricks/dolly-v2-3b",
