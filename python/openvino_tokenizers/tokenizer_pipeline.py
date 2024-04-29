@@ -638,13 +638,13 @@ class CombineSegmentsStep(PostTokenizationStep):
 
     @classmethod
     def from_hf_json_template_postprocessor(
-        cls, tokenizer_json: Dict[str, Any], number_of_inputs: int = 1
+        cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
         if number_of_inputs == 1:
-            post_processor = tokenizer_json["post_processor"]["single"]
+            post_processor = post_processor_dict["single"]
         else:
-            post_processor = tokenizer_json["post_processor"]["pair"]
+            post_processor = post_processor_dict["pair"]
 
         for template_dict in post_processor:
             if "SpecialToken" in template_dict:
@@ -659,9 +659,8 @@ class CombineSegmentsStep(PostTokenizationStep):
 
     @classmethod
     def from_hf_json_bert_postprocessor(
-        cls, tokenizer_json: Dict[str, Any], number_of_inputs: int = 1
+        cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1
     ) -> "CombineSegmentsStep":
-        post_processor_dict = tokenizer_json["post_processor"]
         inputs: List[TokenWithTypeId] = [
             AddToken(
                 token=post_processor_dict["cls"][0],
@@ -687,12 +686,10 @@ class CombineSegmentsStep(PostTokenizationStep):
 
     @classmethod
     def from_hf_json_roberta_processor(
-        cls, tokenizer_json: Dict[str, Any], number_of_inputs: int = 1
+        cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1
     ) -> "CombineSegmentsStep":
         if number_of_inputs == 2:
             raise UserInputError("Two inputs not supported for RoBERTa processor")
-
-        post_processor_dict = tokenizer_json["post_processor"]
 
         inputs: List[TokenWithTypeId] = [Sequence(token_type_id=0)]
 
