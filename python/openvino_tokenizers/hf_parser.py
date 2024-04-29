@@ -233,31 +233,48 @@ class TransformersTokenizerPipelineParser:
         else:
             raise OVTypeError(f"Tokenizer type '{self.tokenizer_json['model']['type']}' is not supported")
 
+    post_tokenization_map: Dict[
+        str,
+        Callable[[Dict[str, Any]], Union[PreTokenizatinStep, List[PreTokenizatinStep]]],
+    ] = {
+        "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
+        "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
+        "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
+    }
+
     def post_tokenization(self) -> None:
+        post_processor_json = self.tokenizer_json["post_processor"]
         if (
-            self.tokenizer_json["post_processor"] is None
-            or self.tokenizer_json["post_processor"]["type"] == "ByteLevel"
+            post_processor_json is None
+            # As a `PostProcessor`, `ByteLevel` is in charge of trimming the offsets if necessary
+            or post_processor_json["type"] == "ByteLevel"
         ):
             self.add_truncation()
             self.add_padding()
             return
 
-        if self.tokenizer_json["post_processor"]["type"] == "TemplateProcessing":
-            combine_segments_step = CombineSegmentsStep.from_hf_json_template_postprocessor(
-                self.tokenizer_json, self.number_of_inputs
+        pt_type = post_processor_json["type"]
+
+        if pt_type != "Sequence" and pt_type not in self.post_tokenization_map:
+            raise OVTypeError(f"Post-processor type '{pt_type}' is not supported")
+
+        if pt_type == "Sequence":
+            processors = post_processor_json["processors"]
+            combine_segments_step = next(
+                (
+                    self.post_tokenization_map[step["type"]](step, self.number_of_inputs)
+                    for step in processors
+                    if step["type"] in self.post_tokenization_map
+                ), None
             )
-        elif self.tokenizer_json["post_processor"]["type"] == "BertProcessing":
-            combine_segments_step = CombineSegmentsStep.from_hf_json_bert_postprocessor(
-                self.tokenizer_json, self.number_of_inputs
-            )
-        elif self.tokenizer_json["post_processor"]["type"] == "RobertaProcessing":
-            combine_segments_step = CombineSegmentsStep.from_hf_json_roberta_processor(
-                self.tokenizer_json, self.number_of_inputs
-            )
+            if combine_segments_step is None:
+                raise OVTypeError(
+                    "Expected that Sequence post-tokenizer type contains one of supported post-tokenizers type:"
+                    f"{list(self.post_tokenization_map)}"
+                )
         else:
-            raise OVTypeError(
-                f"Post-processor type '{self.tokenizer_json['post_processor']['type']}' is not supported"
-            )
+            combine_segments_type = self.post_tokenization_map[pt_type]
+            combine_segments_step = combine_segments_type(post_processor_json, self.number_of_inputs)
 
         self.num_of_added_tokens += combine_segments_step.number_of_added_tokens
         combine_segments_step.set_tokens_ids(self.pipeline.vocab)
