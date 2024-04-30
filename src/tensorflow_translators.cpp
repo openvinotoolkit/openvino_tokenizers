@@ -6,7 +6,7 @@
 
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/opsets/opset13.hpp"
-
+#include "helper_ops/complex_type_mark.hpp"
 #include "tensorflow_translators.hpp"
 #include "utils.hpp"
 #include "string_tensor_pack.hpp"
