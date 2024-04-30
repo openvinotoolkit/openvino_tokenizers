@@ -122,7 +122,7 @@ def parse_byte_level_pretokenization_step(
 
 
 class TransformersTokenizerPipelineParser:
-    def __init__(self, tokenizer_object: Any, number_of_inputs: int = 1) -> None:
+    def __init__(self, tokenizer_object: Any, number_of_inputs: int = 1, add_special_tokens: bool = True) -> None:
         if not tokenizer_object.is_fast:
             raise OVTypeError("Tokenizer is not supported.")
 
@@ -135,10 +135,12 @@ class TransformersTokenizerPipelineParser:
         self.pipeline = TokenizerPipeline()
         self.number_of_inputs = number_of_inputs
         self.num_of_added_tokens = 0
+        self.add_special_tokens = add_special_tokens
 
     def parse(
         self,
         number_of_inputs: Optional[int] = None,
+        add_special_tokens: bool = True,
         skip_special_tokens: bool = False,
         clean_up_tokenization_spaces: Optional[bool] = None,
     ) -> TokenizerPipeline:
@@ -148,7 +150,7 @@ class TransformersTokenizerPipelineParser:
             self.normalization,
             self.pre_tokenization,
             self.tokenization_model,
-            self.post_tokenization,
+            partial(self.post_tokenization, add_special_tokens=add_special_tokens),
             partial(
                 self.decoding,
                 skip_special_tokens=skip_special_tokens,
@@ -242,7 +244,7 @@ class TransformersTokenizerPipelineParser:
         "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
     }
 
-    def post_tokenization(self) -> None:
+    def post_tokenization(self, add_special_tokens: bool = True) -> None:
         post_processor_json = self.tokenizer_json["post_processor"]
         if (
             post_processor_json is None
@@ -262,10 +264,11 @@ class TransformersTokenizerPipelineParser:
             processors = post_processor_json["processors"]
             combine_segments_step = next(
                 (
-                    self.post_tokenization_map[step["type"]](step, self.number_of_inputs)
+                    self.post_tokenization_map[step["type"]](step, self.number_of_inputs, add_special_tokens)
                     for step in processors
                     if step["type"] in self.post_tokenization_map
-                ), None
+                ),
+                None,
             )
             if combine_segments_step is None:
                 raise OVTypeError(
@@ -274,7 +277,9 @@ class TransformersTokenizerPipelineParser:
                 )
         else:
             combine_segments_type = self.post_tokenization_map[pt_type]
-            combine_segments_step = combine_segments_type(post_processor_json, self.number_of_inputs)
+            combine_segments_step = combine_segments_type(
+                post_processor_json, self.number_of_inputs, add_special_tokens
+            )
 
         self.num_of_added_tokens += combine_segments_step.number_of_added_tokens
         combine_segments_step.set_tokens_ids(self.pipeline.vocab)
@@ -347,11 +352,13 @@ def convert_fast_tokenizer(
     hf_tokenizer: PreTrainedTokenizerBase,
     number_of_inputs: int = 1,
     with_detokenizer: bool = False,
+    add_special_tokens: bool = True,
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     pipeline = TransformersTokenizerPipelineParser(hf_tokenizer).parse(
         number_of_inputs=number_of_inputs,
+        add_special_tokens=add_special_tokens,
         skip_special_tokens=skip_special_tokens,
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
     )
@@ -445,6 +452,7 @@ def convert_sentencepiece_model_tokenizer(
     add_attention_mask: bool = True,
     with_detokenizer: bool = False,
     streaming_detokenizer: bool = False,
+    add_special_tokens: bool = True,
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = False,
 ) -> Union[Model, Tuple[Model, Model]]:
@@ -484,6 +492,9 @@ def convert_sentencepiece_model_tokenizer(
         getattr(hf_tokenizer, "add_bos_token", add_eos_token) and hf_tokenizer.bos_token_id is not None
     ) or False
 
+    if add_special_tokens is False:
+        add_bos_token = add_eos_token = False
+
     tokenizer_node = _get_factory().create(
         "SentencepieceTokenizer",
         [sp_model_node, input_node],
@@ -504,7 +515,7 @@ def convert_sentencepiece_model_tokenizer(
         [broadcast, indices, values],  # FIXME: pad left side instead of right
     )
 
-    if is_chatglm:
+    if is_chatglm and add_special_tokens:
         prefix_tokens = make_constant_node(
             np.array([hf_tokenizer.get_prefix_tokens()]), dtype=scatternd_input_ids.output(0).element_type
         )
@@ -527,7 +538,7 @@ def convert_sentencepiece_model_tokenizer(
             ],
         )
 
-        if is_chatglm:
+        if is_chatglm and add_special_tokens:
             attention_prefix = make_constant_node(
                 np.array([[1 for _ in hf_tokenizer.get_prefix_tokens()]]), dtype=attention_mask.output(0).element_type
             )
