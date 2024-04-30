@@ -59,7 +59,7 @@ def get_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--not_add-special-tokens",
+        "--not-add-special-tokens",
         "--not_add_special_tokens",
         required=False,
         action="store_false",
