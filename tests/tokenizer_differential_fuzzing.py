@@ -35,18 +35,26 @@ def TestOneInput(input_bytes):
     if not input_text:
         return
 
-    hf, ovt = get_tokenizers("Qwen/Qwen-14B-Chat")
+    hf, ovt = get_tokenizers("codellama/CodeLlama-7b-hf")
 
     hf_tokenized = hf([input_text], return_tensors="np").input_ids
-    ov_tokenized = ovt([input_text])["input_ids"]
+    try:
+        ov_tokenized = ovt([input_text])["input_ids"]
+    except Exception as e:
+        print(f"Text: `{input_text}`")
+        raise e
 
-    if not np.all(ov_tokenized == hf_tokenized):
-        raise RuntimeError(
-            f"Test failed! Test string: `{input_text}`, {input_text.encode()}\n"
-            f"{ov_tokenized, hf_tokenized}\n"
-            # f"{hf.decode(ov_tokenized), hf.decode(hf_tokenized)}"
-            f"{type(ov_tokenized), type(hf_tokenized)}"
-        )
+    try:
+        if not np.all(ov_tokenized == hf_tokenized):
+            raise RuntimeError(
+                f"Test failed! Test string: `{input_text}`, {input_text.encode()}\n"
+                f"{ov_tokenized, hf_tokenized}\n"
+                # f"`{hf.decode(ov_tokenized)}`, `{hf.decode(hf_tokenized)}`"
+                f"{type(ov_tokenized), type(hf_tokenized)}"
+            )
+    except Exception as e:
+        print(f"Text: `{input_text}`, ov: {ov_tokenized}, hf: {hf_tokenized}")
+        raise e
 
 
 def main():
