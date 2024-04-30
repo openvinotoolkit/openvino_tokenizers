@@ -59,6 +59,16 @@ def get_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--not_add-special-tokens",
+        "--not_add_special_tokens",
+        required=False,
+        action="store_false",
+        help=(
+            "Tokenizer won't add special tokens during tokenization, similar to "
+            "huggingface_tokenizer.encode(texts, add_special_tokens=False). Not affects tiktoken-base tokenizers."
+        ),
+    )
+    parser.add_argument(
         "--skip-special-tokens",
         "--skip_special_tokens",
         required=False,
@@ -158,6 +168,7 @@ def convert_hf_tokenizer() -> None:
         hf_tokenizer,
         with_detokenizer=args.with_detokenizer,
         skip_special_tokens=args.skip_special_tokens,
+        add_special_tokens=args.not_add_special_tokens,
         clean_up_tokenization_spaces=args.clean_up_tokenization_spaces,
         tokenizer_output_type=args.tokenizer_output_type,
         detokenizer_input_type=args.detokenizer_input_type,
