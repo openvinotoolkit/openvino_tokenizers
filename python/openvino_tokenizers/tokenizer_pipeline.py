@@ -638,65 +638,66 @@ class CombineSegmentsStep(PostTokenizationStep):
 
     @classmethod
     def from_hf_json_template_postprocessor(
-        cls, tokenizer_json: Dict[str, Any], number_of_inputs: int = 1
+        cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1, add_special_tokens: bool = True
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
         if number_of_inputs == 1:
-            post_processor = tokenizer_json["post_processor"]["single"]
+            post_processor = post_processor_dict["single"]
         else:
-            post_processor = tokenizer_json["post_processor"]["pair"]
+            post_processor = post_processor_dict["pair"]
 
         for template_dict in post_processor:
-            if "SpecialToken" in template_dict:
+            if "SpecialToken" in template_dict and add_special_tokens:
                 step = AddToken(
                     token=template_dict["SpecialToken"]["id"],
                     token_type_id=template_dict["SpecialToken"]["type_id"],
                 )
                 inputs.append(step)
-            else:
+            elif "Sequence" in template_dict:
                 inputs.append(Sequence(token_type_id=template_dict["Sequence"]["type_id"]))
         return cls(inputs)
 
     @classmethod
     def from_hf_json_bert_postprocessor(
-        cls, tokenizer_json: Dict[str, Any], number_of_inputs: int = 1
+        cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1, add_special_tokens: bool = True
     ) -> "CombineSegmentsStep":
-        post_processor_dict = tokenizer_json["post_processor"]
-        inputs: List[TokenWithTypeId] = [
-            AddToken(
-                token=post_processor_dict["cls"][0],
-                token_type_id=0,
-            ),
-            Sequence(token_type_id=0),
-            AddToken(
-                token=post_processor_dict["sep"][0],
-                token_type_id=0,
-            ),
-        ]
+        inputs: List[TokenWithTypeId] = []
+        if add_special_tokens:
+            inputs.append(
+                AddToken(
+                    token=post_processor_dict["cls"][0],
+                    token_type_id=0,
+                )
+            )
+        inputs.append(Sequence(token_type_id=0))
+        if add_special_tokens:
+            inputs.append(
+                AddToken(
+                    token=post_processor_dict["sep"][0],
+                    token_type_id=0,
+                )
+            )
         if number_of_inputs == 2:
-            inputs.extend(
-                [
-                    Sequence(token_type_id=1),
+            inputs.append(Sequence(token_type_id=1))
+            if add_special_tokens:
+                inputs.append(
                     AddToken(
                         token=post_processor_dict["sep"][0],
                         token_type_id=1,
-                    ),
-                ]
-            )
+                    )
+                )
         return cls(inputs)
 
     @classmethod
     def from_hf_json_roberta_processor(
-        cls, tokenizer_json: Dict[str, Any], number_of_inputs: int = 1
+        cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1, add_special_tokens: bool = True
     ) -> "CombineSegmentsStep":
         if number_of_inputs == 2:
             raise UserInputError("Two inputs not supported for RoBERTa processor")
 
-        post_processor_dict = tokenizer_json["post_processor"]
-
         inputs: List[TokenWithTypeId] = [Sequence(token_type_id=0)]
 
-        if not post_processor_dict.get("add_special_tokens", True):
+        if not add_special_tokens or not post_processor_dict.get("add_special_tokens", True):
             return cls(inputs)
 
         inputs.insert(0, AddToken(token=post_processor_dict["cls"][0], token_type_id=0))

@@ -73,6 +73,8 @@ misc_strings = [
 wordpiece_models = [
     "bert-base-multilingual-cased",
     "bert-base-uncased",
+    # rubert-tiny2 tokenizer.json contains truncation step with max_length=512 used by OV tokenizer
+    # model object has model_max_lenght=2048 attribute which causes failed tests
     "cointegrated/rubert-tiny2",
     "distilbert-base-uncased-finetuned-sst-2-english",
     "sentence-transformers/all-MiniLM-L6-v2",
@@ -86,6 +88,8 @@ wordpiece_models = [
     "rasa/LaBSE",
 ]
 bpe_models = [
+    "NousResearch/Meta-Llama-3-8B-Instruct",
+    # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
     "stabilityai/stablecode-completion-alpha-3b-4k",
     "stabilityai/stablelm-tuned-alpha-7b",
     "databricks/dolly-v2-3b",
@@ -129,8 +133,8 @@ tiktiken_models = [
 ]
 
 
-def get_tokenizer(hf_tokenizer):
-    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False)
+def get_tokenizer(hf_tokenizer, add_special_tokens=True):
+    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, add_special_tokens=add_special_tokens)
     compiled_tokenizer = core.compile_model(ov_tokenizer)
     return hf_tokenizer, compiled_tokenizer
 
@@ -164,6 +168,11 @@ def is_fast_tokenizer(request):
     return request.param
 
 
+@pytest.fixture(scope="session", params=[True, False], ids=lambda to_add: "add_tokens" if to_add else "no_add_tokens")
+def do_add_special_tokens(request):
+    return request.param
+
+
 @pytest.fixture(
     scope="session", params=[True, False], ids=lambda do_skip: "skip_tokens" if do_skip else "no_skip_tokens"
 )
@@ -194,13 +203,13 @@ def hf_tiktoken_tokenizers(request):
 
 
 @pytest.fixture(scope="session")
-def wordpiece_tokenizers(hf_wordpiece_tokenizers):
-    return get_tokenizer(hf_wordpiece_tokenizers)
+def wordpiece_tokenizers(hf_wordpiece_tokenizers, do_add_special_tokens):
+    return get_tokenizer(hf_wordpiece_tokenizers, add_special_tokens=do_add_special_tokens)
 
 
 @pytest.fixture(scope="session")
-def bpe_tokenizers(hf_bpe_tokenizers):
-    return get_tokenizer(hf_bpe_tokenizers)
+def bpe_tokenizers(hf_bpe_tokenizers, do_add_special_tokens):
+    return get_tokenizer(hf_bpe_tokenizers, add_special_tokens=do_add_special_tokens)
 
 
 @pytest.fixture(scope="session")
@@ -213,8 +222,8 @@ def bpe_tokenizers_detokenizers(hf_bpe_tokenizers, do_skip_special_tokens, do_cl
 
 
 @pytest.fixture(scope="session")
-def sentencepice_tokenizers(hf_sentencepiece_tokenizers):
-    return get_tokenizer(hf_sentencepiece_tokenizers)
+def sentencepice_tokenizers(hf_sentencepiece_tokenizers, do_add_special_tokens):
+    return get_tokenizer(hf_sentencepiece_tokenizers, add_special_tokens=do_add_special_tokens)
 
 
 @pytest.fixture(scope="session")
@@ -275,11 +284,13 @@ def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
         *misc_strings,
     ],
 )
-def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string):
+def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
     packed_strings = pack_strings([test_string])
 
-    hf_tokenized = hf_tokenizer([test_string], return_tensors="np", truncation=True)
+    hf_tokenized = hf_tokenizer(
+        [test_string], return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    )
     ov_tokenized = ov_tokenizer(packed_strings)
 
     for output_name, hf_result in hf_tokenized.items():
@@ -295,11 +306,13 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string):
         misc_strings,
     ],
 )
-def test_hf_wordpiece_tokenizers_multiple_strings(wordpiece_tokenizers, test_string):
+def test_hf_wordpiece_tokenizers_multiple_strings(wordpiece_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
     packed_strings = pack_strings(test_string)
 
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", padding=True, truncation=True)
+    hf_tokenized = hf_tokenizer(
+        test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
+    )
     ov_tokenized = ov_tokenizer(packed_strings)
 
     for output_name, hf_result in hf_tokenized.items():
@@ -315,10 +328,12 @@ def test_hf_wordpiece_tokenizers_multiple_strings(wordpiece_tokenizers, test_str
         *misc_strings,
     ],
 )
-def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string):
+def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = sentencepice_tokenizers
 
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True)
+    hf_tokenized = hf_tokenizer(
+        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    )
     ov_tokenized = ov_tokenizer(pack_strings([test_string]))
 
     for output_name, hf_result in hf_tokenized.items():
@@ -361,11 +376,13 @@ def test_sentencepiece_model_detokenizer(
         *misc_strings,
     ],
 )
-def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string):
+def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = bpe_tokenizers
     packed_strings = pack_strings([test_string])
 
-    hf_tokenized = hf_tokenizer([test_string], return_tensors="np", truncation=True)
+    hf_tokenized = hf_tokenizer(
+        [test_string], return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    )
     ov_tokenized = ov_tokenizer(packed_strings)
 
     for output_name, hf_result in hf_tokenized.items():

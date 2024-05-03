@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 def convert_tokenizer(
     tokenizer_object: Any,
     with_detokenizer: bool = False,
+    add_special_tokens: bool = True,
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = None,
     tokenizer_output_type: Type = Type.i64,
@@ -45,6 +46,7 @@ def convert_tokenizer(
                     add_attention_mask=True,
                     with_detokenizer=with_detokenizer,
                     streaming_detokenizer=streaming_detokenizer,
+                    add_special_tokens=add_special_tokens,
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                 )
@@ -62,6 +64,7 @@ def convert_tokenizer(
                     tokenizer_object,
                     number_of_inputs=1,
                     with_detokenizer=with_detokenizer,
+                    add_special_tokens=add_special_tokens,
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                 )
