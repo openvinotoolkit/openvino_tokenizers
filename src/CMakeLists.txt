@@ -20,6 +20,28 @@ function(ov_tokenizers_set_cxx_standard)
   set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
 endfunction()
 
+function(ov_tokenizers_link_ov_tensorflow)
+  if(OpenVINO_Frontend_TensorFlow_FOUND)
+    target_link_libraries(${TARGET_NAME} PRIVATE openvino::frontend::tensorflow)
+    target_compile_definitions(${TARGET_NAME} PRIVATE OpenVINO_Frontend_TensorFlow_FOUND)
+  endif()
+endfunction()
+
+function(ov_tokenizers_link_sentencepiece)
+  target_include_directories(${TARGET_NAME} PRIVATE
+    "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
+    "${sentencepiece_SOURCE_DIR}/src"
+    "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
+    "${sentencepiece_SOURCE_DIR}"
+    "${sentencepiece_BINARY_DIR}")
+
+  if(CMAKE_CL_64)
+      target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+  endif()
+
+  target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS} sentencepiece-static)
+endfunction()
+
 ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -182,20 +204,8 @@ add_library(${TARGET_NAME} SHARED ${SRC})
 
 # set include dirs for specific source files
 target_include_directories(${TARGET_NAME} PRIVATE
-  # sentensepiece
-  "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
-  "${sentencepiece_SOURCE_DIR}/src"
-  "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
-  "${sentencepiece_SOURCE_DIR}"
-  "${sentencepiece_BINARY_DIR}"
   # fast_tokenizer
   ${FAST_TOKENIZER_INCS})
-
-if(CMAKE_CL_64)
-    target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
-endif()
-
-target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS} sentencepiece-static)
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
@@ -203,9 +213,13 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
 
-if(OpenVINO_Frontend_TensorFlow_FOUND)
-  target_link_libraries(${TARGET_NAME} PRIVATE openvino::frontend::tensorflow)
-  target_compile_definitions(${TARGET_NAME} PRIVATE OpenVINO_Frontend_TensorFlow_FOUND)
+# Change the linking order based on the operating system to prevent segmentation faults caused by conflicts in protobuf versions
+if(APPLE)
+  ov_tokenizers_link_sentencepiece()
+  ov_tokenizers_link_ov_tensorflow()
+else()
+  ov_tokenizers_link_ov_tensorflow()
+  ov_tokenizers_link_sentencepiece()
 endif()
 
 #
