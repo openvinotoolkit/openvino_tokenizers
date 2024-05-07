@@ -66,13 +66,23 @@ FetchContent_Declare(
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
+  # OpenVINO conda package dynamically linked with external protobuf,
+  # and we need to link sentencepiece with external protobuf too.
+  if(DEFINED ENV{CONDA_PREFIX})
+      set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
+      set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
+  else()
+      set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
+      set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
+  endif()
+
   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
   set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
-  set(SPM_USE_BUILTIN_PROTOBUF ON)
   FetchContent_Populate(sentencepiece)
   add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
-
 
 if(BUILD_FAST_TOKENIZERS)
   FetchContent_Declare(
