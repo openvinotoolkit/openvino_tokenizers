@@ -468,9 +468,26 @@ class BPETokenizationStep(TokenizationModelStep):
         for idx, token in sorted(self.added_tokens.items()):
             self.vocab.append(token)
 
+    @staticmethod
+    def get_vocab(tokenizer_json: Dict[str, Any]) -> List[str]:
+        vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        added_tokens = [
+            (token["id"], token["content"])
+            for token in sorted(tokenizer_json.get("added_tokens", []), key=lambda token: token["id"])
+            if token["id"] >= len(vocab)
+        ]
+        if added_tokens:
+            ids = [token[0] for token in added_tokens]
+            min_id, max_id = min(ids), max(ids)
+            assert max_id - min_id + 1 == len(ids), "Added token ids should be consecutive"
+            assert min_id == len(vocab), "Added token ids should continue vocab"
+            vocab.extend(token[1] for token in added_tokens)
+        return vocab
+
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
         vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        # vocab = cls.get_vocab(tokenizer_json)
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"] or "",
             fuse_unk=tokenizer_json["model"]["fuse_unk"] or False,
