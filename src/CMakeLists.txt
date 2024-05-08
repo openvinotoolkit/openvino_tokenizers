@@ -68,7 +68,7 @@ FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
   # OpenVINO conda package dynamically linked with external protobuf,
   # and we need to link sentencepiece with external protobuf too.
-  if(DEFINED ENV{CONDA_PREFIX})
+  if(DEFINED ENV{CONDA_PREFIX} AND NOT WIN32)
       set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
       set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
