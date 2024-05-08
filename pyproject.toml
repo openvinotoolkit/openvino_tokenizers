@@ -96,5 +96,5 @@ __version__ = "${version}"
 '''
 
 [build-system]
-requires = ["scikit-build-core"]
+requires = ["scikit-build-core~=0.8.0"]
 build-backend = "scikit_build_core.build"
