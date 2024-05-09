@@ -123,11 +123,15 @@ else()
         URL      https://github.com/google/re2/archive/refs/tags/2022-04-01.tar.gz
         URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
       )
-      FetchContent_GetProperties(re2)
-      if(NOT re2_POPULATED)
-        FetchContent_Populate(re2)
-        add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
-      endif()
+      function(ov_tokenizers_build_static_re2)
+        set(BUILD_SHARED_LIBS OFF)
+        FetchContent_GetProperties(re2)
+        if(NOT re2_POPULATED)
+          FetchContent_Populate(re2)
+          add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
+        endif()
+      endfunction()
+      ov_tokenizers_build_static_re2()
   elseif(LINUX AND X86_64)
       FetchContent_Declare(
         fast_tokenizer
