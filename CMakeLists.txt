@@ -16,7 +16,7 @@ if(NOT OpenVINODeveloperPackage_FOUND)
 endif()
 
 # set the project version using OpenVINO major, minor and patch versions
-set(CMAKE_PROJECT_VERSION_TWEAK 1)
+set(CMAKE_PROJECT_VERSION_TWEAK 2)
 set(CMAKE_PROJECT_VERSION "${OpenVINO_VERSION}.${CMAKE_PROJECT_VERSION_TWEAK}")
 
 add_subdirectory(src)
