@@ -519,8 +519,11 @@ class BPETokenizationStep(TokenizationModelStep):
         self.is_byte_level = any(isinstance(step, BytesToCharsStep) for step in pipeline.pre_tokenization_steps)
 
     def extend_vocab_with_added_tokens(self) -> None:
+        vocab_set = set(self.vocab)
+
         for idx, token in sorted(self.added_tokens.items()):
-            self.vocab.append(token)
+            if token not in vocab_set:
+                self.vocab.append(token)
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
@@ -544,7 +547,9 @@ class BPETokenizationStep(TokenizationModelStep):
     ) -> "BPETokenizationStep":
         from .tiktoken_parser import generate_vocab_and_merges
 
-        vocab, merges = generate_vocab_and_merges(encoding)
+
+        vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
+        added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
         return cls(
             unk_token="",
             fuse_unk=False,
@@ -552,7 +557,7 @@ class BPETokenizationStep(TokenizationModelStep):
             end_suffix="",
             vocab=[token for token, idx in sorted(vocab.items(), key=lambda x: x[1])],
             merges=merges,
-            added_tokens={idx: token for token, idx in encoding._special_tokens.items()},
+            added_tokens=added_tokens,
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
@@ -570,11 +575,11 @@ class BPETokenizationStep(TokenizationModelStep):
 
         if self.added_tokens and self.is_byte_level:
             special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
-            special_tokens_outputs = CharsToBytesStep().get_ov_subgraph(special_tokens_outputs)[-3:]
+            special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
         input_nodes.extend(
             (
-                *self.get_pipeline().vocab_node_outputs,
+                *pipeline.vocab_node_outputs,
                 *self.create_string_constant_node(self.merges).outputs(),
                 *special_tokens_outputs,
                 *make_constant_node(np.array(list(self.added_tokens)), Type.i32).outputs(),
@@ -982,7 +987,6 @@ class TokenizerPipeline:
 
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
-        [print(step) for step in self[:2]]
 
         string_inputs = [op.Parameter(Type.string, PartialShape(["?"])) for _ in range(self.number_of_inputs)]
 

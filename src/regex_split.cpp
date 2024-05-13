@@ -88,13 +88,10 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
         m_skip_tokens = std::make_shared<std::set<std::string>>();
         std::string skip_tokens_pattern;
-        std::cerr << "Skip: ";
         for (size_t i = 0; i < skip_tokens_size; ++i) {
             std::string token = std::string(skip_tokens_chars + skip_tokens_begins[i], skip_tokens_chars + skip_tokens_ends[i]);
-            std::cerr << token << ", ";
             m_skip_tokens->insert(token);
         };
-        std::cerr << "\n\n";
     };
 
     auto ragged_begins = inputs[0].data<const int32_t>();
@@ -127,22 +124,17 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            std::cerr << "String: " << str << ":\n";
 
             if (m_skip_tokens != nullptr && m_skip_tokens->count(str) == 1) {
                 new_begins[ragged_offset] = begins[ragged_col];
                 new_ends[ragged_offset++] = ends[ragged_col];
-                std::cerr << "Skip!\n";
             } else {
                 paddlenlp::fast_tokenizer::pretokenizers::PreTokenizedString pretokenized(str);
                 (*m_pretokenizer)(&pretokenized);
                 size_t num_splits = pretokenized.GetSplitsSize();
-
-                std::cerr << "Splits: ";
                 for (size_t j = 0; j < num_splits; ++j) {
                     auto split = pretokenized.GetSplit(j);
                     auto offset = split.normalized_.GetOrginalOffset();
-                    std::cerr << std::string(chars + begins[ragged_col] + offset.first, chars + begins[ragged_col] + offset.second) << ", ";
                     new_begins[ragged_offset] = begins[ragged_col] + offset.first;
 
                     if (m_max_splits == j) {
@@ -151,7 +143,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                     };
                     new_ends[ragged_offset++] = begins[ragged_col] + offset.second;
                 };
-                std::cerr << "\n\n";
             }
         }
 
