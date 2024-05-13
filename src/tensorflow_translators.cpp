@@ -343,7 +343,7 @@ NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) 
     auto ragged_ends = std::make_shared<Add>(ragged_begins, one_const);
 
     auto regex_split_outputs = std::make_shared<RegexSplit>(ov::OutputVector{ ragged_begins, ragged_ends, unpacked_input[0],
-        unpacked_input[1], unpacked_input[2], sep }, nullptr, "remove", false, maxsplit)->outputs();
+        unpacked_input[1], unpacked_input[2], sep }, nullptr, nullptr, "remove", false, maxsplit)->outputs();
 
 
     // compute sparse tensor indices
