@@ -6,10 +6,9 @@ from __future__ import annotations
 
 import logging
 import weakref
-from copy import copy
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
-from itertools import chain, islice, takewhile
+from itertools import chain, islice
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -63,7 +62,7 @@ class BasePipelineStep:
         raise NotImplementedError
 
     @staticmethod
-    def create_string_constant_node(value: Union[str, Iterable[str]]) -> op.Constant:
+    def create_string_constant_node(value: Union[str, List[str]]) -> op.Constant:
         if isinstance(value, str):
             # string scalar
             ps = pack_string(value)
@@ -72,10 +71,6 @@ class BasePipelineStep:
             # support only 1D strings for now
             ps = pack_strings(value)
             return _get_factory().create("StringTensorUnpack", op.Constant(ps).outputs())
-
-    def finalize(self) -> None:
-        """Called after the entire pipeline has been built"""
-        return
 
 
 @dataclass
@@ -201,7 +196,6 @@ class RegexSplitStep(PreTokenizatinStep):
     invert: bool = False
     behaviour: str = "remove"
     max_splits: int = -1
-    skip_tokens: List[str] = field(default_factory=list, repr=False)
 
     def __post_init__(self):
         self.vet_split_pattern()
@@ -288,34 +282,8 @@ class RegexSplitStep(PreTokenizatinStep):
             behaviour=behaviour,
         )
 
-    @classmethod
-    def special_tokens_splitter(cls, special_tokens: List[str]) -> "RegexSplitStep":
-        def quote_meta(unquoted: str) -> str:
-            symbols = []
-            for char in unquoted:
-                if not char.isalnum() and char != "_":
-                    symbols.append("\\")
-                symbols.append(char)
-            return "".join(symbols)
-
-        return cls(split_pattern="|".join(map(quote_meta, special_tokens)), invert=False, behaviour="isolate")
-
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        if self.skip_tokens:
-            skip_tokens_outputs = self.create_string_constant_node(self.skip_tokens).outputs()
-        else:
-            skip_tokens_outputs = [
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.u8),
-            ]
-
-        input_nodes.extend(
-            (
-                *self.create_string_constant_node(self.split_pattern).outputs(),
-                *skip_tokens_outputs,
-            )
-        )
+        input_nodes.extend(self.create_string_constant_node(self.split_pattern).outputs())
         return (
             _get_factory()
             .create(
@@ -491,39 +459,14 @@ class BPETokenizationStep(TokenizationModelStep):
     end_suffix: str = ""
     byte_fallback: bool = False
     added_tokens: Optional[Dict[int, str]] = None
-    is_byte_level: bool = False
 
     def __post_init__(self):
         if self.added_tokens is not None:
             self.extend_vocab_with_added_tokens()
 
-    def finalize(self) -> None:
-        pipeline = self.get_pipeline()
-
-        if not self.added_tokens:
-            return
-
-        added_tokens = list(self.added_tokens.values())
-
-        for split_step in pipeline.split_steps:
-            split_step.skip_tokens = added_tokens
-
-        idx = sum(
-            1
-            for _ in takewhile(
-                lambda step: not isinstance(step, (PreTokenizatinStep, TokenizationModelStep)), pipeline.steps
-            )
-        )
-        pipeline.steps.insert(idx, RegexSplitStep.special_tokens_splitter(added_tokens))
-
-        self.is_byte_level = any(isinstance(step, BytesToCharsStep) for step in pipeline.pre_tokenization_steps)
-
     def extend_vocab_with_added_tokens(self) -> None:
-        vocab_set = set(self.vocab)
-
         for idx, token in sorted(self.added_tokens.items()):
-            if token not in vocab_set:
-                self.vocab.append(token)
+            self.vocab.append(token)
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
@@ -544,12 +487,11 @@ class BPETokenizationStep(TokenizationModelStep):
     def from_tiktoken_encoding(
         cls,
         encoding: "Encoding",  # noqa
+        added_tokens: Optional[Dict[int, str]] = None,
     ) -> "BPETokenizationStep":
         from .tiktoken_parser import generate_vocab_and_merges
 
-
-        vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
-        added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
+        vocab, merges = generate_vocab_and_merges(encoding)
         return cls(
             unk_token="",
             fuse_unk=False,
@@ -563,26 +505,10 @@ class BPETokenizationStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
         pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
-
-        if not self.added_tokens:
-            special_tokens_outputs = [
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.u8),
-            ]
-        else:
-            special_tokens_outputs = self.create_string_constant_node(self.added_tokens.values()).outputs()
-
-        if self.added_tokens and self.is_byte_level:
-            special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
-            special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
-
         input_nodes.extend(
             (
-                *pipeline.vocab_node_outputs,
+                *self.get_pipeline().vocab_node_outputs,
                 *self.create_string_constant_node(self.merges).outputs(),
-                *special_tokens_outputs,
-                *make_constant_node(np.array(list(self.added_tokens)), Type.i32).outputs(),
             )
         )
         return (
@@ -954,7 +880,6 @@ class TokenizerPipeline:
     number_of_inputs: int = 1
     vocab_node_outputs: Optional[List[Output]] = field(default=None, repr=False)
     eos_token_id: Optional[int] = None
-    finalized: bool = False
 
     def get_config(self) -> Dict[str, Dict[str, Any]]:
         return {type(step).__name__: step.get_config() for step in self.steps}
@@ -986,8 +911,6 @@ class TokenizerPipeline:
         return getattr(hf_tokenizer, "eod_id", None)
 
     def get_tokenizer_ov_subgraph(self) -> Model:
-        self.finalize()
-
         string_inputs = [op.Parameter(Type.string, PartialShape(["?"])) for _ in range(self.number_of_inputs)]
 
         processing_outputs = []
@@ -1010,14 +933,6 @@ class TokenizerPipeline:
             model.set_rt_info(self.eos_token_id, EOS_TOKEN_ID_NAME)
         return model
 
-    def finalize(self) -> None:
-        if self.finalized:
-            return
-
-        for step in copy(self.steps):
-            step.finalize()
-        self.finalized = True
-
     @property
     def normalization_steps(self) -> List[NormalizationStep]:
         return [step for step in self.steps if isinstance(step, NormalizationStep)]
@@ -1025,10 +940,6 @@ class TokenizerPipeline:
     @property
     def pre_tokenization_steps(self) -> List[PreTokenizatinStep]:
         return [step for step in self.steps if isinstance(step, PreTokenizatinStep)]
-
-    @property
-    def split_steps(self) -> List[RegexSplitStep]:
-        return [step for step in self.pre_tokenization_steps if isinstance(step, RegexSplitStep)]
 
     @property
     def tokenization_steps(self) -> List[TokenizationModelStep]:
@@ -1060,8 +971,6 @@ class TokenizerPipeline:
         return _get_factory().create("StringTensorPack", input_nodes).outputs()
 
     def get_detokenizer_ov_subgraph(self) -> Model:
-        self.finalize()
-
         if not any(isinstance(step, VocabDecoderStep) for step in self.decoding_steps):
             raise NotImplementedError("Detokenizer is not supported for this model yet!")
 

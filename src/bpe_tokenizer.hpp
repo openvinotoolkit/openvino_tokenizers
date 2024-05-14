@@ -30,42 +30,21 @@ public:
         const std::string& suffix_indicator = "",
         const std::string& end_suffix = "",
         bool byte_fallback = false
-    ) :
-        ov::op::Op(arguments),
-        m_unk_token(unk_token),
-        m_fuse_unk(fuse_unk),
-        m_suffix_indicator(suffix_indicator),
-        m_end_suffix(end_suffix),
-        m_byte_fallback(byte_fallback) {
-
-        constructor_validate_and_infer_types();
-    }
+    );
     BPETokenizer(
         const ov::OutputVector& arguments,
         const std::shared_ptr<models::BPE>& tokenizer,
-        const std::shared_ptr<std::map<std::string, int32_t>>& added_tokens,
         const std::string& unk_token = "",
         bool fuse_unk = false,
         const std::string& suffix_indicator = "",
         const std::string& end_suffix = "",
         bool byte_fallback = false
-    ) :
-        ov::op::Op(arguments),
-        m_tokenizer(tokenizer),
-        m_added_tokens(added_tokens),
-        m_unk_token(unk_token),
-        m_fuse_unk(fuse_unk),
-        m_suffix_indicator(suffix_indicator),
-        m_end_suffix(end_suffix),
-        m_byte_fallback(byte_fallback) {
-
-        constructor_validate_and_infer_types();
-    }
+    );
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<BPETokenizer>(inputs, m_tokenizer, m_added_tokens, m_unk_token, m_fuse_unk, m_suffix_indicator, m_end_suffix, m_byte_fallback);
+        return std::make_shared<BPETokenizer>(inputs, m_tokenizer, m_unk_token, m_fuse_unk, m_suffix_indicator, m_end_suffix, m_byte_fallback);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -85,7 +64,6 @@ public:
 
 private:
     mutable std::shared_ptr<models::BPE> m_tokenizer;
-    mutable std::shared_ptr<std::map<std::string, int32_t>> m_added_tokens;
     std::string m_unk_token;
     bool m_fuse_unk = false;
     std::string m_suffix_indicator;
