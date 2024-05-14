@@ -209,7 +209,7 @@ class RegexSplitStep(PreTokenizatinStep):
     def vet_split_pattern(self) -> None:
         if r"(?!\S)" in self.split_pattern:
             #  rewrite regex pattern to get results closer to qwen.cpp results
-            logger.warning(r"Replace `(?!\S)` pattern to `(?:$|[^\S])` in RegexSplit operation")
+            logger.warning(r"Replacing `(?!\S)` pattern to `(?:$|[^\S])` in RegexSplit operation")
             self.split_pattern = self.split_pattern.replace(r"(?!\S)", r"(?:$|[^\S])")
 
         if has_incompatible_re2_op(self.split_pattern):
@@ -282,6 +282,14 @@ class RegexSplitStep(PreTokenizatinStep):
             behaviour=behaviour,
         )
 
+    @classmethod
+    def punctuation_splitter(cls, behaviour="isolate") -> "RegexSplitStep":
+        return cls(
+            r"\p{P}",
+            invert=False,
+            behaviour=behaviour,
+        )
+
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(self.create_string_constant_node(self.split_pattern).outputs())
         return (
@@ -305,13 +313,6 @@ class WhitespaceSplitStep(PreTokenizatinStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         return RegexSplitStep.whitespace_splitter().get_ov_subgraph(input_nodes).outputs()
-
-
-@dataclass
-class PunctuationSplitStep(PreTokenizatinStep):
-    """Splits string on punctuation chars."""
-
-    # behaviour: str = "Isolated"
 
 
 @dataclass
