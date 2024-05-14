@@ -35,6 +35,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     OPENVINO_ASSERT(inputs.size() == 15, "Too few inputs passed to BPETokenizer, try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
 
     if (m_tokenizer == nullptr) {
+        std::cerr << "Init tokenizer\n";
         // cache tokenizer
         auto vocab_begins = inputs[5].data<const int32_t>();
         auto vocab_ends   = inputs[6].data<const int32_t>();
@@ -91,6 +92,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
     auto added_tokens_size = inputs[14].get_size();
     if (m_added_tokens == nullptr) {
+        std::cerr << "Init added tokens\n";
         // vocab string keys
         auto added_tokens_begins = inputs[11].data<const int32_t>();
         auto added_tokens_ends   = inputs[12].data<const int32_t>();
@@ -127,6 +129,8 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto new_elems  = outputs[2].data<int32_t>();
     int32_t ragged_offset = 0;
 
+
+    std::cerr << "Start tokenizer\n";
     for(size_t seq = 0; seq < num_rows; ++seq) {
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {

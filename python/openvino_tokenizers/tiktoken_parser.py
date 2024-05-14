@@ -46,13 +46,11 @@ def bpe(mergeable_ranks: Dict[bytes, int], token: bytes, max_rank: Optional[int]
     return parts
 
 
-def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[str], Dict[int, str]]:
+def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[str]]:
     mergeable_ranks = encoding._mergeable_ranks
 
     merges = []
     vocab = {}
-    added_tokens = {}
-
     for token, rank in mergeable_ranks.items():
         vocab[token_bytes_to_string(token)] = rank
 
@@ -67,9 +65,9 @@ def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[
         if len(merged) == 2:
             merges.append(" ".join(map(token_bytes_to_string, merged)))
         else:
-            added_tokens[rank] = token.decode("utf-8")
+            logging.warning("Skip merges for added tokens. Tokenization results might be different.")
 
     # Also add special tokens
     vocab.update(encoding._special_tokens)
 
-    return vocab, merges, added_tokens
+    return vocab, merges
