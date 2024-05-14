@@ -90,6 +90,7 @@ wordpiece_models = [
 bpe_models = [
     "NousResearch/Meta-Llama-3-8B-Instruct",
     # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
+    "tiiuae/falcon-7b",
     "stabilityai/stablecode-completion-alpha-3b-4k",
     "stabilityai/stablelm-tuned-alpha-7b",
     "databricks/dolly-v2-3b",

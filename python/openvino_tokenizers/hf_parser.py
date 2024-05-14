@@ -40,7 +40,6 @@ from .tokenizer_pipeline import (
     NormalizeUnicode,
     PaddingStep,
     PreTokenizatinStep,
-    PunctuationSplitStep,
     RegexDecodingStep,
     RegexNormalizationStep,
     RegexSplitStep,
@@ -202,7 +201,7 @@ class TransformersTokenizerPipelineParser:
         "Whitespace": lambda step_dict: RegexSplitStep.whitespace_splitter(),
         "WhitespaceSplit": lambda step_dict: WhitespaceSplitStep(),
         "Split": parse_split_step,
-        "Punctuation": lambda step_dict: PunctuationSplitStep(step_dict["behavior"]),
+        "Punctuation": lambda step_dict: RegexSplitStep.punctuation_splitter(step_dict["behavior"]),
         "ByteLevel": parse_byte_level_pretokenization_step,
         "Digits": lambda step_dict: RegexSplitStep.digits_splitter(
             "isolate" if step_dict["individual_digits"] else "contiguous"
