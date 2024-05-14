@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from io import BytesIO
-from typing import Iterable, List
+from typing import List
 
 import numpy as np
 from numpy.typing import NDArray
+from openvino.runtime.exceptions import UserInputError
 
 
 def to_bytes(number: int) -> bytes:
@@ -17,14 +18,16 @@ def pack_string(string: str) -> NDArray:
     return np.frombuffer(bytes(string, "utf-8"), dtype=np.uint8)
 
 
-def pack_strings(strings: Iterable[str]) -> NDArray:
+def pack_strings(strings: List[str]) -> NDArray:
     """
     Convert any list of string to U8/1D numpy array compatible with converted OV model input
     """
-    strings = list(strings)
+    if not isinstance(strings, list):
+        raise UserInputError("")
+
     batch_size = len(strings)
     if batch_size == 0:
-        return np.frombuffer(to_bytes(0), np.uint8)
+        return to_bytes(0)
 
     buffer = BytesIO()
     buffer.write(to_bytes(batch_size))
