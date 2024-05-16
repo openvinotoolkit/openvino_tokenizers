@@ -170,6 +170,15 @@ ov::OutputVector translate_regex_split_with_offsets(const ov::frontend::NodeCont
     ov::OutputVector inputs = pre_translate_string_tensor_input(node.get_input(0));
     auto delim_regex_pattern = node.get_input(1).get_node()->input_value(2);    // use u8 part of packed string tensor as we are expecting a scalar string: TODO: verify it is really there
     inputs.push_back(delim_regex_pattern);
+
+    // no skip regex patterns
+    auto skip_begins = std::make_shared<Constant>(ov::element::i32, Shape{ 0 }, std::vector<int32_t>{})->output(0);
+    auto skip_ends = std::make_shared<Constant>(ov::element::i32, Shape{ 0 }, std::vector<int32_t>{})->output(0);
+    auto skip_chars = std::make_shared<Constant>(ov::element::u8, Shape{ 0 }, std::vector<uint8_t>{})->output(0);
+    inputs.push_back(skip_begins);
+    inputs.push_back(skip_ends);
+    inputs.push_back(skip_chars);
+
     // TODO: Use node.get_input(2) with keep_delim_regex_pattern, most likely it should be handled in another RegexSplit with `isolate` behaviour
     auto outputs = std::make_shared<RegexSplit>(inputs)->outputs();
     auto flatten_string_tensor = post_translate_string_tensor_output({ outputs[2], outputs[3], outputs[4] });
@@ -342,8 +351,13 @@ NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) 
     auto ragged_begins = std::make_shared<Range>(zero_const, batch_dim, one_const, element::i32);
     auto ragged_ends = std::make_shared<Add>(ragged_begins, one_const);
 
+    // no skip patterns
+    auto skip_begins = std::make_shared<Constant>(ov::element::i32, Shape{ 0 }, std::vector<int32_t>{})->output(0);
+    auto skip_ends = std::make_shared<Constant>(ov::element::i32, Shape{ 0 }, std::vector<int32_t>{})->output(0);
+    auto skip_chars = std::make_shared<Constant>(ov::element::u8, Shape{ 0 }, std::vector<uint8_t>{})->output(0);
+
     auto regex_split_outputs = std::make_shared<RegexSplit>(ov::OutputVector{ ragged_begins, ragged_ends, unpacked_input[0],
-        unpacked_input[1], unpacked_input[2], sep }, nullptr, nullptr, "remove", false, maxsplit)->outputs();
+        unpacked_input[1], unpacked_input[2], sep, skip_begins, skip_ends, skip_chars }, nullptr, nullptr, "remove", false, maxsplit)->outputs();
 
 
     // compute sparse tensor indices
