@@ -88,6 +88,7 @@ wordpiece_models = [
     "rasa/LaBSE",
 ]
 bpe_models = [
+    "Xenova/gpt-4o",
     "NousResearch/Meta-Llama-3-8B-Instruct",
     # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
     "tiiuae/falcon-7b",
