@@ -61,7 +61,8 @@ RegexSplit::RegexSplit(
 
 
 void RegexSplit::validate_and_infer_types() {
-    OPENVINO_ASSERT(get_input_size() == 9, "Incorrect number of inputs passed to RegexSplit, try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
+    auto input_size = get_input_size();
+    OPENVINO_ASSERT(input_size == 9, "Incorrect number of inputs passed to RegexSplit: " + std::to_string(input_size) +  "; try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
 
     check_ragged_string_input(this, 0);
     check_string_scalar_input(this, 5);
