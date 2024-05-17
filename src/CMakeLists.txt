@@ -298,44 +298,48 @@ endif()
 # Installation
 #
 
-# - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
-# - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
-# - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
-# - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
-# - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
-string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
-if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
-elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
-  if(APPLE)
-    set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
-  else()
-    set(OPENVINO_TOKENIZERS_INSTALL_DIR "aarch64")
+if(NOT OPENVINO_TOKENIZERS_INSTALL_LIBDIR AND NOT OPENVINO_TOKENIZERS_INSTALL_BINDIR)
+  # - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
+  # - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
+  # - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
+  # - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
+  # - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
+  string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
+  if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
+  elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
+    if(APPLE)
+      set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
+    else()
+      set(OPENVINO_TOKENIZERS_INSTALL_DIR "aarch64")
+    endif()
+  elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
+      OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
   endif()
-elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
-    OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
-endif()
-if(MSVC OR APPLE)
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
-endif()
-if(MSVC)
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR})
-else()
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR})
+  if(MSVC OR APPLE)
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
+  endif()
+  set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR})
+  set(OPENVINO_TOKENIZERS_INSTALL_BINDIR runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR})
 endif()
 
-# Installing the extension module to the root of the package
+# Installing the extension module
 install(TARGETS ${TARGET_NAME}
-        LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_DIR}
-        RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_DIR})
+        LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
 
 if(BUILD_FAST_TOKENIZERS)
   install(TARGETS core_tokenizers
-    LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_DIR}
-    RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_DIR})
+    LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
 else()
-  install(FILES ${extra_libs} DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_DIR})
+  if(WIN32)
+    set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
+  else()
+    set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR})
+  endif()
+  install(FILES ${extra_libs} DESTINATION ${extra_libs_location})
 endif()
 
 #
