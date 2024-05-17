@@ -83,8 +83,8 @@ exclude_dirs = ["tests"]
 [tool.scikit-build]
 cmake.build-type = "Release"
 cmake.args = [
-    "-DCMAKE_INSTALL_BINDIR=lib",
-    "-DCMAKE_INSTALL_LIBDIR=lib"
+    "-DOPENVINO_TOKENIZERS_INSTALL_BINDIR=lib",
+    "-DOPENVINO_TOKENIZERS_INSTALL_LIBDIR=lib"
 ]
 cmake.targets = ["openvino_tokenizers"]
 wheel.build-tag = "000"
