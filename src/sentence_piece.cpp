@@ -4,8 +4,9 @@
 
 #include <functional>
 
-#include "normalizer.h"
-#include "model_interface.h"
+#include "sentencepiece_processor.h"
+#include "absl/strings/str_format.h"
+#include "absl/container/flat_hash_map.h"
 
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/opsets/opset13.hpp"
@@ -14,12 +15,45 @@
 #include "utils.hpp"
 
 using sentencepiece::SentencePieceProcessor;
-using sentencepiece::util::Status;
 using namespace TemplateExtension;
 using namespace ov;
 using namespace ov::frontend;
 using namespace ov::opset13;
 
+// copy from 'src' folder of 'sentencepiece' to prevent usage of private API
+namespace sentencepiece {
+namespace {
+
+// Converts byte (0-255) to piece (e.g., 58 -> "<0x3A>").
+std::string ByteToPiece(unsigned char c) {
+  return absl::StrFormat("<0x%02X>", c);
+}
+
+int PieceToByte(absl::string_view piece) {
+  using PieceToByteMap = absl::flat_hash_map<std::string, unsigned char>;
+  static const auto *const kMap = []() -> PieceToByteMap * {
+    auto *m = new PieceToByteMap();
+    for (int i = 0; i < 256; ++i) {
+      (*m)[ByteToPiece(i)] = i;
+    }
+    return m;
+  }();
+  const auto it = kMap->find(std::string(piece));
+  if (it == kMap->end()) {
+    return -1;
+  } else {
+    return it->second;
+  }
+}
+
+#define CHECK_OK(expr)                                 \
+  do {                                                 \
+    const auto _status = expr;                         \
+    OPENVINO_ASSERT(_status.ok(), _status.ToString()); \
+  } while (0)
+
+}  // namespace
+}  // sentencepiece
 
 std::string form_extra_options(bool add_bos, bool add_eos, bool reverse) {
     std::string extra_options = "";
@@ -198,7 +232,7 @@ SentencepieceDetokenizer::SentencepieceDetokenizer(const OutputVector& args) :
     constructor_validate_and_infer_types();
 }
 
-SentencepieceDetokenizer::SentencepieceDetokenizer(const OutputVector& args, const std::shared_ptr<sentencepiece::SentencePieceProcessor>& sp) :
+SentencepieceDetokenizer::SentencepieceDetokenizer(const OutputVector& args, const std::shared_ptr<SentencePieceProcessor>& sp) :
     m_sp((sp == nullptr) ? std::make_shared<SentencePieceProcessor>(): sp), Op(args) {
     // constructor above without sp argument never called when the node is created with python factory, so need to init and cache m_sp here
     if (!m_sp->status().ok()) {
@@ -274,7 +308,7 @@ SentencepieceStreamDetokenizer::SentencepieceStreamDetokenizer(const OutputVecto
     constructor_validate_and_infer_types();
 }
 
-SentencepieceStreamDetokenizer::SentencepieceStreamDetokenizer(const OutputVector& args, const std::shared_ptr<sentencepiece::SentencePieceProcessor>& sp) :
+SentencepieceStreamDetokenizer::SentencepieceStreamDetokenizer(const OutputVector& args, const std::shared_ptr<SentencePieceProcessor>& sp) :
     m_sp((sp == nullptr) ? std::make_shared<SentencePieceProcessor>(): sp), Op(args) {
     // constructor above without sp argument never called when the node is created with python factory, so need to init and cache m_sp here
     if (!m_sp->status().ok()) {
