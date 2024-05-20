@@ -62,10 +62,17 @@ RegexSplit::RegexSplit(
 
 void RegexSplit::validate_and_infer_types() {
     auto input_size = get_input_size();
-    OPENVINO_ASSERT(input_size == 9, "Incorrect number of inputs passed to RegexSplit: " + std::to_string(input_size) +  "; try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
+    OPENVINO_ASSERT(input_size == 6 || input_size == 9, "Incorrect number of inputs passed to RegexSplit: " + std::to_string(input_size) +  "; try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
 
+    // input strings
     check_ragged_string_input(this, 0);
+   // split pattern
     check_string_scalar_input(this, 5);
+
+    if (input_size == 9) {
+        check_string_input(this, 6);
+    }
+
     OPENVINO_ASSERT(split_modes.find(m_behaviour) != split_modes.end(), "RegexSplit doesn't support unknown split mode: " + m_behaviour);
     OPENVINO_ASSERT(
         m_max_splits == -1 || m_max_splits > 0,
@@ -80,8 +87,8 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         m_pretokenizer = std::make_shared<pretokenizers::SplitPreTokenizer>(split_pattern, split_modes.at(m_behaviour), m_invert);
     };
 
-    auto skip_tokens_size = inputs[6].get_size();
-    if (m_skip_tokens == nullptr && skip_tokens_size > 0) {
+    auto input_size = get_input_size();
+    if (input_size == 9 && m_skip_tokens == nullptr && inputs[6].get_size() > 0) {
         // vocab string keys
         auto skip_tokens_begins = inputs[6].data<const int32_t>();
         auto skip_tokens_ends   = inputs[7].data<const int32_t>();
@@ -89,7 +96,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
         m_skip_tokens = std::make_shared<std::set<std::string>>();
         std::string skip_tokens_pattern;
-        for (size_t i = 0; i < skip_tokens_size; ++i) {
+        for (size_t i = 0; i < inputs[6].get_size(); ++i) {
             std::string token = std::string(skip_tokens_chars + skip_tokens_begins[i], skip_tokens_chars + skip_tokens_ends[i]);
             m_skip_tokens->insert(token);
         };
