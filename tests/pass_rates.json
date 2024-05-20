@@ -1,3 +1,4 @@
 {
-    "tests/tokenizers_test.py::test_": 0.8927763108261033
+    "tests/tokenizers_test.py::test_": 0.8927763108261033,
+    "tokenizers_test.py::test_": 0.8927763108261033
 }
