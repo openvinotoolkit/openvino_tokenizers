@@ -494,7 +494,8 @@ def convert_sentencepiece_model_tokenizer(
             and isinstance(hf_tokenizer, PreTrainedTokenizerFast)
             and tokenizer_json_file.exists()
         ):
-            with open(tokenizer_json_file) as f:
+            # specify encoding for windows - uses cp-1252 otherwise
+            with open(tokenizer_json_file, encoding="utf-8") as f:
                 tokenizer_json = json.load(f)
                 pre_tokenizer = tokenizer_json.get("pre_tokenizer")
                 if pre_tokenizer and pre_tokenizer.get("type") == "Metaspace":
