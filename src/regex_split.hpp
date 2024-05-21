@@ -21,6 +21,13 @@ public:
     RegexSplit(
         const ov::OutputVector& arguments,
         const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
+        const std::string& behaviour = "remove",
+        bool invert = false,
+        int max_splits = -1
+    );
+    RegexSplit(
+        const ov::OutputVector& arguments,
+        const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
         const std::shared_ptr<std::set<std::string>>& skip_tokens,
         const std::string& behaviour = "remove",
         bool invert = false,

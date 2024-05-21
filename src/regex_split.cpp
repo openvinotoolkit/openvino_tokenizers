@@ -37,6 +37,30 @@ RegexSplit::RegexSplit(const ov::OutputVector& arguments, const std::string& beh
 RegexSplit::RegexSplit(
     const ov::OutputVector& arguments,
     const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
+    const std::string& behaviour,
+    bool invert,
+    int max_splits
+) :
+    ov::op::Op(arguments),
+    m_pretokenizer(pretokenizer),
+    m_behaviour(behaviour),
+    m_invert(invert),
+    m_max_splits(max_splits) {
+
+    if (m_pretokenizer == nullptr) {
+        auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
+        auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
+        auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
+        m_pretokenizer = std::make_shared<pretokenizers::SplitPreTokenizer>(split_pattern, split_modes.at(behaviour), invert);
+    };
+
+    constructor_validate_and_infer_types();
+}
+
+
+RegexSplit::RegexSplit(
+    const ov::OutputVector& arguments,
+    const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
     const std::shared_ptr<std::set<std::string>>& skip_tokens,
     const std::string& behaviour,
     bool invert,
