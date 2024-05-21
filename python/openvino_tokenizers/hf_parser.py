@@ -489,7 +489,11 @@ def convert_sentencepiece_model_tokenizer(
 
         tokenizer_json_file = Path(tmp) / "tokenizer.json"
         prepend_scheme = ""
-        if add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast) and tokenizer_json_file.exists():
+        if (
+            add_prefix_space is None
+            and isinstance(hf_tokenizer, PreTrainedTokenizerFast)
+            and tokenizer_json_file.exists()
+        ):
             with open(tokenizer_json_file) as f:
                 tokenizer_json = json.load(f)
                 pre_tokenizer = tokenizer_json.get("pre_tokenizer")
@@ -507,7 +511,7 @@ def convert_sentencepiece_model_tokenizer(
                     if prepend_scheme == "always":
                         add_prefix_space = True
                     elif prepend_scheme == "never":
-                        add_prefix_space == False
+                        add_prefix_space = False
                     elif prepend_scheme == "first":
                         add_prefix_space = False
         elif add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast):
@@ -520,7 +524,7 @@ def convert_sentencepiece_model_tokenizer(
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=skip_special_tokens,
-            add_prefix_space=add_prefix_space
+            add_prefix_space=add_prefix_space,
         )
 
         sp_model = np.fromfile(vocab_file, dtype=np.uint8)
@@ -614,7 +618,10 @@ def convert_sentencepiece_model_tokenizer(
 
 
 def get_sp_detokenizer(
-    sp_model_node: Node, streaming_detokenizer: bool = False, clean_up_tokenization_spaces: bool = False, prepend_scheme: str = "",
+    sp_model_node: Node,
+    streaming_detokenizer: bool = False,
+    clean_up_tokenization_spaces: bool = False,
+    prepend_scheme: str = "",
 ) -> Model:
     model_input = token_ids = op.Parameter(Type.i32, PartialShape(["?", "?"]))  # (batch, sequence)
 
