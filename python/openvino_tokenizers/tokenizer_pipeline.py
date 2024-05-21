@@ -316,11 +316,7 @@ class RegexSplitStep(PreTokenizatinStep):
         if self.skip_tokens:
             skip_tokens_outputs = self.create_string_constant_node(self.skip_tokens).outputs()
         else:
-            skip_tokens_outputs = [
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.u8),
-            ]
+            skip_tokens_outputs = []
 
         input_nodes.extend(
             (
@@ -568,16 +564,12 @@ class BPETokenizationStep(TokenizationModelStep):
         pipeline = self.get_pipeline()
         pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
 
-        if not self.added_tokens:
-            special_tokens_outputs = [
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.i32),
-                make_constant_node(np.array([]), Type.u8),
-            ]
-        else:
+        if self.added_tokens:
             special_tokens_outputs = self.create_string_constant_node(self.added_tokens.values()).outputs()
+        else:
+            special_tokens_outputs = []
 
-        if self.added_tokens and self.is_byte_level:
+        if special_tokens_outputs and self.is_byte_level:
             special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
@@ -585,10 +577,16 @@ class BPETokenizationStep(TokenizationModelStep):
             (
                 *pipeline.vocab_node_outputs,
                 *self.create_string_constant_node(self.merges).outputs(),
-                *special_tokens_outputs,
-                *make_constant_node(np.array(list(self.added_tokens)), Type.i32).outputs(),
             )
         )
+        if special_tokens_outputs:
+            input_nodes.extend(
+                (
+                    *special_tokens_outputs,
+                    *make_constant_node(np.array(list(self.added_tokens)), Type.i32).outputs(),
+                )
+            )
+
         return (
             _get_factory()
             .create(
