@@ -552,7 +552,6 @@ class BPETokenizationStep(TokenizationModelStep):
     ) -> "BPETokenizationStep":
         from .tiktoken_parser import generate_vocab_and_merges
 
-
         vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
         added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
         return cls(
@@ -919,6 +918,7 @@ class RegexDecodingStep(DecodingStep):
             regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
             replace_term=r"\1",
         )
+
     @classmethod
     def strip_forward_space(cls) -> "RegexDecodingStep":
         return cls(
