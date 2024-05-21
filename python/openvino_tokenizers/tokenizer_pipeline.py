@@ -138,6 +138,10 @@ class RegexNormalizationStep(NormalizationStep):
         return cls(regex_search_pattern=r"^(\S)", replace_term=r" \1")
 
     @classmethod
+    def add_prefix_whitespace_to_not_whitespace_regex(cls) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r"^([^ ])", replace_term=r" \1")
+
+    @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
         # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L17
         return cls(
@@ -914,6 +918,12 @@ class RegexDecodingStep(DecodingStep):
         return cls(
             regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
             replace_term=r"\1",
+        )
+    @classmethod
+    def strip_forward_space(cls) -> "RegexDecodingStep":
+        return cls(
+            regex_search_pattern=r"^ ",
+            replace_term="",
         )
 
     @classmethod

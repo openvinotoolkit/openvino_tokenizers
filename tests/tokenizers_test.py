@@ -341,6 +341,7 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_
     for output_name, hf_result in hf_tokenized.items():
         #  chatglm has token_type_ids output that we omit
         if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
             assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
 
 
