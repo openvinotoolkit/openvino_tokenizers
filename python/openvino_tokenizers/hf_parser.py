@@ -16,7 +16,7 @@ from openvino import Model, PartialShape, Type
 from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
 from openvino.runtime.utils.types import as_node, make_constant_node
-from transformers import PreTrainedTokenizerBase
+from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
 
 from . import _get_factory
@@ -401,11 +401,15 @@ def modify_sentencepiece_model(
     add_tokens: Dict[int, str],
     hf_tokenizer: PreTrainedTokenizerBase,
     skip_special_tokens: bool = False,
+    add_prefix_space: Optional[bool] = None,
 ) -> None:
     model_pb = import_protobuf()
     model = model_pb.ModelProto()
     with open(sp_model_path, "rb") as model_file:
         model.ParseFromString(model_file.read())
+
+    if add_prefix_space is not None:
+        model.normalizer_spec.add_dummy_prefix = add_prefix_space
 
     existing = {piece.piece: piece for piece in model.pieces}
     for idx, token in sorted(add_tokens.items()):
@@ -454,29 +458,10 @@ def convert_sentencepiece_model_tokenizer(
     add_special_tokens: bool = True,
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = False,
+    add_prefix_space: Optional[bool] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
-
-    with tempfile.TemporaryDirectory() as tmp:
-        hf_tokenizer.save_pretrained(tmp)
-        vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
-        if not vocab_file.exists():
-            raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
-
-        add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
-        modify_sentencepiece_model(
-            sp_model_path=vocab_file,
-            add_tokens=add_tokens,
-            hf_tokenizer=hf_tokenizer,
-            skip_special_tokens=skip_special_tokens,
-        )
-
-        sp_model = np.fromfile(vocab_file, dtype=np.uint8)
-        sp_model_node = as_node(sp_model)
-
-    input_node = op.Parameter(Type.string, PartialShape(["?"]))
-    input_node.set_friendly_name("string_input")
 
     is_chatglm = getattr(hf_tokenizer, "name", None) == "GLMTokenizer"
     if is_chatglm:
@@ -496,9 +481,68 @@ def convert_sentencepiece_model_tokenizer(
     if add_special_tokens is False:
         add_bos_token = add_eos_token = False
 
+    with tempfile.TemporaryDirectory() as tmp:
+        hf_tokenizer.save_pretrained(tmp)
+        vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
+        if not vocab_file.exists():
+            raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
+
+        tokenizer_json_file = Path(tmp) / "tokenizer.json"
+        prepend_scheme = ""
+        if (
+            add_prefix_space is None
+            and isinstance(hf_tokenizer, PreTrainedTokenizerFast)
+            and tokenizer_json_file.exists()
+        ):
+            # specify encoding for windows - uses cp-1252 otherwise
+            with open(tokenizer_json_file, encoding="utf-8") as f:
+                tokenizer_json = json.load(f)
+                pre_tokenizer = tokenizer_json.get("pre_tokenizer")
+                if pre_tokenizer and pre_tokenizer.get("type") == "Metaspace":
+                    metaspace = pre_tokenizer
+                elif pre_tokenizer and pre_tokenizer.get("type") == "Sequence":
+                    metaspace = next(
+                        (pre for pre in pre_tokenizer["pretokenizers"] if pre["type"] == "Metaspace"), None
+                    )
+                else:
+                    metaspace = None
+
+                if metaspace is not None:
+                    prepend_scheme = metaspace.get("prepend_scheme", "")
+                    if prepend_scheme == "always":
+                        add_prefix_space = True
+                    elif prepend_scheme == "never":
+                        add_prefix_space = False
+                    elif prepend_scheme == "first":
+                        add_prefix_space = False
+        elif add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast):
+            add_prefix_space = not add_bos_token
+
+        add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
+
+        modify_sentencepiece_model(
+            sp_model_path=vocab_file,
+            add_tokens=add_tokens,
+            hf_tokenizer=hf_tokenizer,
+            skip_special_tokens=skip_special_tokens,
+            add_prefix_space=add_prefix_space,
+        )
+
+        sp_model = np.fromfile(vocab_file, dtype=np.uint8)
+        sp_model_node = as_node(sp_model)
+
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    input_node.set_friendly_name("string_input")
+    next_node = input_node.outputs()
+
+    if prepend_scheme == "first":
+        next_node = _get_factory().create("StringTensorUnpack", next_node).outputs()
+        next_node = RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex().get_ov_subgraph(next_node)
+        next_node = _get_factory().create("StringTensorPack", next_node).outputs()
+
     tokenizer_node = _get_factory().create(
         "SentencepieceTokenizer",
-        [sp_model_node, input_node],
+        [sp_model_node, *next_node],
         {
             "add_bos": add_bos_token,
             "add_eos": add_eos_token,
@@ -565,6 +609,7 @@ def convert_sentencepiece_model_tokenizer(
         sp_model_node,
         streaming_detokenizer=streaming_detokenizer,
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+        prepend_scheme=prepend_scheme,
     )
 
     if eos_token_id is not None:
@@ -574,7 +619,10 @@ def convert_sentencepiece_model_tokenizer(
 
 
 def get_sp_detokenizer(
-    sp_model_node: Node, streaming_detokenizer: bool = False, clean_up_tokenization_spaces: bool = False
+    sp_model_node: Node,
+    streaming_detokenizer: bool = False,
+    clean_up_tokenization_spaces: bool = False,
+    prepend_scheme: str = "",
 ) -> Model:
     model_input = token_ids = op.Parameter(Type.i32, PartialShape(["?", "?"]))  # (batch, sequence)
 
@@ -589,6 +637,9 @@ def get_sp_detokenizer(
 
     if streaming_detokenizer:
         detokenizer = RegexDecodingStep.replace_sp_spaces().get_ov_subgraph(detokenizer)
+
+    if prepend_scheme in ("always", "first"):
+        detokenizer = RegexDecodingStep.strip_forward_space().get_ov_subgraph(detokenizer)
 
     if clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
