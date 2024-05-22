@@ -24,20 +24,20 @@ void StringTensorUnpack::validate_and_infer_types() {
         OPENVINO_ASSERT(
             input_partial_shape.rank().is_dynamic() || input_partial_shape.rank().get_length() == 1,
             "StringTensorUnpack expects a string tensor or a u8 tensor with rank 1 that holds "
-            "packed batched string tensor as an input, but observes type " +
-                input_element_type.get_type_name() + " and shape " + input_partial_shape.to_string());
+            "packed batched string tensor as an input, but observes type ",
+                input_element_type.get_type_name(), " and shape ", input_partial_shape.to_string());
 
         output_shape = PartialShape({Dimension()});  // [?]
     } else if (input_element_type != element::dynamic) {
         OPENVINO_THROW(
-            "StringTensorUnpack expects a tensor with string or u8 elements, got a tensor with " +
-            input_element_type.get_type_name() + " elements");
+            "StringTensorUnpack expects a tensor with string or u8 elements, got a tensor with ",
+            input_element_type.get_type_name(), " elements");
     }
 
     if (m_mode == "begins_ends") {
         set_string_output(this, 0, output_shape);
     } else {
-        OPENVINO_ASSERT(m_mode == "begins_ends", "StringTensorUnpack supporst only 'begins_ends' mode, but get " + m_mode);
+        OPENVINO_ASSERT(m_mode == "begins_ends", "StringTensorUnpack supporst only 'begins_ends' mode, but get ", m_mode);
     }
 }
 

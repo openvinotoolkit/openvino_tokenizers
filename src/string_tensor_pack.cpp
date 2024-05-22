@@ -9,7 +9,7 @@ using namespace ov;
 
 
 void StringTensorPack::validate_and_infer_types() {
-    OPENVINO_ASSERT(m_mode == "begins_ends", "StringTensorPack supports only 'begins_ends' mode, but get " + m_mode);
+    OPENVINO_ASSERT(m_mode == "begins_ends", "StringTensorPack supports only 'begins_ends' mode, but get ", m_mode);
     check_string_input(this, 0);
     set_output_type(0, element::string, get_input_partial_shape(0));
 }

@@ -100,7 +100,7 @@ void RegexSplit::validate_and_infer_types() {
     OPENVINO_ASSERT(split_modes.find(m_behaviour) != split_modes.end(), "RegexSplit doesn't support unknown split mode: " + m_behaviour);
     OPENVINO_ASSERT(
         m_max_splits == -1 || m_max_splits > 0,
-        "RegexSplit max_splits attribute must be greater then `0` or equal to `-1`, got " + m_max_splits
+        "RegexSplit max_splits attribute must be greater then `0` or equal to `-1`, got ", m_max_splits
     );
     set_ragged_string_output(this, 0, get_input_partial_shape(0));
 }
