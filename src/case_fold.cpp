@@ -14,7 +14,7 @@ void CaseFold::validate_and_infer_types() {
     check_string_input(this, 0);
     OPENVINO_ASSERT(
         m_encoding == "" || m_encoding == "utf-8",
-        "CaseFold operation `encoding` attribute must be one of [\"\", \"utf-8\"], got `" + m_encoding + "`."
+        "CaseFold operation `encoding` attribute must be one of [\"\", \"utf-8\"], got `", m_encoding, "`."
     );
     set_string_output(this, 0, get_input_partial_shape(0));
 }

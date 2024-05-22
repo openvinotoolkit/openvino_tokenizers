@@ -59,30 +59,60 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
 
 include(FetchContent)
 
-FetchContent_Declare(
-  sentencepiece
-  URL      https://github.com/google/sentencepiece/archive/refs/tags/v0.2.0.tar.gz
-  URL_HASH SHA256=9970f0a0afee1648890293321665e5b2efa04eaec9f1671fcf8048f456f5bb86
-)
-FetchContent_GetProperties(sentencepiece)
-if(NOT sentencepiece_POPULATED)
-  # OpenVINO conda package dynamically linked with external protobuf,
-  # and we need to link sentencepiece with external protobuf too.
-  if(DEFINED ENV{CONDA_PREFIX} AND NOT WIN32)
-      set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
-      set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
-      set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
-  else()
-      set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
-      set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
-  endif()
+find_package(sentencepiece QUIET)
+if(sentencepiece_FOUND)
+  find_package(absl REQUIRED)
+else()
+  FetchContent_Declare(
+    sentencepiece
+    URL      https://github.com/google/sentencepiece/archive/refs/tags/v0.2.0.tar.gz
+    URL_HASH SHA256=9970f0a0afee1648890293321665e5b2efa04eaec9f1671fcf8048f456f5bb86
+  )
+  FetchContent_GetProperties(sentencepiece)
+  if(NOT sentencepiece_POPULATED)
+    if(DEFINED ENV{CONDA_PREFIX} AND OpenVINO_DIR MATCHES "$ENV{CONDA_PREFIX}")
+        set(openvino_installed_from_conda ON)
+        # OpenVINO conda package dynamically linked with external protobuf,
+        # and we need to link sentencepiece with external protobuf too.
+        set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+        set(protobuf_MODULE_COMPATIBLE ON)
+    endif()
+    if(openvino_installed_from_conda AND NOT WIN32)
+        set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
+        set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
+        set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
+    else()
+        set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
+        set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
+        set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
+    endif()
 
-  set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
-  set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
-  FetchContent_Populate(sentencepiece)
-  add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+    set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
+    set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
+    FetchContent_Populate(sentencepiece)
+    add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
 endif()
+
+function(ov_tokenizers_link_sentencepiece TARGET_NAME)
+  if(sentencepiece_FOUND)
+    target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece absl::string_view absl::flat_hash_set)
+  else()
+    target_include_directories(${TARGET_NAME} PRIVATE
+      "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
+      "${sentencepiece_SOURCE_DIR}/src"
+      "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
+      "${sentencepiece_SOURCE_DIR}/third_party/" # for libabseil
+      "${sentencepiece_SOURCE_DIR}"
+      "${sentencepiece_BINARY_DIR}")
+
+    if(CMAKE_CL_64)
+        target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+    endif()
+
+    target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+  endif()
+endfunction()
 
 if(BUILD_FAST_TOKENIZERS)
   FetchContent_Declare(
@@ -179,6 +209,11 @@ else()
   endif()
 endif()
 
+function(ov_tokenizers_link_fast_tokenizer)
+  target_include_directories(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_INCS})
+  target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS})
+endfunction()
+
 #
 # Build library
 #
@@ -194,22 +229,8 @@ add_library(${TARGET_NAME} SHARED ${SRC})
 # Target include dirs, link libraries and other properties
 #
 
-# set include dirs for specific source files
-target_include_directories(${TARGET_NAME} PRIVATE
-  # sentensepiece
-  "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
-  "${sentencepiece_SOURCE_DIR}/src"
-  "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
-  "${sentencepiece_SOURCE_DIR}"
-  "${sentencepiece_BINARY_DIR}"
-  # fast_tokenizer
-  ${FAST_TOKENIZER_INCS})
-
-if(CMAKE_CL_64)
-    target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
-endif()
-
-target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS} sentencepiece-static)
+ov_tokenizers_link_sentencepiece(${TARGET_NAME})
+ov_tokenizers_link_fast_tokenizer(${TARGET_NAME})
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
