@@ -232,6 +232,15 @@ add_library(${TARGET_NAME} SHARED ${SRC})
 ov_tokenizers_link_sentencepiece(${TARGET_NAME})
 ov_tokenizers_link_fast_tokenizer(${TARGET_NAME})
 
+# openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
+# It needs to be propagated to every library openvino_tokenizers links with.
+foreach(LIBRARY FAST_TOKENIZER_LIBS)
+  target_compile_definitions(${LIBRARY} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+endforeach()
+target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+
+target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS} sentencepiece-static)
+
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
