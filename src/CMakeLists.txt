@@ -104,9 +104,6 @@ endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
   if(sentencepiece_FOUND)
-    target_compile_definitions(sentencepiece PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-    target_compile_definitions(absl::string_view PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-    target_compile_definitions(absl::flat_hash_set PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece absl::string_view absl::flat_hash_set)
   else()
     target_include_directories(${TARGET_NAME} PRIVATE
