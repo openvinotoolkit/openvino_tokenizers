@@ -32,7 +32,7 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
   option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" ON)
   option(USE_ABI0 "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers" ON)
 else()
-  option(BUILD_FAST_TOKENIZERS OFF)
+  option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF)
 endif()
 
 #
