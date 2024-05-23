@@ -24,7 +24,16 @@ ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-option(BUILD_FAST_TOKENIZERS OFF)
+get_target_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS openvino::runtime INTERFACE_COMPILE_DEFINITIONS)
+if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
+  # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
+  # It needs to be propagated to every library openvino_tokenizers links with.
+  # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
+  option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" ON)
+  option(USE_ABI0 "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers" ON)
+else()
+  option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF)
+endif()
 
 #
 # Compile flags
@@ -109,7 +118,7 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     if(CMAKE_CL_64)
         target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
     endif()
-
+    target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
   endif()
 endfunction()
@@ -133,6 +142,7 @@ if(BUILD_FAST_TOKENIZERS)
                      EXCLUDE_FROM_ALL
                     )
   endif()
+  target_compile_definitions(core_tokenizers PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
 
   # variables used later
   set(FAST_TOKENIZER_INCS
