@@ -24,7 +24,15 @@ ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-option(BUILD_FAST_TOKENIZERS OFF)
+get_target_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS openvino::runtime INTERFACE_COMPILE_DEFINITIONS)
+if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
+  # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
+  # It needs to be propagated to every library openvino_tokenizers links with.
+  # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
+  option(BUILD_FAST_TOKENIZERS ON)
+else()
+  option(BUILD_FAST_TOKENIZERS OFF)
+endif()
 
 #
 # Compile flags
@@ -96,6 +104,9 @@ endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
   if(sentencepiece_FOUND)
+    target_compile_definitions(sentencepiece PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_definitions(absl::string_view PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+    target_compile_definitions(absl::flat_hash_set PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece absl::string_view absl::flat_hash_set)
   else()
     target_include_directories(${TARGET_NAME} PRIVATE
@@ -109,11 +120,8 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     if(CMAKE_CL_64)
         target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
     endif()
-
-    target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
-    # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
-    # It needs to be propagated to every library openvino_tokenizers links with.
     target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+    target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
   endif()
 endfunction()
 
@@ -136,6 +144,7 @@ if(BUILD_FAST_TOKENIZERS)
                      EXCLUDE_FROM_ALL
                     )
   endif()
+  target_compile_definitions(core_tokenizers PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
 
   # variables used later
   set(FAST_TOKENIZER_INCS
@@ -209,9 +218,6 @@ else()
       # we use re2 library in regex_normalization operation, so have to add to this list
       # because prebuilt fast_tokenizers package does not provide this library
       list(APPEND FAST_TOKENIZER_LIBS re2)
-      # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
-      # It needs to be propagated to every library openvino_tokenizers links with.
-      target_compile_definitions(re2 PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
   endif()
 endif()
 
