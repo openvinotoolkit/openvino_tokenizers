@@ -234,7 +234,7 @@ ov_tokenizers_link_fast_tokenizer(${TARGET_NAME})
 
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
 # It needs to be propagated to every library openvino_tokenizers links with.
-foreach(DEPENDENCY_LIBRARY IN FAST_TOKENIZER_LIBS)
+foreach(DEPENDENCY_LIBRARY IN LISTS FAST_TOKENIZER_LIBS)
   target_compile_definitions(${DEPENDENCY_LIBRARY} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
 endforeach()
 target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
