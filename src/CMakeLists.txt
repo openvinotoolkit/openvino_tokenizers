@@ -111,6 +111,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     endif()
 
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+    # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
+    # It needs to be propagated to every library openvino_tokenizers links with.
+    target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
   endif()
 endfunction()
 
@@ -206,6 +209,9 @@ else()
       # we use re2 library in regex_normalization operation, so have to add to this list
       # because prebuilt fast_tokenizers package does not provide this library
       list(APPEND FAST_TOKENIZER_LIBS re2)
+      # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
+      # It needs to be propagated to every library openvino_tokenizers links with.
+      target_compile_definitions(re2 PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
   endif()
 endif()
 
@@ -231,15 +237,6 @@ add_library(${TARGET_NAME} SHARED ${SRC})
 
 ov_tokenizers_link_sentencepiece(${TARGET_NAME})
 ov_tokenizers_link_fast_tokenizer(${TARGET_NAME})
-
-# openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
-# It needs to be propagated to every library openvino_tokenizers links with.
-foreach(DEPENDENCY_LIBRARY IN LISTS FAST_TOKENIZER_LIBS)
-  target_compile_definitions(${DEPENDENCY_LIBRARY} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-endforeach()
-target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-
-target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS} sentencepiece-static)
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
