@@ -664,7 +664,7 @@ class SpecialTokenWithId:
     _token_id: Optional[int] = None
 
     def set_token_id(self, vocab: Optional[List[str]]) -> None:
-        if vocab is not None and self.token in vocab:
+        if self._token_id is None and vocab is not None and self.token in vocab:
             self._token_id = vocab.index(self.token)
 
     @property
@@ -705,7 +705,7 @@ class CombineSegmentsStep(PostTokenizationStep):
 
     def set_tokens_ids(self, vocab: Optional[List[int]]) -> None:
         for input_ in self.inputs:
-            if isinstance(input_, AddToken):
+            if isinstance(input_, AddToken) and input_.token_id is None:
                 input_.set_token_id(vocab)
 
     @property
@@ -813,15 +813,23 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
     token_type_id: Optional[int] = None
     max_length: int = -1
     axis: int = -1
+    pad_to_max_length: bool = False
 
     @classmethod
-    def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "PaddingStep":
+    def from_hf_json(
+        cls, tokenizer_json: Dict[str, Any], pad_to_max_length: bool = False, max_length: int = -1
+    ) -> "PaddingStep":
         padding_dict = tokenizer_json["padding"]
+        padding_strategy = padding_dict.get("strategy", {})
+        if isinstance(padding_strategy, dict) and "Fixed" in padding_strategy:
+            max_length = padding_strategy["Fixed"]
         return cls(
             token=padding_dict["pad_token"],
+            _token_id=padding_dict["pad_id"],
             pad_right=padding_dict["direction"] == "Right",
             token_type_id=padding_dict["pad_type_id"],
-            # TODO: Initialize max_length
+            max_length=max_length,
+            pad_to_max_length=pad_to_max_length,
         )
 
     @staticmethod
@@ -838,7 +846,7 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
 
         outputs = []
 
-        if self.max_length == -1 or self.max_length >= 2**31:
+        if not self.pad_to_max_length or self.max_length == -1 or self.max_length >= 2**31:
             # Calculate max_length as the maximum ragged length
             max_length = opset.reduce_max(
                 opset.subtract(input_nodes[1], input_nodes[0]),
@@ -848,21 +856,26 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
             max_length = make_constant_node(self.max_length, Type.i32)
 
         names = [TOKEN_IDS_INPUT_NAME, TOKEN_TYPE_IDS_INPUT_NAME][: len(input_nodes) // 3]
-        for i, name in enumerate(names):
+        print({"pad_right": self.pad_right, "pad_max_length": self.pad_to_max_length, "max_length": self.max_length})
+        for idx, name in enumerate(names):
             cur_outputs = (
                 _get_factory()
                 .create(
                     "RaggedToDense",
-                    input_nodes[3 * i : 3 * (i + 1)]
+                    input_nodes[3 * idx : 3 * (idx + 1)]
                     + max_length.outputs()
                     + make_constant_node(self.token_id or 0, Type.i32).outputs(),
+                    {
+                        "pad_right": self.pad_right,
+                        "pad_max_length": self.pad_to_max_length,
+                    },
                 )
                 .outputs()
             )
             cur_outputs[0].tensor.add_names({name})
 
             outputs.append(cur_outputs[0])
-            if i == 0:
+            if idx == 0:
                 mask = opset.convert(cur_outputs[1], "i32").output(
                     0
                 )  # TODO: Change RaggedToDense to generate mask of any type
