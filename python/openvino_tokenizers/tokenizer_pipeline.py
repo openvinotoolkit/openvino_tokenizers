@@ -856,7 +856,6 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
             max_length = make_constant_node(self.max_length, Type.i32)
 
         names = [TOKEN_IDS_INPUT_NAME, TOKEN_TYPE_IDS_INPUT_NAME][: len(input_nodes) // 3]
-        print({"pad_right": self.pad_right, "pad_max_length": self.pad_to_max_length, "max_length": self.max_length})
         for idx, name in enumerate(names):
             cur_outputs = (
                 _get_factory()
