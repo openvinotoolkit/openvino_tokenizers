@@ -4,6 +4,14 @@
 
 set(TARGET_NAME "openvino_tokenizers")
 
+if(POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
+endif()
+
+if(POLICY CMP0126)
+  cmake_policy(SET CMP0126 NEW)
+endif()
+
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
