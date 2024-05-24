@@ -290,8 +290,14 @@ class TransformersTokenizerPipelineParser:
         self.add_padding(use_max_padding=use_max_padding)
 
     def add_truncation(self) -> None:
+        max_length = getattr(self.original_tokenizer, "model_max_length", -1)
+
         if self.tokenizer_json["truncation"] is not None:
-            self.pipeline.add_steps(TruncationStep.from_hf_json(self.tokenizer_json, self.num_of_added_tokens))
+            self.pipeline.add_steps(
+                TruncationStep.from_hf_json(
+                    self.tokenizer_json, num_of_added_tokens=self.num_of_added_tokens, max_length=max_length
+                )
+            )
         elif self.original_tokenizer.model_max_length is not None:
             self.pipeline.add_steps(TruncationStep.from_hf_object(self.original_tokenizer, self.num_of_added_tokens))
 
@@ -299,15 +305,25 @@ class TransformersTokenizerPipelineParser:
         max_length = getattr(self.original_tokenizer, "model_max_length", -1)
         pad_token = getattr(self.original_tokenizer, "pad_token")
         pad_token_id = getattr(self.original_tokenizer, "pad_token_id")
+        pad_right = getattr(self.original_tokenizer, "padding_side") != "left"
 
         if self.tokenizer_json["padding"] is not None:
             self.pipeline.add_steps(
-                PaddingStep.from_hf_json(tokenizer_json=self.tokenizer_json, pad_to_max_length=use_max_padding)
+                PaddingStep.from_hf_json(
+                    tokenizer_json=self.tokenizer_json,
+                    pad_to_max_length=use_max_padding,
+                    max_length=max_length,
+                    pad_right=pad_right,
+                )
             )
         else:
             self.pipeline.add_steps(
                 PaddingStep(
-                    token=pad_token, _token_id=pad_token_id, pad_to_max_length=use_max_padding, max_length=max_length
+                    token=pad_token,
+                    _token_id=pad_token_id,
+                    pad_to_max_length=use_max_padding,
+                    max_length=max_length,
+                    pad_right=pad_right,
                 )
             )
         self.pipeline[-1].set_token_id(vocab=self.pipeline.vocab)
@@ -702,7 +718,12 @@ def convert_tiktoken_model_tokenizer(
             BytesToCharsStep(),
             BPETokenizationStep.from_tiktoken_encoding(encoding),
             TruncationStep.from_hf_object(hf_tokenizer),
-            PaddingStep(pad_right=(hf_tokenizer.padding_side == "right"), pad_to_max_length=use_max_padding),
+            PaddingStep(
+                token=getattr(hf_tokenizer, "pad_token"),
+                _token_id=getattr(hf_tokenizer, "pad_token_id"),
+                pad_right=(hf_tokenizer.padding_side == "right"),
+                pad_to_max_length=use_max_padding,
+            ),
             VocabDecoderStep(skip_tokens=skip_tokens),
             CharsToBytesStep(),
         ]

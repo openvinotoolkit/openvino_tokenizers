@@ -616,11 +616,16 @@ class TruncationStep(PostTokenizationStep):
     axis: int = -1
 
     @classmethod
-    def from_hf_json(cls, tokenizer_json: Dict[str, Any], num_of_added_tokens: int = 0) -> "TruncationStep":
-        max_length = min(
-            tokenizer_json["truncation"]["max_length"] - num_of_added_tokens,
-            2**31 - 1 - num_of_added_tokens,
-        )
+    def from_hf_json(
+        cls, tokenizer_json: Dict[str, Any], num_of_added_tokens: int = 0, max_length: int = -1
+    ) -> "TruncationStep":
+        if max_length == -1:
+            max_length = min(
+                tokenizer_json["truncation"]["max_length"] - num_of_added_tokens,
+                2**31 - 1 - num_of_added_tokens,
+            )
+        else:
+            max_length = min(max_length - num_of_added_tokens, 2**31 - 1 - num_of_added_tokens)
         return cls(
             max_length=max_length,
             truncate_right=tokenizer_json["truncation"]["direction"] == "Right",
@@ -817,16 +822,21 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
 
     @classmethod
     def from_hf_json(
-        cls, tokenizer_json: Dict[str, Any], pad_to_max_length: bool = False, max_length: int = -1
+        cls,
+        tokenizer_json: Dict[str, Any],
+        pad_to_max_length: bool = False,
+        max_length: int = -1,
+        pad_right: bool = True,
     ) -> "PaddingStep":
         padding_dict = tokenizer_json["padding"]
         padding_strategy = padding_dict.get("strategy", {})
-        if isinstance(padding_strategy, dict) and "Fixed" in padding_strategy:
+        if max_length == -1 and isinstance(padding_strategy, dict) and "Fixed" in padding_strategy:
             max_length = padding_strategy["Fixed"]
+
         return cls(
             token=padding_dict["pad_token"],
             _token_id=padding_dict["pad_id"],
-            pad_right=padding_dict["direction"] == "Right",
+            pad_right=pad_right,
             token_type_id=padding_dict["pad_type_id"],
             max_length=max_length,
             pad_to_max_length=pad_to_max_length,
