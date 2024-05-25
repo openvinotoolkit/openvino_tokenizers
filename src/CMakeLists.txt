@@ -4,14 +4,6 @@
 
 set(TARGET_NAME "openvino_tokenizers")
 
-if(POLICY CMP0077)
-  cmake_policy(SET CMP0077 NEW)
-endif()
-
-if(POLICY CMP0126)
-  cmake_policy(SET CMP0126 NEW)
-endif()
-
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
@@ -38,7 +30,7 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
   # It needs to be propagated to every library openvino_tokenizers links with.
   # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
   option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" ON)
-  option(USE_ABI0 "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers" ON)
+  set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
 else()
   option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF)
 endif()
@@ -92,7 +84,7 @@ else()
         # OpenVINO conda package dynamically linked with external protobuf,
         # and we need to link sentencepiece with external protobuf too.
         set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
-        set(protobuf_MODULE_COMPATIBLE ON)
+        set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
     endif()
     if(openvino_installed_from_conda AND NOT WIN32)
         set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
