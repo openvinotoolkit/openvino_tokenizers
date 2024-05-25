@@ -30,7 +30,7 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
   # It needs to be propagated to every library openvino_tokenizers links with.
   # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
   option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" ON)
-  option(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
+  set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
 else()
   option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF)
 endif()
