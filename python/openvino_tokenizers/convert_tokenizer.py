@@ -25,7 +25,6 @@ def convert_tokenizer(
     detokenizer_input_type: Type = Type.i64,
     streaming_detokenizer: bool = False,
 ) -> Union[Model, Tuple[Model, Model]]:
-    print(add_special_tokens, skip_special_tokens)
     ov_tokenizers = None
 
     if "transformers" in sys.modules:
