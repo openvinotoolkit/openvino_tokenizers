@@ -58,24 +58,54 @@ def get_parser() -> ArgumentParser:
             "Example: `convert_tokenizer SimianLuo/LCM_Dreamshaper_v7 --subfolder tokenizer`"
         ),
     )
-    parser.add_argument(
+    special_tokens_group = parser.add_mutually_exclusive_group()
+    special_tokens_group.add_argument(
+        "--add-special-tokens",
+        "--add_special_tokens",
+        required=False,
+        action="store_true",
+        help=(
+            "Tokenizer will add special tokens during tokenization, similar to "
+            "huggingface_tokenizer.encode(texts, add_special_tokens=True). Not affects tiktoken-base tokenizers. "
+            "Not compatible with --not-add-special-tokens."
+        ),
+    )
+    special_tokens_group.add_argument(
         "--not-add-special-tokens",
         "--not_add_special_tokens",
         required=False,
         action="store_false",
+        default=False,
         help=(
             "Tokenizer won't add special tokens during tokenization, similar to "
-            "huggingface_tokenizer.encode(texts, add_special_tokens=False). Not affects tiktoken-base tokenizers."
+            "huggingface_tokenizer.encode(texts, add_special_tokens=False). Not affects tiktoken-base tokenizers. "
+            "This is the default behaviour, so adding this option has no effect, for backward compatibility only. "
+            "Not compatible with --add-special-tokens."
         ),
     )
-    parser.add_argument(
+    skip_special_group = parser.add_mutually_exclusive_group()
+    skip_special_group.add_argument(
+        "--not-skip-special-tokens",
+        "--not_skip_special_tokens",
+        required=False,
+        action="store_false",
+        help=(
+            "Produce detokenizer that won't skip special tokens during decoding, similar to "
+            "huggingface_tokenizer.decode(token_ids, skip_special_tokens=False)."
+            "Not compatible with --skip-special-tokens."
+        ),
+    )
+    skip_special_group.add_argument(
         "--skip-special-tokens",
         "--skip_special_tokens",
         required=False,
         action="store_true",
+        default=True,
         help=(
             "Produce detokenizer that will skip special tokens during decoding, similar to "
-            "huggingface_tokenizer.decode(token_ids, skip_special_tokens=True)."
+            "huggingface_tokenizer.decode(token_ids, skip_special_tokens=True). "
+            "This is the default behaviour, so adding this option has no effect, for backward compatibility only. "
+            "Not compatible with --not-skip-special-tokens."
         ),
     )
     parser.add_argument(
@@ -167,8 +197,8 @@ def convert_hf_tokenizer() -> None:
     converted = convert_tokenizer(
         hf_tokenizer,
         with_detokenizer=args.with_detokenizer,
-        skip_special_tokens=args.skip_special_tokens,
-        add_special_tokens=args.not_add_special_tokens,
+        skip_special_tokens=args.not_skip_special_tokens,
+        add_special_tokens=args.add_special_tokens,
         clean_up_tokenization_spaces=args.clean_up_tokenization_spaces,
         tokenizer_output_type=args.tokenizer_output_type,
         detokenizer_input_type=args.detokenizer_input_type,
