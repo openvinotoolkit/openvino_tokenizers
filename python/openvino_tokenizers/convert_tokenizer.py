@@ -18,13 +18,14 @@ logger = logging.getLogger(__name__)
 def convert_tokenizer(
     tokenizer_object: Any,
     with_detokenizer: bool = False,
-    add_special_tokens: bool = True,
-    skip_special_tokens: bool = False,
+    add_special_tokens: bool = False,
+    skip_special_tokens: bool = True,
     clean_up_tokenization_spaces: Optional[bool] = None,
     tokenizer_output_type: Type = Type.i64,
     detokenizer_input_type: Type = Type.i64,
     streaming_detokenizer: bool = False,
 ) -> Union[Model, Tuple[Model, Model]]:
+    print(add_special_tokens, skip_special_tokens)
     ov_tokenizers = None
 
     if "transformers" in sys.modules:
