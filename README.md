@@ -62,8 +62,8 @@ This command is the equivalent of minimal installation. Install tokenizers conve
 ```bash
 pip install transformers[sentencepiece] tiktoken
 ```
-:warning: Latest commit of OpenVINO Tokenizers might rely on features that are not present in the release OpenVINO version. 
-Use [a nightly build](https://docs.openvino.ai/2024/get-started/install-openvino.html?VERSION=NIGHTLY) of OpenVINO or build 
+:warning: Latest commit of OpenVINO Tokenizers might rely on features that are not present in the release OpenVINO version.
+Use [a nightly build](https://docs.openvino.ai/2024/get-started/install-openvino.html?VERSION=NIGHTLY) of OpenVINO or build
 OpenVINO Tokenizers from a release branch if you have issues with the build process.
 
 ### Build and install for development
@@ -214,7 +214,7 @@ hf_model = AutoModelForCausalLM.from_pretrained(model_checkpoint, use_cache=Fals
 
 # convert hf tokenizer
 text_input = ["Quick brown fox jumped "]
-ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True, skip_special_tokens=True)
+ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
 compiled_tokenizer = compile_model(ov_tokenizer)
 
 # transform input text into tokens
@@ -251,15 +251,15 @@ compiled_detokenizer = compile_model(ov_detokenizer)
 ov_output = compiled_detokenizer(ov_token_ids)["string_output"]
 hf_output = hf_tokenizer.batch_decode(hf_token_ids, skip_special_tokens=True)
 print(f"OpenVINO output string: `{ov_output}`")
-# OpenVINO output string: `['<s> Quick brown fox was walking through the forest. He was looking for something']`
+# OpenVINO output string: `['Quick brown fox was walking through the forest. He was looking for something']`
 print(f"HuggingFace output string: `{hf_output}`")
 # HuggingFace output string: `['Quick brown fox was walking through the forest. He was looking for something']`
 ```
 
 ### TensorFlow Text Integration
 
-OpenVINO Tokenizers include converters for certain TensorFlow Text operations. 
-Currently, only the MUSE model is supported. 
+OpenVINO Tokenizers include converters for certain TensorFlow Text operations.
+Currently, only the MUSE model is supported.
 Here is an example of model conversion and inference:
 
 ```python
