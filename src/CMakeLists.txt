@@ -23,16 +23,12 @@ endfunction()
 ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
-if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
-  # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
-  # It needs to be propagated to every library openvino_tokenizers links with.
-  # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
-  option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" ON)
-  set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
-else()
-  option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF)
-endif()
+cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is hidden and forced to ON if _GLIBCXX_USE_CXX11_ABI=0"
+  OFF "NOT _GLIBCXX_USE_CXX11_ABI=0 IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS" ON)
+cmake_dependent_option(USE_ABI0 "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers. The option is visible only if BUILD_FAST_TOKENIZERS is ON and NOT _GLIBCXX_USE_CXX11_ABI=0"
+  OFF "BUILD_FAST_TOKENIZERS;NOT _GLIBCXX_USE_CXX11_ABI=0 IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS" ON)
 
 #
 # Compile flags
@@ -317,8 +313,8 @@ endif()
 if(MSVC OR APPLE)
   set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
 endif()
-option(OPENVINO_TOKENIZERS_INSTALL_BINDIR "Destination for files installation of bin files - Windows dll" runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR})
-option(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "Destination for files installation of lib files" runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR})
+SET(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE FILEPATH "Destination for files installation of bin files - Windows dll")
+SET(OPENVINO_TOKENIZERS_INSTALL_LIBDIR runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR} CACHE FILEPATH  "Destination for files installation of lib files")
 
 # Installing the extension module
 install(TARGETS ${TARGET_NAME}
