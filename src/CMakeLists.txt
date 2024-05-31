@@ -314,8 +314,8 @@ endif()
 if(MSVC OR APPLE)
   set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
 endif()
-SET(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE FILEPATH "Destination for files installation of bin files - Windows dll")
-SET(OPENVINO_TOKENIZERS_INSTALL_LIBDIR runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR} CACHE FILEPATH  "Destination for files installation of lib files")
+SET(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE FILEPATH "Destination for files installation of bin files - Windows dll")
+SET(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE FILEPATH  "Destination for files installation of lib files")
 
 # Installing the extension module
 install(TARGETS ${TARGET_NAME}
