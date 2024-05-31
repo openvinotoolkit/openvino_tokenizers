@@ -25,6 +25,7 @@ ov_tokenizers_set_cxx_standard()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
+include(CMakeDependentOption)
 cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is hidden and forced to ON if _GLIBCXX_USE_CXX11_ABI=0"
   OFF "NOT _GLIBCXX_USE_CXX11_ABI=0 IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS" ON)
 cmake_dependent_option(USE_ABI0 "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers. The option is visible only if BUILD_FAST_TOKENIZERS is ON and NOT _GLIBCXX_USE_CXX11_ABI=0"
