@@ -78,7 +78,7 @@ else()
   )
   FetchContent_GetProperties(sentencepiece)
   if(NOT sentencepiece_POPULATED)
-    if(DEFINED ENV{CONDA_TOOLCHAIN_HOST} AND OpenVINO_DIR MATCHES "$ENV{CONDA_TOOLCHAIN_HOST}")
+    if(DEFINED ENV{CONDA_BUILD_SYSROOT})
         set(openvino_installed_from_conda ON)
         # OpenVINO conda package dynamically linked with external protobuf,
         # and we need to link sentencepiece with external protobuf too.
