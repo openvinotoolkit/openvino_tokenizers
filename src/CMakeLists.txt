@@ -12,6 +12,10 @@ if(POLICY CMP0126)
   cmake_policy(SET CMP0126 NEW)
 endif()
 
+if(POLICY CMP0127)
+  cmake_policy(SET CMP0127 NEW)
+endif()
+
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
@@ -32,15 +36,15 @@ ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-get_target_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS openvino::runtime INTERFACE_COMPILE_DEFINITIONS)
+# openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
+# It needs to be propagated to every library openvino_tokenizers links with.
+# That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
+get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
+include(CMakeDependentOption)
+cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is hidden and forced to ON if _GLIBCXX_USE_CXX11_ABI=0"
+  OFF "NOT _GLIBCXX_USE_CXX11_ABI=0 IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS" ON)
 if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
-  # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
-  # It needs to be propagated to every library openvino_tokenizers links with.
-  # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
-  option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" ON)
   set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
-else()
-  option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF)
 endif()
 
 #
@@ -87,7 +91,7 @@ else()
   )
   FetchContent_GetProperties(sentencepiece)
   if(NOT sentencepiece_POPULATED)
-    if(DEFINED ENV{CONDA_PREFIX} AND OpenVINO_DIR MATCHES "$ENV{CONDA_PREFIX}")
+    if(DEFINED ENV{CONDA_BUILD_SYSROOT})
         set(openvino_installed_from_conda ON)
         # OpenVINO conda package dynamically linked with external protobuf,
         # and we need to link sentencepiece with external protobuf too.
@@ -156,7 +160,6 @@ if(BUILD_FAST_TOKENIZERS)
                      EXCLUDE_FROM_ALL
                     )
   endif()
-  target_compile_definitions(core_tokenizers PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
 
   # variables used later
   set(FAST_TOKENIZER_INCS
@@ -312,48 +315,46 @@ endif()
 # Installation
 #
 
-if(NOT OPENVINO_TOKENIZERS_INSTALL_LIBDIR AND NOT OPENVINO_TOKENIZERS_INSTALL_BINDIR)
-  # - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
-  # - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
-  # - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
-  # - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
-  # - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
-  string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
-  if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
-    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
-  elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
-    if(APPLE)
-      set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
-    else()
-      set(OPENVINO_TOKENIZERS_INSTALL_DIR "aarch64")
-    endif()
-  elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
-      OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
-    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
+# - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
+# - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
+# - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
+# - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
+# - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
+  set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
+  if(APPLE)
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
+  else()
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR "aarch64")
   endif()
-  if(MSVC OR APPLE)
-    set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
-  endif()
-  set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR})
-  set(OPENVINO_TOKENIZERS_INSTALL_BINDIR runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR})
+elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
+    OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+  set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
 endif()
+if(MSVC OR APPLE)
+  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
+endif()
+set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
+set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
 
 # Installing the extension module
 install(TARGETS ${TARGET_NAME}
-        LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
+        LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR} COMPONENT openvino_tokenizers
+        RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR} COMPONENT openvino_tokenizers)
 
 if(BUILD_FAST_TOKENIZERS)
   install(TARGETS core_tokenizers
-    LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
+    LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR} COMPONENT openvino_tokenizers
+    RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR} COMPONENT openvino_tokenizers)
 else()
   if(WIN32)
     set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
   else()
     set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR})
   endif()
-  install(FILES ${extra_libs} DESTINATION ${extra_libs_location})
+  install(FILES ${extra_libs} DESTINATION ${extra_libs_location} COMPONENT openvino_tokenizers)
 endif()
 
 #
