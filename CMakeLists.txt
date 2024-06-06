@@ -19,7 +19,11 @@ elseif(NOT GENERATOR_IS_MULTI_CONFIG_VAR)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ...")
 endif()
 
-project(openvino_tokenizers)
+project(openvino_tokenizers
+        VERSION 2024.3.0.0
+        DESCRIPTION "OpenVINO Tokenizers"
+        HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
+        LANGUAGES CXX)
 
 include(cmake/platforms.cmake)
 
@@ -30,8 +34,8 @@ if(NOT OpenVINODeveloperPackage_FOUND)
     find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow)
 endif()
 
-# set the project version using OpenVINO major, minor and patch versions
-set(CMAKE_PROJECT_VERSION_TWEAK 0)
-set(CMAKE_PROJECT_VERSION "${OpenVINO_VERSION}.${CMAKE_PROJECT_VERSION_TWEAK}")
+if(DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION AND NOT PY_BUILD_CMAKE_PACKAGE_VERSION EQUAL CMAKE_PROJECT_VERSION)
+    message(FATAL_ERROR "CMAKE_PROJECT_VERSION (${CMAKE_PROJECT_VERSION}) is not equal to PY_BUILD_CMAKE_PACKAGE_VERSION (${PY_BUILD_CMAKE_PACKAGE_VERSION})")
+endif()
 
 add_subdirectory(src)
