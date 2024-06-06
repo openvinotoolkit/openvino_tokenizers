@@ -305,7 +305,7 @@ jobs:
           popd
 
       # TODO: parse a specific OV dev version from c++ archive names for consistency?
-      - name: Download OpenVINO Python wheel
+      - name: Install OpenVINO Python wheel from S3
         if: needs.openvino_download.result == 'success'
         run: |
           python3 -m pip install --pre openvino
