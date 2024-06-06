@@ -304,6 +304,14 @@ jobs:
             tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
+      # TODO: parse a specific OV dev version from c++ archive names for consistency?
+      - name: Download OpenVINO Python wheel
+        if: needs.openvino_download.result == 'success'
+        run: |
+          python3 -m pip install --pre openvino
+        env:
+          PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/nightly
+
       - name: Install OpenVINO Python wheel
         if: needs.openvino_build.result == 'success'
         run: |
