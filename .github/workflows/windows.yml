@@ -33,7 +33,7 @@ jobs:
         id: openvino_download
         run: |
           ov_package_url=$(curl -s ${{ env.OV_NIGHTLY_PACKAGE_SOURCE }} | jq -r '.windows_x86_64')
-          wget $ov_package_url --progress=bar:force:noscroll -O openvino_package.tar.gz
+          wget $ov_package_url --progress=bar:force:noscroll -O openvino_package.zip
           unzip -l openvino_package.zip
         continue-on-error: true
 
