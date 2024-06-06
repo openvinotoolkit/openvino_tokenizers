@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'master'
-  OV_TARBALL: ''
+  OV_NIGHTLY_PACKAGE_SOURCE: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/latest.json'
 
 jobs:
   openvino_download:
@@ -32,7 +32,8 @@ jobs:
       - name: Download OpenVINO build
         id: openvino_download
         run: |
-          wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.tar.gz
+          ov_package_url=$(curl -s ${{ env.OV_NIGHTLY_PACKAGE_SOURCE }} | jq -r '.ubuntu20_x86_64')
+          wget $ov_package_url --progress=bar:force:noscroll -O openvino_package.tar.gz
           tar -tvf openvino_package.tar.gz
         continue-on-error: true
 
