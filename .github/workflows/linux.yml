@@ -29,25 +29,18 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
+      - name: Clone OpenVINO provider action
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions/openvino_provider
+
       - name: Download OpenVINO build
         id: openvino_download
-        run: |
-          ov_package_url=$(curl -s ${{ env.OV_NIGHTLY_PACKAGE_SOURCE }} | jq -r '.ubuntu20_x86_64')
-          wget $ov_package_url --progress=bar:force:noscroll -O openvino_package.tar.gz
-          tar -tvf openvino_package.tar.gz
-        continue-on-error: true
-
-      #
-      # Upload to artifacts
-      #
-
-      - name: Upload openvino package
-        if: steps.openvino_download.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: ./.github/actions/openvino_provider
         with:
-          name: openvino_package
-          path: openvino_package.tar.gz
-          if-no-files-found: 'error'
+          os: 'ubuntu20_x86_64'
+          source: 'nightly'
+        continue-on-error: true
 
   openvino_build:
     needs: [openvino_download]
