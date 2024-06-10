@@ -15,7 +15,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: 'b1bc59e72d44c0da74f0132a8d1f1bfdabded78a'
+  OV_BRANCH: 'c45a46edcab0564bd4b7faa74c57ec0d4ae24f98'
   OV_TARBALL: ''
 
 jobs:
