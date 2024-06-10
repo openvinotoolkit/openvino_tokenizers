@@ -312,7 +312,7 @@ jobs:
       - name: Install OpenVINO Python wheel from S3
         if: needs.openvino_download.result == 'success'
         run: |
-          python3 -m pip install ${{ needs.openvino_download.outputs.wheel_input }}
+          python3 -m pip install ${{ needs.openvino_download.outputs.ov_wheel_input }}
 
       - name: Install OpenVINO Python wheel
         if: needs.openvino_build.result == 'success'
