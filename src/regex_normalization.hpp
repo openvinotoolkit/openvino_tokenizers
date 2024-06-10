@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "normalizer.h" // for absl::string_view
+#include "absl/strings/string_view.h"
 
 #include <openvino/op/op.hpp>
 #include "openvino/opsets/opset13.hpp"

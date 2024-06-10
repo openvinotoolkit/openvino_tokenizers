@@ -42,7 +42,7 @@ void check_string_scalar_input(const Node* node, size_t input_index) {
     OPENVINO_ASSERT(
         (element_type == element::dynamic || element_type == element::string) &&
         (shape.rank().is_dynamic() || shape.rank().get_length() == 0),
-        "string/0D tensor is expected, but observed: " + element_type.get_type_name() + shape.to_string());
+        "string/0D tensor is expected, but observed: ", element_type.get_type_name(), ", ", shape.to_string());
 
     #else
 
