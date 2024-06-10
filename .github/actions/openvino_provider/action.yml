@@ -13,6 +13,9 @@ outputs:
   ov_package_name:
     description: "Name of the package with OpenVINO build artifacts provided"
     value: ${{ steps.openvino_nightly_download.outputs.ov_package_name }}
+  ov_wheel_input:
+    description: "Input for pip to install OpenVINO python wheel "
+    value: ${{ steps.openvino_nightly_wheel.outputs.wheel_input }}
 
 runs:
   using: "composite"
@@ -37,3 +40,14 @@ runs:
         name: openvino_package
         path: ${{ steps.openvino_nightly_download.outputs.ov_package_name }}
         if-no-files-found: 'error'
+
+    - name: Get nightly wheel
+      id: openvino_nightly_wheel
+      if: steps.openvino_nightly_download.outcome == 'success'
+      shell: bash
+      run: |
+        version=$(echo ${{ steps.openvino_nightly_download.outputs.ov_package_name }} | grep -oP '(?<=openvino-)[^-]+(?=-\d+-)')
+        wheel_input="--pre --extra-index-url $PIP_EXTRA_INDEX_URL openvino==$version"
+        echo "wheel_input=$wheel_input" >> $GITHUB_OUTPUT
+      env:
+        PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/nightly

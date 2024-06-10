@@ -23,6 +23,7 @@ jobs:
     outputs:
       status: ${{ steps.openvino_download.outcome }}
       ov_package_name: ${{ steps.openvino_download.outputs.ov_package_name }}
+      ov_wheel_input: ${{ steps.openvino_download.outputs.ov_wheel_input }}
     timeout-minutes: 10
     defaults:
       run:
@@ -308,13 +309,10 @@ jobs:
             tar -xzf ${{ needs.openvino_download.outputs.ov_package_name }} -C ${INSTALL_DIR} --strip-components=1
           popd
 
-      # TODO: parse a specific OV dev version from c++ archive names for consistency?
       - name: Install OpenVINO Python wheel from S3
         if: needs.openvino_download.result == 'success'
         run: |
-          python3 -m pip install --pre openvino
-        env:
-          PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/nightly
+          python3 -m pip install ${{ needs.openvino_download.outputs.wheel_input }}
 
       - name: Install OpenVINO Python wheel
         if: needs.openvino_build.result == 'success'
