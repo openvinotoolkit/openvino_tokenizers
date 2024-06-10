@@ -46,7 +46,8 @@ runs:
       if: steps.openvino_nightly_download.outcome == 'success'
       shell: bash
       run: |
-        version=$(echo ${{ steps.openvino_nightly_download.outputs.ov_package_name }} | grep -oP '(?<=openvino-)[^-]+(?=-\d+-)')
+        version=$(echo ${{ steps.openvino_nightly_download.outputs.ov_package_name }} |
+          grep -oP '(?<=_)\d{4}\.\d\.\d\.dev\d{8}(?=_)')
         wheel_input="--pre --extra-index-url $PIP_EXTRA_INDEX_URL openvino==$version"
         echo "wheel_input=$wheel_input" >> $GITHUB_OUTPUT
       env:
