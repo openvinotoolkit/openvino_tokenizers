@@ -1,0 +1,35 @@
+name: 'OpenVINO provider'
+description: 'Provides OpenVINO build artifacts from a requested source'
+inputs:
+  os:
+    description: 'centos7_x86_64 | debian9_armhf | rhel8_x86_64 | ubuntu20_arm64 | ubuntu20_x86_64 | ubuntu22_x86_64 | 
+                  ubuntu24_x86_64 | macos_12_6_arm64 | macos_12_6_x86_64 | windows_x86_64'
+    required: true
+  source:
+    description: 'Source to take OpenVINO from: build | nightly'
+    required: true
+    default: 'build'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download nightly OpenVINO archives
+      id: openvino_nightly_download
+      if: inputs.source == 'nightly'
+      shell: bash
+      run: |
+        ov_package_url=$(curl -s ${{ env.OV_NIGHTLY_PACKAGE_SOURCE }} | jq -r '.${{ inputs.os }}')
+        ov_package_name=$(basename $ov_package_url)
+        wget $ov_package_url --progress=bar:force:noscroll -O $ov_package_name
+        [[ "$ov_package_name" == *.zip ]] && unzip -l "$ov_package_name" || tar -tvf "$ov_package_name"
+        echo "ov_package_name=$ov_package_name" >> $GITHUB_OUTPUT
+      env:
+        OV_NIGHTLY_PACKAGE_SOURCE: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/latest.json'
+
+    - name: Upload nightly OpenVINO archives
+      if: steps.openvino_nightly_download.outcome == 'success'
+      uses: actions/upload-artifact@v4
+      with:
+        name: openvino_package
+        path: ${{ steps.openvino_nightly_download.outputs.ov_package_name }}
+        if-no-files-found: 'error'
