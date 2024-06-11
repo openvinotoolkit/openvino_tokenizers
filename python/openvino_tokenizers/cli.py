@@ -20,6 +20,21 @@ class StringToTypeAction(Action):
         setattr(namespace, self.dest, self.string_to_type_dict[values])
 
 
+class TrueOrPositiveIntAction(Action):
+    def __call__(self, parser, namespace, values, option_string=None) -> None:
+        if values.isnumeric():
+            values = int(values)
+            if values > 0:
+                setattr(namespace, self.dest, values)
+                return
+
+        if isinstance(values, str):
+            if values.lower() == "true":
+                setattr(namespace, self.dest, True)
+                return
+        raise ValueError(f'Value for {self.dest} must be positive integer or "True", got: {values}')
+
+
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(
         prog="convert_tokenizer",
@@ -65,7 +80,27 @@ def get_parser() -> ArgumentParser:
         action="store_false",
         help=(
             "Tokenizer won't add special tokens during tokenization, similar to "
-            "huggingface_tokenizer.encode(texts, add_special_tokens=False). Not affects tiktoken-base tokenizers."
+            "huggingface_tokenizer.encode(texts, add_special_tokens=False). Not affects tiktoken-based tokenizers."
+        ),
+    )
+    parser.add_argument(
+        "--left_padding",
+        "--left-padding",
+        required=False,
+        action="store_true",
+        help="Tokenizer will add padding tokens to the left side. Not supported for Sentencepiece-based tokenizers.",
+    )
+    parser.add_argument(
+        "--max_padding",
+        "--max-padding",
+        required=False,
+        action=TrueOrPositiveIntAction,
+        help=(
+            "Tokenizer will add padding tokens to max input size, "
+            'similar to huggingface_tokenizer(text, padding="max_length"). '
+            "You can pass a positive integer that can be used as max length parameter "
+            'or "True" to use `huggingface_tokenizer.model_max_length` value (if set). '
+            "Not supported for Sentencepiece-based tokenizers."
         ),
     )
     skip_special_group = parser.add_mutually_exclusive_group()
@@ -173,10 +208,18 @@ def convert_hf_tokenizer() -> None:
 
     args = get_parser().parse_args()
 
+    tokenizer_init_kwargs = {
+        "subfolder": args.subfolder,
+        "trust_remote_code": args.trust_remote_code,
+    }
+    if args.left_padding:
+        tokenizer_init_kwargs["padding_side"] = "left"
+
     print("Loading Huggingface Tokenizer...")
-    hf_tokenizer = AutoTokenizer.from_pretrained(
-        args.name, subfolder=args.subfolder, trust_remote_code=args.trust_remote_code
-    )
+    hf_tokenizer = AutoTokenizer.from_pretrained(args.name, **tokenizer_init_kwargs)
+    if isinstance(args.max_padding, int) and args.max_padding is not True:
+        print(f"Set max_length to: {args.max_padding}")
+        hf_tokenizer.model_max_length = args.max_padding
 
     print("Converting Huggingface Tokenizer to OpenVINO...")
     converted = convert_tokenizer(
@@ -188,6 +231,7 @@ def convert_hf_tokenizer() -> None:
         tokenizer_output_type=args.tokenizer_output_type,
         detokenizer_input_type=args.detokenizer_input_type,
         streaming_detokenizer=args.streaming_detokenizer,
+        use_max_padding=args.max_padding is not None,
     )
     if not isinstance(converted, tuple):
         converted = (converted,)
