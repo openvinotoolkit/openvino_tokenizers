@@ -135,8 +135,10 @@ tiktiken_models = [
 ]
 
 
-def get_tokenizer(hf_tokenizer, add_special_tokens=True):
-    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, add_special_tokens=add_special_tokens)
+def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False):
+    ov_tokenizer = convert_tokenizer(
+        hf_tokenizer, with_detokenizer=False, add_special_tokens=add_special_tokens, use_max_padding=use_max_padding
+    )
     compiled_tokenizer = core.compile_model(ov_tokenizer)
     return hf_tokenizer, compiled_tokenizer
 
@@ -156,13 +158,34 @@ def get_tokenizer_detokenizer(
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
 
 
-def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False):
-    return AutoTokenizer.from_pretrained(request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code)
+def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left_padding=None):
+    kwargs = {}
+    if left_padding is not None:
+        kwargs["padding_side"] = "left" if left_padding else "right"
+
+    return AutoTokenizer.from_pretrained(
+        request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
+    )
+
+
+@pytest.fixture(scope="session", params=[True, False], ids=lambda is_left: "left_pad" if is_left else "right_pad")
+def use_left_padding(request):
+    return request.param
+
+
+@pytest.fixture(scope="session", params=[True, False], ids=lambda is_max: "max_pad" if is_max else "min_pad")
+def use_max_padding(request):
+    return request.param
 
 
 @pytest.fixture(scope="session", params=wordpiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_wordpiece_tokenizers(request):
     return get_hf_tokenizer(request)
+
+
+@pytest.fixture(scope="session", params=wordpiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def hf_wordpiece_tokenizers_with_padding_sides(request, use_left_padding):
+    return get_hf_tokenizer(request, left_padding=use_left_padding)
 
 
 @pytest.fixture(scope="session", params=[True, False], ids=lambda is_fast: "Fast" if is_fast else "Slow")
@@ -191,7 +214,8 @@ def do_clean_up_tokenization_spaces(request):
 
 @pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_sentencepiece_tokenizers(request, is_fast_tokenizer):
-    return get_hf_tokenizer(request, fast_tokenizer=is_fast_tokenizer, trust_remote_code=True)
+    hf_tokenizer = get_hf_tokenizer(request, fast_tokenizer=is_fast_tokenizer, trust_remote_code=True)
+    return hf_tokenizer
 
 
 @pytest.fixture(scope="session", params=bpe_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
@@ -199,9 +223,27 @@ def hf_bpe_tokenizers(request):
     return get_hf_tokenizer(request)
 
 
+@pytest.fixture(scope="session", params=bpe_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def hf_bpe_tokenizers_with_padding_sides(request, use_left_padding):
+    hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding)
+    if hf_tokenizer.pad_token is None:
+        hf_tokenizer.pad_token = hf_tokenizer.eos_token
+        hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or 0
+    return hf_tokenizer
+
+
 @pytest.fixture(scope="session", params=tiktiken_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_tiktoken_tokenizers(request):
     return get_hf_tokenizer(request, trust_remote_code=True)
+
+
+@pytest.fixture(scope="session", params=tiktiken_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def hf_tiktoken_tokenizers_with_padding_sides(request, use_left_padding):
+    hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True, left_padding=use_left_padding)
+    if hf_tokenizer.pad_token is None:
+        hf_tokenizer.pad_token = hf_tokenizer.eos_token
+        hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or getattr(hf_tokenizer, "eod_id") or 0
+    return hf_tokenizer
 
 
 @pytest.fixture(scope="session")
@@ -210,8 +252,34 @@ def wordpiece_tokenizers(hf_wordpiece_tokenizers, do_add_special_tokens):
 
 
 @pytest.fixture(scope="session")
+def wordpiece_tokenizers_with_padding_options(
+    hf_wordpiece_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding
+):
+    if use_max_padding and getattr(hf_wordpiece_tokenizers_with_padding_sides, "model_max_length") > 2**31:
+        pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
+
+    return get_tokenizer(
+        hf_wordpiece_tokenizers_with_padding_sides,
+        add_special_tokens=do_add_special_tokens,
+        use_max_padding=use_max_padding,
+    )
+
+
+@pytest.fixture(scope="session")
 def bpe_tokenizers(hf_bpe_tokenizers, do_add_special_tokens):
     return get_tokenizer(hf_bpe_tokenizers, add_special_tokens=do_add_special_tokens)
+
+
+@pytest.fixture(scope="session")
+def bpe_tokenizers_with_padding_options(hf_bpe_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding):
+    if use_max_padding and getattr(hf_bpe_tokenizers_with_padding_sides, "model_max_length") > 2**31:
+        pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
+
+    return get_tokenizer(
+        hf_bpe_tokenizers_with_padding_sides,
+        add_special_tokens=do_add_special_tokens,
+        use_max_padding=use_max_padding,
+    )
 
 
 @pytest.fixture(scope="session")
@@ -256,6 +324,19 @@ def sentencepice_tokenizers_detokenizers(
 @pytest.fixture(scope="session")
 def tiktoken_tokenizers(hf_tiktoken_tokenizers):
     return get_tokenizer(hf_tiktoken_tokenizers)
+
+
+@pytest.fixture(scope="session")
+def tiktoken_tokenizers_with_padding_options(
+    hf_tiktoken_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding
+):
+    if use_max_padding and getattr(hf_tiktoken_tokenizers_with_padding_sides, "model_max_length") > 2**31:
+        pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
+    return get_tokenizer(
+        hf_tiktoken_tokenizers_with_padding_sides,
+        add_special_tokens=do_add_special_tokens,
+        use_max_padding=use_max_padding,
+    )
 
 
 @pytest.fixture(scope="session")
@@ -308,17 +389,23 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_speci
         misc_strings,
     ],
 )
-def test_hf_wordpiece_tokenizers_multiple_strings(wordpiece_tokenizers, test_string, do_add_special_tokens):
-    hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
+def test_hf_wordpiece_tokenizers_multiple_strings(
+    wordpiece_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding
+):
+    hf_tokenizer, ov_tokenizer = wordpiece_tokenizers_with_padding_options
+
     packed_strings = pack_strings(test_string)
 
+    padding = "max_length" if use_max_padding else True
     hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
+        test_string, return_tensors="np", padding=padding, truncation=True, add_special_tokens=do_add_special_tokens
     )
     ov_tokenized = ov_tokenizer(packed_strings)
 
     for output_name, hf_result in hf_tokenized.items():
-        assert np.all((ov_result := ov_tokenized[output_name]) == hf_result), f"{hf_result}\n{ov_result}"
+        ov_result = ov_tokenized[output_name]
+        assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
+        assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -397,6 +484,34 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_t
 @pytest.mark.parametrize(
     "test_string",
     [
+        eng_test_strings,
+        multilingual_test_strings,
+        emoji_test_strings,
+        misc_strings,
+    ],
+)
+def test_hf_bpe_tokenizers_multiple_strings(
+    bpe_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding
+):
+    hf_tokenizer, ov_tokenizer = bpe_tokenizers_with_padding_options
+
+    packed_strings = pack_strings(test_string)
+
+    padding = "max_length" if use_max_padding else True
+    hf_tokenized = hf_tokenizer(
+        test_string, return_tensors="np", padding=padding, truncation=True, add_special_tokens=do_add_special_tokens
+    )
+    ov_tokenized = ov_tokenizer(packed_strings)
+
+    for output_name, hf_result in hf_tokenized.items():
+        if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [
         *eng_test_strings,
         *multilingual_test_strings,
         *emoji_test_strings,
@@ -436,6 +551,33 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        eng_test_strings,
+        multilingual_test_strings,
+        emoji_test_strings,
+        misc_strings,
+    ],
+)
+def test_hf_tiktoken_tokenizers_multiple_strings(
+    tiktoken_tokenizers_with_padding_options, test_string, do_add_special_tokens
+):
+    hf_tokenizer, ov_tokenizer = tiktoken_tokenizers_with_padding_options
+
+    packed_strings = pack_strings(test_string)
+
+    hf_tokenized = hf_tokenizer(
+        test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
+    )
+    ov_tokenized = ov_tokenizer(packed_strings)
+
+    for output_name, hf_result in hf_tokenized.items():
+        if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
             assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
 
 

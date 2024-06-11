@@ -24,6 +24,7 @@ def convert_tokenizer(
     tokenizer_output_type: Type = Type.i64,
     detokenizer_input_type: Type = Type.i64,
     streaming_detokenizer: bool = False,
+    use_max_padding: bool = False,
 ) -> Union[Model, Tuple[Model, Model]]:
     ov_tokenizers = None
 
@@ -57,6 +58,7 @@ def convert_tokenizer(
                     with_detokenizer=with_detokenizer,
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+                    use_max_padding=use_max_padding,
                 )
             elif isinstance(tokenizer_object, PreTrainedTokenizerFast):
                 logger.info("Convert Huggingface Fast tokenizer pipeline.")
@@ -67,6 +69,7 @@ def convert_tokenizer(
                     add_special_tokens=add_special_tokens,
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+                    use_max_padding=use_max_padding,
                 )
     else:
         raise EnvironmentError(

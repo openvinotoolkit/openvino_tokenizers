@@ -22,11 +22,17 @@ def build_coverege_report(session: pytest.Session) -> None:
     def add_tokenizer_type(row):
         if not pd.isnull(row["hf_wordpiece_tokenizers_param"]):
             return "WordPiece"
+        if not pd.isnull(row["hf_wordpiece_tokenizers_with_padding_sides_param"]):
+            return "WordPiece"
         if not pd.isnull(row["hf_bpe_tokenizers_param"]):
+            return "BPE"
+        if not pd.isnull(row["hf_bpe_tokenizers_with_padding_sides_param"]):
             return "BPE"
         if not pd.isnull(row["hf_sentencepiece_tokenizers_param"]):
             return "SentencePiece"
         if not pd.isnull(row["hf_tiktoken_tokenizers_param"]):
+            return "Tiktoken"
+        if not pd.isnull(row["hf_tiktoken_tokenizers_with_padding_sides_param"]):
             return "Tiktoken"
 
     results_df = get_session_results_df(session)
@@ -34,6 +40,15 @@ def build_coverege_report(session: pytest.Session) -> None:
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_bpe_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_sentencepiece_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_tiktoken_tokenizers_param, inplace=True)
+    results_df.hf_wordpiece_tokenizers_param.fillna(
+        results_df.hf_wordpiece_tokenizers_with_padding_sides_param, inplace=True
+    )
+    results_df.hf_wordpiece_tokenizers_param.fillna(
+        results_df.hf_bpe_tokenizers_with_padding_sides_param, inplace=True
+    )
+    results_df.hf_wordpiece_tokenizers_param.fillna(
+        results_df.hf_tiktoken_tokenizers_with_padding_sides_param, inplace=True
+    )
     results_df.is_fast_tokenizer_param.fillna(True, inplace=True)
     results_df.status = (results_df.status == "passed").astype(int)
     results_df["Model"] = results_df.hf_wordpiece_tokenizers_param + results_df.is_fast_tokenizer_param.apply(
@@ -103,10 +118,11 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     with open(PASS_RATES_FILE) as f:
         previous_rates = json.load(f)
 
-    pass_rate = 1 - session.testsfailed / session.testscollected
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    skipped = len(reporter.stats.get("skipped", []))
+    pass_rate = 1 - session.testsfailed / (session.testscollected - skipped)
     previous = previous_rates.get(parent, 0)
 
-    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
     if isclose(pass_rate, previous):
         session.exitstatus = pytest.ExitCode.OK
         reporter.write_line(f"New pass rate isclose to previous: {pass_rate}")
