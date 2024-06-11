@@ -333,7 +333,7 @@ class TransformersTokenizerPipelineParser:
 
 def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> Dict[int, str]:
     # the order matters
-    if hasattr(hf_tokenizer, "added_tokens_decoder"):
+    if getattr(hf_tokenizer, "added_tokens_decoder", None):
         return {
             idx: added_token.content
             for idx, added_token in hf_tokenizer.added_tokens_decoder.items()
@@ -402,7 +402,7 @@ def modify_sentencepiece_model(
     hf_tokenizer: PreTrainedTokenizerBase,
     skip_special_tokens: bool = False,
     add_prefix_space: Optional[bool] = None,
-) -> None:
+) -> str:
     model_pb = import_protobuf()
     model = model_pb.ModelProto()
     with open(sp_model_path, "rb") as model_file:
@@ -438,7 +438,7 @@ def modify_sentencepiece_model(
 
     while (idx := len(model.pieces)) < getattr(hf_tokenizer, "vocab_size", len(model.pieces)):
         new_piece = deepcopy(model.pieces[-1])
-        new_piece.piece = hf_tokenizer.decode(len(model.pieces)) or f"<empty_{len(model.pieces)}>"
+        new_piece.piece = hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
         new_piece.type = 3
         model.pieces.insert(idx, new_piece)
 
@@ -446,8 +446,7 @@ def modify_sentencepiece_model(
     unk_token = next(piece for piece in model.pieces if piece.type == 2)
     model.trainer_spec.unk_surface = unk_token.piece
 
-    with open(sp_model_path, "wb") as model_file:
-        model_file.write(model.SerializeToString())
+    return model.SerializeToString()
 
 
 def convert_sentencepiece_model_tokenizer(
@@ -520,16 +519,25 @@ def convert_sentencepiece_model_tokenizer(
 
         add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
 
-        modify_sentencepiece_model(
+        sp_model_string = modify_sentencepiece_model(
+            sp_model_path=vocab_file,
+            add_tokens=add_tokens,
+            hf_tokenizer=hf_tokenizer,
+            skip_special_tokens=False,
+            add_prefix_space=add_prefix_space,
+        )
+        sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
+        sp_model_node = as_node(sp_model)
+
+        sp_detokenizer_model_string = modify_sentencepiece_model(
             sp_model_path=vocab_file,
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=skip_special_tokens,
             add_prefix_space=add_prefix_space,
         )
-
-        sp_model = np.fromfile(vocab_file, dtype=np.uint8)
-        sp_model_node = as_node(sp_model)
+        sp_detokenizer_model = np.fromstring(sp_detokenizer_model_string, dtype=np.uint8)
+        sp_detokenizer_model_node = as_node(sp_detokenizer_model)
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
@@ -606,7 +614,7 @@ def convert_sentencepiece_model_tokenizer(
         clean_up_tokenization_spaces = hf_tokenizer.clean_up_tokenization_spaces
 
     detokenizer = get_sp_detokenizer(
-        sp_model_node,
+        sp_model_node=sp_detokenizer_model_node,
         streaming_detokenizer=streaming_detokenizer,
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         prepend_scheme=prepend_scheme,
