@@ -68,17 +68,44 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
     auto out_elem_orig = out_elems;
     auto out_mask_orig = out_mask;
 
-    for(size_t i = 0; i < nelems; ++i) {
-        auto begin = elems + elem_size*begins[i];
-        auto len = std::min(size_t(ends[i] - begins[i]), target_dim);  // truncation
-        auto end = begin + elem_size*len;
-        out_elems = std::copy(begin, end, out_elems);
-        out_mask = std::fill_n(out_mask, len, char(1));
-        if(len < target_dim)
-            out_mask = std::fill_n(out_mask, target_dim - len, char(0));
-        while(len < target_dim) {
-            out_elems = std::copy(default_value, default_value + elem_size, out_elems);
-            ++len;
+    if (m_pad_right) {
+        for(size_t i = 0; i < nelems; ++i) {
+            auto begin = elems + elem_size * begins[i];
+            auto target_len = (
+                std::min(size_t(ends[i] - begins[i]), target_dim) * (1 - m_pad_max_length) // truncation
+                + target_dim * m_pad_max_length  // pad to max length
+            );
+            auto end = begin + elem_size * target_len;
+            out_elems = std::copy(begin, end, out_elems);
+            out_mask = std::fill_n(out_mask, target_len, char(1));
+            if(target_len < target_dim)
+                out_mask = std::fill_n(out_mask, target_dim - target_len, char(0));
+            while(target_len < target_dim) {
+                out_elems = std::copy(default_value, default_value + elem_size, out_elems);
+                ++target_len;
+            }
+        }
+    } else {
+        for(size_t i = 0; i < nelems; ++i) {
+            size_t data_len = ends[i] - begins[i];
+            auto target_len = (
+                std::min(size_t(ends[i] - begins[i]), target_dim) * (1 - m_pad_max_length) // truncation
+                + target_dim * m_pad_max_length  // pad to max length
+            );
+            auto pad_len = target_dim - target_len;
+
+            // fill padding values
+            for (size_t j = 0; j < pad_len; ++j) {
+                out_elems = std::copy(default_value, default_value + elem_size, out_elems);
+            }
+            // fill actual values
+            auto begin = elems + elem_size * begins[i];
+            auto end = begin + elem_size * target_len;  // truncate right side
+            out_elems = std::copy(begin, end, out_elems);
+
+            // construct padding mask
+            out_mask = std::fill_n(out_mask, pad_len, char(0));
+            out_mask = std::fill_n(out_mask, target_dim - pad_len, char(1));
         }
     }
 
