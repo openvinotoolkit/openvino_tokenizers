@@ -13,18 +13,25 @@ public:
 
     RaggedToDense () = default;
 
-    RaggedToDense(const ov::OutputVector& arguments) :
-        ov::op::Op(arguments) {
+    RaggedToDense(
+        const ov::OutputVector& arguments,
+        const bool pad_right = true,
+        const bool pad_max_length = false
+    ) :
+        ov::op::Op(arguments),
+        m_pad_right(pad_right),
+        m_pad_max_length(pad_max_length) {
         constructor_validate_and_infer_types();
     }
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<RaggedToDense>(inputs);
+        return std::make_shared<RaggedToDense>(inputs, m_pad_right, m_pad_max_length);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
+        visitor.on_attribute("pad_right", m_pad_right);
         return true;
     }
 
@@ -33,4 +40,8 @@ public:
     bool has_evaluate() const override {
         return true;
     }
+
+private:
+    bool m_pad_right;
+    bool m_pad_max_length;
 };
