@@ -21,6 +21,11 @@ endif()
 
 project(openvino_tokenizers)
 
+option(CPACK_INCLUDE_TOPLEVEL_DIRECTORY "Boolean toggle to include/exclude top level directory." OFF)
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP" CACHE STRING "List of CPack generators to use.")
+endif()
+
 include(cmake/platforms.cmake)
 
 # Find OpenVINODeveloperPackage first to compile with SDL flags
