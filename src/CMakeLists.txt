@@ -301,7 +301,7 @@ if(LINUX)
 elseif(APPLE)
   # to find libcore_tokenizer.dylib in the same folder
   set(rpaths "@loader_path")
-  if(DEFINED SKBUILD)
+  if(DEFINED PY_BUILD_CMAKE_PACKAGE_NAME)
     # in case we build pip package, we need to refer to libopenvino.dylib from 'openvino' package
     list(APPEND rpaths "@loader_path/../../openvino/libs")
   endif()
@@ -357,12 +357,24 @@ else()
   install(FILES ${extra_libs} DESTINATION ${extra_libs_location} COMPONENT openvino_tokenizers)
 endif()
 
+install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
+              "${openvino_tokenizers_SOURCE_DIR}/third-party-programs.txt"
+              "${openvino_tokenizers_SOURCE_DIR}/SECURITY.md"
+        DESTINATION "${PY_BUILD_CMAKE_PACKAGE_NAME}-${PY_BUILD_CMAKE_PACKAGE_VERSION}.dist-info"
+        COMPONENT openvino_tokenizers_licenses
+        EXCLUDE_FROM_ALL)
+
+configure_file("${openvino_tokenizers_SOURCE_DIR}/cmake/templates/__version__.py.in"
+               "${openvino_tokenizers_BINARY_DIR}/python/__version__.py" @ONLY)
+install(FILES "${openvino_tokenizers_BINARY_DIR}/python/__version__.py"
+        DESTINATION "openvino_tokenizers"
+        COMPONENT openvino_tokenizers_python
+        EXCLUDE_FROM_ALL)
+
 #
 # Cpack configuration
 #
 
-set(CPACK_PACKAGE_NAME ${TARGET_NAME})
-set(CPACK_PACKAGE_VERSION "${CMAKE_PROJECT_VERSION}")
 set(CPACK_SOURCE_GENERATOR "") # not used
 
 include (CPack)

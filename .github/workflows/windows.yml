@@ -230,26 +230,15 @@ jobs:
           popd
 
       #
-      # Dependencies
-      #
-
-      - name: Install python dependencies
-        run: |
-          # wheel packaging
-          python3 -m pip install -r ${env:OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
-
-      #
       # Build
       #
 
       - name: Build tokenizers wheel
         run: |
           . "${{ env.INSTALL_DIR }}/setupvars.ps1"
-          python3 -m build --wheel --outdir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
+          python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
         env:
-          CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
-          SKBUILD_WHEEL_BUILD_TAG: ${{ github.run_number }}
 
       #
       # Upload build artifacts
