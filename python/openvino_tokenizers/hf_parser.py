@@ -448,7 +448,7 @@ def modify_sentencepiece_model(
         else:
             new_piece = model.pieces[idx]
 
-        if skip_special_tokens and new_piece.type != 2:  # type 2 is for unk symbol
+        if skip_special_tokens and new_piece.type not in (2, 4):  # type 2 is for unk symbol
             new_piece.type = 3  # make it control symbol so it will not decode during detokenization
         elif not skip_special_tokens and new_piece.type == 3:
             new_piece.type = 4  # change control type to userdef type
