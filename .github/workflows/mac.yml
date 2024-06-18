@@ -227,11 +227,6 @@ jobs:
       - name: Install build dependencies
         run: brew install coreutils ninja
 
-      - name: Install python dependencies
-        run: |
-          # wheel packaging
-          python3 -m pip install -r ${OPENVINO_TOKENIZERS_REPO}/requirements-build.txt
-
       #
       # Build
       #
@@ -239,11 +234,11 @@ jobs:
       - name: Build tokenizers wheel
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          python -m build --wheel --outdir ${BUILD_DIR} ${OPENVINO_TOKENIZERS_REPO}
+          python3 -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
+              --config-settings=override=cross.arch="macosx_10_12_x86_64" \
+              ${OPENVINO_TOKENIZERS_REPO}
         env:
-          CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=OFF'
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
-          SKBUILD_WHEEL_BUILD_TAG: ${{ github.run_number }}
 
       #
       # Upload build artifacts
