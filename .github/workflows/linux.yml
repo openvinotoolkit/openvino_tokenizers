@@ -236,11 +236,6 @@ jobs:
       - name: Install build dependencies
         run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
 
-      - name: Install OpenVINO Python wheels
-        run: |
-          # Install the core OV wheel
-          python3 -m pip install ${INSTALL_DIR}/tools/openvino-*.whl
-
       #
       # Build
       #
@@ -250,6 +245,7 @@ jobs:
           source ${INSTALL_DIR}/setupvars.sh
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
+              --find-links ${INSTALL_DIR}/tools \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
