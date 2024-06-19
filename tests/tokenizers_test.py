@@ -128,6 +128,7 @@ sentencepiece_models = [
     "THUDM/chatglm3-6b",
     "t5-base",
     "facebook/musicgen-small",
+    "rinna/bilingual-gpt-neox-4b",
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",

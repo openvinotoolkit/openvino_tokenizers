@@ -448,7 +448,7 @@ def modify_sentencepiece_model(
         else:
             new_piece = model.pieces[idx]
 
-        if skip_special_tokens and new_piece.type != 2:  # type 2 is for unk symbol
+        if skip_special_tokens and new_piece.type not in (2, 4):  # type 2 is for unk symbol
             new_piece.type = 3  # make it control symbol so it will not decode during detokenization
         elif not skip_special_tokens and new_piece.type == 3:
             new_piece.type = 4  # change control type to userdef type
@@ -489,19 +489,30 @@ def convert_sentencepiece_model_tokenizer(
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
     is_chatglm = getattr(hf_tokenizer, "name", None) == "GLMTokenizer"
+    add_bos_token = add_eos_token = None
     if is_chatglm:
         add_eos_token = False
-    elif hasattr(hf_tokenizer, "add_eos_token"):
+    elif hasattr(hf_tokenizer, "build_inputs_with_special_tokens"):
+        _fake_token_id = -0.5
+        try:
+            _ids = hf_tokenizer.build_inputs_with_special_tokens([_fake_token_id])
+            add_bos_token = _ids[0] != _fake_token_id
+            add_eos_token = _ids[-1] != _fake_token_id
+        except:
+            pass
+
+    if add_eos_token is None and hasattr(hf_tokenizer, "add_eos_token"):
         add_eos_token = hf_tokenizer.add_eos_token or False
-    else:
+    elif add_eos_token is None:
         add_eos_token = (
             getattr(hf_tokenizer, "truncation_side", "") == "right"
             or getattr(hf_tokenizer, "padding_side", "") == "right"
         )
 
-    add_bos_token = (
-        getattr(hf_tokenizer, "add_bos_token", add_eos_token) and hf_tokenizer.bos_token_id is not None
-    ) or False
+    if add_bos_token is None:
+        add_bos_token = (
+            getattr(hf_tokenizer, "add_bos_token", add_eos_token) and hf_tokenizer.bos_token_id is not None
+        ) or False
 
     if add_special_tokens is False:
         add_bos_token = add_eos_token = False
