@@ -282,7 +282,6 @@ class TransformersTokenizerPipelineParser:
             )
 
         self.num_of_added_tokens += combine_segments_step.number_of_added_tokens
-        combine_segments_step.set_tokens_ids(self.pipeline.vocab)
 
         self.add_truncation()
         self.pipeline.add_steps(combine_segments_step)
@@ -326,7 +325,6 @@ class TransformersTokenizerPipelineParser:
                     pad_right=pad_right,
                 )
             )
-        self.pipeline[-1].set_token_id(vocab=self.pipeline.vocab)
 
     def decoding(
         self,
@@ -419,7 +417,18 @@ def convert_fast_tokenizer(
 
 
 def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
-    return getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            hf_tokenizer.save_pretrained(tmp)
+        except Exception:
+            return False
+        if not hasattr(hf_tokenizer, "vocab_files_names") or "vocab_file" not in hf_tokenizer.vocab_files_names:
+            return False
+        vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
+        return (
+            getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
+            and vocab_file.exists()
+        )
 
 
 def modify_sentencepiece_model(
@@ -464,7 +473,9 @@ def modify_sentencepiece_model(
 
     while (idx := len(model.pieces)) < getattr(hf_tokenizer, "vocab_size", len(model.pieces)):
         new_piece = deepcopy(model.pieces[-1])
-        new_piece.piece = hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+        new_piece.piece = (
+            hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+        )
         new_piece.type = 3
         model.pieces.insert(idx, new_piece)
 
