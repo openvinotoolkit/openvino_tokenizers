@@ -535,7 +535,9 @@ def convert_sentencepiece_model_tokenizer(
             _ids = hf_tokenizer.build_inputs_with_special_tokens([_fake_token_id])
             add_bos_token = _ids[0] != _fake_token_id
             add_eos_token = _ids[-1] != _fake_token_id
-        except:
+        except Exception:
+            # some tokenizers have broken build_inputs_with_special_tokens method,
+            # fallback older add bos/eos token detection methods
             pass
 
     if add_eos_token is None and hasattr(hf_tokenizer, "add_eos_token"):
@@ -642,18 +644,17 @@ def convert_sentencepiece_model_tokenizer(
 
     indices, values, dense_shape = tokenizer_node.outputs()
 
+    if is_chatglm and add_special_tokens:
+        prefix_tokens = np.array([hf_tokenizer.get_prefix_tokens()])
+        dense_shape, indices, values = add_prefix_tokens(prefix_tokens, dense_shape, indices, values)
+
     default_value = make_constant_node(hf_tokenizer.pad_token_id or 0, values.element_type)
-    broadcast = opset.broadcast(default_value, dense_shape)
+    broadcast = opset.broadcast(default_value, dense_shape, broadcast_spec="BIDIRECTIONAL")
+
     scatternd_input_ids = _get_factory().create(
         "ScatterNDUpdate",
         [broadcast, indices, values],  # FIXME: pad left side instead of right
     )
-
-    if is_chatglm and add_special_tokens:
-        prefix_tokens = make_constant_node(
-            np.array([hf_tokenizer.get_prefix_tokens()]), dtype=scatternd_input_ids.output(0).element_type
-        )
-        scatternd_input_ids = opset.concat([prefix_tokens, scatternd_input_ids], axis=-1)
 
     scatternd_input_ids.output(0).tensor.add_names({TOKEN_IDS_INPUT_NAME})
 
@@ -671,12 +672,6 @@ def convert_sentencepiece_model_tokenizer(
                 ),
             ],
         )
-
-        if is_chatglm and add_special_tokens:
-            attention_prefix = make_constant_node(
-                np.array([[1 for _ in hf_tokenizer.get_prefix_tokens()]]), dtype=attention_mask.output(0).element_type
-            )
-            attention_mask = opset.concat([attention_prefix, attention_mask], axis=-1)
 
         attention_mask.output(0).tensor.add_names({ATTENTION_MASK_INPUT_NAME})
         outputs.append(attention_mask.output(0))
@@ -706,6 +701,44 @@ def convert_sentencepiece_model_tokenizer(
         detokenizer.set_rt_info(eos_token_id, EOS_TOKEN_ID_NAME)
 
     return tokenizer, detokenizer
+
+
+def add_prefix_tokens(prefix_tokens, dense_shape, indices, values):
+    _, prefix_len = prefix_tokens.shape
+    index_update_node = make_constant_node(np.array([0, prefix_len]))
+    # update resulting dense tensor shape
+    dense_shape = opset.add(dense_shape, index_update_node)
+    prefix_tokens_node = make_constant_node(prefix_tokens, dtype=values.element_type)
+    batch_size = opset.gather(dense_shape, as_node(0), as_node(0))
+    batch_slice = opset.slice(dense_shape, as_node([0]), as_node([1]), as_node([1]))
+    # new values
+    prefix_tokens_batch = opset.broadcast(
+        data=prefix_tokens_node,
+        target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
+        broadcast_spec="BIDIRECTIONAL",
+    )
+    prefix_tokens_batch = opset.reshape(prefix_tokens_batch, output_shape=[-1], special_zero=False)
+    values = opset.concat([values, prefix_tokens_batch], axis=0)
+    # new indices
+    indices = opset.add(indices, index_update_node)
+    x_indices = opset.range(as_node(0), as_node(batch_size), as_node(1), output_type=indices.output(0).element_type)
+    x_indices = opset.broadcast(
+        data=x_indices,
+        target_shape=opset.concat([as_node([prefix_len]), batch_slice], axis=0),
+        broadcast_spec="BIDIRECTIONAL",
+    )
+    x_indices = opset.transpose(x_indices, as_node([1, 0]))
+    x_indices = opset.reshape(x_indices, output_shape=[-1, 1], special_zero=False)
+    y_indices = opset.range(as_node(0), as_node(prefix_len), as_node(1), output_type=indices.output(0).element_type)
+    y_indices = opset.broadcast(
+        data=y_indices,
+        target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
+        broadcast_spec="BIDIRECTIONAL",
+    )
+    y_indices = opset.reshape(y_indices, output_shape=[-1, 1], special_zero=False)
+    prefix_indices = opset.concat([x_indices, y_indices], axis=1)
+    indices = opset.concat([indices, prefix_indices], axis=0)
+    return dense_shape.output(0), indices.output(0), values.output(0)
 
 
 def get_sp_detokenizer(
