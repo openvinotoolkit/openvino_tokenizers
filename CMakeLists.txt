@@ -21,6 +21,12 @@ endif()
 
 project(openvino_tokenizers)
 
+# Uniform outcome in all repos - all repos will not create top level directory
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP" CACHE STRING "List of CPack generators to use.")
+endif()
+
 include(cmake/platforms.cmake)
 
 # Find OpenVINODeveloperPackage first to compile with SDL flags
