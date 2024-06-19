@@ -142,6 +142,10 @@ class RegexNormalizationStep(NormalizationStep):
         return cls(regex_search_pattern=r"^([^ ])", replace_term=r" \1")
 
     @classmethod
+    def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r"^*.", replace_term=fr"{string}\1")
+
+    @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
         # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L17
         return cls(
