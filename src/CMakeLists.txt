@@ -290,13 +290,6 @@ endif()
 # Set install RPATH
 #
 
-if(SKBUILD)
-  # RPATH for wheel is mandatory to find core_tokenizers library. It
-  # must be forced because tokenizers may be built with OpenVINO targeting
-  # archive. Such OpenVINO configurations sets
-  # CMAKE_SKIP_INSTALL_RPATH to ON because it relyes on setupvars.sh.
-  set(CMAKE_SKIP_INSTALL_RPATH OFF)
-endif()
 # setting RPATH / LC_RPATH depending on platform
 if(LINUX)
   # to find libcore_tokenizer.so in the same folder

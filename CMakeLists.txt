@@ -21,7 +21,8 @@ endif()
 
 project(openvino_tokenizers)
 
-option(CPACK_INCLUDE_TOPLEVEL_DIRECTORY "Boolean toggle to include/exclude top level directory." OFF)
+# Uniform outcome in all repos - all repos will not create top level directory
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
 if(WIN32)
     set(CPACK_GENERATOR "ZIP" CACHE STRING "List of CPack generators to use.")
 endif()
