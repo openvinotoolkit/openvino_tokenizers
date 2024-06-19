@@ -29,7 +29,7 @@ from .constants import (
     TOKENIZER_NAME,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import has_incompatible_re2_op
+from .utils import apply_bytes_to_unicode, has_incompatible_re2_op
 
 
 logger = logging.getLogger(__name__)
@@ -492,19 +492,21 @@ class BPETokenizationStep(TokenizationModelStep):
     end_suffix: str = ""
     byte_fallback: bool = False
     added_tokens: Optional[Dict[int, str]] = None
-    is_byte_level: bool = False
-
-    def __post_init__(self):
-        if self.added_tokens is not None:
-            self.extend_vocab_with_added_tokens()
 
     def finalize(self) -> None:
         pipeline = self.get_pipeline()
 
-        if not self.added_tokens:
-            return
+        vocab_set = set(self.vocab)
+        for idx, token in sorted(self.added_tokens.items()):
+            if token not in vocab_set:
+                if pipeline.is_byte_level:
+                    token = apply_bytes_to_unicode(token)
+                self.vocab.append(token)
 
         added_tokens = list(self.added_tokens.values())
+
+        if not added_tokens:
+            return
 
         for split_step in pipeline.split_steps:
             split_step.skip_tokens = added_tokens
@@ -516,15 +518,6 @@ class BPETokenizationStep(TokenizationModelStep):
             )
         )
         pipeline.steps.insert(idx, RegexSplitStep.special_tokens_splitter(added_tokens))
-
-        self.is_byte_level = any(isinstance(step, BytesToCharsStep) for step in pipeline.pre_tokenization_steps)
-
-    def extend_vocab_with_added_tokens(self) -> None:
-        vocab_set = set(self.vocab)
-
-        for idx, token in sorted(self.added_tokens.items()):
-            if token not in vocab_set:
-                self.vocab.append(token)
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
@@ -569,7 +562,7 @@ class BPETokenizationStep(TokenizationModelStep):
         else:
             special_tokens_outputs = []
 
-        if special_tokens_outputs and self.is_byte_level:
+        if special_tokens_outputs and pipeline.is_byte_level:
             special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
@@ -668,9 +661,10 @@ class SpecialTokenWithId:
     token: Optional[str] = None
     _token_id: Optional[int] = None
 
-    def set_token_id(self, vocab: Optional[List[str]]) -> None:
-        if self._token_id is None and vocab is not None and self.token in vocab:
-            self._token_id = vocab.index(self.token)
+    def set_token_id(self, vocab: Optional[List[str]], is_byte_level: bool = False) -> None:
+        token = apply_bytes_to_unicode(self.token) if is_byte_level else self.token
+        if self._token_id is None and vocab is not None and token in vocab:
+            self._token_id = vocab.index(token)
 
     @property
     def token_id(self) -> Optional[int]:
@@ -708,10 +702,14 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         self.segment_ids = segment_ids_tensor
 
-    def set_tokens_ids(self, vocab: Optional[List[int]]) -> None:
+    def finalize(self) -> None:
+        pipeline = self.get_pipeline()
+        self.set_tokens_ids(vocab=pipeline.vocab, is_byte_level=pipeline.is_byte_level)
+
+    def set_tokens_ids(self, vocab: Optional[List[int]], is_byte_level: bool = False) -> None:
         for input_ in self.inputs:
             if isinstance(input_, AddToken) and input_.token_id is None:
-                input_.set_token_id(vocab)
+                input_.set_token_id(vocab, is_byte_level)
 
     @property
     def number_of_added_tokens(self) -> int:
@@ -986,6 +984,10 @@ class TokenizerPipeline:
     vocab_node_outputs: Optional[List[Output]] = field(default=None, repr=False)
     eos_token_id: Optional[int] = None
     finalized: bool = False
+
+    @property
+    def is_byte_level(self) -> bool:
+        return any(isinstance(step, BytesToCharsStep) for step in self.pre_tokenization_steps)
 
     def get_config(self) -> Dict[str, Dict[str, Any]]:
         return {type(step).__name__: step.get_config() for step in self.steps}

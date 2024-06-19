@@ -4,6 +4,7 @@
 
 import logging
 import re
+from functools import lru_cache
 from typing import Dict, Optional, Sequence, Tuple, Union
 
 from openvino import Model, Type
@@ -132,3 +133,25 @@ def filter_re2_incompatible(pattern: str) -> str:
         not_filtered.append(subpattern)
 
     return "|".join(not_filtered)
+
+
+# from transformers.models.gpt2.tokenization_gpt2
+@lru_cache()
+def bytes_to_unicode() -> Dict[int, str]:
+    bs = (
+        list(range(ord("!"), ord("~") + 1)) + list(range(ord("¡"), ord("¬") + 1)) + list(range(ord("®"), ord("ÿ") + 1))
+    )
+    cs = bs[:]
+    n = 0
+    for b in range(2**8):
+        if b not in bs:
+            bs.append(b)
+            cs.append(2**8 + n)
+            n += 1
+    cs = (chr(n) for n in cs)
+    return dict(zip(bs, cs))
+
+
+def apply_bytes_to_unicode(token: str) -> str:
+    bytes_to_unicode_dict = bytes_to_unicode()
+    return "".join(bytes_to_unicode_dict[byte] for char in token for byte in char.encode())

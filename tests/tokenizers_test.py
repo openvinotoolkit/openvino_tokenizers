@@ -115,6 +115,7 @@ bpe_models = [
     # "google/flan-t5-xxl",  # needs Precompiled/CharsMap
     # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
+    "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
 ]
 sentencepiece_models = [
     "codellama/CodeLlama-7b-hf",
