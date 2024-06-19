@@ -176,6 +176,7 @@ class TransformersTokenizerPipelineParser:
         "BertNormalizer": parse_bert_normalizer,
         "Replace": parse_replace_normalizer,
         "Strip": parse_strip_step,
+        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("Prepend", ""))
     }
 
     def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
