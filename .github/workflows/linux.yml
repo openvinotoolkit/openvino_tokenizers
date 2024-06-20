@@ -236,11 +236,6 @@ jobs:
       - name: Install build dependencies
         run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
 
-      - name: Install OpenVINO Python wheels
-        run: |
-          # Install the core OV wheel
-          python3 -m pip install ${INSTALL_DIR}/tools/openvino-*.whl
-
       #
       # Build
       #
