@@ -31,14 +31,20 @@ include(cmake/platforms.cmake)
 find_package(Python3 REQUIRED)
 execute_process(
     COMMAND ${Python3_EXECUTABLE} -c "from openvino.utils import get_cmake_path; print(get_cmake_path(), end='')"
+    RESULT_VARIABLE result
     OUTPUT_VARIABLE OpenVINO_DIR_PY
     ERROR_QUIET
 )
+if(OpenVINO_DIR_PY AND NOT OpenVINO_DIR)
+    message(STATUS "Use OpenVINO from python package: ${OpenVINO_DIR_PY}")
+    set(OpenVINO_DIR ${OpenVINO_DIR_PY} CACHE PATH "" FORCE)
+endif()
 
 # Find OpenVINODeveloperPackage first to compile with SDL flags
-find_package(OpenVINODeveloperPackage QUIET PATHS "${OpenVINO_DIR}")
+find_package(OpenVINODeveloperPackage QUIET
+             PATHS "${OpenVINO_DIR}")
 if(NOT OpenVINODeveloperPackage_FOUND)
-    find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow PATHS "${OpenVINO_DIR_PY}")
+    find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow)
 endif()
 
 if(DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION AND NOT PY_BUILD_CMAKE_PACKAGE_VERSION EQUAL CMAKE_PROJECT_VERSION)
