@@ -31,6 +31,7 @@ from .constants import (
 )
 from .tokenizer_pipeline import (
     BPETokenizationStep,
+    ByteFallbackStep,
     BytesToCharsStep,
     CaseFoldStep,
     CharsToBytesStep,
@@ -337,6 +338,7 @@ class TransformersTokenizerPipelineParser:
         "Replace": lambda decode_dict: RegexDecodingStep.parse_replace_dict(decode_dict),
         "Fuse": lambda decode_dict: FuseStep(),
         "Strip": lambda decode_dict: RegexDecodingStep.parse_strip_dict(decode_dict),
+        "ByteFallback": lambda decode_dict: ByteFallbackStep(),
     }
 
     def decoding(

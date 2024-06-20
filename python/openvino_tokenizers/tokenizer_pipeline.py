@@ -143,7 +143,7 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"^*.", replace_term=fr"{string}\1")
+        return cls(regex_search_pattern=r"^", replace_term=string)
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
@@ -178,18 +178,6 @@ class NMTNormalizationStep(NormalizationStep):
 
     https://github.com/huggingface/tokenizers/blob/28cd3dce2a75d106572392194ff2564574c33235/tokenizers/src/normalizers/unicode.rs#L44
     """
-
-
-@dataclass
-class StripAccentsStep(NormalizationStep):
-    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return RegexNormalizationStep.strip_accents_regex().get_ov_subgraph(input_nodes).outputs()
-
-
-@dataclass
-class DelControlCharsStep(NormalizationStep):
-    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return RegexNormalizationStep.del_control_chars_regex().get_ov_subgraph(input_nodes).outputs()
 
 
 @dataclass
@@ -934,6 +922,17 @@ class FuseStep(DecodingStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         *input_nodes, chars_node = input_nodes
         return _get_factory().create("FuzeRagged", input_nodes, {}).outputs() + [chars_node]
+
+
+@dataclass
+class ByteFallbackStep(DecodingStep):
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        if len(input_nodes) == 5:
+            ragged_dims, input_nodes = input_nodes[:2], input_nodes[2:]
+        else:
+            ragged_dims = []
+
+        return ragged_dims + _get_factory().create("ByteFallback", input_nodes).outputs()
 
 
 @dataclass
