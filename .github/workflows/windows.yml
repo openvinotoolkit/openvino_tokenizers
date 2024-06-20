@@ -230,15 +230,6 @@ jobs:
           popd
 
       #
-      # Dependencies
-      #
-
-      - name: Install OpenVINO Python wheels
-        run: |
-          # Install the core OV wheel
-          python -m pip install ${{ env.INSTALL_DIR }}/tools/openvino-*.whl
-
-      #
       # Build
       #
 
