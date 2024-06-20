@@ -930,6 +930,13 @@ class CharsToBytesStep(DecodingStep):
 
 
 @dataclass
+class FuseStep(DecodingStep):
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        *input_nodes, chars_node = input_nodes
+        return _get_factory().create("FuzeRagged", input_nodes, {}).outputs() + [chars_node]
+
+
+@dataclass
 class RegexDecodingStep(DecodingStep):
     regex_search_pattern: str
     replace_term: str
@@ -940,6 +947,23 @@ class RegexDecodingStep(DecodingStep):
             regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
             replace_term=r"\1",
         )
+
+    @classmethod
+    def parse_replace_dict(cls, replace_dict: Dict[str, Any]) -> "RegexDecodingStep":
+        pattern = replace_dict.get("pattern", {}).get("String")
+        content = replace_dict.get("content")
+        if pattern is None or content is None:
+            raise ValueError(f"Replace Decoding Op with this parameters: `{replace_dict}` does not support yet.")
+
+        return cls(regex_search_pattern=pattern, replace_term=content)
+
+    @classmethod
+    def parse_strip_dict(cls, replace_dict: Dict[str, Any]) -> "RegexDecodingStep":
+        content = replace_dict.get("content")
+        if content is None:
+            raise ValueError(f"Replace Decoding Op with this parameters: `{replace_dict}` does not support yet.")
+
+        return cls(regex_search_pattern=f"^{content}", replace_term="")
 
     @classmethod
     def strip_forward_space(cls) -> "RegexDecodingStep":
@@ -963,13 +987,18 @@ class RegexDecodingStep(DecodingStep):
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        if len(input_nodes) == 5:
+            ragged_dims, input_nodes = input_nodes[:2], input_nodes[2:]
+        else:
+            ragged_dims = []
+
         input_nodes.extend(
             (
                 *self.create_string_constant_node(self.regex_search_pattern).outputs(),
                 *self.create_string_constant_node(self.replace_term).outputs(),
             )
         )
-        return _get_factory().create("RegexNormalization", input_nodes).outputs()
+        return ragged_dims + _get_factory().create("RegexNormalization", input_nodes).outputs()
 
     @classmethod
     def replace_sp_spaces(cls) -> "RegexDecodingStep":
