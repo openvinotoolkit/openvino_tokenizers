@@ -35,8 +35,8 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     // Set output shapes
     outputs[0].set_shape({batch_size});
     outputs[1].set_shape({batch_size});
-    outputs[2].set_shape({batch_size * seq_len});
-    outputs[3].set_shape({batch_size * seq_len});
+    outputs[2].set_shape({batch_size * ((seq_len > 0) ? seq_len : 1)});
+    outputs[3].set_shape({batch_size * ((seq_len > 0) ? seq_len : 1)});
     outputs[4].set_shape({batch_size * seq_len * 100});  // 100 chars - max token length
     const size_t num_rows = inputs[0].get_size();
 
@@ -49,8 +49,14 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     uint32_t char_offset = 0;
 
     for(size_t batch = 0; batch < batch_size; ++batch) {
-        new_ragged_begins[batch] = batch * seq_len;
-        new_ragged_ends[batch]   = new_ragged_begins[batch] + seq_len;
+        new_ragged_begins[batch] = batch * ((seq_len > 0) ? seq_len : 1);
+        new_ragged_ends[batch]   = new_ragged_begins[batch] + ((seq_len > 0) ? seq_len : 1);
+
+        if (seq_len == 0) {
+            new_begins[batch] = char_offset;
+            new_ends[batch] = char_offset;
+            continue;
+        };
 
         for(size_t seq = new_ragged_begins[batch]; seq < new_ragged_ends[batch]; ++seq) {
             auto token_id = input_data[seq];

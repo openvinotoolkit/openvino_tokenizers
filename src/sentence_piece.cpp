@@ -5,7 +5,6 @@
 #include <functional>
 
 #include "sentencepiece_processor.h"
-#include "absl/strings/str_format.h"
 #include "absl/container/flat_hash_map.h"
 
 #include "openvino/op/util/framework_node.hpp"

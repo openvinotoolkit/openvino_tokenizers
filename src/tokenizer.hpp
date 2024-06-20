@@ -26,5 +26,6 @@
 #include "chars_to_bytes.hpp"
 #include "trie_tokenizer.hpp"
 #include "fuze.hpp"
+#include "byte_fallback.hpp"
 
 #include "tensorflow_translators.hpp"
