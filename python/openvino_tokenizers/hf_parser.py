@@ -35,6 +35,8 @@ from .tokenizer_pipeline import (
     CaseFoldStep,
     CharsToBytesStep,
     CombineSegmentsStep,
+    DecodingStep,
+    FuseStep,
     NMTNormalizationStep,
     NormalizationStep,
     NormalizeUnicode,
@@ -107,6 +109,7 @@ def parse_byte_level_pretokenization_step(
 ) -> List[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
     if pretokenizer_dict.get("add_prefix_space"):
+        # todo: do not add whitespace if it is already is whitespace
         steps.append(RegexNormalizationStep.add_prefix_whitespace_regex())
 
     # regex is used by default, but it does not appear in config yet
@@ -176,7 +179,7 @@ class TransformersTokenizerPipelineParser:
         "BertNormalizer": parse_bert_normalizer,
         "Replace": parse_replace_normalizer,
         "Strip": parse_strip_step,
-        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("Prepend", ""))
+        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", ""))
     }
 
     def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
@@ -327,18 +330,38 @@ class TransformersTokenizerPipelineParser:
                 )
             )
 
+    decoding_map: Dict[
+        str,
+        Callable[[Dict[str, Any]], Union[DecodingStep, List[DecodingStep]]],
+    ] = {
+        "Replace": lambda decode_dict: RegexDecodingStep.parse_replace_dict(decode_dict),
+        "Fuse": lambda decode_dict: FuseStep(),
+        "Strip": lambda decode_dict: RegexDecodingStep.parse_strip_dict(decode_dict),
+    }
+
     def decoding(
         self,
         skip_special_tokens: bool = False,
         clean_up_tokenization_spaces: Optional[bool] = None,
     ) -> None:
-        if self.tokenizer_json["decoder"] is None:
+        if self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
 
         skip_tokens = parse_special_tokens(self.original_tokenizer) if skip_special_tokens else {}
-        if self.tokenizer_json["decoder"]["type"] == "ByteLevel":
-            self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens)))
+        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens)))
+
+        if self.tokenizer_json["decoder"]["type"] == "Sequence":
+            for decoder_dict in self.tokenizer_json["decoder"]["decoders"]:
+                decoder_parser = self.decoding_map.get(decoder_dict.get("type"))
+                if decoder_parser is None:
+                    pass
+                    # raise ValueError(f"Decoder {decoder_dict} is not supported yet.")
+                else:
+                    self.pipeline.add_steps(decoder_parser(decoder_dict))
+        elif self.tokenizer_json["decoder"]["type"] == "ByteLevel":
             self.pipeline.add_steps(CharsToBytesStep())
+        else:
+            self.pipeline.add_steps(FuseStep())
 
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
