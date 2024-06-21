@@ -493,7 +493,8 @@ class BPETokenizationStep(TokenizationModelStep):
             if token not in vocab_set:
                 if pipeline.is_byte_level:
                     token = apply_bytes_to_unicode(token)
-                self.vocab.append(token)
+                if idx >= len(self.vocab):
+                    self.vocab.append(token)
 
         added_tokens = list(self.added_tokens.values())
 
@@ -522,7 +523,7 @@ class BPETokenizationStep(TokenizationModelStep):
             vocab=vocab,
             merges=tokenizer_json["model"]["merges"],
             added_tokens={
-                token["id"]: token["content"] for token in tokenizer_json["added_tokens"]
+                token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"] >= len(vocab)
             },
         )
 
