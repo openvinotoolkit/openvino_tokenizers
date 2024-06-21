@@ -233,7 +233,6 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          source ${INSTALL_DIR}/setupvars.sh
           python3 -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="macosx_10_12_x86_64" \
               --find-links ${INSTALL_DIR}/tools \

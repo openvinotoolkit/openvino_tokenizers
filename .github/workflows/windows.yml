@@ -235,7 +235,6 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          . "${{ env.INSTALL_DIR }}/setupvars.ps1"
           python -m pip wheel -v --no-deps --find-links ${env:INSTALL_DIR}/tools --wheel-dir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
