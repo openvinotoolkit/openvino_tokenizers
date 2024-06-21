@@ -143,7 +143,7 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"^", replace_term=string)
+        return cls(regex_search_pattern=r"(^)(.+)", replace_term=fr"{string}\2")
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
@@ -522,7 +522,7 @@ class BPETokenizationStep(TokenizationModelStep):
             vocab=vocab,
             merges=tokenizer_json["model"]["merges"],
             added_tokens={
-                token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"] >= len(vocab)
+                token["id"]: token["content"] for token in tokenizer_json["added_tokens"]
             },
         )
 
