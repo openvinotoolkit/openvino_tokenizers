@@ -523,7 +523,7 @@ class BPETokenizationStep(TokenizationModelStep):
             vocab=vocab,
             merges=tokenizer_json["model"]["merges"],
             added_tokens={
-                token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"] >= len(vocab)
+                token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"]
             },
         )
 
