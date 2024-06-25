@@ -180,6 +180,9 @@ jobs:
 
   openvino_tokenizers:
     name: OpenVINO tokenizers extension
+    strategy:
+      matrix:
+        build_fast_tokenizers: [ON, OFF]
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
@@ -249,6 +252,7 @@ jobs:
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_GENERATOR: 'Unix Makefiles'
+          CMAKE_ARGS: '-DBUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}'
 
       #
       # Upload build artifacts
