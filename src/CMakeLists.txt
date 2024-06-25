@@ -142,11 +142,18 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
 endfunction()
 
 if(BUILD_FAST_TOKENIZERS)
+  set(EXTERNAL_PROJECT_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/src)
+  set(EXTERNAL_PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/build)
+  set(EXTERNAL_PROJECT_SUBBUILD_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/sub-build)
+
   FetchContent_Declare(
     fast_tokenizer
     URL      https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz
     URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
-    PATCH_COMMAND git apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
+    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
+    SOURCE_DIR ${EXTERNAL_PROJECT_SOURCE_DIR}
+    BINARY_DIR ${EXTERNAL_PROJECT_BINARY_DIR}
+    SUBBUILD_DIR ${EXTERNAL_PROJECT_SUBBUILD_DIR}
   )
 
   FetchContent_GetProperties(fast_tokenizer)
