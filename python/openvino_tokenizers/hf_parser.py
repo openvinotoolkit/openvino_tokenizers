@@ -31,10 +31,13 @@ from .constants import (
 )
 from .tokenizer_pipeline import (
     BPETokenizationStep,
+    ByteFallbackStep,
     BytesToCharsStep,
     CaseFoldStep,
     CharsToBytesStep,
     CombineSegmentsStep,
+    DecodingStep,
+    FuseStep,
     NMTNormalizationStep,
     NormalizationStep,
     NormalizeUnicode,
@@ -107,6 +110,7 @@ def parse_byte_level_pretokenization_step(
 ) -> List[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
     if pretokenizer_dict.get("add_prefix_space"):
+        # todo: do not add whitespace if it is already is whitespace
         steps.append(RegexNormalizationStep.add_prefix_whitespace_regex())
 
     # regex is used by default, but it does not appear in config yet
@@ -176,6 +180,7 @@ class TransformersTokenizerPipelineParser:
         "BertNormalizer": parse_bert_normalizer,
         "Replace": parse_replace_normalizer,
         "Strip": parse_strip_step,
+        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", ""))
     }
 
     def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
@@ -282,7 +287,6 @@ class TransformersTokenizerPipelineParser:
             )
 
         self.num_of_added_tokens += combine_segments_step.number_of_added_tokens
-        combine_segments_step.set_tokens_ids(self.pipeline.vocab)
 
         self.add_truncation()
         self.pipeline.add_steps(combine_segments_step)
@@ -326,20 +330,40 @@ class TransformersTokenizerPipelineParser:
                     pad_right=pad_right,
                 )
             )
-        self.pipeline[-1].set_token_id(vocab=self.pipeline.vocab)
+
+    decoding_map: Dict[
+        str,
+        Callable[[Dict[str, Any]], Union[DecodingStep, List[DecodingStep]]],
+    ] = {
+        "Replace": lambda decode_dict: RegexDecodingStep.parse_replace_dict(decode_dict),
+        "Fuse": lambda decode_dict: FuseStep(),
+        "Strip": lambda decode_dict: RegexDecodingStep.parse_strip_dict(decode_dict),
+        "ByteFallback": lambda decode_dict: ByteFallbackStep(),
+    }
 
     def decoding(
         self,
         skip_special_tokens: bool = False,
         clean_up_tokenization_spaces: Optional[bool] = None,
     ) -> None:
-        if self.tokenizer_json["decoder"] is None:
+        if self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
 
         skip_tokens = parse_special_tokens(self.original_tokenizer) if skip_special_tokens else {}
-        if self.tokenizer_json["decoder"]["type"] == "ByteLevel":
-            self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens)))
+        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens)))
+
+        if self.tokenizer_json["decoder"]["type"] == "Sequence":
+            for decoder_dict in self.tokenizer_json["decoder"]["decoders"]:
+                decoder_parser = self.decoding_map.get(decoder_dict.get("type"))
+                if decoder_parser is None:
+                    pass
+                    # raise ValueError(f"Decoder {decoder_dict} is not supported yet.")
+                else:
+                    self.pipeline.add_steps(decoder_parser(decoder_dict))
+        elif self.tokenizer_json["decoder"]["type"] == "ByteLevel":
             self.pipeline.add_steps(CharsToBytesStep())
+        else:
+            self.pipeline.add_steps(FuseStep())
 
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
@@ -419,7 +443,18 @@ def convert_fast_tokenizer(
 
 
 def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
-    return getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            hf_tokenizer.save_pretrained(tmp)
+        except Exception:
+            return False
+        if not hasattr(hf_tokenizer, "vocab_files_names") or "vocab_file" not in hf_tokenizer.vocab_files_names:
+            return False
+        vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
+        return (
+            getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
+            and vocab_file.exists()
+        )
 
 
 def modify_sentencepiece_model(
@@ -464,7 +499,9 @@ def modify_sentencepiece_model(
 
     while (idx := len(model.pieces)) < getattr(hf_tokenizer, "vocab_size", len(model.pieces)):
         new_piece = deepcopy(model.pieces[-1])
-        new_piece.piece = hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+        new_piece.piece = (
+            hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+        )
         new_piece.type = 3
         model.pieces.insert(idx, new_piece)
 

@@ -5,9 +5,11 @@
 #pragma once
 
 #include <openvino/op/op.hpp>
+#include "absl/strings/str_format.h"
 
 namespace sentencepiece {
     class SentencePieceProcessor;
+    int PieceToByte(absl::string_view piece);
 }
 
 namespace TemplateExtension {
