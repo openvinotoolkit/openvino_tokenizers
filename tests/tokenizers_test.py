@@ -480,6 +480,7 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_t
     for output_name, hf_result in hf_tokenized.items():
         # galactica tokenizer has 3 output, but model has 2 inputs
         if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
             assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
 
 

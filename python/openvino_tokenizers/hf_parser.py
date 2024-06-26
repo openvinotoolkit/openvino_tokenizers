@@ -588,6 +588,13 @@ def convert_sentencepiece_model_tokenizer(
                         add_prefix_space = False
                     elif prepend_scheme == "first":
                         add_prefix_space = False
+
+                # metaspace can be emulated with sequence of normalizers
+                if add_prefix_space is None:
+                    normalizers = tokenizer_json.get("normalizer", {}).get("normalizers", [])
+                    add_prefix_space = any(normalizer.get("prepend") == "▁" for normalizer in normalizers)
+                    prepend_scheme = "never"
+
         elif add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast):
             add_prefix_space = not add_bos_token
 
@@ -692,6 +699,7 @@ def convert_sentencepiece_model_tokenizer(
         streaming_detokenizer=streaming_detokenizer,
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         prepend_scheme=prepend_scheme,
+        add_prefix_space=add_prefix_space,
     )
 
     if eos_token_id is not None:
@@ -705,6 +713,7 @@ def get_sp_detokenizer(
     streaming_detokenizer: bool = False,
     clean_up_tokenization_spaces: bool = False,
     prepend_scheme: str = "",
+    add_prefix_space: Optional[bool] = None
 ) -> Model:
     model_input = token_ids = op.Parameter(Type.i32, PartialShape(["?", "?"]))  # (batch, sequence)
 
@@ -720,8 +729,10 @@ def get_sp_detokenizer(
     if streaming_detokenizer:
         detokenizer = RegexDecodingStep.replace_sp_spaces().get_ov_subgraph(detokenizer)
 
-    if prepend_scheme in ("always", "first"):
+    if not streaming_detokenizer and prepend_scheme == "always" and add_prefix_space is False:
         detokenizer = RegexDecodingStep.strip_forward_space().get_ov_subgraph(detokenizer)
+    elif not streaming_detokenizer and prepend_scheme == "first" and add_prefix_space is False:
+        detokenizer = RegexDecodingStep.strip_forward_space_before_not_space().get_ov_subgraph(detokenizer)
 
     if clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)

@@ -973,6 +973,13 @@ class RegexDecodingStep(DecodingStep):
         )
 
     @classmethod
+    def strip_forward_space_before_not_space(cls) -> "RegexDecodingStep":
+        return cls(
+            regex_search_pattern=r"(^ )([^ ])",
+            replace_term=r"\2",
+        )
+
+    @classmethod
     def replace_end_of_word_suffix(cls, suffix: str = "</w>") -> "RegexDecodingStep":
         return cls(
             regex_search_pattern=suffix,
