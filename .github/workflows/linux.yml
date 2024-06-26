@@ -209,8 +209,7 @@ jobs:
 
       - name: Select python version
         run: |
-          alias python3=python${PYTHON_VERSION} &&
-          python3 -m pip install --upgrade pip
+          alias python3=python${PYTHON_VERSION}
 
       #
       # Dependencies
@@ -221,6 +220,8 @@ jobs:
 
       - name: Install python dependencies
         run: |
+          # upgrade pip version
+          python3 -m pip install --upgrade pip
           # For Python API: build and wheel packaging
           python3 -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
 
