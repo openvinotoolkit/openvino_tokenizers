@@ -86,6 +86,8 @@ jobs:
       #
       # Dependencies
       #
+      - name: Set python alias
+        run: alias python3=python${PYTHON_VERSION}
 
       - name: Install build dependencies
         run: |
