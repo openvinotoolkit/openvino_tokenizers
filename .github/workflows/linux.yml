@@ -202,6 +202,12 @@ jobs:
       - name: Install git
         run: yum update -y && yum install -y git
 
+      - name: Downgrade node.js
+        run: |
+          nvm uninstall 19
+          nvm uninstall 18
+          nvm install 17
+
       - name: Clone OpenVINO
         uses: actions/checkout@v4
         with:
