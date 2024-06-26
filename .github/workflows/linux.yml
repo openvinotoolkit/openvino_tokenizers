@@ -223,7 +223,7 @@ jobs:
           # upgrade pip version
           python3 -m pip install --upgrade pip
           # For Python API: build and wheel packaging
-          python3 -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
+          python3 -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt --force-reinstall
 
       #
       # Build
