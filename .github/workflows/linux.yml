@@ -218,6 +218,7 @@ jobs:
       - name: Select python version
         run: |
           alias python3=python${PYTHON_VERSION}
+          python3 -m pip install --upgrade pip
 
       #
       # Dependencies
