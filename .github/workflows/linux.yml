@@ -185,7 +185,7 @@ jobs:
         shell: bash
     runs-on: ubuntu-20.04-16-cores
     container:
-      image: quay.io/pypa/manylinux_2_28_x86_64
+      image: quay.io/pypa/manylinux2014_x86_64
     env:
       DEBIAN_FRONTEND: noninteractive # to prevent apt-get from waiting user input
       CMAKE_BUILD_TYPE: 'Release'
