@@ -200,14 +200,6 @@ jobs:
       - name: Install git
         run: yum update -y && yum install -y git
 
-      # - name: Clone OpenVINO
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: 'openvinotoolkit/openvino'
-      #     path: ${{ env.OPENVINO_REPO }}
-      #     submodules: 'true'
-      #     ref: ${{ env.OV_BRANCH}}
-
       - name: Clone OpenVINO manually
         run: |
           git clone --recursive https://github.com/openvinotoolkit/openvino.git ${OPENVINO_REPO}
@@ -217,7 +209,7 @@ jobs:
 
       - name: Select python version
         run: |
-          alias python3=python${PYTHON_VERSION}
+          alias python3=python${PYTHON_VERSION} &&
           python3 -m pip install --upgrade pip
 
       #
