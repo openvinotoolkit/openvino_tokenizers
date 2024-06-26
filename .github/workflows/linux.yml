@@ -195,15 +195,28 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/openvino/build
 
     steps:
+      - name: Install node.js
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          nvm install 20
+
       - name: Install git
         run: yum update -y && yum install -y git
 
-      - name: Clone OpenVINO manually
-        run: |
-          git clone --recursive https://github.com/openvinotoolkit/openvino.git ${OPENVINO_REPO}
-          cd ${OPENVINO_REPO}
-          git submodule init && git submodule update
-          git checkout ${{ env.OV_BRANCH}}
+      - name: Clone OpenVINO
+        uses: actions/checkout@v4
+        with:
+          repository: 'openvinotoolkit/openvino'
+          path: ${{ env.OPENVINO_REPO }}
+          submodules: 'true'
+          ref: ${{ env.OV_BRANCH}}
+
+      # - name: Clone OpenVINO manually
+      #   run: |
+      #     git clone --recursive https://github.com/openvinotoolkit/openvino.git ${OPENVINO_REPO}
+      #     cd ${OPENVINO_REPO}
+      #     git submodule init && git submodule update
+      #     git checkout ${{ env.OV_BRANCH}}
 
       #
       # Dependencies
@@ -217,7 +230,7 @@ jobs:
           # upgrade pip version
           python${PYTHON_VERSION} -m pip install --upgrade pip
           # For Python API: build and wheel packaging
-          python${PYTHON_VERSION} -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt --force-reinstall
+          python${PYTHON_VERSION} -m pip install -r ${OPENVINO_REPO}/src/bindings/python/wheel/requirements-dev.txt
 
       #
       # Build
@@ -244,8 +257,6 @@ jobs:
             -DENABLE_OV_TF_LITE_FRONTEND=OFF \
             -DENABLE_INTEL_GPU=OFF \
             -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DENABLE_PYTHON=ON \
             -DENABLE_WHEEL=ON \
             -S ${OPENVINO_REPO} \
