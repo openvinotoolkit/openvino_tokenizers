@@ -262,12 +262,15 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: openvino_tokenizers_wheel
+          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
           path: ${{ env.BUILD_DIR }}/*.whl
           if-no-files-found: 'error'
 
   openvino_tokenizers_tests:
     name: OpenVINO tokenizers tests
+    strategy:
+      matrix:
+        build_fast_tokenizers: [ON, OFF]
     needs: [ openvino_download, openvino_build, openvino_tokenizers]
     if: always() && needs.openvino_tokenizers.result == 'success'
     timeout-minutes: 25
@@ -297,7 +300,7 @@ jobs:
       - name: Download tokenizers package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_tokenizers_wheel
+          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
 
       - name: Download OpenVINO package
