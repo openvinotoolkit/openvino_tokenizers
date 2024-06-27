@@ -248,11 +248,11 @@ jobs:
           source ${INSTALL_DIR}/setupvars.sh
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
+              --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_GENERATOR: 'Unix Makefiles'
-          BUILD_FAST_TOKENIZERS: ${{ matrix.build_fast_tokenizers }}
 
       #
       # Upload build artifacts

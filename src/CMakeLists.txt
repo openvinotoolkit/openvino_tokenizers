@@ -46,10 +46,6 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
 endif()
 
 option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0" ${USE_ABI0})
-# py_build_cmake doesn't support environment cmake options
-if(DEFINED ENV{BUILD_FAST_TOKENIZERS})
-  set(BUILD_FAST_TOKENIZERS $ENV{BUILD_FAST_TOKENIZERS})
-endif()
 
 #
 # Compile flags
