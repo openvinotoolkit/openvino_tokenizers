@@ -179,7 +179,7 @@ jobs:
           if-no-files-found: 'error'
 
   openvino_tokenizers:
-    name: OpenVINO tokenizers extension
+    name: OpenVINO tokenizers extension (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
     strategy:
       matrix:
         build_fast_tokenizers: [ON, OFF]
@@ -267,7 +267,7 @@ jobs:
           if-no-files-found: 'error'
 
   openvino_tokenizers_tests:
-    name: OpenVINO tokenizers tests
+    name: OpenVINO tokenizers tests (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
     strategy:
       matrix:
         build_fast_tokenizers: [ON, OFF]
