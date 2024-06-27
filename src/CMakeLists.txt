@@ -41,11 +41,11 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
 get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
 include(CMakeDependentOption)
-cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is hidden and forced to ON if _GLIBCXX_USE_CXX11_ABI=0"
-  OFF "NOT _GLIBCXX_USE_CXX11_ABI=0 IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS" ON)
 if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
   set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
 endif()
+
+option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0" ${USE_ABI0})
 
 #
 # Compile flags
@@ -142,11 +142,18 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
 endfunction()
 
 if(BUILD_FAST_TOKENIZERS)
+  set(EXTERNAL_PROJECT_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/src)
+  set(EXTERNAL_PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/build)
+  set(EXTERNAL_PROJECT_SUBBUILD_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/sub-build)
+
   FetchContent_Declare(
     fast_tokenizer
     URL      https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz
     URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
-    PATCH_COMMAND git apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
+    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
+    SOURCE_DIR ${EXTERNAL_PROJECT_SOURCE_DIR}
+    BINARY_DIR ${EXTERNAL_PROJECT_BINARY_DIR}
+    SUBBUILD_DIR ${EXTERNAL_PROJECT_SUBBUILD_DIR}
   )
 
   FetchContent_GetProperties(fast_tokenizer)
