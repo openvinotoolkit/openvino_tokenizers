@@ -375,6 +375,7 @@ install(FILES "${openvino_tokenizers_BINARY_DIR}/python/__version__.py"
 # Cpack configuration
 #
 
-set(CPACK_SOURCE_GENERATOR "") # not used
+# Uniform outcome in all repos - all repos will not create top level directory
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
 
 include (CPack)
