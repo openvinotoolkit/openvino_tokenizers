@@ -37,7 +37,6 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     outputs[1].set_shape({batch_size});
     outputs[2].set_shape({batch_size * ((seq_len > 0) ? seq_len : 1)});
     outputs[3].set_shape({batch_size * ((seq_len > 0) ? seq_len : 1)});
-    outputs[4].set_shape({batch_size * seq_len * 100});  // 100 chars - max token length
     const size_t num_rows = inputs[0].get_size();
 
     // Get pointers in the output tensors
@@ -45,38 +44,34 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto new_ragged_ends = outputs[1].data<int32_t>();
     auto new_begins = outputs[2].data<int32_t>();
     auto new_ends   = outputs[3].data<int32_t>();
-    auto new_chars  = outputs[4].data<uint8_t>();
-    uint32_t char_offset = 0;
+
+    std::deque<uint8_t> buffer;
 
     for(size_t batch = 0; batch < batch_size; ++batch) {
         new_ragged_begins[batch] = batch * ((seq_len > 0) ? seq_len : 1);
         new_ragged_ends[batch]   = new_ragged_begins[batch] + ((seq_len > 0) ? seq_len : 1);
 
         if (seq_len == 0) {
-            new_begins[batch] = char_offset;
-            new_ends[batch] = char_offset;
+            new_begins[batch] = buffer.size();
+            new_ends[batch] = buffer.size();
             continue;
         };
 
         for(size_t seq = new_ragged_begins[batch]; seq < new_ragged_ends[batch]; ++seq) {
             auto token_id = input_data[seq];
-            int token_size = 0;
-            if (token_id >= vocab_size) {
-                OPENVINO_THROW("Token id is greater then vocabulary size.");
-            } else if (std::find(m_skip_tokens.begin(), m_skip_tokens.end(), token_id) == m_skip_tokens.end()) {
-                std::copy(
+            new_begins[seq] = buffer.size();
+            if (std::find(m_skip_tokens.begin(), m_skip_tokens.end(), token_id) == m_skip_tokens.end()) {
+                buffer.insert(
+                    buffer.end(),
                     vocab_chars + vocab_begins[token_id],
-                    vocab_chars + vocab_ends[token_id],
-                    &new_chars[char_offset]
+                    vocab_chars + vocab_ends[token_id]
                 );
-                token_size = vocab_ends[token_id] - vocab_begins[token_id];
             }
-
-            new_begins[seq] = char_offset;
-            char_offset += token_size;
-            new_ends[seq] = char_offset;
+            new_ends[seq] = buffer.size();
         }
     }
-    outputs[4].set_shape({char_offset});
+    outputs[4].set_shape({buffer.size()});
+    auto new_chars  = outputs[4].data<uint8_t>();
+    std::copy(buffer.begin(), buffer.end(), new_chars);
     return true;
 }
