@@ -66,6 +66,7 @@ misc_strings = [
     b"\x06".decode(),  # control char
     " ",
     " " * 10,
+    " " * 256,  # from llama3/stablecode vocab
     "\n",
     " \t\n",
 ]
@@ -112,10 +113,10 @@ bpe_models = [
     "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
     "Salesforce/codegen-16B-multi",
     "stabilityai/stablelm-2-1_6b",
+    "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
     # "google/flan-t5-xxl",  # needs Precompiled/CharsMap
     # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
-    "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
 ]
 sentencepiece_models = [
     "codellama/CodeLlama-7b-hf",
