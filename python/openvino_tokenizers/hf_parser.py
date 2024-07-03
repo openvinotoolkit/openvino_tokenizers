@@ -729,7 +729,7 @@ def add_prefix_tokens(
     index_update_node = make_constant_node(np.array([0, prefix_len]))
 
     # update resulting dense tensor shape
-    dense_shape = opset.add(dense_shape, index_update_node)
+    dense_shape = opset.add(dense_shape, opset.convert(index_update_node, destination_type=dense_shape.element_type))
     prefix_tokens_node = make_constant_node(prefix_tokens, dtype=values.element_type)
     batch_size = opset.gather(dense_shape, as_node(0), as_node(0))
     batch_slice = opset.slice(dense_shape, as_node([0]), as_node([1]), as_node([1]))
