@@ -50,13 +50,13 @@ pip install --pre -U openvino openvino-tokenizers --extra-index-url https://stor
 
 ### Build and Install from Source
 
-Install [OpenVINO archive](https://docs.openvino.ai/2024/get-started/install-openvino.html) distribution. Use `--no-deps` to avoid OpenVINO installation from PyPI.
+openvino-tokenizers build depends on [openvino](https://pypi.org/project/openvino/) package which will be automatically installed from PyPI during the build process. To install unreleased versions, you would need to install openvino package from the nightly distribution channel using `--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly`
 
 ```bash
 source path/to/installed/openvino/setupvars.sh
 git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
 cd openvino_tokenizers
-pip install --no-deps .
+pip install --no-deps . --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
 ```
 This command is the equivalent of minimal installation. Install tokenizers conversion dependencies if needed:
 ```bash
