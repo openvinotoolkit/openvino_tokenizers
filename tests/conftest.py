@@ -30,6 +30,8 @@ def build_coverege_report(session: pytest.Session) -> None:
             return "BPE"
         if not pd.isnull(row["hf_sentencepiece_tokenizers_param"]):
             return "SentencePiece"
+        if not pd.isnull(row["hf_sentencepiece_tokenizers_with_padding_sides_param"]):
+            return "SentencePiece"
         if not pd.isnull(row["hf_tiktoken_tokenizers_param"]):
             return "Tiktoken"
         if not pd.isnull(row["hf_tiktoken_tokenizers_with_padding_sides_param"]):

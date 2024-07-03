@@ -11,10 +11,11 @@ from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import openvino.runtime.opset12 as opset
+import openvino.runtime.opset14 as opset
 from openvino import Model, PartialShape, Type
 from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
+from openvino.runtime.opset1.ops import _get_node_factory_opset1
 from openvino.runtime.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
@@ -180,7 +181,7 @@ class TransformersTokenizerPipelineParser:
         "BertNormalizer": parse_bert_normalizer,
         "Replace": parse_replace_normalizer,
         "Strip": parse_strip_step,
-        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", ""))
+        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", "")),
     }
 
     def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
@@ -631,36 +632,22 @@ def convert_sentencepiece_model_tokenizer(
         next_node = RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex().get_ov_subgraph(next_node)
         next_node = _get_factory().create("StringTensorPack", next_node).outputs()
 
+    do_left_padding = hf_tokenizer.padding_side == "left"
+
     tokenizer_node = _get_factory().create(
         "SentencepieceTokenizer",
         [sp_model_node, *next_node],
         {
             "add_bos": add_bos_token,
             "add_eos": add_eos_token,
-            "reverse": False,
+            "reverse": do_left_padding,
             "alpha": 0.0,
         },
     )
 
     indices, values, dense_shape = tokenizer_node.outputs()
 
-    if is_chatglm and add_special_tokens:
-        prefix_tokens = np.array([hf_tokenizer.get_prefix_tokens()])
-        dense_shape, indices, values = add_prefix_tokens(prefix_tokens, dense_shape, indices, values)
-
-    default_value = make_constant_node(hf_tokenizer.pad_token_id or 0, values.element_type)
-    broadcast = opset.broadcast(default_value, dense_shape, broadcast_spec="BIDIRECTIONAL")
-
-    scatternd_input_ids = _get_factory().create(
-        "ScatterNDUpdate",
-        [broadcast, indices, values],  # FIXME: pad left side instead of right
-    )
-
-    scatternd_input_ids.output(0).tensor.add_names({TOKEN_IDS_INPUT_NAME})
-
-    outputs = scatternd_input_ids.outputs()
-
-    if add_attention_mask:
+    if add_attention_mask or do_left_padding:
         attention_mask = _get_factory().create(
             "ScatterNDUpdate",
             [
@@ -673,6 +660,32 @@ def convert_sentencepiece_model_tokenizer(
             ],
         )
 
+    if is_chatglm and add_special_tokens:
+        prefix_tokens = np.array([hf_tokenizer.get_prefix_tokens()])
+        dense_shape, indices, values, attention_mask = add_prefix_tokens(
+            prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
+        )
+
+    default_value = make_constant_node(hf_tokenizer.pad_token_id or 0, values.element_type)
+    broadcast = opset.broadcast(default_value, dense_shape, broadcast_spec="BIDIRECTIONAL")
+
+    scattered_input_ids = _get_factory().create(
+        "ScatterNDUpdate",
+        [broadcast, indices, values],
+    )
+
+    if do_left_padding:
+        attention_mask = _get_node_factory_opset1().create(
+            "Reverse", [attention_mask, make_constant_node(np.array([-1]))], {"mode": "index"}
+        )
+        scattered_input_ids = _get_node_factory_opset1().create(
+            "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
+        )
+
+    scattered_input_ids.output(0).tensor.add_names({TOKEN_IDS_INPUT_NAME})
+    outputs = scattered_input_ids.outputs()
+
+    if add_attention_mask:
         attention_mask.output(0).tensor.add_names({ATTENTION_MASK_INPUT_NAME})
         outputs.append(attention_mask.output(0))
 
@@ -703,9 +716,18 @@ def convert_sentencepiece_model_tokenizer(
     return tokenizer, detokenizer
 
 
-def add_prefix_tokens(prefix_tokens, dense_shape, indices, values):
+def add_prefix_tokens(
+    prefix_tokens, dense_shape, indices, values, attention_mask=None, do_left_padding=False
+) -> Tuple:
+    if do_left_padding is True and attention_mask is None:
+        raise ValueError("You must pass attention_mask when add prefix with left padding.")
+
+    if do_left_padding:
+        prefix_tokens = prefix_tokens[..., ::-1]  # reverse prefix
+
     _, prefix_len = prefix_tokens.shape
     index_update_node = make_constant_node(np.array([0, prefix_len]))
+
     # update resulting dense tensor shape
     dense_shape = opset.add(dense_shape, index_update_node)
     prefix_tokens_node = make_constant_node(prefix_tokens, dtype=values.element_type)
@@ -720,8 +742,9 @@ def add_prefix_tokens(prefix_tokens, dense_shape, indices, values):
     prefix_tokens_batch = opset.reshape(prefix_tokens_batch, output_shape=[-1], special_zero=False)
     values = opset.concat([values, prefix_tokens_batch], axis=0)
     # new indices
-    indices = opset.add(indices, index_update_node)
-    x_indices = opset.range(as_node(0), as_node(batch_size), as_node(1), output_type=indices.output(0).element_type)
+    prefix_range = opset.range(as_node(0), as_node(prefix_len), as_node(1), output_type=indices.element_type)
+
+    x_indices = opset.range(as_node(0), as_node(batch_size), as_node(1), output_type=indices.element_type)
     x_indices = opset.broadcast(
         data=x_indices,
         target_shape=opset.concat([as_node([prefix_len]), batch_slice], axis=0),
@@ -729,16 +752,37 @@ def add_prefix_tokens(prefix_tokens, dense_shape, indices, values):
     )
     x_indices = opset.transpose(x_indices, as_node([1, 0]))
     x_indices = opset.reshape(x_indices, output_shape=[-1, 1], special_zero=False)
-    y_indices = opset.range(as_node(0), as_node(prefix_len), as_node(1), output_type=indices.output(0).element_type)
-    y_indices = opset.broadcast(
-        data=y_indices,
-        target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
-        broadcast_spec="BIDIRECTIONAL",
-    )
+
+    if do_left_padding:
+        prefix_start = opset.convert(
+            opset.reduce_sum(node=attention_mask, reduction_axes=-1, keep_dims=True), Type.i64
+        )
+        y_indices = opset.add(
+            prefix_start, opset.reshape(prefix_range, output_shape=[1, prefix_len], special_zero=False)
+        )
+    else:
+        y_indices = opset.broadcast(
+            data=prefix_range,
+            target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
+            broadcast_spec="BIDIRECTIONAL",
+        )
+        indices = opset.add(indices, index_update_node).output(0)
+
     y_indices = opset.reshape(y_indices, output_shape=[-1, 1], special_zero=False)
     prefix_indices = opset.concat([x_indices, y_indices], axis=1)
     indices = opset.concat([indices, prefix_indices], axis=0)
-    return dense_shape.output(0), indices.output(0), values.output(0)
+
+    attention_mask = opset.concat(
+        [
+            opset.broadcast(
+                data=make_constant_node(1, dtype=attention_mask.get_element_type()),
+                target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
+            ),
+            attention_mask,
+        ],
+        axis=1,
+    )
+    return dense_shape.output(0), indices.output(0), values.output(0), attention_mask
 
 
 def get_sp_detokenizer(
@@ -746,7 +790,7 @@ def get_sp_detokenizer(
     streaming_detokenizer: bool = False,
     clean_up_tokenization_spaces: bool = False,
     prepend_scheme: str = "",
-    add_prefix_space: Optional[bool] = None
+    add_prefix_space: Optional[bool] = None,
 ) -> Model:
     model_input = token_ids = op.Parameter(Type.i32, PartialShape(["?", "?"]))  # (batch, sequence)
 
