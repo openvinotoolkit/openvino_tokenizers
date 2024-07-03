@@ -53,7 +53,6 @@ pip install --pre -U openvino openvino-tokenizers --extra-index-url https://stor
 openvino-tokenizers build depends on [openvino](https://pypi.org/project/openvino/) package which will be automatically installed from PyPI during the build process. To install unreleased versions, you would need to install openvino package from the nightly distribution channel using `--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly`
 
 ```bash
-source path/to/installed/openvino/setupvars.sh
 git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
 cd openvino_tokenizers
 pip install --no-deps . --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
@@ -68,10 +67,9 @@ OpenVINO Tokenizers from a release branch if you have issues with the build proc
 
 ### Build and install for development
 ```bash
-source path/to/installed/openvino/setupvars.sh
 git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
 cd openvino_tokenizers
-pip install -e .[all]
+pip install -e .[all] --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
 # verify installation by running tests
 cd tests/
 pytest .
