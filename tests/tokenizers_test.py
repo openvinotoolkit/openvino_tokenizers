@@ -317,9 +317,9 @@ def sentencepiece_tokenizers_with_padding_options(
         and not use_left_padding
     ):
         pytest.skip("chatglm supports left padding only")
-    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm2-6b" and not do_skip_special_tokens:
-        pytest.skip("chatglm2 always skips special tokens")
-    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm3-6b" and do_skip_special_tokens:
+    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm2-6b" and do_add_special_tokens:
+        pytest.skip("chatglm2 never adds special tokens")
+    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm3-6b" and not do_add_special_tokens:
         pytest.skip("chatglm3 always adds special tokens")
 
     return get_tokenizer(
