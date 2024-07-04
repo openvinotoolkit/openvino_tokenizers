@@ -132,14 +132,19 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     pass_rate = 1 - session.testsfailed / (session.testscollected - skipped)
     previous = previous_rates.get(parent, 0)
 
+    def strip_dir(test_id: str) -> str:
+        if test_id.startswith("tests/"):
+            return test_id[6:]
+        return test_id
+
     stats = reporter.stats
     new_statuses = {}
     for stat in stats.get("passed", []):
-        new_statuses[stat.nodeid] = "passed"
+        new_statuses[strip_dir(stat.nodeid)] = "passed"
     for stat in stats.get("skipped", []):
-        new_statuses[stat.nodeid] = "skipped"
+        new_statuses[strip_dir(stat.nodeid)] = "skipped"
     for stat in stats.get("failed", []):
-        new_statuses[stat.nodeid] = "failed"
+        new_statuses[strip_dir(stat.nodeid)] = "failed"
 
     rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")
     if rewrite_statuses:
