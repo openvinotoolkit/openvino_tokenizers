@@ -27,11 +27,20 @@ project(openvino_tokenizers
 
 include(cmake/platforms.cmake)
 
+# Looking for OpenVINO in the python distribution. It doesn't work for cross-compiling build
+if(NOT CMAKE_CROSSCOMPILING)
+    find_package(Python3 REQUIRED)
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "from openvino.utils import get_cmake_path; print(get_cmake_path(), end='')"
+        OUTPUT_VARIABLE OpenVINO_DIR_PY
+        ERROR_QUIET
+    )
+endif()
+
 # Find OpenVINODeveloperPackage first to compile with SDL flags
-find_package(OpenVINODeveloperPackage QUIET
-             PATHS "${OpenVINO_DIR}")
+find_package(OpenVINODeveloperPackage QUIET PATHS "${OpenVINO_DIR}")
 if(NOT OpenVINODeveloperPackage_FOUND)
-    find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow)
+    find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow PATHS "${OpenVINO_DIR_PY}")
 endif()
 
 if(DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION AND NOT PY_BUILD_CMAKE_PACKAGE_VERSION EQUAL CMAKE_PROJECT_VERSION)

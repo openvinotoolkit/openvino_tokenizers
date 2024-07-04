@@ -131,6 +131,7 @@ jobs:
             -DENABLE_WHEEL=ON `
             -DENABLE_JS=OFF `
             -DENABLE_SAMPLES=OFF `
+            -DENABLE_INTEL_NPU=OFF `
             -DENABLE_OV_ONNX_FRONTEND=OFF `
             -DENABLE_OV_PADDLE_FRONTEND=OFF `
             -DENABLE_OV_PYTORCH_FRONTEND=OFF `
@@ -235,8 +236,7 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          . "${{ env.INSTALL_DIR }}/setupvars.ps1"
-          python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
+          python -m pip wheel -v --no-deps --find-links ${env:INSTALL_DIR}/tools --wheel-dir ${env:BUILD_DIR} ${env:OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
 
