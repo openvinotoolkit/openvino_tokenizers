@@ -131,6 +131,7 @@ jobs:
             -DENABLE_WHEEL=ON `
             -DENABLE_JS=OFF `
             -DENABLE_SAMPLES=OFF `
+            -DENABLE_INTEL_NPU=OFF `
             -DENABLE_OV_ONNX_FRONTEND=OFF `
             -DENABLE_OV_PADDLE_FRONTEND=OFF `
             -DENABLE_OV_PYTORCH_FRONTEND=OFF `
