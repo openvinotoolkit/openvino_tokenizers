@@ -1,6 +1,5 @@
 import json
 import os
-from collections import defaultdict
 from importlib.metadata import version
 from io import StringIO
 from math import isclose
@@ -167,7 +166,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     changed_statuses = changed_statuses.difference(set(previous_statuses.items()))
     if changed_statuses:
         reporter.write_line("CHANGED STATUS:")
-        for test_id, new_status in changed_statuses.items():
+        for test_id, new_status in changed_statuses:
             reporter.write_line(f"{previous_statuses[test_id]}->{new_status}: {test_id}")
 
     if isclose(pass_rate, previous):
