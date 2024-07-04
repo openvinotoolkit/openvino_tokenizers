@@ -1,5 +1,6 @@
 import json
 import os
+from collections import defaultdict
 from importlib.metadata import version
 from io import StringIO
 from math import isclose
@@ -13,6 +14,7 @@ def pytest_addoption(parser):
 
 
 PASS_RATES_FILE = Path(__file__).parent / "pass_rates.json"
+STATUSES_FILE = Path(__file__).parent / "stats.json"
 
 
 def build_coverege_report(session: pytest.Session) -> None:
@@ -122,11 +124,46 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
 
     with open(PASS_RATES_FILE) as f:
         previous_rates = json.load(f)
+    with open(STATUSES_FILE) as f:
+        previous_statuses = json.load(f)
 
     reporter = session.config.pluginmanager.get_plugin("terminalreporter")
     skipped = len(reporter.stats.get("skipped", []))
     pass_rate = 1 - session.testsfailed / (session.testscollected - skipped)
     previous = previous_rates.get(parent, 0)
+
+    stats = reporter.stats
+    new_statuses = {}
+    for stat in stats.get("passed", []):
+        new_statuses[stat.nodeid] = "passed"
+    for stat in stats.get("skipped", []):
+        new_statuses[stat.nodeid] = "skipped"
+    for stat in stats.get("failed", []):
+        new_statuses[stat.nodeid] = "failed"
+
+    rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")
+    if rewrite_statuses:
+        with open(STATUSES_FILE, "w") as f:
+            json.dump(new_statuses, f, indent=2)
+
+    added_tests = {test_id: status for test_id, status in new_statuses.items() if test_id not in previous_statuses}
+    if added_tests:
+        reporter.write_line("ADDED TESTS:")
+        for test_id, status in added_tests.items():
+            reporter.write_line(f"{status}: {test_id}")
+
+    removed_tests = {test_id: status for test_id, status in previous_statuses.items() if test_id not in new_statuses}
+    if removed_tests and rewrite_statuses:
+        reporter.write_line("REMOVED TESTS:")
+        for test_id, status in removed_tests.items():
+            reporter.write_line(f"{status}: {test_id}")
+
+    changed_statuses = {(test_id, status) for test_id, status in new_statuses.items() if test_id not in added_tests}
+    changed_statuses = changed_statuses.difference(set(previous_statuses.items()))
+    if changed_statuses:
+        reporter.write_line("CHANGED STATUS:")
+        for test_id, new_status in changed_statuses.items():
+            reporter.write_line(f"{previous_statuses[test_id]}->{new_status}: {test_id}")
 
     if isclose(pass_rate, previous):
         session.exitstatus = pytest.ExitCode.OK
