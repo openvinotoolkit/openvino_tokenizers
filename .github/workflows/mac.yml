@@ -19,6 +19,8 @@ env:
   OV_BRANCH: 'master'
   OV_TARBALL: ''
 
+permissions: read-all
+
 jobs:
   openvino_download:
     outputs:
