@@ -221,6 +221,15 @@ def hf_sentencepiece_tokenizers(request, is_fast_tokenizer):
     return hf_tokenizer
 
 
+@pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def hf_sentencepiece_tokenizers_with_padding_sides(request, use_left_padding):
+    hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
+    if hf_tokenizer.pad_token is None:
+        hf_tokenizer.pad_token = hf_tokenizer.eos_token
+        hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or 0
+    return hf_tokenizer
+
+
 @pytest.fixture(scope="session", params=bpe_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_bpe_tokenizers(request):
     return get_hf_tokenizer(request)
@@ -300,22 +309,34 @@ def sentencepice_tokenizers(hf_sentencepiece_tokenizers, do_add_special_tokens):
 
 
 @pytest.fixture(scope="session")
+def sentencepiece_tokenizers_with_padding_options(
+    hf_sentencepiece_tokenizers_with_padding_sides, do_add_special_tokens, use_left_padding
+):
+    if (
+        hf_sentencepiece_tokenizers_with_padding_sides.name_or_path in ("THUDM/chatglm2-6b", "THUDM/chatglm3-6b")
+        and not use_left_padding
+    ):
+        pytest.skip("chatglm supports left padding only")
+    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm2-6b" and do_add_special_tokens:
+        pytest.skip("chatglm2 never adds special tokens")
+    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm3-6b" and not do_add_special_tokens:
+        pytest.skip("chatglm3 always adds special tokens")
+
+    return get_tokenizer(
+        hf_sentencepiece_tokenizers_with_padding_sides,
+        add_special_tokens=do_add_special_tokens,
+    )
+
+
+@pytest.fixture(scope="session")
 def sentencepice_tokenizers_detokenizers(
     hf_sentencepiece_tokenizers, do_skip_special_tokens, do_clean_up_tokenization_spaces
 ):
     # chatglm2 always skips special tokens, chatglam3 always not skip
-    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm2-6b":
-        return get_tokenizer_detokenizer(
-            hf_sentencepiece_tokenizers,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
-        )
-    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm3-6b":
-        return get_tokenizer_detokenizer(
-            hf_sentencepiece_tokenizers,
-            skip_special_tokens=False,
-            clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
-        )
+    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm2-6b" and not do_skip_special_tokens:
+        pytest.skip("chatglm2 always skips special tokens")
+    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm3-6b" and do_skip_special_tokens:
+        pytest.skip("chatglm3 always adds special tokens")
 
     return get_tokenizer_detokenizer(
         hf_sentencepiece_tokenizers,
@@ -430,6 +451,34 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_
 
     for output_name, hf_result in hf_tokenized.items():
         #  chatglm has token_type_ids output that we omit
+        if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        eng_test_strings,
+        multilingual_test_strings,
+        emoji_test_strings,
+        misc_strings,
+    ],
+)
+def test_hf_sentencepiece_tokenizers_multiple_strings(
+    sentencepiece_tokenizers_with_padding_options, test_string, do_add_special_tokens
+):
+    hf_tokenizer, ov_tokenizer = sentencepiece_tokenizers_with_padding_options
+
+    packed_strings = pack_strings(test_string)
+
+    # padding = "max_length" if use_max_padding else True
+    hf_tokenized = hf_tokenizer(
+        test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
+    )
+    ov_tokenized = ov_tokenizer(packed_strings)
+
+    for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
             assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
             assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
