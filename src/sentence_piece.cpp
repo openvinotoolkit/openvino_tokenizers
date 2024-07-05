@@ -5,7 +5,6 @@
 #include <functional>
 
 #include "sentencepiece_processor.h"
-#include "absl/strings/str_format.h"
 #include "absl/container/flat_hash_map.h"
 
 #include "openvino/op/util/framework_node.hpp"
@@ -266,28 +265,31 @@ bool SentencepieceDetokenizer::evaluate(TensorVector& outputs, const TensorVecto
 
     outputs[0].set_shape({batch_size});
     outputs[1].set_shape({batch_size});
-    outputs[2].set_shape({batch_size * seq_len * 100});  // 100 chars - max token length
 
     auto begins = outputs[0].data<int32_t>();
     auto ends   = outputs[1].data<int32_t>();
-    auto chars  = outputs[2].data<uint8_t>();
-    uint32_t char_offset = 0;
+    std::deque<uint8_t> buffer;
+
+    const auto vocab_size = m_sp->GetPieceSize();
+    auto id_filter = [vocab_size](int32_t value) { return value < vocab_size; };
 
     for(size_t batch = 0; batch < batch_size; ++batch) {
         auto start = batch * seq_len;
 
-        std::vector<int32_t> token_ids(seq_len);
-        std::memcpy(&token_ids[0], &input_data[start], sizeof(int32_t) * seq_len);
+        std::vector<int32_t> token_ids;
+        token_ids.reserve(seq_len);
+        std::copy_if(&input_data[start], &input_data[start] + seq_len, std::back_inserter(token_ids), id_filter);
 
         std::string detokenized;
         CHECK_OK(m_sp->Decode(token_ids, &detokenized));
-        std::copy(detokenized.begin(), detokenized.end(), &chars[char_offset]);
 
-        begins[batch] = char_offset;
-        char_offset += detokenized.size();
-        ends[batch] = char_offset;
+        begins[batch] = buffer.size();
+        buffer.insert(buffer.end(), detokenized.begin(), detokenized.end());
+        ends[batch] = buffer.size();
     }
-    outputs[2].set_shape({char_offset});
+    outputs[2].set_shape({buffer.size()});
+    auto chars  = outputs[2].data<uint8_t>();
+    std::copy(buffer.begin(), buffer.end(), chars);
     return true;
 }
 
@@ -342,33 +344,38 @@ bool SentencepieceStreamDetokenizer::evaluate(TensorVector& outputs, const Tenso
 
     outputs[0].set_shape({batch_size});
     outputs[1].set_shape({batch_size});
-    outputs[2].set_shape({batch_size * seq_len * 100});  // 100 chars - max token length
 
     auto begins = outputs[0].data<int32_t>();
     auto ends   = outputs[1].data<int32_t>();
-    auto chars  = outputs[2].data<uint8_t>();
-    uint32_t char_offset = 0;
+    const auto vocab_size = m_sp->GetPieceSize();
+    std::deque<uint8_t> buffer;
 
     for(size_t batch = 0; batch < batch_size; ++batch) {
         const auto start = batch * seq_len;
 
-        begins[batch] = char_offset;
+        begins[batch] = buffer.size();
         for(size_t seq = start; seq < start + seq_len; ++seq) {
             const auto token_id = input_data[seq];
-            const auto token = m_sp->IdToPiece(token_id);
 
+            if (token_id >= vocab_size) {
+                continue;
+            };
+
+            const auto token = m_sp->IdToPiece(token_id);
             if(token.rfind("<") == 0 && token.rfind(">") == 5) {
                 // convert "byte tokens" into bytes
                 int ch = sentencepiece::PieceToByte(token);
-                chars[char_offset++] = ch;
+                buffer.insert(buffer.end(), ch);
             } else {
-                std::copy(token.begin(), token.end(), &chars[char_offset]);
-                char_offset += token.size();
+                buffer.insert(buffer.end(), token.begin(), token.end());
             };
+
         };
-        ends[batch] = char_offset;
+        ends[batch] = buffer.size();
     }
-    outputs[2].set_shape({char_offset});
+    outputs[2].set_shape({buffer.size()});
+    auto chars  = outputs[2].data<uint8_t>();
+    std::copy(buffer.begin(), buffer.end(), chars);
     return true;
 }
 

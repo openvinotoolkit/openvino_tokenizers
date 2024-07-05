@@ -29,7 +29,7 @@ from .constants import (
     TOKENIZER_NAME,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import has_incompatible_re2_op
+from .utils import apply_bytes_to_unicode, has_incompatible_re2_op
 
 
 logger = logging.getLogger(__name__)
@@ -142,6 +142,10 @@ class RegexNormalizationStep(NormalizationStep):
         return cls(regex_search_pattern=r"^([^ ])", replace_term=r" \1")
 
     @classmethod
+    def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}\2")
+
+    @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
         # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L17
         return cls(
@@ -174,18 +178,6 @@ class NMTNormalizationStep(NormalizationStep):
 
     https://github.com/huggingface/tokenizers/blob/28cd3dce2a75d106572392194ff2564574c33235/tokenizers/src/normalizers/unicode.rs#L44
     """
-
-
-@dataclass
-class StripAccentsStep(NormalizationStep):
-    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return RegexNormalizationStep.strip_accents_regex().get_ov_subgraph(input_nodes).outputs()
-
-
-@dataclass
-class DelControlCharsStep(NormalizationStep):
-    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return RegexNormalizationStep.del_control_chars_regex().get_ov_subgraph(input_nodes).outputs()
 
 
 @dataclass
@@ -492,19 +484,22 @@ class BPETokenizationStep(TokenizationModelStep):
     end_suffix: str = ""
     byte_fallback: bool = False
     added_tokens: Optional[Dict[int, str]] = None
-    is_byte_level: bool = False
-
-    def __post_init__(self):
-        if self.added_tokens is not None:
-            self.extend_vocab_with_added_tokens()
 
     def finalize(self) -> None:
         pipeline = self.get_pipeline()
 
-        if not self.added_tokens:
-            return
+        vocab_set = set(self.vocab)
+        for idx, token in sorted(self.added_tokens.items()):
+            if token not in vocab_set:
+                if pipeline.is_byte_level:
+                    token = apply_bytes_to_unicode(token)
+                if idx >= len(self.vocab):
+                    self.vocab.append(token)
 
         added_tokens = list(self.added_tokens.values())
+
+        if not added_tokens:
+            return
 
         for split_step in pipeline.split_steps:
             split_step.skip_tokens = added_tokens
@@ -517,15 +512,6 @@ class BPETokenizationStep(TokenizationModelStep):
         )
         pipeline.steps.insert(idx, RegexSplitStep.special_tokens_splitter(added_tokens))
 
-        self.is_byte_level = any(isinstance(step, BytesToCharsStep) for step in pipeline.pre_tokenization_steps)
-
-    def extend_vocab_with_added_tokens(self) -> None:
-        vocab_set = set(self.vocab)
-
-        for idx, token in sorted(self.added_tokens.items()):
-            if token not in vocab_set:
-                self.vocab.append(token)
-
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
         vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
@@ -536,9 +522,7 @@ class BPETokenizationStep(TokenizationModelStep):
             end_suffix=tokenizer_json["model"]["end_of_word_suffix"] or "",
             vocab=vocab,
             merges=tokenizer_json["model"]["merges"],
-            added_tokens={
-                token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"] >= len(vocab)
-            },
+            added_tokens={token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"]},
         )
 
     @classmethod
@@ -569,7 +553,7 @@ class BPETokenizationStep(TokenizationModelStep):
         else:
             special_tokens_outputs = []
 
-        if special_tokens_outputs and self.is_byte_level:
+        if special_tokens_outputs and pipeline.is_byte_level:
             special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
@@ -668,9 +652,10 @@ class SpecialTokenWithId:
     token: Optional[str] = None
     _token_id: Optional[int] = None
 
-    def set_token_id(self, vocab: Optional[List[str]]) -> None:
-        if self._token_id is None and vocab is not None and self.token in vocab:
-            self._token_id = vocab.index(self.token)
+    def set_token_id(self, vocab: Optional[List[str]], is_byte_level: bool = False) -> None:
+        token = apply_bytes_to_unicode(self.token) if is_byte_level else self.token
+        if self._token_id is None and vocab is not None and token in vocab:
+            self._token_id = vocab.index(token)
 
     @property
     def token_id(self) -> Optional[int]:
@@ -708,10 +693,14 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         self.segment_ids = segment_ids_tensor
 
-    def set_tokens_ids(self, vocab: Optional[List[int]]) -> None:
+    def finalize(self) -> None:
+        pipeline = self.get_pipeline()
+        self.set_tokens_ids(vocab=pipeline.vocab, is_byte_level=pipeline.is_byte_level)
+
+    def set_tokens_ids(self, vocab: Optional[List[int]], is_byte_level: bool = False) -> None:
         for input_ in self.inputs:
             if isinstance(input_, AddToken) and input_.token_id is None:
-                input_.set_token_id(vocab)
+                input_.set_token_id(vocab, is_byte_level)
 
     @property
     def number_of_added_tokens(self) -> int:
@@ -928,6 +917,24 @@ class CharsToBytesStep(DecodingStep):
 
 
 @dataclass
+class FuseStep(DecodingStep):
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        *input_nodes, chars_node = input_nodes
+        return _get_factory().create("FuzeRagged", input_nodes, {}).outputs() + [chars_node]
+
+
+@dataclass
+class ByteFallbackStep(DecodingStep):
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        if len(input_nodes) == 5:
+            ragged_dims, input_nodes = input_nodes[:2], input_nodes[2:]
+        else:
+            ragged_dims = []
+
+        return ragged_dims + _get_factory().create("ByteFallback", input_nodes).outputs()
+
+
+@dataclass
 class RegexDecodingStep(DecodingStep):
     regex_search_pattern: str
     replace_term: str
@@ -940,10 +947,34 @@ class RegexDecodingStep(DecodingStep):
         )
 
     @classmethod
+    def parse_replace_dict(cls, replace_dict: Dict[str, Any]) -> "RegexDecodingStep":
+        pattern = replace_dict.get("pattern", {}).get("String")
+        content = replace_dict.get("content")
+        if pattern is None or content is None:
+            raise ValueError(f"Replace Decoding Op with this parameters: `{replace_dict}` does not support yet.")
+
+        return cls(regex_search_pattern=pattern, replace_term=content)
+
+    @classmethod
+    def parse_strip_dict(cls, replace_dict: Dict[str, Any]) -> "RegexDecodingStep":
+        content = replace_dict.get("content")
+        if content is None:
+            raise ValueError(f"Replace Decoding Op with this parameters: `{replace_dict}` does not support yet.")
+
+        return cls(regex_search_pattern=f"^{content}", replace_term="")
+
+    @classmethod
     def strip_forward_space(cls) -> "RegexDecodingStep":
         return cls(
             regex_search_pattern=r"^ ",
             replace_term="",
+        )
+
+    @classmethod
+    def strip_forward_space_before_not_space(cls) -> "RegexDecodingStep":
+        return cls(
+            regex_search_pattern=r"(^ )([^ ])",
+            replace_term=r"\2",
         )
 
     @classmethod
@@ -961,13 +992,18 @@ class RegexDecodingStep(DecodingStep):
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        if len(input_nodes) == 5:
+            ragged_dims, input_nodes = input_nodes[:2], input_nodes[2:]
+        else:
+            ragged_dims = []
+
         input_nodes.extend(
             (
                 *self.create_string_constant_node(self.regex_search_pattern).outputs(),
                 *self.create_string_constant_node(self.replace_term).outputs(),
             )
         )
-        return _get_factory().create("RegexNormalization", input_nodes).outputs()
+        return ragged_dims + _get_factory().create("RegexNormalization", input_nodes).outputs()
 
     @classmethod
     def replace_sp_spaces(cls) -> "RegexDecodingStep":
@@ -986,6 +1022,10 @@ class TokenizerPipeline:
     vocab_node_outputs: Optional[List[Output]] = field(default=None, repr=False)
     eos_token_id: Optional[int] = None
     finalized: bool = False
+
+    @property
+    def is_byte_level(self) -> bool:
+        return any(isinstance(step, BytesToCharsStep) for step in self.pre_tokenization_steps)
 
     def get_config(self) -> Dict[str, Dict[str, Any]]:
         return {type(step).__name__: step.get_config() for step in self.steps}

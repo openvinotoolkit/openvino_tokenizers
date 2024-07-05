@@ -134,12 +134,14 @@ jobs:
             -DCPACK_GENERATOR=TGZ \
             -DENABLE_JS=OFF \
             -DENABLE_SAMPLES=OFF \
+            -DENABLE_INTEL_NPU=OFF \
             -DENABLE_OV_ONNX_FRONTEND=OFF \
             -DENABLE_OV_PADDLE_FRONTEND=OFF \
             -DENABLE_OV_PYTORCH_FRONTEND=OFF \
             -DENABLE_OV_TF_FRONTEND=ON \
             -DENABLE_OV_TF_LITE_FRONTEND=OFF \
             -DENABLE_INTEL_GPU=OFF \
+            -DENABLE_INTEL_NPU=OFF \
             -DCMAKE_COMPILE_WARNING_AS_ERROR=ON \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -181,7 +183,10 @@ jobs:
           if-no-files-found: 'error'
 
   openvino_tokenizers:
-    name: OpenVINO tokenizers extension
+    name: OpenVINO tokenizers extension (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
+    strategy:
+      matrix:
+        build_fast_tokenizers: [ON, OFF]
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
@@ -244,9 +249,10 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          source ${INSTALL_DIR}/setupvars.sh
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
+              --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
+              --find-links ${INSTALL_DIR}/tools \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
@@ -260,12 +266,15 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: openvino_tokenizers_wheel
+          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
           path: ${{ env.BUILD_DIR }}/*.whl
           if-no-files-found: 'error'
 
   openvino_tokenizers_tests:
-    name: OpenVINO tokenizers tests
+    name: OpenVINO tokenizers tests (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
+    strategy:
+      matrix:
+        build_fast_tokenizers: [ON, OFF]
     needs: [ openvino_download, openvino_build, openvino_tokenizers]
     if: always() && needs.openvino_tokenizers.result == 'success'
     timeout-minutes: 25
@@ -295,7 +304,7 @@ jobs:
       - name: Download tokenizers package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_tokenizers_wheel
+          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
 
       - name: Download OpenVINO package

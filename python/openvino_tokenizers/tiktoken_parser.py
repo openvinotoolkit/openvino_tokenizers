@@ -1,24 +1,8 @@
-from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
 
 from tiktoken import Encoding
 
-
-# from transformers.models.gpt2.tokenization_gpt2
-@lru_cache()
-def bytes_to_unicode() -> Dict[int, str]:
-    bs = (
-        list(range(ord("!"), ord("~") + 1)) + list(range(ord("¡"), ord("¬") + 1)) + list(range(ord("®"), ord("ÿ") + 1))
-    )
-    cs = bs[:]
-    n = 0
-    for b in range(2**8):
-        if b not in bs:
-            bs.append(b)
-            cs.append(2**8 + n)
-            n += 1
-    cs = (chr(n) for n in cs)
-    return dict(zip(bs, cs))
+from .utils import bytes_to_unicode
 
 
 #  https://gist.github.com/xenova/a452a6474428de0182b17605a98631ee
