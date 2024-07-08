@@ -5,6 +5,8 @@ on:
 env:
   LABELER_CONFIG: '.github/labeler.yml'
 
+permissions: read-all
+
 jobs:
   triage:
     permissions:
