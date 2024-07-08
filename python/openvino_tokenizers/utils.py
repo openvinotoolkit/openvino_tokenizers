@@ -44,11 +44,8 @@ def connect_models(
             target.replace_source_output(first_output.get_node().input_value(0))
             # target.replace_source_output(model1_output)  # TODO: Produces incorrect topology
 
-    new_inputs = first.get_parameters()
-    aligned_second_input_names = [second_input.get_any_name() for second_input in aligned_second_inputs]
-    remaining_inputs = [
-        param for param in second.get_parameters() if param.get_friendly_name() not in aligned_second_input_names
-    ]
+    new_inputs = first.inputs
+    remaining_inputs = [input_ for input_ in second.inputs if input_ not in aligned_second_inputs]
     if keep_second_model_unaligned_inputs:
         new_inputs.extend(remaining_inputs)
     elif remaining_inputs:
@@ -57,6 +54,7 @@ def connect_models(
             + ", ".join(input_.name for input_ in remaining_inputs)
             + ". To add them set `keep_unaligned_inputs` to `True`"
         )
+    new_inputs = [input_.get_node() for input_ in new_inputs]
 
     new_outputs = second.outputs
     remaining_outputs = [output for output in first.outputs if output not in aligned_first_outputs]
