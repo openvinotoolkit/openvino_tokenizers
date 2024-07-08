@@ -99,8 +99,8 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
                 out_elems = std::copy(default_value, default_value + elem_size, out_elems);
             }
             // fill actual values
-            auto begin = elems + elem_size * begins[i];
-            auto end = begin + elem_size * target_len;  // truncate right side
+            auto end = elems + elem_size * ends[i];
+            auto begin = end - elem_size * target_len;  // truncate left side
             out_elems = std::copy(begin, end, out_elems);
 
             // construct padding mask
