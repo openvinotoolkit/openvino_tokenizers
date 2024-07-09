@@ -736,7 +736,9 @@ def add_prefix_tokens(
     # new values
     prefix_tokens_batch = opset.broadcast(
         data=prefix_tokens_node,
-        target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
+        target_shape=opset.concat(
+            [batch_slice, make_constant_node([prefix_len], dtype=batch_slice.get_element_type())], axis=0
+        ),
         broadcast_spec="BIDIRECTIONAL",
     )
     prefix_tokens_batch = opset.reshape(prefix_tokens_batch, output_shape=[-1], special_zero=False)
