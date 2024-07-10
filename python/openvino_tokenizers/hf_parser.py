@@ -297,14 +297,14 @@ class TransformersTokenizerPipelineParser:
     def add_truncation(self) -> None:
         max_length = getattr(self.original_tokenizer, "model_max_length", -1)
 
-        if self.tokenizer_json["truncation"] is not None:
+        if self.original_tokenizer.model_max_length is not None:
+            self.pipeline.add_steps(TruncationStep.from_hf_object(self.original_tokenizer, self.num_of_added_tokens))
+        elif self.tokenizer_json["truncation"] is not None:
             self.pipeline.add_steps(
                 TruncationStep.from_hf_json(
                     self.tokenizer_json, num_of_added_tokens=self.num_of_added_tokens, max_length=max_length
                 )
             )
-        elif self.original_tokenizer.model_max_length is not None:
-            self.pipeline.add_steps(TruncationStep.from_hf_object(self.original_tokenizer, self.num_of_added_tokens))
 
     def add_padding(self, use_max_padding: bool = False) -> None:
         max_length = getattr(self.original_tokenizer, "model_max_length", -1)
