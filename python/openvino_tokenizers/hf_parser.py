@@ -767,7 +767,9 @@ def add_prefix_tokens(
     else:
         y_indices = opset.broadcast(
             data=prefix_range,
-            target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
+            target_shape=opset.concat(
+                [batch_slice, make_constant_node([prefix_len], dtype=batch_slice.get_element_type())], axis=0
+            ),
             broadcast_spec="BIDIRECTIONAL",
         )
         indices = opset.add(indices, index_update_node).output(0)
@@ -780,7 +782,9 @@ def add_prefix_tokens(
         [
             opset.broadcast(
                 data=make_constant_node(1, dtype=attention_mask.get_element_type()),
-                target_shape=opset.concat([batch_slice, as_node([prefix_len])], axis=0),
+                target_shape=opset.concat(
+                    [batch_slice, make_constant_node([prefix_len], dtype=batch_slice.get_element_type())], axis=0
+                ),
             ),
             attention_mask,
         ],
