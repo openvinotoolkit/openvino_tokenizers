@@ -640,11 +640,18 @@ class TruncationStep(PostTokenizationStep):
             opset.subtract(input_nodes[1], input_nodes[0]),
             make_constant_node(self.max_length, Type.i32),
         )
-        return [
-            input_nodes[0],
-            opset.add(input_nodes[0], max_length).output(0),
-            input_nodes[2],
-        ]
+        if self.truncate_right:
+            return [
+                input_nodes[0],
+                opset.add(input_nodes[0], max_length).output(0),
+                input_nodes[2],
+            ]
+        else:
+            return [
+                opset.subtract(input_nodes[1], max_length).output(0),
+                input_nodes[1],
+                input_nodes[2],
+            ]
 
 
 @dataclass

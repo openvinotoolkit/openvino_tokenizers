@@ -156,6 +156,7 @@ def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left
     kwargs = {}
     if left_padding is not None:
         kwargs["padding_side"] = "left" if left_padding else "right"
+        kwargs["truncation_side"] = "left" if left_padding else "right"
 
     for retry in range(2):
         try:
