@@ -749,7 +749,9 @@ def add_prefix_tokens(
     x_indices = opset.range(as_node(0), as_node(batch_size), as_node(1), output_type=indices.element_type)
     x_indices = opset.broadcast(
         data=x_indices,
-        target_shape=opset.concat([as_node([prefix_len]), batch_slice], axis=0),
+        target_shape=opset.concat(
+            [make_constant_node([prefix_len], dtype=batch_slice.get_element_type()), batch_slice], axis=0
+        ),
         broadcast_spec="BIDIRECTIONAL",
     )
     x_indices = opset.transpose(x_indices, as_node([1, 0]))
