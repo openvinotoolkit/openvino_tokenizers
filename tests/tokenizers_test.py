@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional
 
 import numpy as np
 import pytest
 import requests
 from openvino import Core, Model
 from openvino_tokenizers import convert_tokenizer
-from openvino_tokenizers.constants import EOS_TOKEN_ID_NAME
+from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
+from openvino_tokenizers.utils import get_hf_tokenizer_attribute
 from transformers import AutoTokenizer
 
 
@@ -315,7 +315,10 @@ def sentencepiece_tokenizers_with_padding_options(
         pytest.skip("chatglm supports left padding only")
     if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm2-6b" and do_add_special_tokens:
         pytest.skip("chatglm2 never adds special tokens")
-    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm3-6b" and not do_add_special_tokens:
+    if (
+        hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm3-6b"
+        and not do_add_special_tokens
+    ):
         pytest.skip("chatglm3 always adds special tokens")
 
     return get_tokenizer(
@@ -674,43 +677,48 @@ def test_detokenizer_results_align_with_hf_on_multitoken_symbols_for_streaming()
     assert detokenized_stream == hf_detokenized_stream
 
 
-def check_eos_id(eos_token_id: Optional[int], *models: Model) -> None:
+def check_rt_info(hf_tokenizer, *models: Model) -> None:
     for model in models:
-        if eos_token_id is None:
-            assert not model.has_rt_info(EOS_TOKEN_ID_NAME)
-        else:
-            assert model.has_rt_info(EOS_TOKEN_ID_NAME)
-            assert model.get_rt_info(EOS_TOKEN_ID_NAME).value == eos_token_id
+        assert model.has_rt_info(ORIGINAL_TOKENIZER_CLASS_NAME), ORIGINAL_TOKENIZER_CLASS_NAME
+        assert model.get_rt_info(ORIGINAL_TOKENIZER_CLASS_NAME) == str(type(hf_tokenizer))
+
+        for field_name, attributes in rt_info_to_hf_attribute_map.items():
+            attribute = get_hf_tokenizer_attribute(hf_tokenizer, attributes)
+            if attribute is None:
+                assert not model.has_rt_info(field_name), field_name
+            else:
+                assert model.has_rt_info(field_name), field_name
+                assert model.get_rt_info(field_name).value == attribute, (
+                    field_name,
+                    attributes,
+                    model.get_rt_info(field_name).value,
+                )
 
 
-def test_eos_token_id_rt_info_wordpiece(hf_wordpiece_tokenizers):
-    eos_token_id = hf_wordpiece_tokenizers.eos_token_id
+def test_rt_info_wordpiece(hf_wordpiece_tokenizers):
     ov_tokenizer = convert_tokenizer(hf_wordpiece_tokenizers)
-    check_eos_id(eos_token_id, ov_tokenizer)
+    check_rt_info(hf_wordpiece_tokenizers, ov_tokenizer)
 
 
-def test_eos_token_id_rt_info_bpe(hf_bpe_tokenizers):
-    eos_token_id = hf_bpe_tokenizers.eos_token_id
+def test_rt_info_bpe(hf_bpe_tokenizers):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_bpe_tokenizers,
         with_detokenizer=True,
     )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+    check_rt_info(hf_bpe_tokenizers, ov_tokenizer, ov_detokenizer)
 
 
-def test_eos_token_id_rt_info_tiktoken(hf_tiktoken_tokenizers):
-    eos_token_id = hf_tiktoken_tokenizers.eos_token_id or hf_tiktoken_tokenizers.eod_id
+def test_rt_info_tiktoken(hf_tiktoken_tokenizers):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_tiktoken_tokenizers,
         with_detokenizer=True,
     )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+    check_rt_info(hf_tiktoken_tokenizers, ov_tokenizer, ov_detokenizer)
 
 
-def test_eos_token_id_rt_info_sentencepiece(hf_sentencepiece_tokenizers):
-    eos_token_id = hf_sentencepiece_tokenizers.eos_token_id
+def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_sentencepiece_tokenizers,
         with_detokenizer=True,
     )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+    check_rt_info(hf_sentencepiece_tokenizers, ov_tokenizer, ov_detokenizer)

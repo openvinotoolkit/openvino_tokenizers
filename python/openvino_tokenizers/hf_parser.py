@@ -24,7 +24,6 @@ from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
-    EOS_TOKEN_ID_NAME,
     STRING_OUTPUT_NAME,
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
@@ -164,7 +163,6 @@ class TransformersTokenizerPipelineParser:
         ]:
             add_steps()
 
-        self.pipeline.eos_token_id = self.pipeline.get_eos_token_id(self.original_tokenizer)
         return self.pipeline
 
     normalizers_map: Dict[
@@ -434,8 +432,6 @@ def convert_fast_tokenizer(
             filtered_outputs.append(ov_tokenizer.output(i))
 
     tokenizer_model = Model(filtered_outputs, ov_tokenizer.get_parameters(), TOKENIZER_NAME)
-    for path, info in ov_tokenizer.get_rt_info().items():
-        tokenizer_model.set_rt_info(info.value, path)
 
     if with_detokenizer:
         return tokenizer_model, pipeline.get_detokenizer_ov_subgraph()
@@ -692,10 +688,6 @@ def convert_sentencepiece_model_tokenizer(
     tokenizer = Model(outputs, [input_node], TOKENIZER_NAME)
     tokenizer.validate_nodes_and_infer_types()
 
-    eos_token_id = TokenizerPipeline.get_eos_token_id(hf_tokenizer)
-    if eos_token_id is not None:
-        tokenizer.set_rt_info(eos_token_id, EOS_TOKEN_ID_NAME)
-
     if not with_detokenizer:
         return tokenizer
 
@@ -709,10 +701,6 @@ def convert_sentencepiece_model_tokenizer(
         prepend_scheme=prepend_scheme,
         add_prefix_space=add_prefix_space,
     )
-
-    if eos_token_id is not None:
-        detokenizer.set_rt_info(eos_token_id, EOS_TOKEN_ID_NAME)
-
     return tokenizer, detokenizer
 
 
@@ -877,8 +865,6 @@ def convert_tiktoken_model_tokenizer(
 
     if clean_up_tokenization_spaces:
         pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
-
-    pipeline.eos_token_id = pipeline.get_eos_token_id(hf_tokenizer)
 
     if not with_detokenizer:
         return pipeline.get_tokenizer_ov_subgraph()

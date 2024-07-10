@@ -10,7 +10,18 @@ LOGITS_OUTPUT_NAME = "logits"
 TOKEN_IDS_OUTPUT_NAME = "token_ids"
 STRING_OUTPUT_NAME = "string_output"
 
+BOS_TOKEN_ID_NAME = "bos_token_id"
 EOS_TOKEN_ID_NAME = "eos_token_id"
+PAD_TOKEN_ID_NAME = "pad_token_id"
+CHAT_TEMPLATE_NAME = "chat_template"
+ORIGINAL_TOKENIZER_CLASS_NAME = "original_tokenizer_class"
+
+rt_info_to_hf_attribute_map = {
+    BOS_TOKEN_ID_NAME: (BOS_TOKEN_ID_NAME,),
+    EOS_TOKEN_ID_NAME: (EOS_TOKEN_ID_NAME, "eod_id"),
+    PAD_TOKEN_ID_NAME: (PAD_TOKEN_ID_NAME,),
+    CHAT_TEMPLATE_NAME: (CHAT_TEMPLATE_NAME, "default_chat_template"),
+}
 
 GREEDY_DECODER_NAME = "greedy_decoder"
 

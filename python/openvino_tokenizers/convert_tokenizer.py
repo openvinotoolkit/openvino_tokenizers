@@ -9,7 +9,7 @@ from typing import Any, Optional, Tuple, Union
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
 
-from .utils import change_inputs_type, change_outputs_type
+from .utils import change_inputs_type, change_outputs_type, update_rt_info
 
 
 logger = logging.getLogger(__name__)
@@ -71,6 +71,14 @@ def convert_tokenizer(
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                     use_max_padding=use_max_padding,
                 )
+            else:
+                raise OVTypeError(f"Huggingface tokenizer type is not supported: {type(tokenizer_object)}")
+
+            if isinstance(ov_tokenizers, tuple):
+                for ov_model in ov_tokenizers:
+                    update_rt_info(ov_model, tokenizer_object)
+            else:
+                update_rt_info(ov_tokenizers, tokenizer_object)
     else:
         raise EnvironmentError(
             "No transformers library in the environment. Install required dependencies with one of two options:\n"
