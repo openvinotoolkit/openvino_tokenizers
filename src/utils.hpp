@@ -7,7 +7,8 @@
 #include <functional>
 #include <openvino/runtime/tensor.hpp>
 #include <openvino/frontend/node_context.hpp>
-
+#include <pcre2.h>
+#include "absl/strings/string_view.h"
 
 #ifndef OPENVINO_ELEMENT_STRING_SUPPORTED
     #define OPENVINO_ELEMENT_STRING_SUPPORTED 0
@@ -70,3 +71,11 @@ bool evaluate_normalization_helper (
 std::shared_ptr<ov::Node> string_attribute_to_constant (const ov::frontend::NodeContext& node, const std::string& name);
 
 void set_node_name(const std::string& node_name, const std::shared_ptr<ov::Node>& node);
+
+class PCRE2Wrapper {
+public:
+    pcre2_code* m_compiled = nullptr;
+    PCRE2Wrapper(const char* pattern);
+    std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace);
+    ~PCRE2Wrapper();
+};

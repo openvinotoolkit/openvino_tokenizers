@@ -5,10 +5,12 @@
 #pragma once
 
 #include "absl/strings/string_view.h"
+#include "utils.hpp"
 
 #include <openvino/op/op.hpp>
 #include "openvino/opsets/opset13.hpp"
 #include "fast_tokenizer/normalizers/normalizers.h"
+#include <pcre2.h>
 
 using namespace ov;
 using namespace ov::opset13;
@@ -47,6 +49,8 @@ public:
     }
 private:
     mutable std::shared_ptr<re2::RE2> m_search_pattern_re;
+    mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
+    mutable absl::string_view m_search_pattern;
     mutable absl::string_view m_replace_pattern;
     bool m_global_replace = true;
 };
