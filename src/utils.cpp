@@ -217,3 +217,71 @@ void set_node_name(const std::string& node_name, const std::shared_ptr<Node>& no
         outputs[idx].get_tensor().add_names({ node_name + ":" + std::to_string(idx) });
     }
 }
+
+PCRE2Wrapper::PCRE2Wrapper(const char* pattern) {
+    int errorcode;
+    PCRE2_SIZE erroroffset;
+    m_compiled = pcre2_compile((PCRE2_SPTR) pattern, 
+                                PCRE2_ZERO_TERMINATED, PCRE2_UTF | PCRE2_UCP, 
+                                &errorcode, &erroroffset, NULL);
+    if (m_compiled == NULL) {
+        PCRE2_UCHAR buffer[256];
+        pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
+        std::cerr << "PCRE2 compilation failed at offset " << erroroffset << ": " << buffer << std::endl;
+    }
+}
+
+PCRE2Wrapper::~PCRE2Wrapper() {
+    if (m_compiled != nullptr) {
+        pcre2_code_free(m_compiled);
+        m_compiled = nullptr;
+    }
+}
+
+std::string PCRE2Wrapper::substitute(const std::string& orig_str, 
+                                     const absl::string_view& replace_pattern,
+                                     bool global_replace) {
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
+    PCRE2_SIZE subject_length = orig_str.size();
+    PCRE2_UCHAR buffer[subject_length * 2]; // todo: allocate more space for general case
+    
+    // Check if the string matches the pattern
+    int match_result = pcre2_match(
+        m_compiled,
+        (PCRE2_SPTR)orig_str.c_str(),
+        subject_length,
+        0,
+        0,
+        match_data,
+        NULL
+    );
+    if (match_result < 0 || match_result == PCRE2_ERROR_NOMATCH) {
+        return orig_str;
+    }
+
+    int rc = pcre2_substitute(
+        m_compiled,
+        (PCRE2_SPTR)orig_str.c_str(),
+        subject_length,
+        0,
+        global_replace ? PCRE2_SUBSTITUTE_GLOBAL : 0,
+        match_data,
+        NULL,
+        (PCRE2_SPTR)replace_pattern.data(),
+        PCRE2_ZERO_TERMINATED,
+        buffer,
+        &subject_length
+    );
+
+    pcre2_match_data_free(match_data);
+
+    if (rc < 0) {
+        if (rc == PCRE2_ERROR_NOMEMORY) {
+            std::cerr << "Buffer overflow" << std::endl;
+        } else {
+            std::cerr << "PCRE2 substitution failed with error code " << rc << std::endl;
+        }
+        return orig_str;
+    }
+    return std::string((char*)buffer, subject_length);
+}

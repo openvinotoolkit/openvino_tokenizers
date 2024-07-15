@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-
-
 #include "regex_normalization.hpp"
 #include "utils.hpp"
+
 
 using namespace ov;
 
@@ -20,8 +19,14 @@ m_global_replace(global_replace) {
     auto search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
     auto replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
     auto search_pattern = absl::string_view((const char*)search_pattern_buf, search_pattern_const->get_byte_size());
-    m_replace_pattern = absl::string_view((const char*)replace_pattern_buf, replace_pattern_const->get_byte_size());
+    m_replace_pattern = absl::string_view(search_pattern_buf, replace_pattern_const->get_byte_size());
     m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
+    
+    if (m_search_pattern_re->NumberOfCapturingGroups() == -1) {
+        // If RE2 was unable to process pattern
+        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern_buf);
+    }
+    
     constructor_validate_and_infer_types();
 }
 
@@ -36,15 +41,27 @@ RegexNormalization::RegexNormalization(
         m_replace_pattern(replace_pattern),
         m_global_replace(global_replace) {
 
-        if (m_search_pattern_re == nullptr) {
-            auto search_pattern_const = as_type_ptr<Constant>(arguments[3].get_node_shared_ptr());
-            auto replace_pattern_const = as_type_ptr<Constant>(arguments[4].get_node_shared_ptr());
-            auto search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
-            auto replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
-            auto search_pattern = absl::string_view((const char*)search_pattern_buf, search_pattern_const->get_byte_size());
+        auto search_pattern_const = as_type_ptr<Constant>(arguments[3].get_node_shared_ptr());
+        auto replace_pattern_const = as_type_ptr<Constant>(arguments[4].get_node_shared_ptr());
+        const char* search_pattern_buf;
+        const char* replace_pattern_buf;
+        absl::string_view search_pattern;
+
+        if (m_search_pattern_re == nullptr || m_search_pattern_pcre2 == nullptr) {
+            search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
+            replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
+            search_pattern = absl::string_view((const char*)search_pattern_buf, search_pattern_const->get_byte_size());
             m_replace_pattern = absl::string_view((const char*)replace_pattern_buf, replace_pattern_const->get_byte_size());
-            m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
         };
+
+        if (m_search_pattern_re == nullptr) {
+            m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
+        }
+        
+        if (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr) {
+            m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern_buf);
+        }
+
         constructor_validate_and_infer_types();
     }
 
@@ -63,19 +80,31 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         m_replace_pattern = absl::string_view(inputs[4].data<const char>(), inputs[4].get_size());
         m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
     };
+    if (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr) {
+        m_replace_pattern = absl::string_view(inputs[4].data<const char>(), inputs[4].get_size());
+        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(inputs[3].data<const char>());
+    }
+
     return evaluate_normalization_helper(
         outputs, inputs,
-        [this](const std::string& str) {
-            // FIXME: if regex is not valid re2, return string without changing (use another regex engine)
-            if (m_search_pattern_re->NumberOfCapturingGroups() == -1)
-                return str;
-
+        [this](const std::string& str) -> std::string {
+            auto m_search_pattern = m_search_pattern_re->pattern();
+            std::string replace_pattern = std::string(m_replace_pattern);
             std::string result = str;
-            if (m_global_replace) {
-                re2::RE2::GlobalReplace(&result, *m_search_pattern_re, m_replace_pattern);
-            } else {
-                re2::RE2::Replace(&result, *m_search_pattern_re, m_replace_pattern);
-            };
-            return result;
+
+            // Use RE2 where possible, and fallback to PCRE2 if RE2 was not able to process.
+            if (m_search_pattern_re->NumberOfCapturingGroups() != -1) {
+                if (m_global_replace) {
+                    re2::RE2::GlobalReplace(&result, *m_search_pattern_re, m_replace_pattern);
+                } else {
+                    re2::RE2::Replace(&result, *m_search_pattern_re, m_replace_pattern);
+                };
+                return result;
+            }
+
+            if (m_search_pattern_pcre2 == nullptr)
+                return result;
+            return m_search_pattern_pcre2->substitute(result, m_replace_pattern, m_global_replace);
+
     });
 }
