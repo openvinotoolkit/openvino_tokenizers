@@ -1,24 +1,15 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-from typing import Optional
 
 import numpy as np
 import pytest
+import requests
 from openvino import Core, Model
 from openvino_tokenizers import convert_tokenizer
-from openvino_tokenizers.constants import EOS_TOKEN_ID_NAME
+from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
+from openvino_tokenizers.utils import get_hf_tokenizer_attribute
 from transformers import AutoTokenizer
-
-
-# Left these two methods for convenient transition from legay u8 representation to native string tensors
-# TODO: Remove the methods when transition is over
-def pack_strings(strings):
-    return strings
-
-
-def unpack_strings(strings):
-    return list(strings)
 
 
 core = Core()
@@ -165,10 +156,15 @@ def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left
     kwargs = {}
     if left_padding is not None:
         kwargs["padding_side"] = "left" if left_padding else "right"
+        kwargs["truncation_side"] = "left" if left_padding else "right"
 
-    return AutoTokenizer.from_pretrained(
-        request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
-    )
+    for retry in range(2):
+        try:
+            return AutoTokenizer.from_pretrained(
+                request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
+            )
+        except requests.ReadTimeout:
+            pass
 
 
 @pytest.fixture(scope="session", params=[True, False], ids=lambda is_left: "left_pad" if is_left else "right_pad")
@@ -218,6 +214,15 @@ def do_clean_up_tokenization_spaces(request):
 @pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_sentencepiece_tokenizers(request, is_fast_tokenizer):
     hf_tokenizer = get_hf_tokenizer(request, fast_tokenizer=is_fast_tokenizer, trust_remote_code=True)
+    return hf_tokenizer
+
+
+@pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def hf_sentencepiece_tokenizers_with_padding_sides(request, use_left_padding):
+    hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
+    if hf_tokenizer.pad_token is None:
+        hf_tokenizer.pad_token = hf_tokenizer.eos_token
+        hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or 0
     return hf_tokenizer
 
 
@@ -300,22 +305,37 @@ def sentencepice_tokenizers(hf_sentencepiece_tokenizers, do_add_special_tokens):
 
 
 @pytest.fixture(scope="session")
+def sentencepiece_tokenizers_with_padding_options(
+    hf_sentencepiece_tokenizers_with_padding_sides, do_add_special_tokens, use_left_padding
+):
+    if (
+        hf_sentencepiece_tokenizers_with_padding_sides.name_or_path in ("THUDM/chatglm2-6b", "THUDM/chatglm3-6b")
+        and not use_left_padding
+    ):
+        pytest.skip("chatglm supports left padding only")
+    if hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm2-6b" and do_add_special_tokens:
+        pytest.skip("chatglm2 never adds special tokens")
+    if (
+        hf_sentencepiece_tokenizers_with_padding_sides.name_or_path == "THUDM/chatglm3-6b"
+        and not do_add_special_tokens
+    ):
+        pytest.skip("chatglm3 always adds special tokens")
+
+    return get_tokenizer(
+        hf_sentencepiece_tokenizers_with_padding_sides,
+        add_special_tokens=do_add_special_tokens,
+    )
+
+
+@pytest.fixture(scope="session")
 def sentencepice_tokenizers_detokenizers(
     hf_sentencepiece_tokenizers, do_skip_special_tokens, do_clean_up_tokenization_spaces
 ):
     # chatglm2 always skips special tokens, chatglam3 always not skip
-    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm2-6b":
-        return get_tokenizer_detokenizer(
-            hf_sentencepiece_tokenizers,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
-        )
-    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm3-6b":
-        return get_tokenizer_detokenizer(
-            hf_sentencepiece_tokenizers,
-            skip_special_tokens=False,
-            clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
-        )
+    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm2-6b" and not do_skip_special_tokens:
+        pytest.skip("chatglm2 always skips special tokens")
+    if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm3-6b" and do_skip_special_tokens:
+        pytest.skip("chatglm3 always adds special tokens")
 
     return get_tokenizer_detokenizer(
         hf_sentencepiece_tokenizers,
@@ -372,12 +392,11 @@ def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
 )
 def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
-    packed_strings = pack_strings([test_string])
 
     hf_tokenized = hf_tokenizer(
-        [test_string], return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
     )
-    ov_tokenized = ov_tokenizer(packed_strings)
+    ov_tokenized = ov_tokenizer([test_string])
 
     for output_name, hf_result in hf_tokenized.items():
         assert np.all((ov_result := ov_tokenized[output_name]) == hf_result), f"{hf_result}\n{ov_result}"
@@ -397,13 +416,11 @@ def test_hf_wordpiece_tokenizers_multiple_strings(
 ):
     hf_tokenizer, ov_tokenizer = wordpiece_tokenizers_with_padding_options
 
-    packed_strings = pack_strings(test_string)
-
     padding = "max_length" if use_max_padding else True
     hf_tokenized = hf_tokenizer(
         test_string, return_tensors="np", padding=padding, truncation=True, add_special_tokens=do_add_special_tokens
     )
-    ov_tokenized = ov_tokenizer(packed_strings)
+    ov_tokenized = ov_tokenizer(test_string)
 
     for output_name, hf_result in hf_tokenized.items():
         ov_result = ov_tokenized[output_name]
@@ -426,10 +443,36 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_
     hf_tokenized = hf_tokenizer(
         test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
     )
-    ov_tokenized = ov_tokenizer(pack_strings([test_string]))
+    ov_tokenized = ov_tokenizer([test_string])
 
     for output_name, hf_result in hf_tokenized.items():
         #  chatglm has token_type_ids output that we omit
+        if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        eng_test_strings,
+        multilingual_test_strings,
+        emoji_test_strings,
+        misc_strings,
+    ],
+)
+def test_hf_sentencepiece_tokenizers_multiple_strings(
+    sentencepiece_tokenizers_with_padding_options, test_string, do_add_special_tokens
+):
+    hf_tokenizer, ov_tokenizer = sentencepiece_tokenizers_with_padding_options
+
+    # padding = "max_length" if use_max_padding else True
+    hf_tokenized = hf_tokenizer(
+        test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
+    )
+    ov_tokenized = ov_tokenizer(test_string)
+
+    for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
             assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
             assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
@@ -455,7 +498,7 @@ def test_sentencepiece_model_detokenizer(
         skip_special_tokens=do_skip_special_tokens,
         clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
     )
-    ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
+    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
 
     assert ov_output == hf_output
 
@@ -471,12 +514,11 @@ def test_sentencepiece_model_detokenizer(
 )
 def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = bpe_tokenizers
-    packed_strings = pack_strings([test_string])
 
     hf_tokenized = hf_tokenizer(
-        [test_string], return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
     )
-    ov_tokenized = ov_tokenizer(packed_strings)
+    ov_tokenized = ov_tokenizer([test_string])
 
     for output_name, hf_result in hf_tokenized.items():
         # galactica tokenizer has 3 output, but model has 2 inputs
@@ -499,13 +541,11 @@ def test_hf_bpe_tokenizers_multiple_strings(
 ):
     hf_tokenizer, ov_tokenizer = bpe_tokenizers_with_padding_options
 
-    packed_strings = pack_strings(test_string)
-
     padding = "max_length" if use_max_padding else True
     hf_tokenized = hf_tokenizer(
         test_string, return_tensors="np", padding=padding, truncation=True, add_special_tokens=do_add_special_tokens
     )
-    ov_tokenized = ov_tokenizer(packed_strings)
+    ov_tokenized = ov_tokenizer(test_string)
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
@@ -533,7 +573,7 @@ def test_bpe_detokenizer(
         skip_special_tokens=do_skip_special_tokens,
         clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
     )
-    ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
+    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
 
     assert ov_output == hf_output
 
@@ -551,7 +591,7 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
     hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
 
     hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True)
-    ov_tokenized = ov_tokenizer(pack_strings([test_string]))
+    ov_tokenized = ov_tokenizer([test_string])
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
@@ -572,12 +612,10 @@ def test_hf_tiktoken_tokenizers_multiple_strings(
 ):
     hf_tokenizer, ov_tokenizer = tiktoken_tokenizers_with_padding_options
 
-    packed_strings = pack_strings(test_string)
-
     hf_tokenized = hf_tokenizer(
         test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
     )
-    ov_tokenized = ov_tokenizer(packed_strings)
+    ov_tokenized = ov_tokenizer(test_string)
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
@@ -599,7 +637,7 @@ def test_tiktoken_detokenizer(tiktoken_tokenizers_detokenizers, test_string, do_
 
     token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
     hf_output = hf_tokenizer.batch_decode(token_ids, skip_special_tokens=do_skip_special_tokens)
-    ov_output = unpack_strings(ov_detokenizer(token_ids.astype("int32"))["string_output"])
+    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
 
     assert ov_output == hf_output
 
@@ -613,7 +651,7 @@ def test_streaming_detokenizer(sentencepiece_streaming_tokenizers):
 
     detokenized_stream = ""
     for token in tokenized_string:
-        ov_output = unpack_strings(ov_detokenizer(np.atleast_2d(token))["string_output"])[0]
+        ov_output = ov_detokenizer(np.atleast_2d(token))["string_output"][0]
         detokenized_stream += ov_output
 
     assert detokenized_stream == hf_detokenized
@@ -630,7 +668,7 @@ def test_detokenizer_results_align_with_hf_on_multitoken_symbols_for_streaming()
     detokenized_stream = ""
     hf_detokenized_stream = ""
     for token in tokenized_string:
-        ov_output = unpack_strings(ov_detokenizer(np.atleast_2d(token))["string_output"])[0]
+        ov_output = ov_detokenizer(np.atleast_2d(token))["string_output"][0]
         detokenized_stream += ov_output
 
         hf_output = hf_tokenizer.decode(token)
@@ -639,43 +677,48 @@ def test_detokenizer_results_align_with_hf_on_multitoken_symbols_for_streaming()
     assert detokenized_stream == hf_detokenized_stream
 
 
-def check_eos_id(eos_token_id: Optional[int], *models: Model) -> None:
+def check_rt_info(hf_tokenizer, *models: Model) -> None:
     for model in models:
-        if eos_token_id is None:
-            assert not model.has_rt_info(EOS_TOKEN_ID_NAME)
-        else:
-            assert model.has_rt_info(EOS_TOKEN_ID_NAME)
-            assert model.get_rt_info(EOS_TOKEN_ID_NAME).value == eos_token_id
+        assert model.has_rt_info(ORIGINAL_TOKENIZER_CLASS_NAME), ORIGINAL_TOKENIZER_CLASS_NAME
+        assert model.get_rt_info(ORIGINAL_TOKENIZER_CLASS_NAME) == str(type(hf_tokenizer))
+
+        for field_name, attributes in rt_info_to_hf_attribute_map.items():
+            attribute = get_hf_tokenizer_attribute(hf_tokenizer, attributes)
+            if attribute is None:
+                assert not model.has_rt_info(field_name), field_name
+            else:
+                assert model.has_rt_info(field_name), field_name
+                assert model.get_rt_info(field_name).value == attribute, (
+                    field_name,
+                    attributes,
+                    model.get_rt_info(field_name).value,
+                )
 
 
-def test_eos_token_id_rt_info_wordpiece(hf_wordpiece_tokenizers):
-    eos_token_id = hf_wordpiece_tokenizers.eos_token_id
+def test_rt_info_wordpiece(hf_wordpiece_tokenizers):
     ov_tokenizer = convert_tokenizer(hf_wordpiece_tokenizers)
-    check_eos_id(eos_token_id, ov_tokenizer)
+    check_rt_info(hf_wordpiece_tokenizers, ov_tokenizer)
 
 
-def test_eos_token_id_rt_info_bpe(hf_bpe_tokenizers):
-    eos_token_id = hf_bpe_tokenizers.eos_token_id
+def test_rt_info_bpe(hf_bpe_tokenizers):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_bpe_tokenizers,
         with_detokenizer=True,
     )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+    check_rt_info(hf_bpe_tokenizers, ov_tokenizer, ov_detokenizer)
 
 
-def test_eos_token_id_rt_info_tiktoken(hf_tiktoken_tokenizers):
-    eos_token_id = hf_tiktoken_tokenizers.eos_token_id or hf_tiktoken_tokenizers.eod_id
+def test_rt_info_tiktoken(hf_tiktoken_tokenizers):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_tiktoken_tokenizers,
         with_detokenizer=True,
     )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+    check_rt_info(hf_tiktoken_tokenizers, ov_tokenizer, ov_detokenizer)
 
 
-def test_eos_token_id_rt_info_sentencepiece(hf_sentencepiece_tokenizers):
-    eos_token_id = hf_sentencepiece_tokenizers.eos_token_id
+def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_sentencepiece_tokenizers,
         with_detokenizer=True,
     )
-    check_eos_id(eos_token_id, ov_tokenizer, ov_detokenizer)
+    check_rt_info(hf_sentencepiece_tokenizers, ov_tokenizer, ov_detokenizer)

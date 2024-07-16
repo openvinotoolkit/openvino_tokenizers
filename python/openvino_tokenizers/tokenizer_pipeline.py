@@ -22,7 +22,6 @@ from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
-    EOS_TOKEN_ID_NAME,
     STRING_OUTPUT_NAME,
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
@@ -143,7 +142,7 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"(^)(.+)", replace_term=fr"{string}\2")
+        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}\2")
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
@@ -522,9 +521,7 @@ class BPETokenizationStep(TokenizationModelStep):
             end_suffix=tokenizer_json["model"]["end_of_word_suffix"] or "",
             vocab=vocab,
             merges=tokenizer_json["model"]["merges"],
-            added_tokens={
-                token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"]
-            },
+            added_tokens={token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"]},
         )
 
     @classmethod
@@ -642,11 +639,18 @@ class TruncationStep(PostTokenizationStep):
             opset.subtract(input_nodes[1], input_nodes[0]),
             make_constant_node(self.max_length, Type.i32),
         )
-        return [
-            input_nodes[0],
-            opset.add(input_nodes[0], max_length).output(0),
-            input_nodes[2],
-        ]
+        if self.truncate_right:
+            return [
+                input_nodes[0],
+                opset.add(input_nodes[0], max_length).output(0),
+                input_nodes[2],
+            ]
+        else:
+            return [
+                opset.subtract(input_nodes[1], max_length).output(0),
+                input_nodes[1],
+                input_nodes[2],
+            ]
 
 
 @dataclass
@@ -1022,7 +1026,6 @@ class TokenizerPipeline:
     skip_tokens: Optional[List[int]] = field(default=None, repr=False)
     number_of_inputs: int = 1
     vocab_node_outputs: Optional[List[Output]] = field(default=None, repr=False)
-    eos_token_id: Optional[int] = None
     finalized: bool = False
 
     @property
@@ -1050,14 +1053,6 @@ class TokenizerPipeline:
     def __getitem__(self, item: int) -> BasePipelineStep:
         return self.steps[item]
 
-    @staticmethod
-    def get_eos_token_id(hf_tokenizer) -> Optional[int]:
-        if hf_tokenizer.eos_token_id is not None:
-            return hf_tokenizer.eos_token_id
-
-        # qwen uses eod_id attrubute
-        return getattr(hf_tokenizer, "eod_id", None)
-
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
 
@@ -1079,8 +1074,6 @@ class TokenizerPipeline:
             processing_outputs = step.get_ov_subgraph(processing_outputs)
 
         model = Model(processing_outputs, string_inputs, name=TOKENIZER_NAME)
-        if self.eos_token_id is not None:
-            model.set_rt_info(self.eos_token_id, EOS_TOKEN_ID_NAME)
         return model
 
     def finalize(self) -> None:
@@ -1143,6 +1136,4 @@ class TokenizerPipeline:
         outputs = self.create_decoding_pipeline([token_ids])
         model = Model(outputs, [input_node], name=DETOKENIZER_NAME)
         model.output().tensor.add_names({STRING_OUTPUT_NAME})
-        if self.eos_token_id is not None:
-            model.set_rt_info(self.eos_token_id, EOS_TOKEN_ID_NAME)
         return model

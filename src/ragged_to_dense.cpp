@@ -87,9 +87,9 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
         }
     } else {
         for(size_t i = 0; i < nelems; ++i) {
-            size_t data_len = ends[i] - begins[i];
+            const size_t data_len = ends[i] - begins[i];
             auto target_len = (
-                std::min(size_t(ends[i] - begins[i]), target_dim) * (1 - m_pad_max_length) // truncation
+                std::min(data_len, target_dim) * (1 - m_pad_max_length) // truncation
                 + target_dim * m_pad_max_length  // pad to max length
             );
             auto pad_len = target_dim - target_len;
@@ -100,7 +100,7 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
             }
             // fill actual values
             auto begin = elems + elem_size * begins[i];
-            auto end = begin + elem_size * target_len;  // truncate right side
+            auto end = begin + elem_size * target_len;
             out_elems = std::copy(begin, end, out_elems);
 
             // construct padding mask

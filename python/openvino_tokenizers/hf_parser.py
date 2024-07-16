@@ -11,10 +11,11 @@ from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import openvino.runtime.opset12 as opset
+import openvino.runtime.opset14 as opset
 from openvino import Model, PartialShape, Type
 from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
+from openvino.runtime.opset1.ops import _get_node_factory_opset1
 from openvino.runtime.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
@@ -23,7 +24,6 @@ from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
-    EOS_TOKEN_ID_NAME,
     STRING_OUTPUT_NAME,
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
@@ -161,7 +161,6 @@ class TransformersTokenizerPipelineParser:
         ]:
             add_steps()
 
-        self.pipeline.eos_token_id = self.pipeline.get_eos_token_id(self.original_tokenizer)
         return self.pipeline
 
     normalizers_map: Dict[
@@ -178,7 +177,7 @@ class TransformersTokenizerPipelineParser:
         "BertNormalizer": parse_bert_normalizer,
         "Replace": parse_replace_normalizer,
         "Strip": parse_strip_step,
-        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", ""))
+        "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", "")),
     }
 
     def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
@@ -294,14 +293,14 @@ class TransformersTokenizerPipelineParser:
     def add_truncation(self) -> None:
         max_length = getattr(self.original_tokenizer, "model_max_length", -1)
 
-        if self.tokenizer_json["truncation"] is not None:
+        if self.original_tokenizer.model_max_length is not None:
+            self.pipeline.add_steps(TruncationStep.from_hf_object(self.original_tokenizer, self.num_of_added_tokens))
+        elif self.tokenizer_json["truncation"] is not None:
             self.pipeline.add_steps(
                 TruncationStep.from_hf_json(
                     self.tokenizer_json, num_of_added_tokens=self.num_of_added_tokens, max_length=max_length
                 )
             )
-        elif self.original_tokenizer.model_max_length is not None:
-            self.pipeline.add_steps(TruncationStep.from_hf_object(self.original_tokenizer, self.num_of_added_tokens))
 
     def add_padding(self, use_max_padding: bool = False) -> None:
         max_length = getattr(self.original_tokenizer, "model_max_length", -1)
@@ -431,8 +430,6 @@ def convert_fast_tokenizer(
             filtered_outputs.append(ov_tokenizer.output(i))
 
     tokenizer_model = Model(filtered_outputs, ov_tokenizer.get_parameters(), TOKENIZER_NAME)
-    for path, info in ov_tokenizer.get_rt_info().items():
-        tokenizer_model.set_rt_info(info.value, path)
 
     if with_detokenizer:
         return tokenizer_model, pipeline.get_detokenizer_ov_subgraph()
@@ -533,7 +530,9 @@ def convert_sentencepiece_model_tokenizer(
             _ids = hf_tokenizer.build_inputs_with_special_tokens([_fake_token_id])
             add_bos_token = _ids[0] != _fake_token_id
             add_eos_token = _ids[-1] != _fake_token_id
-        except:
+        except Exception:
+            # some tokenizers have broken build_inputs_with_special_tokens method,
+            # fallback older add bos/eos token detection methods
             pass
 
     if add_eos_token is None and hasattr(hf_tokenizer, "add_eos_token"):
@@ -627,37 +626,22 @@ def convert_sentencepiece_model_tokenizer(
         next_node = RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex().get_ov_subgraph(next_node)
         next_node = _get_factory().create("StringTensorPack", next_node).outputs()
 
+    do_left_padding = hf_tokenizer.padding_side == "left"
+
     tokenizer_node = _get_factory().create(
         "SentencepieceTokenizer",
         [sp_model_node, *next_node],
         {
             "add_bos": add_bos_token,
             "add_eos": add_eos_token,
-            "reverse": False,
+            "reverse": do_left_padding,
             "alpha": 0.0,
         },
     )
 
     indices, values, dense_shape = tokenizer_node.outputs()
 
-    default_value = make_constant_node(hf_tokenizer.pad_token_id or 0, values.element_type)
-    broadcast = opset.broadcast(default_value, dense_shape)
-    scatternd_input_ids = _get_factory().create(
-        "ScatterNDUpdate",
-        [broadcast, indices, values],  # FIXME: pad left side instead of right
-    )
-
-    if is_chatglm and add_special_tokens:
-        prefix_tokens = make_constant_node(
-            np.array([hf_tokenizer.get_prefix_tokens()]), dtype=scatternd_input_ids.output(0).element_type
-        )
-        scatternd_input_ids = opset.concat([prefix_tokens, scatternd_input_ids], axis=-1)
-
-    scatternd_input_ids.output(0).tensor.add_names({TOKEN_IDS_INPUT_NAME})
-
-    outputs = scatternd_input_ids.outputs()
-
-    if add_attention_mask:
+    if add_attention_mask or do_left_padding:
         attention_mask = _get_factory().create(
             "ScatterNDUpdate",
             [
@@ -670,21 +654,37 @@ def convert_sentencepiece_model_tokenizer(
             ],
         )
 
-        if is_chatglm and add_special_tokens:
-            attention_prefix = make_constant_node(
-                np.array([[1 for _ in hf_tokenizer.get_prefix_tokens()]]), dtype=attention_mask.output(0).element_type
-            )
-            attention_mask = opset.concat([attention_prefix, attention_mask], axis=-1)
+    if is_chatglm and add_special_tokens:
+        prefix_tokens = np.array([hf_tokenizer.get_prefix_tokens()])
+        dense_shape, indices, values, attention_mask = add_prefix_tokens(
+            prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
+        )
 
+    default_value = make_constant_node(hf_tokenizer.pad_token_id or 0, values.element_type)
+    broadcast = opset.broadcast(default_value, dense_shape, broadcast_spec="BIDIRECTIONAL")
+
+    scattered_input_ids = _get_factory().create(
+        "ScatterNDUpdate",
+        [broadcast, indices, values],
+    )
+
+    if do_left_padding:
+        attention_mask = _get_node_factory_opset1().create(
+            "Reverse", [attention_mask, make_constant_node(np.array([-1]))], {"mode": "index"}
+        )
+        scattered_input_ids = _get_node_factory_opset1().create(
+            "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
+        )
+
+    scattered_input_ids.output(0).tensor.add_names({TOKEN_IDS_INPUT_NAME})
+    outputs = scattered_input_ids.outputs()
+
+    if add_attention_mask:
         attention_mask.output(0).tensor.add_names({ATTENTION_MASK_INPUT_NAME})
         outputs.append(attention_mask.output(0))
 
     tokenizer = Model(outputs, [input_node], TOKENIZER_NAME)
     tokenizer.validate_nodes_and_infer_types()
-
-    eos_token_id = TokenizerPipeline.get_eos_token_id(hf_tokenizer)
-    if eos_token_id is not None:
-        tokenizer.set_rt_info(eos_token_id, EOS_TOKEN_ID_NAME)
 
     if not with_detokenizer:
         return tokenizer
@@ -699,11 +699,84 @@ def convert_sentencepiece_model_tokenizer(
         prepend_scheme=prepend_scheme,
         add_prefix_space=add_prefix_space,
     )
-
-    if eos_token_id is not None:
-        detokenizer.set_rt_info(eos_token_id, EOS_TOKEN_ID_NAME)
-
     return tokenizer, detokenizer
+
+
+def add_prefix_tokens(
+    prefix_tokens, dense_shape, indices, values, attention_mask=None, do_left_padding=False
+) -> Tuple:
+    if do_left_padding is True and attention_mask is None:
+        raise ValueError("You must pass attention_mask when add prefix with left padding.")
+
+    if do_left_padding:
+        prefix_tokens = prefix_tokens[..., ::-1]  # reverse prefix
+
+    _, prefix_len = prefix_tokens.shape
+    index_update_node = make_constant_node(np.array([0, prefix_len]))
+
+    # update resulting dense tensor shape
+    dense_shape = opset.add(dense_shape, opset.convert(index_update_node, destination_type=dense_shape.element_type))
+    prefix_tokens_node = make_constant_node(prefix_tokens, dtype=values.element_type)
+    batch_size = opset.gather(dense_shape, as_node(0), as_node(0))
+    batch_slice = opset.slice(dense_shape, as_node([0]), as_node([1]), as_node([1]))
+    # new values
+    prefix_tokens_batch = opset.broadcast(
+        data=prefix_tokens_node,
+        target_shape=opset.concat(
+            [batch_slice, make_constant_node([prefix_len], dtype=batch_slice.get_element_type())], axis=0
+        ),
+        broadcast_spec="BIDIRECTIONAL",
+    )
+    prefix_tokens_batch = opset.reshape(prefix_tokens_batch, output_shape=[-1], special_zero=False)
+    values = opset.concat([values, prefix_tokens_batch], axis=0)
+    # new indices
+    prefix_range = opset.range(as_node(0), as_node(prefix_len), as_node(1), output_type=indices.element_type)
+
+    x_indices = opset.range(as_node(0), as_node(batch_size), as_node(1), output_type=indices.element_type)
+    x_indices = opset.broadcast(
+        data=x_indices,
+        target_shape=opset.concat(
+            [make_constant_node([prefix_len], dtype=batch_slice.get_element_type()), batch_slice], axis=0
+        ),
+        broadcast_spec="BIDIRECTIONAL",
+    )
+    x_indices = opset.transpose(x_indices, as_node([1, 0]))
+    x_indices = opset.reshape(x_indices, output_shape=[-1, 1], special_zero=False)
+
+    if do_left_padding:
+        prefix_start = opset.convert(
+            opset.reduce_sum(node=attention_mask, reduction_axes=-1, keep_dims=True), Type.i64
+        )
+        y_indices = opset.add(
+            prefix_start, opset.reshape(prefix_range, output_shape=[1, prefix_len], special_zero=False)
+        )
+    else:
+        y_indices = opset.broadcast(
+            data=prefix_range,
+            target_shape=opset.concat(
+                [batch_slice, make_constant_node([prefix_len], dtype=batch_slice.get_element_type())], axis=0
+            ),
+            broadcast_spec="BIDIRECTIONAL",
+        )
+        indices = opset.add(indices, index_update_node).output(0)
+
+    y_indices = opset.reshape(y_indices, output_shape=[-1, 1], special_zero=False)
+    prefix_indices = opset.concat([x_indices, y_indices], axis=1)
+    indices = opset.concat([indices, prefix_indices], axis=0)
+
+    attention_mask = opset.concat(
+        [
+            opset.broadcast(
+                data=make_constant_node(1, dtype=attention_mask.get_element_type()),
+                target_shape=opset.concat(
+                    [batch_slice, make_constant_node([prefix_len], dtype=batch_slice.get_element_type())], axis=0
+                ),
+            ),
+            attention_mask,
+        ],
+        axis=1,
+    )
+    return dense_shape.output(0), indices.output(0), values.output(0), attention_mask
 
 
 def get_sp_detokenizer(
@@ -711,7 +784,7 @@ def get_sp_detokenizer(
     streaming_detokenizer: bool = False,
     clean_up_tokenization_spaces: bool = False,
     prepend_scheme: str = "",
-    add_prefix_space: Optional[bool] = None
+    add_prefix_space: Optional[bool] = None,
 ) -> Model:
     model_input = token_ids = op.Parameter(Type.i32, PartialShape(["?", "?"]))  # (batch, sequence)
 
@@ -790,8 +863,6 @@ def convert_tiktoken_model_tokenizer(
 
     if clean_up_tokenization_spaces:
         pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
-
-    pipeline.eos_token_id = pipeline.get_eos_token_id(hf_tokenizer)
 
     if not with_detokenizer:
         return pipeline.get_tokenizer_ov_subgraph()

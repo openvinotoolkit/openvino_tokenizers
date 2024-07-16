@@ -5,13 +5,18 @@
 import logging
 import re
 from functools import lru_cache
-from typing import Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
 
-from .constants import LOGITS_OUTPUT_NAME, TOKEN_IDS_OUTPUT_NAME
+from .constants import (
+    LOGITS_OUTPUT_NAME,
+    ORIGINAL_TOKENIZER_CLASS_NAME,
+    TOKEN_IDS_OUTPUT_NAME,
+    rt_info_to_hf_attribute_map,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -44,11 +49,8 @@ def connect_models(
             target.replace_source_output(first_output.get_node().input_value(0))
             # target.replace_source_output(model1_output)  # TODO: Produces incorrect topology
 
-    new_inputs = first.get_parameters()
-    aligned_second_input_names = [second_input.get_any_name() for second_input in aligned_second_inputs]
-    remaining_inputs = [
-        param for param in second.get_parameters() if param.get_friendly_name() not in aligned_second_input_names
-    ]
+    new_inputs = first.inputs
+    remaining_inputs = [input_ for input_ in second.inputs if input_ not in aligned_second_inputs]
     if keep_second_model_unaligned_inputs:
         new_inputs.extend(remaining_inputs)
     elif remaining_inputs:
@@ -57,6 +59,7 @@ def connect_models(
             + ", ".join(input_.name for input_ in remaining_inputs)
             + ". To add them set `keep_unaligned_inputs` to `True`"
         )
+    new_inputs = [input_.get_node() for input_ in new_inputs]
 
     new_outputs = second.outputs
     remaining_outputs = [output for output in first.outputs if output not in aligned_first_outputs]
@@ -155,3 +158,22 @@ def bytes_to_unicode() -> Dict[int, str]:
 def apply_bytes_to_unicode(token: str) -> str:
     bytes_to_unicode_dict = bytes_to_unicode()
     return "".join(bytes_to_unicode_dict[byte] for char in token for byte in char.encode())
+
+
+def get_hf_tokenizer_attribute(
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+    attributes: Tuple[str],
+) -> Any:
+    return next((value for attr in attributes if (value := getattr(hf_tokenizer, attr, None)) is not None), None)
+
+
+def update_rt_info(
+    ov_tokenizer: Model,
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+) -> None:
+    ov_tokenizer.set_rt_info(str(type(hf_tokenizer)), ORIGINAL_TOKENIZER_CLASS_NAME)
+
+    for rt_field_name, hf_attributes in rt_info_to_hf_attribute_map.items():
+        attribute = get_hf_tokenizer_attribute(hf_tokenizer, hf_attributes)
+        if attribute is not None:
+            ov_tokenizer.set_rt_info(attribute, rt_field_name)
