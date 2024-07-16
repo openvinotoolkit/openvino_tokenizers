@@ -382,7 +382,7 @@ install(FILES "${openvino_tokenizers_BINARY_DIR}/python/__version__.py"
 # Cpack configuration
 #
 
-set(CPACK_COMPONENTS_ALL openvino_tokenizers_python openvino_tokenizers openvino_tokenizers_licenses)
+set(CPACK_COMPONENTS_ALL openvino_tokenizers_python openvino_tokenizers)
 
 # Uniform outcome in all repos - all repos will not create top level directory
 set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY OFF)
