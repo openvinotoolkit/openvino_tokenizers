@@ -24,7 +24,7 @@ m_global_replace(global_replace) {
     
     if (m_search_pattern_re->NumberOfCapturingGroups() == -1) {
         // If RE2 was unable to process pattern
-        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern_buf);
+        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
     }
     
     constructor_validate_and_infer_types();
@@ -59,7 +59,7 @@ RegexNormalization::RegexNormalization(
         }
         
         if (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr) {
-            m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern_buf);
+            m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
         }
 
         constructor_validate_and_infer_types();
@@ -75,15 +75,16 @@ void RegexNormalization::validate_and_infer_types() {
 
 
 bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    if (m_search_pattern_re == nullptr) {
-        auto search_pattern = absl::string_view(inputs[3].data<const char>(), inputs[3].get_size());
+    absl::string_view search_pattern;
+    if (m_search_pattern_re == nullptr || m_search_pattern_pcre2 == nullptr) {
+        search_pattern = absl::string_view(inputs[3].data<const char>(), inputs[3].get_size());
         m_replace_pattern = absl::string_view(inputs[4].data<const char>(), inputs[4].get_size());
-        m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
-    };
-    if (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr) {
-        m_replace_pattern = absl::string_view(inputs[4].data<const char>(), inputs[4].get_size());
-        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(inputs[3].data<const char>());
     }
+
+    if (m_search_pattern_re == nullptr)
+        m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
+    if (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr)
+        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
 
     return evaluate_normalization_helper(
         outputs, inputs,

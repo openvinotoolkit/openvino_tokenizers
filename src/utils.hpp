@@ -75,7 +75,7 @@ void set_node_name(const std::string& node_name, const std::shared_ptr<ov::Node>
 class PCRE2Wrapper {
 public:
     pcre2_code* m_compiled = nullptr;
-    PCRE2Wrapper(const char* pattern);
+    PCRE2Wrapper(const absl::string_view& pattern);
     std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace);
     ~PCRE2Wrapper();
 };
