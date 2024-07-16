@@ -197,11 +197,10 @@ jobs:
     runs-on: windows-latest
 
     env:
-      GITHUB_WORKSPACE: 'D:\a\src'
-      OPENVINO_REPO: 'D:\a\src\ov'
-      INSTALL_DIR: 'D:\a\src\ov_tar'
-      OPENVINO_TOKENIZERS_REPO: 'D:\a\src\ov_tk'
-      BUILD_DIR: 'D:\a\src\ov_tk\b'
+      OPENVINO_REPO: ${{ github.workspace }}\ov_src
+      INSTALL_DIR: 'D:\a\ov_tar'
+      OPENVINO_TOKENIZERS_REPO: 'D:\a\ov_tk'
+      BUILD_DIR: 'D:\a\ov_tk\b'
 
     steps:
       - name: Clone Openvino tokenizers
