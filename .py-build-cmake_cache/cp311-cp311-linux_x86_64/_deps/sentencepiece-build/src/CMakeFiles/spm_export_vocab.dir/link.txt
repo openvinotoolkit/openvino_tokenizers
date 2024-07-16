@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -Wall -fPIC   -Wno-suggest-override -Wno-undef -fmacro-prefix-map=/home/rmikhail/src/openvino_tokenizers/='' -O3 -DNDEBUG  -Wno-suggest-override -Wno-undef -rdynamic CMakeFiles/spm_export_vocab.dir/spm_export_vocab_main.cc.o -o spm_export_vocab  libsentencepiece.a -lpthread

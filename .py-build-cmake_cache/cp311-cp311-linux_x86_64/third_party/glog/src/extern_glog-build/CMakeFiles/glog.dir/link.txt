@@ -1,2 +1,0 @@
-/usr/bin/ar qc libglog.a CMakeFiles/glog.dir/src/demangle.cc.o CMakeFiles/glog.dir/src/logging.cc.o CMakeFiles/glog.dir/src/raw_logging.cc.o CMakeFiles/glog.dir/src/symbolize.cc.o CMakeFiles/glog.dir/src/utilities.cc.o CMakeFiles/glog.dir/src/vlog_is_on.cc.o CMakeFiles/glog.dir/src/signalhandler.cc.o
-/usr/bin/ranlib libglog.a

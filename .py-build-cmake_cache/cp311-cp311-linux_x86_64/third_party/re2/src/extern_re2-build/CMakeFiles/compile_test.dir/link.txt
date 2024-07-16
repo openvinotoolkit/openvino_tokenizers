@@ -1,1 +1,0 @@
-/usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread CMakeFiles/compile_test.dir/re2/testing/compile_test.cc.o CMakeFiles/compile_test.dir/util/test.cc.o -o compile_test  libtesting.a libre2.a -pthread

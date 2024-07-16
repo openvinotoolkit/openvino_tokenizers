@@ -1,2 +1,0 @@
-/usr/bin/ar qc libbase.a CMakeFiles/base.dir/base.cc.o
-/usr/bin/ranlib libbase.a

@@ -1,2 +1,0 @@
-/tmp/tmp0yg28idr/staging/openvino_tokenizers/lib/libopenvino_tokenizers.so
-/tmp/tmp0yg28idr/staging/openvino_tokenizers/lib/libcore_tokenizers.so

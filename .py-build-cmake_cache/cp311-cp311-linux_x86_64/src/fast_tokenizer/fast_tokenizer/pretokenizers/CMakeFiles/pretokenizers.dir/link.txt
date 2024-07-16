@@ -1,2 +1,0 @@
-/usr/bin/ar qc libpretokenizers.a CMakeFiles/pretokenizers.dir/pretokenizer.cc.o CMakeFiles/pretokenizers.dir/whitespace.cc.o CMakeFiles/pretokenizers.dir/bert.cc.o CMakeFiles/pretokenizers.dir/metaspace.cc.o CMakeFiles/pretokenizers.dir/sequence.cc.o CMakeFiles/pretokenizers.dir/byte_level.cc.o CMakeFiles/pretokenizers.dir/split.cc.o CMakeFiles/pretokenizers.dir/whitespace_and_punctuation.cc.o
-/usr/bin/ranlib libpretokenizers.a
