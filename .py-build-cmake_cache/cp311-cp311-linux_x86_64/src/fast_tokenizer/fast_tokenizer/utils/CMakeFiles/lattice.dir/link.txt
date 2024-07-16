@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblattice.a CMakeFiles/lattice.dir/lattice.cc.o
-/usr/bin/ranlib liblattice.a

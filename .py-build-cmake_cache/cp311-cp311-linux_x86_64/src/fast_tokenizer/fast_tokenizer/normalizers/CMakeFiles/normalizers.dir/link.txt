@@ -1,2 +1,0 @@
-/usr/bin/ar qc libnormalizers.a CMakeFiles/normalizers.dir/normalizer.cc.o CMakeFiles/normalizers.dir/unicode.cc.o CMakeFiles/normalizers.dir/utils.cc.o CMakeFiles/normalizers.dir/strip.cc.o CMakeFiles/normalizers.dir/replace.cc.o CMakeFiles/normalizers.dir/bert.cc.o CMakeFiles/normalizers.dir/precompiled.cc.o
-/usr/bin/ranlib libnormalizers.a

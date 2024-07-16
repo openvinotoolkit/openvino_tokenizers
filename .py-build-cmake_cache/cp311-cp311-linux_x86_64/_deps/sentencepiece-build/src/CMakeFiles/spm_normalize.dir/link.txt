@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -Wall -fPIC   -Wno-suggest-override -Wno-undef -fmacro-prefix-map=/home/rmikhail/src/openvino_tokenizers/='' -O3 -DNDEBUG  -Wno-suggest-override -Wno-undef -rdynamic CMakeFiles/spm_normalize.dir/spm_normalize_main.cc.o -o spm_normalize  libsentencepiece.a libsentencepiece_train.a libsentencepiece.a -lpthread

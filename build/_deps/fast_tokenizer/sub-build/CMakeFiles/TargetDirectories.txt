@@ -1,3 +1,0 @@
-/home/rmikhail/src/openvino_tokenizers/build/_deps/fast_tokenizer/sub-build/CMakeFiles/fast_tokenizer-populate.dir
-/home/rmikhail/src/openvino_tokenizers/build/_deps/fast_tokenizer/sub-build/CMakeFiles/edit_cache.dir
-/home/rmikhail/src/openvino_tokenizers/build/_deps/fast_tokenizer/sub-build/CMakeFiles/rebuild_cache.dir
