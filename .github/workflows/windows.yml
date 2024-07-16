@@ -242,7 +242,7 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          python -m pip wheel -v --no-deps  -wheel-dir ${env:BUILD_DIR} `
+          python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
             --find-links ${env:INSTALL_DIR}/tools `
             --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
