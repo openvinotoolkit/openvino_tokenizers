@@ -18,7 +18,7 @@ m_global_replace(global_replace) {
     auto replace_pattern_const = as_type_ptr<Constant>(arguments[4].get_node_shared_ptr());
     auto search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
     auto replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
-    auto search_pattern = absl::string_view((const char*)search_pattern_buf, search_pattern_const->get_byte_size());
+    auto search_pattern = absl::string_view(search_pattern_buf, search_pattern_const->get_byte_size());
     m_replace_pattern = absl::string_view(search_pattern_buf, replace_pattern_const->get_byte_size());
     m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
     
@@ -53,8 +53,8 @@ RegexNormalization::RegexNormalization(
         if (m_search_pattern_re == nullptr || m_search_pattern_pcre2 == nullptr) {
             search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
             replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
-            search_pattern = absl::string_view((const char*)search_pattern_buf, search_pattern_const->get_byte_size());
-            m_replace_pattern = absl::string_view((const char*)replace_pattern_buf, replace_pattern_const->get_byte_size());
+            search_pattern = absl::string_view(search_pattern_buf, search_pattern_const->get_byte_size());
+            m_replace_pattern = absl::string_view(replace_pattern_buf, replace_pattern_const->get_byte_size());
         };
 
         if (m_search_pattern_re == nullptr)
