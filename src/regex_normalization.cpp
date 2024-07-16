@@ -23,8 +23,9 @@ m_global_replace(global_replace) {
     m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
     
     if (m_search_pattern_re->NumberOfCapturingGroups() == -1) {
-        // If RE2 was unable to process pattern
+        // If RE2 was unable to process pattern.
         m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
+        m_search_pattern_re = nullptr;
     }
     
     constructor_validate_and_infer_types();
@@ -34,10 +35,12 @@ m_global_replace(global_replace) {
 RegexNormalization::RegexNormalization(
         const ov::OutputVector& arguments,
         const std::shared_ptr<re2::RE2>& search_pattern_re,
+        const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2,
         const absl::string_view replace_pattern,
         bool global_replace
     ) : ov::op::Op(arguments),
         m_search_pattern_re(search_pattern_re),
+        m_search_pattern_pcre2(search_pattern_pcre2),
         m_replace_pattern(replace_pattern),
         m_global_replace(global_replace) {
 
@@ -54,12 +57,12 @@ RegexNormalization::RegexNormalization(
             m_replace_pattern = absl::string_view((const char*)replace_pattern_buf, replace_pattern_const->get_byte_size());
         };
 
-        if (m_search_pattern_re == nullptr) {
+        if (m_search_pattern_re == nullptr)
             m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
-        }
         
         if (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr) {
             m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
+            m_search_pattern_re = nullptr;
         }
 
         constructor_validate_and_infer_types();
@@ -81,31 +84,31 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         m_replace_pattern = absl::string_view(inputs[4].data<const char>(), inputs[4].get_size());
     }
 
-    if (m_search_pattern_re == nullptr)
+    if (m_search_pattern_re == nullptr && m_search_pattern_pcre2 == nullptr)
         m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
-    if (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr)
+
+    if ((m_search_pattern_re == nullptr) || (m_search_pattern_re->NumberOfCapturingGroups() == -1 && m_search_pattern_pcre2 == nullptr)) {
         m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
+        m_search_pattern_re = nullptr;
+    }
 
     return evaluate_normalization_helper(
         outputs, inputs,
         [this](const std::string& str) -> std::string {
-            auto m_search_pattern = m_search_pattern_re->pattern();
-            std::string replace_pattern = std::string(m_replace_pattern);
             std::string result = str;
 
             // Use RE2 where possible, and fallback to PCRE2 if RE2 was not able to process.
-            if (m_search_pattern_re->NumberOfCapturingGroups() != -1) {
+            if (m_search_pattern_re) {
                 if (m_global_replace) {
                     re2::RE2::GlobalReplace(&result, *m_search_pattern_re, m_replace_pattern);
                 } else {
                     re2::RE2::Replace(&result, *m_search_pattern_re, m_replace_pattern);
                 };
                 return result;
-            }
-
-            if (m_search_pattern_pcre2 == nullptr)
+            } else if (m_search_pattern_pcre2) {
+                return m_search_pattern_pcre2->substitute(result, m_replace_pattern, m_global_replace);
+            } else {
                 return result;
-            return m_search_pattern_pcre2->substitute(result, m_replace_pattern, m_global_replace);
-
+            }
     });
 }
