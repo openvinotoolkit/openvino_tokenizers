@@ -1,0 +1,1 @@
+/usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread CMakeFiles/regexp_benchmark.dir/re2/testing/regexp_benchmark.cc.o CMakeFiles/regexp_benchmark.dir/util/benchmark.cc.o -o regexp_benchmark  libtesting.a libre2.a -pthread

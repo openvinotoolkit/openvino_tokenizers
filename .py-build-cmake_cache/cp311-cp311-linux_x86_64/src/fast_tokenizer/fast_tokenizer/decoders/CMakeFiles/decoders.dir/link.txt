@@ -1,0 +1,2 @@
+/usr/bin/ar qc libdecoders.a CMakeFiles/decoders.dir/wordpiece.cc.o
+/usr/bin/ranlib libdecoders.a

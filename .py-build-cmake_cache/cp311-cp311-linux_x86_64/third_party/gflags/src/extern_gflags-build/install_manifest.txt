@@ -1,0 +1,15 @@
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/libgflags.a
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/libgflags_nothreads.a
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/include/gflags/gflags.h
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/include/gflags/gflags_declare.h
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/include/gflags/gflags_completions.h
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/include/gflags/gflags_gflags.h
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/cmake/gflags/gflags-config.cmake
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/cmake/gflags/gflags-config-version.cmake
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/cmake/gflags/gflags-targets.cmake
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/cmake/gflags/gflags-targets-noconfig.cmake
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/cmake/gflags/gflags-nonamespace-targets.cmake
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/cmake/gflags/gflags-nonamespace-targets-noconfig.cmake
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/bin/gflags_completions.sh
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/install/gflags/lib/pkgconfig/gflags.pc
+/home/rmikhail/.cmake/packages/gflags/46f6363114d47ca977a9f24ba66fef86

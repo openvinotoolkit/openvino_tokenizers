@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_icu"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_icu.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_icu-complete.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/third_party/icu/src/extern_icu-stamp/extern_icu-build.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/third_party/icu/src/extern_icu-stamp/extern_icu-configure.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/third_party/icu/src/extern_icu-stamp/extern_icu-download.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/third_party/icu/src/extern_icu-stamp/extern_icu-install.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/third_party/icu/src/extern_icu-stamp/extern_icu-mkdir.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/third_party/icu/src/extern_icu-stamp/extern_icu-patch.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/build/third_party/icu/src/extern_icu-stamp/extern_icu-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"extern_icu"
+		],
+		"name" : "extern_icu"
+	}
+}

@@ -1,0 +1,21 @@
+# ninja log v5
+2921	2924	1721116258191994945	CMakeFiles/sentencepiece-populate-complete	473b60e663239435
+2919	2921	1721116258187994945	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-test	317a727d3a63e0dc
+2917	2919	1721116258187994945	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-install	6889177f002b99c2
+2908	2910	1721116258175994946	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-update	fdd571f3f8c137d5
+2908	2910	1721116258175994946	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-update	fdd571f3f8c137d5
+2921	2924	1721116258191994945	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-done	473b60e663239435
+2910	2913	1721116258179994946	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-patch	ac6e2375354c2c32
+2919	2921	1721116258187994945	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-test	317a727d3a63e0dc
+2913	2915	1721116258179994946	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-configure	d19c8047db9250a3
+2917	2919	1721116258187994945	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-install	6889177f002b99c2
+2913	2915	1721116258179994946	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-configure	d19c8047db9250a3
+2915	2917	1721116258183994945	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-build	d5a3f9abafa4892c
+3	2908	1721116258175994946	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-download	37af9e9865ce8c87
+2921	2924	1721116258191994945	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-done	473b60e663239435
+3	2908	1721116258175994946	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-download	37af9e9865ce8c87
+2921	2924	1721116258191994945	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/CMakeFiles/sentencepiece-populate-complete	473b60e663239435
+0	3	1721116255267995032	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-mkdir	99fede31ea2a9bc9
+2915	2917	1721116258183994945	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-build	d5a3f9abafa4892c
+0	3	1721116255267995032	sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-mkdir	99fede31ea2a9bc9
+2910	2913	1721116258179994946	/home/rmikhail/src/openvino_tokenizers/build/_deps/sentencepiece-subbuild/sentencepiece-populate-prefix/src/sentencepiece-populate-stamp/sentencepiece-populate-patch	ac6e2375354c2c32

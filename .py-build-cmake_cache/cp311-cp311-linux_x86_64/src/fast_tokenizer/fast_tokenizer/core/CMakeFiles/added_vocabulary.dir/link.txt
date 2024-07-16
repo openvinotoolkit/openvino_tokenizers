@@ -1,0 +1,2 @@
+/usr/bin/ar qc libadded_vocabulary.a CMakeFiles/added_vocabulary.dir/added_vocabulary.cc.o
+/usr/bin/ranlib libadded_vocabulary.a

@@ -1,0 +1,3 @@
+/tmp/tmp0yg28idr/staging/openvino_tokenizers-2024.3.0.0.dist-info/LICENSE
+/tmp/tmp0yg28idr/staging/openvino_tokenizers-2024.3.0.0.dist-info/third-party-programs.txt
+/tmp/tmp0yg28idr/staging/openvino_tokenizers-2024.3.0.0.dist-info/SECURITY.md

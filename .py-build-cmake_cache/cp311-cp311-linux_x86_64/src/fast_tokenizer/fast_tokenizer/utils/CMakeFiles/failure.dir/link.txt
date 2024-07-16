@@ -1,0 +1,2 @@
+/usr/bin/ar qc libfailure.a CMakeFiles/failure.dir/failure.cc.o
+/usr/bin/ranlib libfailure.a

@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/src/fast_tokenizer/CMakeFiles/extern_re2"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/src/fast_tokenizer/CMakeFiles/extern_re2.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/src/fast_tokenizer/CMakeFiles/extern_re2-complete.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/re2/src/extern_re2-stamp/extern_re2-build.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/re2/src/extern_re2-stamp/extern_re2-configure.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/re2/src/extern_re2-stamp/extern_re2-download.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/re2/src/extern_re2-stamp/extern_re2-install.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/re2/src/extern_re2-stamp/extern_re2-mkdir.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/re2/src/extern_re2-stamp/extern_re2-patch.rule"
+		},
+		{
+			"file" : "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/re2/src/extern_re2-stamp/extern_re2-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"extern_re2"
+		],
+		"name" : "extern_re2"
+	}
+}
