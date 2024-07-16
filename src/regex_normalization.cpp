@@ -19,7 +19,7 @@ m_global_replace(global_replace) {
     auto search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
     auto replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
     auto search_pattern = absl::string_view(search_pattern_buf, search_pattern_const->get_byte_size());
-    m_replace_pattern = absl::string_view(search_pattern_buf, replace_pattern_const->get_byte_size());
+    m_replace_pattern = absl::string_view(replace_pattern_buf, replace_pattern_const->get_byte_size());
     m_search_pattern_re = std::make_shared<re2::RE2>(search_pattern);
     
     if (m_search_pattern_re->NumberOfCapturingGroups() == -1) {
