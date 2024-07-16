@@ -1,0 +1,13 @@
+# Target labels
+ extern_glog
+# Source files and their labels
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/src/fast_tokenizer/CMakeFiles/extern_glog
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/src/fast_tokenizer/CMakeFiles/extern_glog.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/src/fast_tokenizer/CMakeFiles/extern_glog-complete.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/glog/src/extern_glog-stamp/extern_glog-build.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/glog/src/extern_glog-stamp/extern_glog-configure.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/glog/src/extern_glog-stamp/extern_glog-download.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/glog/src/extern_glog-stamp/extern_glog-install.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/glog/src/extern_glog-stamp/extern_glog-mkdir.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/glog/src/extern_glog-stamp/extern_glog-patch.rule
+/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/glog/src/extern_glog-stamp/extern_glog-update.rule

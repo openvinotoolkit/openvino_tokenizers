@@ -1,0 +1,13 @@
+# Target labels
+ extern_gflags
+# Source files and their labels
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_gflags
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_gflags.rule
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_gflags-complete.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/gflags/src/extern_gflags-stamp/extern_gflags-build.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/gflags/src/extern_gflags-stamp/extern_gflags-configure.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/gflags/src/extern_gflags-stamp/extern_gflags-download.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/gflags/src/extern_gflags-stamp/extern_gflags-install.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/gflags/src/extern_gflags-stamp/extern_gflags-mkdir.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/gflags/src/extern_gflags-stamp/extern_gflags-patch.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/gflags/src/extern_gflags-stamp/extern_gflags-update.rule

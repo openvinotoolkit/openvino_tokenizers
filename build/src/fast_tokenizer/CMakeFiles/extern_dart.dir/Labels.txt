@@ -1,0 +1,14 @@
+# Target labels
+ extern_dart
+# Source files and their labels
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_dart
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_dart.rule
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_dart-complete.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-build.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-configure.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-download.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-install.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-mkdir.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-patch.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-test.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/dart/src/extern_dart-stamp/extern_dart-update.rule

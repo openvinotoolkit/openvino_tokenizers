@@ -1,0 +1,2 @@
+/usr/bin/ar qc libpostprocessors.a CMakeFiles/postprocessors.dir/bert.cc.o CMakeFiles/postprocessors.dir/postprocessor.cc.o CMakeFiles/postprocessors.dir/template.cc.o CMakeFiles/postprocessors.dir/roberta.cc.o CMakeFiles/postprocessors.dir/byte_level.cc.o
+/usr/bin/ranlib libpostprocessors.a

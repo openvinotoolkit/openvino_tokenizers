@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsentencepiece_normalizer.a CMakeFiles/sentencepiece_normalizer.dir/sentencepiece_normalizer.cc.o
+/usr/bin/ranlib libsentencepiece_normalizer.a

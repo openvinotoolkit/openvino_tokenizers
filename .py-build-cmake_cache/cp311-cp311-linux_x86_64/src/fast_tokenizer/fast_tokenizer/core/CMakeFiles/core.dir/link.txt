@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcore.a CMakeFiles/core.dir/encoding.cc.o
+/usr/bin/ranlib libcore.a

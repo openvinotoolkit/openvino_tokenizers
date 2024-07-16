@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmodels.a CMakeFiles/models.dir/wordpiece.cc.o CMakeFiles/models.dir/fast_wordpiece.cc.o CMakeFiles/models.dir/bpe.cc.o CMakeFiles/models.dir/unigram.cc.o
+/usr/bin/ranlib libmodels.a

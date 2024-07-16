@@ -1,0 +1,9 @@
+parameterized
+sentencepiece
+regex
+torch>=1.5
+transformers
+tool_helpers
+fast_tokenizer_python
+sacremoses
+pydantic==1.10.9

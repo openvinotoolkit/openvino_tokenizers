@@ -1,0 +1,14 @@
+# Target labels
+ extern_json
+# Source files and their labels
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_json
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_json.rule
+/home/rmikhail/src/openvino_tokenizers/build/src/fast_tokenizer/CMakeFiles/extern_json-complete.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-build.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-configure.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-download.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-install.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-mkdir.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-patch.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-test.rule
+/home/rmikhail/src/openvino_tokenizers/build/third_party/json/src/extern_json-stamp/extern_json-update.rule

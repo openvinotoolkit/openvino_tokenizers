@@ -1,0 +1,741 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineSystem.cmake:205 (message)"
+      - "CMakeLists.txt:97 (project)"
+    message: |
+      The system is: Linux - 5.15.0-113-generic - x86_64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:97 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/bin/c++ 
+      Build flags: -Wno-suggest-override;-Wno-undef;--std=c++11;-D_GLIBCXX_USE_CXX11_ABI=0;-O3;-fPIC;-ldl;-lpthread
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is GNU, found in:
+        /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/3.30.0/CompilerIdCXX/a.out
+      
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:97 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_460ea/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR'
+        /usr/bin/make  -f CMakeFiles/cmTC_460ea.dir/build.make CMakeFiles/cmTC_460ea.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR'
+        Building CXX object CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE   -v -o CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -c /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeCXXCompilerABI.cpp
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        OFFLOAD_TARGET_NAMES=nvptx-none:hsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 9.4.0-1ubuntu1~20.04.2' --with-bugurl=file:///usr/share/doc/gcc-9/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,gm2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-9 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-9-9QDOt0/gcc-9-9.4.0/debian/tmp-nvptx/usr,hsa --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+        Thread model: posix
+        gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) 
+        COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIE' '-v' '-o' 'CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+         /usr/lib/gcc/x86_64-linux-gnu/9/cc1plus -quiet -v -imultiarch x86_64-linux-gnu -D_GNU_SOURCE -D _GLIBCXX_USE_CXX11_ABI=0 /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpbase CMakeCXXCompilerABI.cpp -mtune=generic -march=x86-64 -auxbase-strip CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -O3 -Wno-suggest-override -Wno-undef -std=c++11 -version -fPIE -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccMcZm6A.s
+        GNU C++11 (Ubuntu 9.4.0-1ubuntu1~20.04.2) version 9.4.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 9.4.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0, isl version isl-0.22.1-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        ignoring duplicate directory "/usr/include/x86_64-linux-gnu/c++/9"
+        ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/9/include-fixed"
+        ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/9/../../../../x86_64-linux-gnu/include"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/include/c++/9
+         /usr/include/x86_64-linux-gnu/c++/9
+         /usr/include/c++/9/backward
+         /usr/lib/gcc/x86_64-linux-gnu/9/include
+         /usr/local/include
+         /usr/include/x86_64-linux-gnu
+         /usr/include
+        End of search list.
+        GNU C++11 (Ubuntu 9.4.0-1ubuntu1~20.04.2) version 9.4.0 (x86_64-linux-gnu)
+        	compiled by GNU C version 9.4.0, GMP version 6.2.0, MPFR version 4.0.2, MPC version 1.1.0, isl version isl-0.22.1-GMP
+        
+        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+        Compiler executable checksum: 3d1eba838554fa2348dba760e4770469
+        COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIE' '-v' '-o' 'CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+         as -v --64 -o CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccMcZm6A.s
+        GNU assembler version 2.34 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.34
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIE' '-v' '-o' 'CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+        Linking CXX executable cmTC_460ea
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_460ea.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread   -v -Wl,-v -rdynamic CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_460ea
+        Using built-in specs.
+        COLLECT_GCC=/usr/bin/c++
+        COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper
+        OFFLOAD_TARGET_NAMES=nvptx-none:hsa
+        OFFLOAD_TARGET_DEFAULT=1
+        Target: x86_64-linux-gnu
+        Configured with: ../src/configure -v --with-pkgversion='Ubuntu 9.4.0-1ubuntu1~20.04.2' --with-bugurl=file:///usr/share/doc/gcc-9/README.Bugs --enable-languages=c,ada,c++,go,brig,d,fortran,objc,obj-c++,gm2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-9 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32,m64,mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-9-9QDOt0/gcc-9-9.4.0/debian/tmp-nvptx/usr,hsa --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+        Thread model: posix
+        gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) 
+        COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/
+        LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/
+        COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIC' '-v' '-rdynamic' '-o' 'cmTC_460ea' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+         /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccXPVu30.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_460ea /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. -ldl -lpthread -v CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o
+        collect2 version 9.4.0
+        /usr/bin/ld -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccXPVu30.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_460ea /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. -ldl -lpthread -v CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o
+        GNU ld (GNU Binutils for Ubuntu) 2.34
+        COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIC' '-v' '-rdynamic' '-o' 'cmTC_460ea' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR'
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:182 (message)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:97 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/include/c++/9]
+          add: [/usr/include/x86_64-linux-gnu/c++/9]
+          add: [/usr/include/c++/9/backward]
+          add: [/usr/lib/gcc/x86_64-linux-gnu/9/include]
+          add: [/usr/local/include]
+          add: [/usr/include/x86_64-linux-gnu]
+          add: [/usr/include]
+        end of search list found
+        collapse include dir [/usr/include/c++/9] ==> [/usr/include/c++/9]
+        collapse include dir [/usr/include/x86_64-linux-gnu/c++/9] ==> [/usr/include/x86_64-linux-gnu/c++/9]
+        collapse include dir [/usr/include/c++/9/backward] ==> [/usr/include/c++/9/backward]
+        collapse include dir [/usr/lib/gcc/x86_64-linux-gnu/9/include] ==> [/usr/lib/gcc/x86_64-linux-gnu/9/include]
+        collapse include dir [/usr/local/include] ==> [/usr/local/include]
+        collapse include dir [/usr/include/x86_64-linux-gnu] ==> [/usr/include/x86_64-linux-gnu]
+        collapse include dir [/usr/include] ==> [/usr/include]
+        implicit include dirs: [/usr/include/c++/9;/usr/include/x86_64-linux-gnu/c++/9;/usr/include/c++/9/backward;/usr/lib/gcc/x86_64-linux-gnu/9/include;/usr/local/include;/usr/include/x86_64-linux-gnu;/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:97 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?))("|,| |$)]
+        ignore line: [Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR']
+        ignore line: []
+        ignore line: [Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_460ea/fast]
+        ignore line: [make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR']
+        ignore line: [/usr/bin/make  -f CMakeFiles/cmTC_460ea.dir/build.make CMakeFiles/cmTC_460ea.dir/build]
+        ignore line: [make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-vHZZdR']
+        ignore line: [Building CXX object CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o]
+        ignore line: [/usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE   -v -o CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -c /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:hsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 9.4.0-1ubuntu1~20.04.2' --with-bugurl=file:///usr/share/doc/gcc-9/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ gm2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-9 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-9-9QDOt0/gcc-9-9.4.0/debian/tmp-nvptx/usr hsa --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) ]
+        ignore line: [COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIE' '-v' '-o' 'CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/9/cc1plus -quiet -v -imultiarch x86_64-linux-gnu -D_GNU_SOURCE -D _GLIBCXX_USE_CXX11_ABI=0 /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpbase CMakeCXXCompilerABI.cpp -mtune=generic -march=x86-64 -auxbase-strip CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -O3 -Wno-suggest-override -Wno-undef -std=c++11 -version -fPIE -fasynchronous-unwind-tables -fstack-protector-strong -Wformat -Wformat-security -fstack-clash-protection -fcf-protection -o /tmp/ccMcZm6A.s]
+        ignore line: [GNU C++11 (Ubuntu 9.4.0-1ubuntu1~20.04.2) version 9.4.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 9.4.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0  isl version isl-0.22.1-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [ignoring duplicate directory "/usr/include/x86_64-linux-gnu/c++/9"]
+        ignore line: [ignoring nonexistent directory "/usr/local/include/x86_64-linux-gnu"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/9/include-fixed"]
+        ignore line: [ignoring nonexistent directory "/usr/lib/gcc/x86_64-linux-gnu/9/../../../../x86_64-linux-gnu/include"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/include/c++/9]
+        ignore line: [ /usr/include/x86_64-linux-gnu/c++/9]
+        ignore line: [ /usr/include/c++/9/backward]
+        ignore line: [ /usr/lib/gcc/x86_64-linux-gnu/9/include]
+        ignore line: [ /usr/local/include]
+        ignore line: [ /usr/include/x86_64-linux-gnu]
+        ignore line: [ /usr/include]
+        ignore line: [End of search list.]
+        ignore line: [GNU C++11 (Ubuntu 9.4.0-1ubuntu1~20.04.2) version 9.4.0 (x86_64-linux-gnu)]
+        ignore line: [	compiled by GNU C version 9.4.0  GMP version 6.2.0  MPFR version 4.0.2  MPC version 1.1.0  isl version isl-0.22.1-GMP]
+        ignore line: []
+        ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
+        ignore line: [Compiler executable checksum: 3d1eba838554fa2348dba760e4770469]
+        ignore line: [COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIE' '-v' '-o' 'CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        ignore line: [ as -v --64 -o CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccMcZm6A.s]
+        ignore line: [GNU assembler version 2.34 (x86_64-linux-gnu) using BFD version (GNU Binutils for Ubuntu) 2.34]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIE' '-v' '-o' 'CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        ignore line: [Linking CXX executable cmTC_460ea]
+        ignore line: [/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_460ea.dir/link.txt --verbose=1]
+        ignore line: [/usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread   -v -Wl,-v -rdynamic CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_460ea]
+        ignore line: [Using built-in specs.]
+        ignore line: [COLLECT_GCC=/usr/bin/c++]
+        ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper]
+        ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:hsa]
+        ignore line: [OFFLOAD_TARGET_DEFAULT=1]
+        ignore line: [Target: x86_64-linux-gnu]
+        ignore line: [Configured with: ../src/configure -v --with-pkgversion='Ubuntu 9.4.0-1ubuntu1~20.04.2' --with-bugurl=file:///usr/share/doc/gcc-9/README.Bugs --enable-languages=c ada c++ go brig d fortran objc obj-c++ gm2 --prefix=/usr --with-gcc-major-version-only --program-suffix=-9 --program-prefix=x86_64-linux-gnu- --enable-shared --enable-linker-build-id --libexecdir=/usr/lib --without-included-gettext --enable-threads=posix --libdir=/usr/lib --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --with-default-libstdcxx-abi=new --enable-gnu-unique-object --disable-vtable-verify --enable-plugin --enable-default-pie --with-system-zlib --with-target-system-zlib=auto --enable-objc-gc=auto --enable-multiarch --disable-werror --with-arch-32=i686 --with-abi=m64 --with-multilib-list=m32 m64 mx32 --enable-multilib --with-tune=generic --enable-offload-targets=nvptx-none=/build/gcc-9-9QDOt0/gcc-9-9.4.0/debian/tmp-nvptx/usr hsa --without-cuda-driver --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu]
+        ignore line: [Thread model: posix]
+        ignore line: [gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) ]
+        ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/]
+        ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/]
+        ignore line: [COLLECT_GCC_OPTIONS='-Wno-suggest-override' '-Wno-undef' '-std=c++11' '-D' '_GLIBCXX_USE_CXX11_ABI=0' '-O3' '-fPIC' '-v' '-rdynamic' '-o' 'cmTC_460ea' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+        link line: [ /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccXPVu30.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_460ea /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. -ldl -lpthread -v CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/9/collect2] ==> ignore
+          arg [-plugin] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so] ==> ignore
+          arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccXPVu30.res] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lc] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
+          arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
+          arg [--build-id] ==> ignore
+          arg [--eh-frame-hdr] ==> ignore
+          arg [-m] ==> ignore
+          arg [elf_x86_64] ==> ignore
+          arg [--hash-style=gnu] ==> ignore
+          arg [--as-needed] ==> ignore
+          arg [-export-dynamic] ==> ignore
+          arg [-dynamic-linker] ==> ignore
+          arg [/lib64/ld-linux-x86-64.so.2] ==> ignore
+          arg [-pie] ==> ignore
+          arg [-znow] ==> ignore
+          arg [-zrelro] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_460ea] ==> ignore
+          arg [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/9] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/9]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib]
+          arg [-L/lib/x86_64-linux-gnu] ==> dir [/lib/x86_64-linux-gnu]
+          arg [-L/lib/../lib] ==> dir [/lib/../lib]
+          arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
+          arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
+          arg [-L/usr/lib/gcc/x86_64-linux-gnu/9/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../..]
+          arg [-ldl] ==> lib [dl]
+          arg [-lpthread] ==> lib [pthread]
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lstdc++] ==> lib [stdc++]
+          arg [-lm] ==> lib [m]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [-lc] ==> lib [c]
+          arg [-lgcc_s] ==> lib [gcc_s]
+          arg [-lgcc] ==> lib [gcc]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o]
+          arg [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o] ==> obj [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o]
+        ignore line: [collect2 version 9.4.0]
+        ignore line: [/usr/bin/ld -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccXPVu30.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -export-dynamic -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_460ea /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. -ldl -lpthread -v CMakeFiles/cmTC_460ea.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o]
+        linker tool for 'CXX': /usr/bin/ld
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o] ==> [/usr/lib/x86_64-linux-gnu/Scrt1.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o] ==> [/usr/lib/x86_64-linux-gnu/crti.o]
+        collapse obj [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o] ==> [/usr/lib/x86_64-linux-gnu/crtn.o]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/9] ==> [/usr/lib/gcc/x86_64-linux-gnu/9]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib] ==> [/usr/lib]
+        collapse library dir [/lib/x86_64-linux-gnu] ==> [/lib/x86_64-linux-gnu]
+        collapse library dir [/lib/../lib] ==> [/lib]
+        collapse library dir [/usr/lib/x86_64-linux-gnu] ==> [/usr/lib/x86_64-linux-gnu]
+        collapse library dir [/usr/lib/../lib] ==> [/usr/lib]
+        collapse library dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../..] ==> [/usr/lib]
+        implicit libs: [dl;pthread;stdc++;m;gcc_s;gcc;c;gcc_s;gcc]
+        implicit objs: [/usr/lib/x86_64-linux-gnu/Scrt1.o;/usr/lib/x86_64-linux-gnu/crti.o;/usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o;/usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o;/usr/lib/x86_64-linux-gnu/crtn.o]
+        implicit dirs: [/usr/lib/gcc/x86_64-linux-gnu/9;/usr/lib/x86_64-linux-gnu;/usr/lib;/lib/x86_64-linux-gnu;/lib]
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:97 (project)"
+    message: |
+      Running the CXX compiler's linker: "/usr/bin/ld" "-v"
+      GNU ld (GNU Binutils for Ubuntu) 2.34
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckIncludeFileCXX.cmake:89 (try_compile)"
+      - "CMakeLists.txt:252 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include unistd.h"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_UNISTD_H"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_7681e/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP'
+        /usr/bin/make  -f CMakeFiles/cmTC_7681e.dir/build.make CMakeFiles/cmTC_7681e.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP'
+        Building CXX object CMakeFiles/cmTC_7681e.dir/CheckIncludeFile.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_7681e.dir/CheckIncludeFile.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP/CheckIncludeFile.cxx
+        Linking CXX executable cmTC_7681e
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7681e.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_7681e.dir/CheckIncludeFile.cxx.o -o cmTC_7681e
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sgExxP'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckIncludeFileCXX.cmake:89 (try_compile)"
+      - "CMakeLists.txt:252 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include stdint.h"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_STDINT_H"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_13c2e/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP'
+        /usr/bin/make  -f CMakeFiles/cmTC_13c2e.dir/build.make CMakeFiles/cmTC_13c2e.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP'
+        Building CXX object CMakeFiles/cmTC_13c2e.dir/CheckIncludeFile.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_13c2e.dir/CheckIncludeFile.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP/CheckIncludeFile.cxx
+        Linking CXX executable cmTC_13c2e
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_13c2e.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_13c2e.dir/CheckIncludeFile.cxx.o -o cmTC_13c2e
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-dBJcxP'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckIncludeFileCXX.cmake:89 (try_compile)"
+      - "CMakeLists.txt:252 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include inttypes.h"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_INTTYPES_H"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_c5acd/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ'
+        /usr/bin/make  -f CMakeFiles/cmTC_c5acd.dir/build.make CMakeFiles/cmTC_c5acd.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ'
+        Building CXX object CMakeFiles/cmTC_c5acd.dir/CheckIncludeFile.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_c5acd.dir/CheckIncludeFile.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ/CheckIncludeFile.cxx
+        Linking CXX executable cmTC_c5acd
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c5acd.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_c5acd.dir/CheckIncludeFile.cxx.o -o cmTC_c5acd
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-YGvlXQ'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckIncludeFileCXX.cmake:89 (try_compile)"
+      - "CMakeLists.txt:252 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include sys/types.h"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_SYS_TYPES_H"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_cd6f0/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN'
+        /usr/bin/make  -f CMakeFiles/cmTC_cd6f0.dir/build.make CMakeFiles/cmTC_cd6f0.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN'
+        Building CXX object CMakeFiles/cmTC_cd6f0.dir/CheckIncludeFile.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_cd6f0.dir/CheckIncludeFile.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN/CheckIncludeFile.cxx
+        Linking CXX executable cmTC_cd6f0
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_cd6f0.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_cd6f0.dir/CheckIncludeFile.cxx.o -o cmTC_cd6f0
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RvIbTN'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckIncludeFileCXX.cmake:89 (try_compile)"
+      - "CMakeLists.txt:252 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include sys/stat.h"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_SYS_STAT_H"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_d0626/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN'
+        /usr/bin/make  -f CMakeFiles/cmTC_d0626.dir/build.make CMakeFiles/cmTC_d0626.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN'
+        Building CXX object CMakeFiles/cmTC_d0626.dir/CheckIncludeFile.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_d0626.dir/CheckIncludeFile.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN/CheckIncludeFile.cxx
+        Linking CXX executable cmTC_d0626
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_d0626.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_d0626.dir/CheckIncludeFile.cxx.o -o cmTC_d0626
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-nS1cGN'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckIncludeFileCXX.cmake:89 (try_compile)"
+      - "CMakeLists.txt:252 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include fnmatch.h"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_FNMATCH_H"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_48321/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ'
+        /usr/bin/make  -f CMakeFiles/cmTC_48321.dir/build.make CMakeFiles/cmTC_48321.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ'
+        Building CXX object CMakeFiles/cmTC_48321.dir/CheckIncludeFile.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_48321.dir/CheckIncludeFile.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ/CheckIncludeFile.cxx
+        Linking CXX executable cmTC_48321
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_48321.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_48321.dir/CheckIncludeFile.cxx.o -o cmTC_48321
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-mNVhkQ'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckIncludeFileCXX.cmake:89 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckTypeSize.cmake:261 (check_include_file_cxx)"
+      - "CMakeLists.txt:273 (check_type_size)"
+    checks:
+      - "Looking for C++ include stddef.h"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_STDDEF_H"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_ac294/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN'
+        /usr/bin/make  -f CMakeFiles/cmTC_ac294.dir/build.make CMakeFiles/cmTC_ac294.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN'
+        Building CXX object CMakeFiles/cmTC_ac294.dir/CheckIncludeFile.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_ac294.dir/CheckIncludeFile.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN/CheckIncludeFile.cxx
+        Linking CXX executable cmTC_ac294
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ac294.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_ac294.dir/CheckIncludeFile.cxx.o -o cmTC_ac294
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-OfFCUN'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckTypeSize.cmake:147 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckTypeSize.cmake:272 (__check_type_size_impl)"
+      - "CMakeLists.txt:273 (check_type_size)"
+    checks:
+      - "Check size of uint32_t"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_uint32_t"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_e2772/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ'
+        /usr/bin/make  -f CMakeFiles/cmTC_e2772.dir/build.make CMakeFiles/cmTC_e2772.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ'
+        Building CXX object CMakeFiles/cmTC_e2772.dir/uint32_t.cpp.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_e2772.dir/uint32_t.cpp.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ/uint32_t.cpp
+        Linking CXX executable cmTC_e2772
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e2772.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_e2772.dir/uint32_t.cpp.o -o cmTC_e2772
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-pTteFQ'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckSymbolExists.cmake:154 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckCXXSymbolExists.cmake:72 (__CHECK_SYMBOL_EXISTS_IMPL)"
+      - "CMakeLists.txt:308 (check_cxx_symbol_exists)"
+    checks:
+      - "Looking for strtoll"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_STRTOLL"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_3bef9/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO'
+        /usr/bin/make  -f CMakeFiles/cmTC_3bef9.dir/build.make CMakeFiles/cmTC_3bef9.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO'
+        Building CXX object CMakeFiles/cmTC_3bef9.dir/CheckSymbolExists.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_3bef9.dir/CheckSymbolExists.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO/CheckSymbolExists.cxx
+        Linking CXX executable cmTC_3bef9
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3bef9.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_3bef9.dir/CheckSymbolExists.cxx.o -o cmTC_3bef9
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-sEBLEO'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/Internal/CheckSourceCompiles.cmake:101 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckCXXSourceCompiles.cmake:52 (cmake_check_source_compiles)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/FindThreads.cmake:99 (CHECK_CXX_SOURCE_COMPILES)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "CMakeLists.txt:316 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_b6335/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP'
+        /usr/bin/make  -f CMakeFiles/cmTC_b6335.dir/build.make CMakeFiles/cmTC_b6335.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP'
+        Building CXX object CMakeFiles/cmTC_b6335.dir/src.cxx.o
+        /usr/bin/c++ -DCMAKE_HAVE_LIBC_PTHREAD  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_b6335.dir/src.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP/src.cxx
+        Linking CXX executable cmTC_b6335
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b6335.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_b6335.dir/src.cxx.o -o cmTC_b6335
+        /usr/bin/ld: CMakeFiles/cmTC_b6335.dir/src.cxx.o: in function `main':
+        src.cxx:(.text.startup+0x29): undefined reference to `pthread_create'
+        /usr/bin/ld: src.cxx:(.text.startup+0x32): undefined reference to `pthread_detach'
+        /usr/bin/ld: src.cxx:(.text.startup+0x3b): undefined reference to `pthread_cancel'
+        /usr/bin/ld: src.cxx:(.text.startup+0x46): undefined reference to `pthread_join'
+        collect2: error: ld returned 1 exit status
+        make[5]: *** [CMakeFiles/cmTC_b6335.dir/build.make:99: cmTC_b6335] Error 1
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP'
+        make[4]: *** [Makefile:127: cmTC_b6335/fast] Error 2
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-37zYpP'
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckLibraryExists.cmake:69 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/FindThreads.cmake:175 (_threads_check_lib)"
+      - "CMakeLists.txt:316 (find_package)"
+    checks:
+      - "Looking for pthread_create in pthreads"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREADS_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_3cfc5/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR'
+        /usr/bin/make  -f CMakeFiles/cmTC_3cfc5.dir/build.make CMakeFiles/cmTC_3cfc5.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR'
+        Building CXX object CMakeFiles/cmTC_3cfc5.dir/CheckFunctionExists.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread -DCHECK_FUNCTION_EXISTS=pthread_create -fPIE -o CMakeFiles/cmTC_3cfc5.dir/CheckFunctionExists.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR/CheckFunctionExists.cxx
+        Linking CXX executable cmTC_3cfc5
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3cfc5.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread -DCHECK_FUNCTION_EXISTS=pthread_create -rdynamic CMakeFiles/cmTC_3cfc5.dir/CheckFunctionExists.cxx.o -o cmTC_3cfc5  -lpthreads
+        /usr/bin/ld: cannot find -lpthreads
+        collect2: error: ld returned 1 exit status
+        make[5]: *** [CMakeFiles/cmTC_3cfc5.dir/build.make:99: cmTC_3cfc5] Error 1
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR'
+        make[4]: *** [Makefile:127: cmTC_3cfc5/fast] Error 2
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-RVfbBR'
+        
+      exitCode: 2
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckLibraryExists.cmake:69 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/FindThreads.cmake:176 (_threads_check_lib)"
+      - "CMakeLists.txt:316 (find_package)"
+    checks:
+      - "Looking for pthread_create in pthread"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREAD_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_14989/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO'
+        /usr/bin/make  -f CMakeFiles/cmTC_14989.dir/build.make CMakeFiles/cmTC_14989.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO'
+        Building CXX object CMakeFiles/cmTC_14989.dir/CheckFunctionExists.cxx.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread -DCHECK_FUNCTION_EXISTS=pthread_create -fPIE -o CMakeFiles/cmTC_14989.dir/CheckFunctionExists.cxx.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO/CheckFunctionExists.cxx
+        Linking CXX executable cmTC_14989
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_14989.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread -DCHECK_FUNCTION_EXISTS=pthread_create -rdynamic CMakeFiles/cmTC_14989.dir/CheckFunctionExists.cxx.o -o cmTC_14989  -lpthread
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-5tFwEO'
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckTypeSize.cmake:147 (try_compile)"
+      - "/tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/share/cmake-3.30/Modules/CheckTypeSize.cmake:272 (__check_type_size_impl)"
+      - "CMakeLists.txt:319 (check_type_size)"
+    checks:
+      - "Check size of pthread_rwlock_t"
+    directories:
+      source: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P"
+      binary: "/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "  -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread"
+      CMAKE_POSITION_INDEPENDENT_CODE: "ON"
+    buildResult:
+      variable: "HAVE_RWLOCK"
+      cached: true
+      stdout: |
+        Change Dir: '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P'
+        
+        Run Build Command(s): /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E env VERBOSE=1 /usr/bin/make -f Makefile cmTC_11757/fast
+        make[4]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P'
+        /usr/bin/make  -f CMakeFiles/cmTC_11757.dir/build.make CMakeFiles/cmTC_11757.dir/build
+        make[5]: Entering directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P'
+        Building CXX object CMakeFiles/cmTC_11757.dir/RWLOCK.cpp.o
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -fPIE -o CMakeFiles/cmTC_11757.dir/RWLOCK.cpp.o -c /home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P/RWLOCK.cpp
+        Linking CXX executable cmTC_11757
+        /tmp/pip-build-env-ysa2pg6g/overlay/lib/python3.11/site-packages/cmake/data/bin/cmake -E cmake_link_script CMakeFiles/cmTC_11757.dir/link.txt --verbose=1
+        /usr/bin/c++   -Wno-suggest-override -Wno-undef --std=c++11 -D_GLIBCXX_USE_CXX11_ABI=0 -O3 -fPIC -ldl -lpthread  -rdynamic CMakeFiles/cmTC_11757.dir/RWLOCK.cpp.o -o cmTC_11757
+        make[5]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P'
+        make[4]: Leaving directory '/home/rmikhail/src/openvino_tokenizers/.py-build-cmake_cache/cp311-cp311-linux_x86_64/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeScratch/TryCompile-oozM9P'
+        
+      exitCode: 0
+...
