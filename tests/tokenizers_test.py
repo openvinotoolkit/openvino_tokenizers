@@ -15,7 +15,6 @@ from transformers import AutoTokenizer
 core = Core()
 
 eng_test_strings = [
-    "This is an accented character á",
     "Eng... test, string?!",
     "Multiline\nstring!\nWow!",
     "A lot\t w!",
@@ -36,7 +35,7 @@ multilingual_test_strings = [
     "測試字符串",
     "سلسلة الاختبار",
     "מחרוזת בדיקה",
-    "Сынақ жолы",
+    "Сынақ жолы á",
     "رشته تست",
     # Qwen test
     "介绍下清华大学",
