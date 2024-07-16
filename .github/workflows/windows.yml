@@ -248,6 +248,7 @@ jobs:
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
+          ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\icu_filter_en.json
 
       #
       # Upload build artifacts
