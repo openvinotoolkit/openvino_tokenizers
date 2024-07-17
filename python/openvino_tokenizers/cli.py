@@ -45,7 +45,7 @@ def get_parser() -> ArgumentParser:
         type=str,
         help=(
             "The model id of a tokenizer hosted inside a model repo on huggingface.co "
-            "or a path to a saved Huggingface tokenizer directory"
+            "or a path to a saved Huggingface tokenizer directory."
         ),
     )
     parser.add_argument(
@@ -152,7 +152,17 @@ def get_parser() -> ArgumentParser:
             "tokenizer and then converts it to OpenVINO. Might result in slightly different tokenizer. "
             "See models with _slow suffix https://github.com/openvinotoolkit/openvino_contrib/tree/master/modules/"
             "custom_operations/user_ie_extensions/tokenizer/python#output-match-by-model to check the potential "
-            "difference between original and OpenVINO tokenizers"
+            "difference between original and OpenVINO tokenizers."
+        ),
+    )
+    parser.add_argument(
+        "--handle-special-tokens-with-re",
+        "--handle_special_tokens_with_re",
+        required=False,
+        action="store_true",
+        help=(
+            "Use separete regex to handle special tokens for sentencepiece-based tokenizers. Use this option if the "
+            "converted tokenizer doesn't use special tokens during tokenization."
         ),
     )
     parser.add_argument(
@@ -162,7 +172,7 @@ def get_parser() -> ArgumentParser:
         action="store_true",
         help=(
             "Pass `trust_remote_code=True` to `AutoTokenizer.from_pretrained`. It will "
-            "execute code present on the Hub on your local machine"
+            "execute code present on the Huggingface Hub on your machine!"
         ),
     )
     parser.add_argument(
@@ -172,7 +182,7 @@ def get_parser() -> ArgumentParser:
         action=StringToTypeAction,
         default=Type.i64,
         choices=["i32", "i64"],
-        help="Type of the output tensors for tokenizer",
+        help="Type of the output tensors for tokenizer.",
     )
     parser.add_argument(
         "--detokenizer-input-type",
@@ -181,7 +191,7 @@ def get_parser() -> ArgumentParser:
         action=StringToTypeAction,
         default=Type.i64,
         choices=["i32", "i64"],
-        help="Type of the input tensor for detokenizer",
+        help="Type of the input tensor for detokenizer.",
     )
     parser.add_argument(
         "--streaming-detokenizer",
@@ -190,7 +200,7 @@ def get_parser() -> ArgumentParser:
         action="store_true",
         help=(
             "[Experimental] Modify SentencePiece based detokenizer to keep spaces leading space. "
-            "Can be used to stream a model output without TextStreamer buffer"
+            "Can be used to stream a model output without TextStreamer buffer."
         ),
     )
     return parser
@@ -232,6 +242,7 @@ def convert_hf_tokenizer() -> None:
         detokenizer_input_type=args.detokenizer_input_type,
         streaming_detokenizer=args.streaming_detokenizer,
         use_max_padding=args.max_padding is not None,
+        handle_special_tokens_with_re=args.handle_special_tokens_with_re,
     )
     if not isinstance(converted, tuple):
         converted = (converted,)
