@@ -36,6 +36,11 @@ ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+if(WIN32)
+  # Set the runtime library globally
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
 # It needs to be propagated to every library openvino_tokenizers links with.
 # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
@@ -46,6 +51,11 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
 endif()
 
 option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0" ${USE_ABI0})
+
+option(ICU_DATA_FILTER_FILE "To build ICU4C with custom data when building the data package on Windows" "")
+if (ICU_DATA_FILTER_FILE)
+  set(ENV{ICU_DATA_FILTER_FILE} ${ICU_DATA_FILTER_FILE})
+endif()
 
 #
 # Compile flags
@@ -145,6 +155,7 @@ if(BUILD_FAST_TOKENIZERS)
   set(EXTERNAL_PROJECT_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/src)
   set(EXTERNAL_PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/build)
   set(EXTERNAL_PROJECT_SUBBUILD_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/sub-build)
+  set(WITH_PYTHON OFF CACHE BOOL "")
 
   FetchContent_Declare(
     fast_tokenizer
