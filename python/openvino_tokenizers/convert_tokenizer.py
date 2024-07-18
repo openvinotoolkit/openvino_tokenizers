@@ -25,6 +25,7 @@ def convert_tokenizer(
     detokenizer_input_type: Type = Type.i64,
     streaming_detokenizer: bool = False,
     use_max_padding: bool = False,
+    handle_special_tokens_with_re: bool = False,
 ) -> Union[Model, Tuple[Model, Model]]:
     ov_tokenizers = None
 
@@ -50,6 +51,7 @@ def convert_tokenizer(
                     add_special_tokens=add_special_tokens,
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+                    handle_special_tokens_with_re=handle_special_tokens_with_re,
                 )
             elif is_tiktoken_model(tokenizer_object):
                 logger.info("Convert tiktoken-based tokenizer")
