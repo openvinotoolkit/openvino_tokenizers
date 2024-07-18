@@ -30,6 +30,7 @@ from .constants import (
     TOKENIZER_NAME,
 )
 from .tokenizer_pipeline import (
+    BasePipelineStep,
     BPETokenizationStep,
     ByteFallbackStep,
     BytesToCharsStep,
@@ -518,6 +519,7 @@ def convert_sentencepiece_model_tokenizer(
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = False,
     add_prefix_space: Optional[bool] = None,
+    handle_special_tokens_with_re: bool = False,
 ) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
@@ -604,7 +606,7 @@ def convert_sentencepiece_model_tokenizer(
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=False,
-            add_prefix_space=add_prefix_space,
+            add_prefix_space=add_prefix_space and not handle_special_tokens_with_re,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
         sp_model_node = as_node(sp_model)
@@ -623,16 +625,25 @@ def convert_sentencepiece_model_tokenizer(
     input_node.set_friendly_name("string_input")
     next_node = input_node.outputs()
 
-    if prepend_scheme == "first":
+    if prepend_scheme == "first" or (add_prefix_space and handle_special_tokens_with_re):
         next_node = _get_factory().create("StringTensorUnpack", next_node).outputs()
         next_node = RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex().get_ov_subgraph(next_node)
         next_node = _get_factory().create("StringTensorPack", next_node).outputs()
 
     do_left_padding = hf_tokenizer.padding_side == "left"
 
+    if handle_special_tokens_with_re:
+        tokens, ids = zip(*sorted(((token, id) for id, token in add_tokens.items()), reverse=True))
+        added_inputs = [
+            *BasePipelineStep.create_string_constant_node(tokens).outputs(),
+            make_constant_node(np.array(ids, dtype=np.int32), Type.i32).output(0),
+        ]
+    else:
+        added_inputs = []
+
     tokenizer_node = _get_factory().create(
         "SentencepieceTokenizer",
-        [sp_model_node, *next_node],
+        [sp_model_node, *next_node] + added_inputs,
         {
             "add_bos": add_bos_token,
             "add_eos": add_eos_token,
