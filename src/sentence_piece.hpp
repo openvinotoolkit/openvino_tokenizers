@@ -6,6 +6,8 @@
 
 #include <openvino/op/op.hpp>
 #include "absl/strings/str_format.h"
+#include "absl/container/flat_hash_map.h"
+#include "re2/re2.h"
 
 namespace sentencepiece {
     class SentencePieceProcessor;
@@ -19,8 +21,17 @@ namespace TemplateExtension {
 
         SentencepieceTokenizer() = default;
         SentencepieceTokenizer(const ov::OutputVector& args, int32_t nbest_size, float alpha, bool add_bos, bool add_eos, bool reverse);
-        SentencepieceTokenizer(const ov::OutputVector& args, const std::shared_ptr<sentencepiece::SentencePieceProcessor>& sp, int32_t nbest_size, float alpha,
-            bool add_bos, bool add_eos, bool reverse);
+        SentencepieceTokenizer(
+            const ov::OutputVector& args,
+            const std::shared_ptr<sentencepiece::SentencePieceProcessor>& sp,
+            const std::shared_ptr<re2::RE2>& special_tokens_re,
+            const std::shared_ptr<absl::flat_hash_map<std::string, int32_t>>& special_tokens_map,
+            int32_t nbest_size,
+            float alpha,
+            bool add_bos,
+            bool add_eos,
+            bool reverse
+        );
 
         bool visit_attributes(ov::AttributeVisitor& visitor) override;
 
@@ -34,6 +45,8 @@ namespace TemplateExtension {
 
     private:
         mutable std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
+        mutable std::shared_ptr<re2::RE2> m_special_tokens_re;
+        mutable std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> m_special_tokens_map;
         int32_t m_nbest_size;
         float m_alpha;
         bool m_add_bos;
