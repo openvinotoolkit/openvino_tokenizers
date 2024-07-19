@@ -249,11 +249,13 @@ jobs:
                 -B ${{ env.BUILD_DIR }}
         env:
           OpenVINO_DIR: ${{ env.OV_INSTALL_DIR }}/runtime/cmake
+          CMAKE_BUILD_PARALLEL_LEVEL: '4'
+          ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
 
-      - name: Cmake build - OpenVINO
+      - name: Cmake build - tokenizers
         run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ env.CMAKE_BUILD_TYPE }} --verbose
 
-      - name: Cmake install - OpenVINO
+      - name: Cmake install - tokenizers
         run: |
           cmake -DCMAKE_INSTALL_PREFIX=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers -P ${{ env.BUILD_DIR }}/cmake_install.cmake
 
