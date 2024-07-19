@@ -203,6 +203,7 @@ jobs:
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
       CMAKE_BUILD_TYPE: 'Release'
+      CMAKE_GENERATOR: 'Ninja Multi-Config'
 
     steps:
       - name: Clone Openvino tokenizers
@@ -237,6 +238,13 @@ jobs:
             Expand-Archive openvino_package.zip -DestinationPath ./tmp
             mv ./tmp/*/* .
           popd
+
+      - name: Install build dependencies
+        run: |
+          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja-win.zip -MaximumRetryCount 10
+          Expand-Archive -Force ninja-win.zip
+          # Add it to the GitHub Path so it would be available in the subsequent steps
+          Add-Content -Path $env:GITHUB_PATH -Value "${{ github.workspace }}/ninja-win"
 
       #
       # Build
