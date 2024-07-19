@@ -135,6 +135,37 @@ After that you can add binary extension in the code with:
 and `read`/`compile` converted (de)tokenizers models.
 If you use version `2023.3.0.0`, the binary extension file is called `(lib)user_ov_extension.(dll/dylib/so)`.
 
+### Reducing the ICU Data Size
+
+To reduce the size of the ICU libraries included in your final package, follow these steps:
+
+1. **Use the ICU Data Configuration File**:
+    - This file specifies which features and locales to include in a custom data bundle. You can find more information [here](https://unicode-org.github.io/icu/userguide/icu_data/buildtool.html#icu-data-configuration-file).
+
+2. **Configure OpenVINO Tokenizers**:
+    - When building OpenVINO tokenizers, set the following CMake options during the project configuration:
+
+    ```bash
+    -DBUILD_FAST_TOKENIZERS=ON
+    -DICU_DATA_FILTER_FILE="filters.json"
+    ```
+
+3. **Create a Configuration File**:
+    - An example configuration file (`filters.json`) might look like this:
+
+    ```json
+    {
+      "localeFilter": {
+        "filterType": "language",
+        "includelist": [
+          "en"
+        ]
+      }
+    }
+    ```
+
+By following these instructions, you can effectively reduce the size of the ICU libraries in your final package.
+
 ## Usage
 
 :warning: OpenVINO Tokenizers can be inferred on a `CPU` device only.
