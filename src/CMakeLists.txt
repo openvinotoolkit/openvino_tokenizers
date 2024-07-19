@@ -292,17 +292,25 @@ endif()
 # Post build steps to copy core_tokenizers dependencies
 #
 
-if(NOT BUILD_FAST_TOKENIZERS)
+if(BUILD_FAST_TOKENIZERS)
+  set(fast_tokenezers_libs_dir "${CMAKE_BINARY_DIR}/third_party/icu/src/extern_icu/icu4c/bin64")
+else()
+  set(fast_tokenezers_libs_dir "${fast_tokenizer_SOURCE_DIR}/third_party/lib")
   if(WIN32 AND X86_64)
-    set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/core_tokenizers.dll"
-                   "${fast_tokenizer_SOURCE_DIR}/third_party/lib/icudt70.dll"
-                   "${fast_tokenizer_SOURCE_DIR}/third_party/lib/icuuc70.dll")
+    set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/core_tokenizers.dll")
   elseif(LINUX)
     set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.so")
   elseif(APPLE)
     set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.dylib")
   endif()
+endif()
 
+if(WIN32 AND X86_64)
+  list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
+                         "${fast_tokenezers_libs_dir}/icuuc70.dll")
+endif()
+
+if(extra_libs)
   # post build steps
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${extra_libs} $<TARGET_FILE_DIR:${TARGET_NAME}>)
