@@ -150,18 +150,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
         with open(STATUSES_FILE, "w") as f:
             json.dump(new_statuses, f, indent=2)
 
-    added_tests = {test_id: status for test_id, status in new_statuses.items() if test_id not in previous_statuses}
-    if added_tests:
-        reporter.write_line("ADDED TESTS:")
-        for test_id, status in added_tests.items():
-            reporter.write_line(f"{status}: {test_id}")
-
-    removed_tests = {test_id: status for test_id, status in previous_statuses.items() if test_id not in new_statuses}
-    if removed_tests and rewrite_statuses:
-        reporter.write_line("REMOVED TESTS:")
-        for test_id, status in removed_tests.items():
-            reporter.write_line(f"{status}: {test_id}")
-
     changed_statuses = {(test_id, status) for test_id, status in new_statuses.items() if test_id not in added_tests}
     changed_statuses = changed_statuses.difference(set(previous_statuses.items()))
     if changed_statuses:

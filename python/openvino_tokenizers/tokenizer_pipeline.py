@@ -146,10 +146,9 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
-        # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L17
         return cls(
-            regex_search_pattern=r"((?=[^\n\t\r])\p{Cc})|((?=[^\n\t\r])\p{Cf})",
-            replace_term=" ",
+            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F])",  # exclude \n\t\r
+            replace_term="",
         )
 
     @classmethod
