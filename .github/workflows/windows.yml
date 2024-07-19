@@ -256,6 +256,8 @@ jobs:
             -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" `
             -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
             -B ${{ env.BUILD_DIR }}
+        env:
+          OpenVINO_DIR: ${{ env.OV_INSTALL_DIR }}/runtime/cmake
 
       - name: Cmake build - OpenVINO
         run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ env.CMAKE_BUILD_TYPE }} --verbose
