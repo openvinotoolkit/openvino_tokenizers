@@ -126,6 +126,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     "Salesforce/xgen-7b-8k-base",
+    "THUDM/glm-4v-9b",
 ]
 
 
@@ -595,6 +596,7 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
             assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 

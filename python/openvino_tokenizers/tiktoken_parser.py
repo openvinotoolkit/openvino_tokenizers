@@ -50,7 +50,10 @@ def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[
         if len(merged) == 2:
             merges.append(" ".join(map(token_bytes_to_string, merged)))
         else:
-            added_tokens[rank] = token.decode("utf-8")
+            try:
+                added_tokens[rank] = token.decode("utf-8")
+            except UnicodeDecodeError:
+                pass
 
     # Also add special tokens
     vocab.update(encoding._special_tokens)
