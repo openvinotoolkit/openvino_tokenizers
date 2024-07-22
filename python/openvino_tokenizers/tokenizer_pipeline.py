@@ -528,11 +528,30 @@ class BPETokenizationStep(TokenizationModelStep):
     def from_tiktoken_encoding(
         cls,
         encoding: "Encoding",  # noqa
+        reference_vocab: Optional[Dict[Union[str, bytes], int]] = None,
     ) -> "BPETokenizationStep":
-        from .tiktoken_parser import generate_vocab_and_merges
+        from .tiktoken_parser import generate_vocab_and_merges, token_bytes_to_string
+        from .utils import apply_bytes_to_unicode
 
         vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
         added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
+
+        if reference_vocab is not None:
+            existing_indices = set(vocab.values())
+
+            for ref_token, ref_idx in reference_vocab.items():
+                if ref_idx in existing_indices:
+                    continue
+
+                if isinstance(ref_token, bytes):
+                    ref_token = token_bytes_to_string(ref_token)
+
+                # (chat)GLM model adds spaces around <sop> token
+                if ref_token == "<sop>":
+                    ref_token = f" {ref_token} "
+
+                vocab[apply_bytes_to_unicode(ref_token)] = ref_idx
+
         return cls(
             unk_token="",
             fuse_unk=False,

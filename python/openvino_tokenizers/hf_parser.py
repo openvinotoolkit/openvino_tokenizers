@@ -879,12 +879,13 @@ def convert_tiktoken_model_tokenizer(
         prefix_tokens = [AddToken(_token_id=token_id) for token_id in hf_tokenizer.get_prefix_tokens()]
         add_prefix_steps.append(CombineSegmentsStep(inputs=prefix_tokens + [Sequence()]))
 
+    reference_vocab = getattr(hf_tokenizer, "get_vocab", lambda: None)()
     pipeline.add_steps(
         [
             NormalizeUnicode("NFC"),
             RegexSplitStep(split_pattern, behaviour="contiguous"),
             BytesToCharsStep(),
-            BPETokenizationStep.from_tiktoken_encoding(encoding),
+            BPETokenizationStep.from_tiktoken_encoding(encoding, reference_vocab=reference_vocab),
             TruncationStep.from_hf_object(hf_tokenizer),
             *add_prefix_steps,
             PaddingStep(

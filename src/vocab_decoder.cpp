@@ -46,7 +46,6 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto new_ends   = outputs[3].data<int32_t>();
 
     std::deque<uint8_t> buffer;
-
     for(size_t batch = 0; batch < batch_size; ++batch) {
         new_ragged_begins[batch] = batch * ((seq_len > 0) ? seq_len : 1);
         new_ragged_ends[batch]   = new_ragged_begins[batch] + ((seq_len > 0) ? seq_len : 1);
@@ -60,7 +59,10 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         for(size_t seq = new_ragged_begins[batch]; seq < new_ragged_ends[batch]; ++seq) {
             auto token_id = input_data[seq];
             new_begins[seq] = buffer.size();
-            if (std::find(m_skip_tokens.begin(), m_skip_tokens.end(), token_id) == m_skip_tokens.end()) {
+            if (
+                token_id < vocab_size
+                && std::find(m_skip_tokens.begin(), m_skip_tokens.end(), token_id) == m_skip_tokens.end()
+            ) {
                 buffer.insert(
                     buffer.end(),
                     vocab_chars + vocab_begins[token_id],
