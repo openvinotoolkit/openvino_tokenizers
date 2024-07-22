@@ -143,11 +143,25 @@ By default, all available ICU locales are supported, which significantly increas
     - This file specifies which features and locales to include in a custom data bundle. You can find more information [here](https://unicode-org.github.io/icu/userguide/icu_data/buildtool.html#icu-data-configuration-file).
 
 2. **Set the ICU Data Filter File as an Environment Variable**:
-    - Set the `ICU_DATA_FILTER_FILE` environment variable to the path of your configuration file (`filters.json`):
+    - **On Unix-like systems (Linux, macOS)**:
+      Set the `ICU_DATA_FILTER_FILE` environment variable to the path of your configuration file (`filters.json`):
 
-    ```bash
-    export ICU_DATA_FILTER_FILE="filters.json"
-    ```
+      ```bash
+      export ICU_DATA_FILTER_FILE="filters.json"
+      ```
+
+    - **On Windows**:
+      Set the `ICU_DATA_FILTER_FILE` environment variable using the Command Prompt or PowerShell:
+
+      **Command Prompt:**
+      ```cmd
+      set ICU_DATA_FILTER_FILE=filters.json
+      ```
+
+      **PowerShell:**
+      ```powershell
+      $env:ICU_DATA_FILTER_FILE="filters.json"
+      ```
 
 3. **Create a Configuration File**:
     - An example configuration file (`filters.json`) might look like this:
