@@ -52,10 +52,12 @@ endif()
 
 option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0" ${USE_ABI0})
 
-option(ICU_DATA_FILTER_FILE "To build ICU4C with custom data when building the data package on Windows" "")
-if (ICU_DATA_FILTER_FILE)
-  set(ENV{ICU_DATA_FILTER_FILE} ${ICU_DATA_FILTER_FILE})
+option(ICU_DATA_FILTER_FILE "Path to the custom data filter file for ICU4C data packaging" "")
+if(ICU_DATA_FILTER_FILE)
+  set(ENV{ICU_DATA_FILTER_FILE} "${ICU_DATA_FILTER_FILE}")
 endif()
+
+message(STATUS "ICU_DATA_FILTER_FILE is $ENV{ICU_DATA_FILTER_FILE}")
 
 #
 # Compile flags
