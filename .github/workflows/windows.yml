@@ -245,7 +245,6 @@ jobs:
       - name: CMake configure - tokenizers
         run: |
           cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" `
-                -DICU_DATA_FILTER_FILE="${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json" `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
         env:
@@ -254,6 +253,8 @@ jobs:
 
       - name: Cmake build - tokenizers
         run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ env.CMAKE_BUILD_TYPE }} --verbose
+        env:
+          ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
 
       - name: Cmake install - tokenizers
         run: |
