@@ -150,6 +150,8 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
         with open(STATUSES_FILE, "w") as f:
             json.dump(new_statuses, f, indent=2)
 
+    added_tests = {test_id: status for test_id, status in new_statuses.items() if test_id not in previous_statuses}
+
     changed_statuses = {(test_id, status) for test_id, status in new_statuses.items() if test_id not in added_tests}
     changed_statuses = changed_statuses.difference(set(previous_statuses.items()))
     if changed_statuses:
