@@ -36,6 +36,11 @@ ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+if(WIN32)
+  # Set the runtime library globally
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
 # It needs to be propagated to every library openvino_tokenizers links with.
 # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
@@ -145,6 +150,7 @@ if(BUILD_FAST_TOKENIZERS)
   set(EXTERNAL_PROJECT_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/src)
   set(EXTERNAL_PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/build)
   set(EXTERNAL_PROJECT_SUBBUILD_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/sub-build)
+  set(WITH_PYTHON OFF CACHE BOOL "")
 
   FetchContent_Declare(
     fast_tokenizer
@@ -294,17 +300,25 @@ endif()
 # Post build steps to copy core_tokenizers dependencies
 #
 
-if(NOT BUILD_FAST_TOKENIZERS)
+if(BUILD_FAST_TOKENIZERS)
+  set(fast_tokenezers_libs_dir "${CMAKE_BINARY_DIR}/third_party/icu/src/extern_icu/icu4c/bin64")
+else()
+  set(fast_tokenezers_libs_dir "${fast_tokenizer_SOURCE_DIR}/third_party/lib")
   if(WIN32 AND X86_64)
-    set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/core_tokenizers.dll"
-                   "${fast_tokenizer_SOURCE_DIR}/third_party/lib/icudt70.dll"
-                   "${fast_tokenizer_SOURCE_DIR}/third_party/lib/icuuc70.dll")
+    set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/core_tokenizers.dll")
   elseif(LINUX)
     set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.so")
   elseif(APPLE)
     set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.dylib")
   endif()
+endif()
 
+if(WIN32 AND X86_64)
+  list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
+                         "${fast_tokenezers_libs_dir}/icuuc70.dll")
+endif()
+
+if(extra_libs)
   # post build steps
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${extra_libs} $<TARGET_FILE_DIR:${TARGET_NAME}>)
@@ -368,7 +382,9 @@ if(BUILD_FAST_TOKENIZERS)
   install(TARGETS core_tokenizers
     LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR} COMPONENT openvino_tokenizers
     RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR} COMPONENT openvino_tokenizers)
-else()
+endif()
+
+if(extra_libs)
   if(WIN32)
     set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
   else()

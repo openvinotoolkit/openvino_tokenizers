@@ -30,6 +30,8 @@ from .constants import (
     TOKENIZER_NAME,
 )
 from .tokenizer_pipeline import (
+    AddToken,
+    BasePipelineStep,
     BPETokenizationStep,
     ByteFallbackStep,
     BytesToCharsStep,
@@ -46,6 +48,7 @@ from .tokenizer_pipeline import (
     RegexDecodingStep,
     RegexNormalizationStep,
     RegexSplitStep,
+    Sequence,
     StripStringStep,
     TokenizerPipeline,
     TruncationStep,
@@ -446,10 +449,26 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         if not hasattr(hf_tokenizer, "vocab_files_names") or "vocab_file" not in hf_tokenizer.vocab_files_names:
             return False
         vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
-        return (
+        vocab_file_exists = (
             getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
             and vocab_file.exists()
         )
+        if vocab_file_exists:
+            try:
+                from google.protobuf.message import DecodeError
+            except (ImportError, ModuleNotFoundError):
+                return False
+
+            model_pb = import_protobuf()
+            model = model_pb.ModelProto()
+            try:
+                with open(vocab_file, "rb") as model_file:
+                    model.ParseFromString(model_file.read())
+                return True
+            except DecodeError:
+                pass  # protobuf file is corrupted
+
+        return False
 
 
 def modify_sentencepiece_model(
@@ -516,6 +535,7 @@ def convert_sentencepiece_model_tokenizer(
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = False,
     add_prefix_space: Optional[bool] = None,
+    handle_special_tokens_with_re: bool = False,
 ) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
@@ -602,7 +622,7 @@ def convert_sentencepiece_model_tokenizer(
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=False,
-            add_prefix_space=add_prefix_space,
+            add_prefix_space=add_prefix_space and not handle_special_tokens_with_re,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
         sp_model_node = as_node(sp_model)
@@ -621,16 +641,25 @@ def convert_sentencepiece_model_tokenizer(
     input_node.set_friendly_name("string_input")
     next_node = input_node.outputs()
 
-    if prepend_scheme == "first":
+    if prepend_scheme == "first" or (add_prefix_space and handle_special_tokens_with_re):
         next_node = _get_factory().create("StringTensorUnpack", next_node).outputs()
         next_node = RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex().get_ov_subgraph(next_node)
         next_node = _get_factory().create("StringTensorPack", next_node).outputs()
 
     do_left_padding = hf_tokenizer.padding_side == "left"
 
+    if handle_special_tokens_with_re:
+        tokens, ids = zip(*sorted(((token, id) for id, token in add_tokens.items()), reverse=True))
+        added_inputs = [
+            *BasePipelineStep.create_string_constant_node(tokens).outputs(),
+            make_constant_node(np.array(ids, dtype=np.int32), Type.i32).output(0),
+        ]
+    else:
+        added_inputs = []
+
     tokenizer_node = _get_factory().create(
         "SentencepieceTokenizer",
-        [sp_model_node, *next_node],
+        [sp_model_node, *next_node] + added_inputs,
         {
             "add_bos": add_bos_token,
             "add_eos": add_eos_token,
@@ -818,11 +847,13 @@ def get_sp_detokenizer(
 def is_tiktoken_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     try:
         from tiktoken import Encoding
-    except ImportError:
+    except (ImportError, ModuleNotFoundError):
         return False
 
-    return getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".tiktoken") or isinstance(
-        getattr(hf_tokenizer, "encoder", None), Encoding
+    return (
+        getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".tiktoken")
+        or isinstance(getattr(hf_tokenizer, "encoder", None), Encoding)
+        or isinstance(getattr(hf_tokenizer, "tokenizer", None), Encoding)
     )
 
 
@@ -841,13 +872,20 @@ def convert_tiktoken_model_tokenizer(
     if skip_special_tokens:
         skip_tokens = list(parse_special_tokens(hf_tokenizer))
 
+    add_prefix_steps = []
+    if hasattr(hf_tokenizer, "get_prefix_tokens"):
+        prefix_tokens = [AddToken(_token_id=token_id) for token_id in hf_tokenizer.get_prefix_tokens()]
+        add_prefix_steps.append(CombineSegmentsStep(inputs=prefix_tokens + [Sequence()]))
+
+    reference_vocab = getattr(hf_tokenizer, "get_vocab", lambda: None)()
     pipeline.add_steps(
         [
             NormalizeUnicode("NFC"),
             RegexSplitStep(split_pattern, behaviour="contiguous"),
             BytesToCharsStep(),
-            BPETokenizationStep.from_tiktoken_encoding(encoding),
+            BPETokenizationStep.from_tiktoken_encoding(encoding, reference_vocab=reference_vocab),
             TruncationStep.from_hf_object(hf_tokenizer),
+            *add_prefix_steps,
             PaddingStep(
                 token=getattr(hf_tokenizer, "pad_token"),
                 _token_id=getattr(hf_tokenizer, "pad_token_id"),
