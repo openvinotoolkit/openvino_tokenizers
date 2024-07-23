@@ -126,6 +126,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     "Salesforce/xgen-7b-8k-base",
+    "THUDM/glm-4-9b",
 ]
 
 
@@ -355,6 +356,8 @@ def tiktoken_tokenizers_with_padding_options(
 ):
     if use_max_padding and getattr(hf_tiktoken_tokenizers_with_padding_sides, "model_max_length") > 2**31:
         pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
+    if (not use_left_padding and hf_tiktoken_tokenizers_with_padding_sides.name_or_path == "THUDM/glm-4-9b"):
+        pytest.skip("chatglm supports left padding only")
     return get_tokenizer(
         hf_tiktoken_tokenizers_with_padding_sides,
         add_special_tokens=do_add_special_tokens,
@@ -595,6 +598,7 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
             assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 

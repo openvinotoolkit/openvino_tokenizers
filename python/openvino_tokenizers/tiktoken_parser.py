@@ -37,7 +37,8 @@ def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[
     added_tokens = {}
 
     for token, rank in mergeable_ranks.items():
-        vocab[token_bytes_to_string(token)] = rank
+        string_token = token_bytes_to_string(token)
+        vocab[string_token] = rank
 
         if len(token) == 1:
             continue
@@ -50,7 +51,10 @@ def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[
         if len(merged) == 2:
             merges.append(" ".join(map(token_bytes_to_string, merged)))
         else:
-            added_tokens[rank] = token.decode("utf-8")
+            try:
+                added_tokens[rank] = token.decode("utf-8")
+            except UnicodeDecodeError:
+                added_tokens[rank] = string_token
 
     # Also add special tokens
     vocab.update(encoding._special_tokens)
