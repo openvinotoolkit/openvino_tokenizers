@@ -183,6 +183,10 @@ By default, all available ICU locales are supported, which significantly increas
     ```bash
     -DBUILD_FAST_TOKENIZERS=ON
     ```
+   - Example for a pip installation path:
+   ```bash
+   ICU_DATA_FILTER_FILE=</path/to/filters.json> pip install git+https://github.com/openvinotoolkit/openvino_tokenizers.git --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS=ON
+   ```
 
 By following these instructions, you can effectively reduce the size of the ICU libraries in your final package.
 
