@@ -244,7 +244,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
     PCRE2_SIZE subject_length = orig_str.size();
     // Usually found pattern is replaced by shorter string, but set 3 times more space for safety.
-    PCRE2_UCHAR buffer[subject_length * 3];
+    auto buffer = (PCRE2_UCHAR*) std::malloc(sizeof(PCRE2_UCHAR) * subject_length * 3);
     
     // Check if the string matches the pattern
     int match_result = pcre2_match(
@@ -281,5 +281,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         }
         return orig_str;
     }
-    return std::string((char*)buffer, subject_length);
+    auto res = std::string(reinterpret_cast<char*>(buffer), subject_length);
+    std::free(buffer);
+    return res;
 }
