@@ -278,6 +278,19 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
 
+# Fetch PCRE2
+include(FetchContent)
+FetchContent_Declare(
+    PCRE2
+    URL https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip
+    URL_HASH SHA256=2d87bd1700bd1993ddea7c56aad2b0373ac2b3d52d9cc78842a6d061ffaf0925
+)
+FetchContent_MakeAvailable(PCRE2)
+
+target_include_directories(${TARGET_NAME} PRIVATE ${PCRE2_BINARY_DIR})
+target_link_libraries(${TARGET_NAME} PRIVATE pcre2-8)
+target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
+
 if(OpenVINO_Frontend_TensorFlow_FOUND)
   target_link_libraries(${TARGET_NAME} PRIVATE openvino::frontend::tensorflow)
   target_compile_definitions(${TARGET_NAME} PRIVATE OpenVINO_Frontend_TensorFlow_FOUND)
