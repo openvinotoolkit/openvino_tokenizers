@@ -6,6 +6,7 @@ import json
 import tempfile
 from copy import deepcopy
 from functools import partial
+from itertools import zip_longest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -471,6 +472,67 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         return False
 
 
+def align_model_file(model: "ModelProto", hf_tokenizer: PreTrainedTokenizerFast) -> None:  # noqa
+    def is_byte(token: str) -> bool:
+        return len(token) == 6 and token.startswith("<0x") and token.endswith(">")
+
+    new_pieces = []
+
+    existing = {piece.piece: piece for piece in model.pieces}
+    sorted_vocab = {idx: token for token, idx in sorted(hf_tokenizer.get_vocab().items(), key=lambda x: x[1])}
+    if all(left == right for left, right in zip_longest(existing, sorted_vocab.values())):
+        return
+
+    scores = np.array([piece.score for piece in model.pieces])
+    score_delta = np.mean(scores[np.where(scores < 0)])
+
+    for idx in range(max(sorted_vocab)):
+        token = sorted_vocab.get(idx, f"<new_token_{idx}>")
+        if token in existing:
+            new_pieces.append(existing[token])
+            continue
+        elif new_pieces:
+            new_piece = deepcopy(new_pieces[-1])
+        else:
+            new_piece = deepcopy(model.pieces[-1])
+            new_piece.score = np.max(scores[np.where(scores < 0)])
+
+        new_piece.piece = token
+        if token == hf_tokenizer.unk_token:
+            new_piece.type = 2
+            model.trainer_spec.unk_surface = token
+            model.trainer_spec.unk_piece = token
+            model.trainer_spec.unk_id = idx
+        elif token == hf_tokenizer.pad_token:
+            new_piece.type = 3
+            model.trainer_spec.pad_piece = token
+            model.trainer_spec.pad_id = idx
+        elif token == hf_tokenizer.bos_token:
+            new_piece.type = 3
+            model.trainer_spec.bos_piece = token
+            model.trainer_spec.bos_id = idx
+        elif token == hf_tokenizer.eos_token:
+            new_piece.type = 3
+            model.trainer_spec.eos_piece = token
+            model.trainer_spec.eos_id = idx
+        elif is_byte(token):
+            new_piece.type = 6
+        elif hf_tokenizer.added_tokens_decoder.get(idx):
+            new_piece.type = 4
+            new_piece.score = 0
+        else:
+            new_piece.type = 1
+            new_piece.score -= score_delta
+
+        new_pieces.append(new_piece)
+
+    for _ in range(len(model.pieces)):
+        model.pieces.pop()
+
+    for idx, new_piece in enumerate(new_pieces):
+        model.pieces.append(new_piece)
+
+
 def modify_sentencepiece_model(
     sp_model_path: Path,
     add_tokens: Dict[int, str],
@@ -486,7 +548,11 @@ def modify_sentencepiece_model(
     if add_prefix_space is not None:
         model.normalizer_spec.add_dummy_prefix = add_prefix_space
 
+    if isinstance(hf_tokenizer, PreTrainedTokenizerFast):
+        align_model_file(model, hf_tokenizer)
+
     existing = {piece.piece: piece for piece in model.pieces}
+
     for idx, token in sorted(add_tokens.items()):
         if to_add := (idx >= len(model.pieces) or model.pieces[idx].piece != token):
             if exists := existing.get(token):
