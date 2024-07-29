@@ -539,6 +539,7 @@ def modify_sentencepiece_model(
     hf_tokenizer: PreTrainedTokenizerBase,
     skip_special_tokens: bool = False,
     add_prefix_space: Optional[bool] = None,
+    byte_fallback: Optional[bool] = None,
 ) -> str:
     model_pb = import_protobuf()
     model = model_pb.ModelProto()
@@ -588,6 +589,14 @@ def modify_sentencepiece_model(
     # change unk token representation from ⁇ to token string
     unk_token = next(piece for piece in model.pieces if piece.type == 2)
     model.trainer_spec.unk_surface = unk_token.piece
+
+    if byte_fallback is not None:
+        model.trainer_spec.byte_fallback = byte_fallback
+
+    if byte_fallback is False:
+        for piece in model.pieces:
+            if piece.type == 6:
+                piece.type = 5  # change BYTE type to UNUSED
 
     return model.SerializeToString()
 
@@ -643,6 +652,7 @@ def convert_sentencepiece_model_tokenizer(
         if not vocab_file.exists():
             raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
+        byte_fallback = None
         tokenizer_json_file = Path(tmp) / "tokenizer.json"
         prepend_scheme = ""
         if (
@@ -654,6 +664,9 @@ def convert_sentencepiece_model_tokenizer(
             with open(tokenizer_json_file, encoding="utf-8") as f:
                 tokenizer_json = json.load(f)
                 pre_tokenizer = tokenizer_json.get("pre_tokenizer")
+
+                byte_fallback = tokenizer_json.get("model", {}).get("byte_fallback", None)
+
                 if pre_tokenizer and pre_tokenizer.get("type") == "Metaspace":
                     metaspace = pre_tokenizer
                 elif pre_tokenizer and pre_tokenizer.get("type") == "Sequence":
@@ -689,6 +702,7 @@ def convert_sentencepiece_model_tokenizer(
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=False,
             add_prefix_space=add_prefix_space and not handle_special_tokens_with_re,
+            byte_fallback=byte_fallback,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
         sp_model_node = as_node(sp_model)
@@ -699,6 +713,7 @@ def convert_sentencepiece_model_tokenizer(
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=skip_special_tokens,
             add_prefix_space=add_prefix_space,
+            byte_fallback=byte_fallback,
         )
         sp_detokenizer_model = np.fromstring(sp_detokenizer_model_string, dtype=np.uint8)
         sp_detokenizer_model_node = as_node(sp_detokenizer_model)
