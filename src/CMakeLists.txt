@@ -152,6 +152,7 @@ if(BUILD_FAST_TOKENIZERS)
   FetchContent_Declare(hiberlite
     GIT_REPOSITORY https://github.com/PaddlePaddle/PaddleNLP
     GIT_TAG v2.6.1
+    GIT_SHALLOW ON
     PATCH_COMMAND git apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
   )
 
