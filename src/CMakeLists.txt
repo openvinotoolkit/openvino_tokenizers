@@ -149,10 +149,9 @@ endfunction()
 if(BUILD_FAST_TOKENIZERS)
   set(WITH_PYTHON OFF CACHE BOOL "")
 
-  FetchContent_Declare(
-    fast_tokenizer
-    URL      https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz
-    URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
+  FetchContent_Declare(hiberlite
+    GIT_REPOSITORY https://github.com/PaddlePaddle/PaddleNLP
+    GIT_TAG v2.6.1
     PATCH_COMMAND git apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
   )
 
