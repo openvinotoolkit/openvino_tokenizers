@@ -4,7 +4,7 @@
 
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/opsets/opset13.hpp"
-
+#include <optional>
 #include "regex_split.hpp"
 #include "utils.hpp"
 #include "fast_tokenizer/normalizers/normalizers.h"
@@ -36,23 +36,32 @@ RegexSplit::RegexSplit(const ov::OutputVector& arguments, const std::string& beh
 
 RegexSplit::RegexSplit(
     const ov::OutputVector& arguments,
-    const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
+    const std::shared_ptr<re2::RE2>& search_pattern_re2,
+    const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2,
     const std::string& behaviour,
     bool invert,
     int max_splits
 ) :
     ov::op::Op(arguments),
-    m_pretokenizer(pretokenizer),
+    m_search_pattern_re2(search_pattern_re2),
+    m_search_pattern_pcre2(search_pattern_pcre2),
     m_behaviour(behaviour),
     m_invert(invert),
     m_max_splits(max_splits) {
+    
+    auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
+    auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
+    auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
 
-    if (m_pretokenizer == nullptr) {
-        auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
-        auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
-        auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
-        m_pretokenizer = std::make_shared<pretokenizers::SplitPreTokenizer>(split_pattern, split_modes.at(behaviour), invert);
-    };
+    if (m_search_pattern_re2 == nullptr) {
+        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern);
+    }
+
+    if (m_search_pattern_re2->NumberOfCapturingGroups() == -1) {
+        // If RE2 was unable to process pattern.
+        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(split_pattern);
+        m_search_pattern_re2 = nullptr;
+    }
 
     constructor_validate_and_infer_types();
 }
@@ -60,25 +69,34 @@ RegexSplit::RegexSplit(
 
 RegexSplit::RegexSplit(
     const ov::OutputVector& arguments,
-    const std::shared_ptr<pretokenizers::SplitPreTokenizer>& pretokenizer,
+    const std::shared_ptr<re2::RE2>& search_pattern_re2,
+    const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2,
     const std::shared_ptr<std::set<std::string>>& skip_tokens,
     const std::string& behaviour,
     bool invert,
     int max_splits
 ) :
     ov::op::Op(arguments),
-    m_pretokenizer(pretokenizer),
+    m_search_pattern_re2(search_pattern_re2),
+    m_search_pattern_pcre2(search_pattern_pcre2),
     m_skip_tokens(skip_tokens),
     m_behaviour(behaviour),
     m_invert(invert),
     m_max_splits(max_splits) {
 
-    if (m_pretokenizer == nullptr) {
-        auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
-        auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
-        auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
-        m_pretokenizer = std::make_shared<pretokenizers::SplitPreTokenizer>(split_pattern, split_modes.at(behaviour), invert);
-    };
+    auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
+    auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
+    auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
+
+    if (m_search_pattern_re2 == nullptr) {
+        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern);
+    }
+
+    if (m_search_pattern_re2->NumberOfCapturingGroups() == -1) {
+        // If RE2 was unable to process pattern.
+        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(split_pattern);
+        m_search_pattern_re2 = nullptr;
+    }
 
     constructor_validate_and_infer_types();
 }
@@ -106,10 +124,45 @@ void RegexSplit::validate_and_infer_types() {
 }
 
 bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    if (m_pretokenizer == nullptr) {
-        auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
-        m_pretokenizer = std::make_shared<pretokenizers::SplitPreTokenizer>(split_pattern, split_modes.at(m_behaviour), m_invert);
+    std::string split_pattern;
+    if (m_search_pattern_re2 == nullptr || m_search_pattern_pcre2 == nullptr) {
+        split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
     };
+
+    if (m_search_pattern_re2 == nullptr) {
+        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern);
+    }
+
+    if (m_search_pattern_re2->NumberOfCapturingGroups() == -1) {
+        // If RE2 was unable to process pattern.
+        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(split_pattern);
+        m_search_pattern_re2 = nullptr;
+    }
+    
+    // If RE2 didn't compiled successfully fallback to PCRE2 matcher.
+    std::function<std::optional<std::pair<size_t, size_t>>(const std::string&, size_t)> get_next_match;
+    if (m_search_pattern_re2) {
+        get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
+            re2::StringPiece result;
+            bool flag = this->m_search_pattern_re2->Match(str, curr_start, str.length(), RE2::UNANCHORED, &result, 1);
+            if (flag) {
+                size_t curr_start = result.data() - str.data();
+                size_t curr_end = curr_start + result.length();
+                return std::pair(curr_start, curr_end);
+            } else {
+                return std::nullopt;
+            }
+        };
+    } else {
+        get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
+            auto match = this->m_search_pattern_pcre2->match(str, curr_start);
+            if (match.first != SIZE_MAX) {
+                return match;
+            } else {
+                return std::nullopt;
+            }
+        };
+    }
 
     auto input_size = get_input_size();
     if (input_size == 9 && m_skip_tokens == nullptr && inputs[6].get_size() > 0) {
@@ -161,20 +214,41 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                 new_begins[ragged_offset] = begins[ragged_col];
                 new_ends[ragged_offset++] = ends[ragged_col];
             } else {
-                paddlenlp::fast_tokenizer::pretokenizers::PreTokenizedString pretokenized(str);
-                (*m_pretokenizer)(&pretokenized);
-                size_t num_splits = pretokenized.GetSplitsSize();
-                for (size_t j = 0; j < num_splits; ++j) {
-                    auto split = pretokenized.GetSplit(j);
-                    auto offset = split.normalized_.GetOrginalOffset();
-                    new_begins[ragged_offset] = begins[ragged_col] + offset.first;
+                size_t start = 0;
+                re2::StringPiece result;
+                uint32_t num_splits = 0;
+                auto re2_pattern = re2::RE2(split_pattern);
+                bool is_isolate = m_behaviour == std::string("isolate");
 
-                    if (m_max_splits == j) {
-                        offset = pretokenized.GetSplit(num_splits - 1).normalized_.GetOrginalOffset();
-                        j = num_splits;
+                auto add_begin_end = [&](int begin, int end, bool invert) {
+                    if (invert == false){
+                        ++num_splits;
+                    }
+                    if (invert && !is_isolate) {
+                        return;
+                    }
+                    new_begins[ragged_offset] = begins[ragged_col] + begin;
+                    if (m_max_splits == num_splits) {
+                        end = str.length();
                     };
-                    new_ends[ragged_offset++] = begins[ragged_col] + offset.second;
+                    new_ends[ragged_offset++] = begins[ragged_col] + end;
                 };
+
+                std::optional<std::pair<size_t, size_t>> match;
+                while ((match = get_next_match(str, start)) != std::nullopt) {
+                    size_t curr_start = (*match).first;
+                    size_t curr_end = (*match).second;
+                    
+                    if (start != curr_start) {
+                        add_begin_end(start, curr_start, m_invert); 
+                    }
+                    add_begin_end(curr_start, curr_end, !m_invert); 
+                    start = curr_end;
+                }
+
+                if (start < str.length()) {
+                    add_begin_end(start, str.length(), m_invert); 
+                }
             }
         }
 

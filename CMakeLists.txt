@@ -25,6 +25,13 @@ project(openvino_tokenizers
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
         LANGUAGES CXX)
 
+        # Check if the build type is Debug
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # Set compiler flags for Debug build
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -g")
+endif()
+
 include(cmake/platforms.cmake)
 
 # Looking for OpenVINO in the python distribution. It doesn't work for cross-compiling build
