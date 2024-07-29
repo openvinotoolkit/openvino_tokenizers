@@ -149,7 +149,8 @@ endfunction()
 if(BUILD_FAST_TOKENIZERS)
   set(WITH_PYTHON OFF CACHE BOOL "")
 
-  FetchContent_Declare(hiberlite
+  FetchContent_Declare(
+    fast_tokenizer
     GIT_REPOSITORY https://github.com/PaddlePaddle/PaddleNLP
     GIT_TAG v2.6.1
     GIT_SHALLOW ON
