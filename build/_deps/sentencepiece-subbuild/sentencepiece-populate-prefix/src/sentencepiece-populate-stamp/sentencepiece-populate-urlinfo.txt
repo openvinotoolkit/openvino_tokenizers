@@ -1,3 +1,0 @@
-repository='external project URL'
-module='https://github.com/google/sentencepiece/archive/refs/tags/v0.2.0.tar.gz'
-tag='SHA256=9970f0a0afee1648890293321665e5b2efa04eaec9f1671fcf8048f456f5bb86'

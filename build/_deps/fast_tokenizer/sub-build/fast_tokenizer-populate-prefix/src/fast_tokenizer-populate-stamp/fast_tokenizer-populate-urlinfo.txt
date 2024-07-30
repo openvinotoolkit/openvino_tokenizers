@@ -1,3 +1,0 @@
-repository='external project URL'
-module='https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz'
-tag='SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a'

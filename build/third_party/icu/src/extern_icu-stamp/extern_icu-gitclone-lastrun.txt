@@ -1,3 +1,0 @@
-repository='https://github.com/unicode-org/icu.git'
-module=''
-tag='origin'

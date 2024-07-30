@@ -1,3 +1,0 @@
-C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/pcre2-populate.dir
-C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/ALL_BUILD.dir
-C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/ZERO_CHECK.dir

@@ -1,1 +1,0 @@
-cmd='msbuild;..\extern_icu\icu4c\source\allinone\allinone.sln;/p:Platform=x64;/p:SkipUWP=true'

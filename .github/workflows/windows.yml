@@ -17,6 +17,7 @@ env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'master'
   OV_TARBALL: ''
+  BUILD_TYPE: "Debug"
 
 permissions: read-all
 
@@ -59,7 +60,7 @@ jobs:
         shell: pwsh
     runs-on: windows-2019-16-core
     env:
-      CMAKE_BUILD_TYPE: 'Debug'
+      CMAKE_BUILD_TYPE: ${{ env.BUILD_TYPE }}
       CMAKE_GENERATOR: 'Ninja Multi-Config'
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
       CMAKE_C_COMPILER_LAUNCHER: ccache
@@ -202,7 +203,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
-      CMAKE_BUILD_TYPE: Debug
+      CMAKE_BUILD_TYPE: ${{ env.BUILD_TYPE }}
 
     steps:
       - name: Clone Openvino tokenizers
