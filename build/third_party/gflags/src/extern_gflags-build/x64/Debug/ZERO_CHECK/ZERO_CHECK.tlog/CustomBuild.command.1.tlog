@@ -1,0 +1,10 @@
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\THIRD_PARTY\GFLAGS\SRC\EXTERN_GFLAGS-BUILD\CMAKEFILES\C2B99515359BB1A2561F899E9526CC64\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags -BC:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/gflags.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

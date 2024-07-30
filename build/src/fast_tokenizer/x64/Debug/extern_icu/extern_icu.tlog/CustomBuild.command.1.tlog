@@ -1,0 +1,148 @@
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\D9F2A416393AE2FA3E6ADA8E43024F39\EXTERN_ICU-MKDIR.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-build
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/icu
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/icu/tmp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/icu/src
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\D9F2A416393AE2FA3E6ADA8E43024F39\EXTERN_ICU-DOWNLOAD.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\icu\src
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P C:/src/openvino_tokenizers_public/build/third_party/icu/tmp/extern_icu-gitclone.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\D9F2A416393AE2FA3E6ADA8E43024F39\EXTERN_ICU-UPDATE.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\icu\src\extern_icu
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\D9F2A416393AE2FA3E6ADA8E43024F39\EXTERN_ICU-PATCH.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\D9F2A416393AE2FA3E6ADA8E43024F39\EXTERN_ICU-CONFIGURE.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\icu\src\extern_icu-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+msbuild ..\extern_icu\icu4c\source\allinone\allinone.sln /p:Platform=x64 /p:SkipUWP=true
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\D9F2A416393AE2FA3E6ADA8E43024F39\EXTERN_ICU-BUILD.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\icu\src\extern_icu-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\D9F2A416393AE2FA3E6ADA8E43024F39\EXTERN_ICU-INSTALL.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\icu\src\extern_icu-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E copy_directory ../extern_icu/icu4c/include C:/src/openvino_tokenizers_public/build/third_party/install/icu/include && "C:/Program Files/CMake/bin/cmake.exe" -E copy_directory ../extern_icu/icu4c/lib64 C:/src/openvino_tokenizers_public/build/third_party/install/icu/lib64
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\36C3484E04A481A6FD41B4AD1BE3C3D2\EXTERN_ICU-COMPLETE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/Debug/extern_icu-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu-stamp/Debug/extern_icu-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\B21F51584F4E0C73A821E7D5F4127A04\EXTERN_ICU.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\_DEPS\FAST_TOKENIZER\SRC\FAST_TOKENIZER\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

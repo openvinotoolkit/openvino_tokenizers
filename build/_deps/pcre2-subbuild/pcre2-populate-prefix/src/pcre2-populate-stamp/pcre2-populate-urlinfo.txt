@@ -1,0 +1,3 @@
+repository='external project URL'
+module='https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip'
+tag='SHA256=2d87bd1700bd1993ddea7c56aad2b0373ac2b3d52d9cc78842a6d061ffaf0925'

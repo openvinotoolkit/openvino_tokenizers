@@ -1,0 +1,10 @@
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\THIRD_PARTY\GLOG\SRC\EXTERN_GLOG\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog -BC:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-build --check-stamp-file C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

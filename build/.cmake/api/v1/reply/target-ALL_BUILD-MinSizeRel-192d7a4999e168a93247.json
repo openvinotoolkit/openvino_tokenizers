@@ -1,0 +1,48 @@
+{
+	"backtrace" : 0,
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : 
+		[
+			"build/_deps/pcre2-src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "pcre2test::@10d2123479341c76e92f"
+		},
+		{
+			"id" : "pcre2-8-static::@10d2123479341c76e92f"
+		},
+		{
+			"id" : "pcre2grep::@10d2123479341c76e92f"
+		},
+		{
+			"id" : "pcre2-posix-static::@10d2123479341c76e92f"
+		},
+		{
+			"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df"
+		},
+		{
+			"id" : "pcre2posix_test::@10d2123479341c76e92f"
+		}
+	],
+	"id" : "ALL_BUILD::@10d2123479341c76e92f",
+	"isGeneratorProvided" : true,
+	"name" : "ALL_BUILD",
+	"paths" : 
+	{
+		"build" : "_deps/pcre2-build",
+		"source" : "build/_deps/pcre2-src"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

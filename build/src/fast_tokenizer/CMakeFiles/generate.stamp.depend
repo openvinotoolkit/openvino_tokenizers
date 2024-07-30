@@ -1,0 +1,34 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-3.20/Modules/CMakeCInformation.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/CMakeCommonLanguageInclude.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/CMakeLanguageInformation.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/CMakeParseArguments.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/CheckIncludeFile.cxx.in
+C:/Program Files/CMake/share/cmake-3.20/Modules/CheckIncludeFileCXX.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/Compiler/CMakeCommonCompilerMacros.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/Compiler/MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/ExternalProject.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/FindGit.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/FindPackageHandleStandardArgs.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/FindPackageMessage.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/Platform/Windows-MSVC-C.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/Platform/Windows-MSVC.cmake
+C:/Program Files/CMake/share/cmake-3.20/Modules/RepositoryInfo.txt.in
+C:/src/openvino_tokenizers_public/build/CMakeFiles/3.20.5/CMakeCCompiler.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/CMakeLists.txt
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/FastTokenizer.cmake.in
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/ByproductsICU.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/dart.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/gflags.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/glog.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/icu.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/nlohmann_json.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/re2.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/generic.cmake
+C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/third_party.cmake
+C:/src/openvino_tokenizers_public/build/third_party/dart/tmp/extern_dart-cfgcmd.txt.in
+C:/src/openvino_tokenizers_public/build/third_party/gflags/tmp/extern_gflags-cfgcmd.txt.in
+C:/src/openvino_tokenizers_public/build/third_party/glog/tmp/extern_glog-cfgcmd.txt.in
+C:/src/openvino_tokenizers_public/build/third_party/icu/tmp/extern_icu-cfgcmd.txt.in
+C:/src/openvino_tokenizers_public/build/third_party/json/tmp/extern_json-cfgcmd.txt.in
+C:/src/openvino_tokenizers_public/build/third_party/re2/tmp/extern_re2-cfgcmd.txt.in

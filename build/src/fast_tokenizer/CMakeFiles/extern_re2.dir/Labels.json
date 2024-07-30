@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/extern_re2"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/b21f51584f4e0c73a821e7d5f4127a04/extern_re2.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/36c3484e04a481a6fd41b4ad1be3c3d2/extern_re2-complete.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f941936ff07c136dbd50e0357b38a393/extern_re2-build.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f941936ff07c136dbd50e0357b38a393/extern_re2-configure.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f941936ff07c136dbd50e0357b38a393/extern_re2-download.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f941936ff07c136dbd50e0357b38a393/extern_re2-install.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f941936ff07c136dbd50e0357b38a393/extern_re2-mkdir.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f941936ff07c136dbd50e0357b38a393/extern_re2-patch.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f941936ff07c136dbd50e0357b38a393/extern_re2-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"extern_re2"
+		],
+		"name" : "extern_re2"
+	}
+}

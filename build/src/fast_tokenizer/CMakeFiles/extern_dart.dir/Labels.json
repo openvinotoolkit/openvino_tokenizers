@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/extern_dart"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/b21f51584f4e0c73a821e7d5f4127a04/extern_dart.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/36c3484e04a481a6fd41b4ad1be3c3d2/extern_dart-complete.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-build.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-configure.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-download.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-install.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-mkdir.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-patch.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-test.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"extern_dart"
+		],
+		"name" : "extern_dart"
+	}
+}

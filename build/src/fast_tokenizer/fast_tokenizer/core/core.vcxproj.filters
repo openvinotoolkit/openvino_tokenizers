@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer\fast_tokenizer\core\encoding.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer\fast_tokenizer\core\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{68099398-B502-339D-A1EE-04CF3A3EB2C8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

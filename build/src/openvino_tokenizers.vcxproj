@@ -1,0 +1,510 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DFA8132B-59EB-3BE2-94CA-CF48FD1D3BD3}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>openvino_tokenizers</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\src\openvino_tokenizers_public\build\src\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">openvino_tokenizers.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">openvino_tokenizers</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.dll</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\src\openvino_tokenizers_public\build\src\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">openvino_tokenizers.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">openvino_tokenizers</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.dll</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\src\openvino_tokenizers_public\build\src\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">openvino_tokenizers.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">openvino_tokenizers</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.dll</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\src\openvino_tokenizers_public\build\src\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">openvino_tokenizers.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">openvino_tokenizers</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.dll</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4146;4244;4267;4700;4703;4146;4244;4267;4700;4703</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR="Debug";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR=\"Debug\";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message></Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icudt70.dll C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icuuc70.dll C:/src/openvino_tokenizers_public/build/src/Debug
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\_deps\sentencepiece-build\src\Debug\sentencepiece.lib;fast_tokenizer\fast_tokenizer\Debug\core_tokenizers.lib;..\_deps\pcre2-build\Debug\pcre2-8-staticd.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Debug\openvino_tensorflow_frontendd.lib;fast_tokenizer\fast_tokenizer\core\Debug\libtokenizer.lib;fast_tokenizer\fast_tokenizer\models\Debug\libmodels.lib;fast_tokenizer\fast_tokenizer\utils\Debug\libfailure.lib;fast_tokenizer\fast_tokenizer\utils\Debug\liblattice.lib;fast_tokenizer\fast_tokenizer\decoders\Debug\libdecoders.lib;fast_tokenizer\fast_tokenizer\postprocessors\Debug\libpostprocessors.lib;fast_tokenizer\fast_tokenizer\core\Debug\libadded_vocabulary.lib;fast_tokenizer\fast_tokenizer\pretokenizers\Debug\libpretokenizers.lib;fast_tokenizer\fast_tokenizer\normalizers\Debug\libnormalizers.lib;..\third_party\install\re2\lib\re2.lib;fast_tokenizer\fast_tokenizer\utils\Debug\libsentencepiece_normalizer.lib;fast_tokenizer\fast_tokenizer\core\Debug\libcore.lib;fast_tokenizer\fast_tokenizer\utils\Debug\libtrie.lib;fast_tokenizer\fast_tokenizer\utils\Debug\libutils.lib;..\third_party\install\icu\lib64\icuuc.lib;..\third_party\install\icu\lib64\icudt.lib;fast_tokenizer\fast_tokenizer\core\Debug\libbase.lib;..\third_party\install\glog\lib\glog.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Debug\openvinod.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/src/openvino_tokenizers_public/build/src/Debug/openvino_tokenizers.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/src/openvino_tokenizers_public/build/src/Debug/openvino_tokenizers.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <DisableSpecificWarnings>4146;4244;4267;4700;4703;4146;4244;4267;4700;4703;4146;4244;4267;4700;4703</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR="Release";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR=\"Release\";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message></Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icudt70.dll C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icuuc70.dll C:/src/openvino_tokenizers_public/build/src/Release
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\_deps\sentencepiece-build\src\Release\sentencepiece.lib;fast_tokenizer\fast_tokenizer\Release\core_tokenizers.lib;..\_deps\pcre2-build\Release\pcre2-8-static.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Release\openvino_tensorflow_frontend.lib;fast_tokenizer\fast_tokenizer\core\Release\libtokenizer.lib;fast_tokenizer\fast_tokenizer\models\Release\libmodels.lib;fast_tokenizer\fast_tokenizer\utils\Release\libfailure.lib;fast_tokenizer\fast_tokenizer\utils\Release\liblattice.lib;fast_tokenizer\fast_tokenizer\decoders\Release\libdecoders.lib;fast_tokenizer\fast_tokenizer\postprocessors\Release\libpostprocessors.lib;fast_tokenizer\fast_tokenizer\core\Release\libadded_vocabulary.lib;fast_tokenizer\fast_tokenizer\pretokenizers\Release\libpretokenizers.lib;fast_tokenizer\fast_tokenizer\normalizers\Release\libnormalizers.lib;..\third_party\install\re2\lib\re2.lib;fast_tokenizer\fast_tokenizer\utils\Release\libsentencepiece_normalizer.lib;fast_tokenizer\fast_tokenizer\core\Release\libcore.lib;fast_tokenizer\fast_tokenizer\utils\Release\libtrie.lib;fast_tokenizer\fast_tokenizer\utils\Release\libutils.lib;..\third_party\install\icu\lib64\icuuc.lib;..\third_party\install\icu\lib64\icudt.lib;fast_tokenizer\fast_tokenizer\core\Release\libbase.lib;..\third_party\install\glog\lib\glog.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Release\openvino.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/src/openvino_tokenizers_public/build/src/Release/openvino_tokenizers.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/src/openvino_tokenizers_public/build/src/Release/openvino_tokenizers.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <DisableSpecificWarnings>4146;4244;4267;4700;4703;4146;4244;4267;4700;4703</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR="MinSizeRel";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR=\"MinSizeRel\";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message></Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icudt70.dll C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icuuc70.dll C:/src/openvino_tokenizers_public/build/src/MinSizeRel
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\_deps\sentencepiece-build\src\MinSizeRel\sentencepiece.lib;fast_tokenizer\fast_tokenizer\MinSizeRel\core_tokenizers.lib;..\_deps\pcre2-build\MinSizeRel\pcre2-8-static.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Debug\openvino_tensorflow_frontendd.lib;fast_tokenizer\fast_tokenizer\core\MinSizeRel\libtokenizer.lib;fast_tokenizer\fast_tokenizer\models\MinSizeRel\libmodels.lib;fast_tokenizer\fast_tokenizer\utils\MinSizeRel\libfailure.lib;fast_tokenizer\fast_tokenizer\utils\MinSizeRel\liblattice.lib;fast_tokenizer\fast_tokenizer\decoders\MinSizeRel\libdecoders.lib;fast_tokenizer\fast_tokenizer\postprocessors\MinSizeRel\libpostprocessors.lib;fast_tokenizer\fast_tokenizer\core\MinSizeRel\libadded_vocabulary.lib;fast_tokenizer\fast_tokenizer\pretokenizers\MinSizeRel\libpretokenizers.lib;fast_tokenizer\fast_tokenizer\normalizers\MinSizeRel\libnormalizers.lib;..\third_party\install\re2\lib\re2.lib;fast_tokenizer\fast_tokenizer\utils\MinSizeRel\libsentencepiece_normalizer.lib;fast_tokenizer\fast_tokenizer\core\MinSizeRel\libcore.lib;fast_tokenizer\fast_tokenizer\utils\MinSizeRel\libtrie.lib;fast_tokenizer\fast_tokenizer\utils\MinSizeRel\libutils.lib;..\third_party\install\icu\lib64\icuuc.lib;..\third_party\install\icu\lib64\icudt.lib;fast_tokenizer\fast_tokenizer\core\MinSizeRel\libbase.lib;..\third_party\install\glog\lib\glog.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Debug\openvinod.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/src/openvino_tokenizers_public/build/src/MinSizeRel/openvino_tokenizers.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/src/openvino_tokenizers_public/build/src/MinSizeRel/openvino_tokenizers.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4146;4244;4267;4700;4703;4146;4244;4267;4700;4703</DisableSpecificWarnings>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR="RelWithDebInfo";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;IMPLEMENT_OPENVINO_EXTENSION_API;PCRE2_CODE_UNIT_WIDTH=8;OpenVINO_Frontend_TensorFlow_FOUND;TBB_PREVIEW_WAITING_FOR_WORKERS=1;OV_THREAD=OV_THREAD_TBB;PCRE2_STATIC;CMAKE_INTDIR=\"RelWithDebInfo\";openvino_tokenizers_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src\builtin_pb;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party\protobuf-lite;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src\third_party;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-src;C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build;C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer;C:\src\openvino_tokenizers_public\build\third_party\dart\src\extern_dart\include;C:\src\openvino_tokenizers_public\build\third_party\json\src\extern_json\single_include;C:\src\openvino_tokenizers_public\build\third_party\install\re2\include;C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <PostBuildEvent>
+      <Message></Message>
+      <Command>setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E copy C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icudt70.dll C:/src/openvino_tokenizers_public/build/third_party/icu/src/extern_icu/icu4c/bin64/icuuc70.dll C:/src/openvino_tokenizers_public/build/src/RelWithDebInfo
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+    </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>..\_deps\sentencepiece-build\src\RelWithDebInfo\sentencepiece.lib;fast_tokenizer\fast_tokenizer\RelWithDebInfo\core_tokenizers.lib;..\_deps\pcre2-build\RelWithDebInfo\pcre2-8-static.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Release\openvino_tensorflow_frontend.lib;fast_tokenizer\fast_tokenizer\core\RelWithDebInfo\libtokenizer.lib;fast_tokenizer\fast_tokenizer\models\RelWithDebInfo\libmodels.lib;fast_tokenizer\fast_tokenizer\utils\RelWithDebInfo\libfailure.lib;fast_tokenizer\fast_tokenizer\utils\RelWithDebInfo\liblattice.lib;fast_tokenizer\fast_tokenizer\decoders\RelWithDebInfo\libdecoders.lib;fast_tokenizer\fast_tokenizer\postprocessors\RelWithDebInfo\libpostprocessors.lib;fast_tokenizer\fast_tokenizer\core\RelWithDebInfo\libadded_vocabulary.lib;fast_tokenizer\fast_tokenizer\pretokenizers\RelWithDebInfo\libpretokenizers.lib;fast_tokenizer\fast_tokenizer\normalizers\RelWithDebInfo\libnormalizers.lib;..\third_party\install\re2\lib\re2.lib;fast_tokenizer\fast_tokenizer\utils\RelWithDebInfo\libsentencepiece_normalizer.lib;fast_tokenizer\fast_tokenizer\core\RelWithDebInfo\libcore.lib;fast_tokenizer\fast_tokenizer\utils\RelWithDebInfo\libtrie.lib;fast_tokenizer\fast_tokenizer\utils\RelWithDebInfo\libutils.lib;..\third_party\install\icu\lib64\icuuc.lib;..\third_party\install\icu\lib64\icudt.lib;fast_tokenizer\fast_tokenizer\core\RelWithDebInfo\libbase.lib;..\third_party\install\glog\lib\glog.lib;C:\src\ov_debug_build\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\runtime\lib\intel64\Release\openvino.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImportLibrary>C:/src/openvino_tokenizers_public/build/src/RelWithDebInfo/openvino_tokenizers.lib</ImportLibrary>
+      <ProgramDataBaseFile>C:/src/openvino_tokenizers_public/build/src/RelWithDebInfo/openvino_tokenizers.pdb</ProgramDataBaseFile>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\src\CMakeLists.txt">
+      <StdOutEncoding>UTF-8</StdOutEncoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/src/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCheckCompilerFlagCommonPatterns.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeDependentOption.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Templates\CPackConfig.cmake.in;C:\src\openvino_tokenizers_public\cmake\templates\__version__.py.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\src\openvino_tokenizers_public\build\src\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/src/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCheckCompilerFlagCommonPatterns.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeDependentOption.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Templates\CPackConfig.cmake.in;C:\src\openvino_tokenizers_public\cmake\templates\__version__.py.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\src\openvino_tokenizers_public\build\src\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/src/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCheckCompilerFlagCommonPatterns.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeDependentOption.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Templates\CPackConfig.cmake.in;C:\src\openvino_tokenizers_public\cmake\templates\__version__.py.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\src\openvino_tokenizers_public\build\src\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/src/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCheckCompilerFlagCommonPatterns.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeDependentOption.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPack.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CPackComponent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCXXSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FetchContent\CMakeLists.cmake.in;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckCompilerFlag.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Internal\CheckSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Templates\CPackConfig.cmake.in;C:\src\openvino_tokenizers_public\cmake\templates\__version__.py.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\src\openvino_tokenizers_public\build\src\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\bpe_tokenizer.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\byte_fallback.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\bytes_to_chars.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\case_fold.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\chars_to_bytes.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\combine_segments.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\equal_str.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\fuze.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\normalize_unicode.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\ov_extension.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\ragged_tensor_pack.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\ragged_to_dense.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\ragged_to_ragged.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\ragged_to_sparse.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\regex_normalization.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\regex_split.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\sentence_piece.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\string_tensor_pack.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\string_tensor_unpack.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\string_to_hash_bucket.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\tensorflow_translators.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\trie_tokenizer.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\utils.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\vocab_decoder.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\vocab_encoder.cpp" />
+    <ClCompile Include="C:\src\openvino_tokenizers_public\src\wordpiece_tokenizer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\ZERO_CHECK.vcxproj">
+      <Project>{01C677A0-A595-3E0A-8F5C-335244BD805D}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\core\added_vocabulary.vcxproj">
+      <Project>{14F7BDE8-44D3-3918-8CA8-CEE2E6780007}</Project>
+      <Name>added_vocabulary</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\core\base.vcxproj">
+      <Project>{4CC73DB2-88DB-3949-9C8F-1EFAA3DA0C9A}</Project>
+      <Name>base</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\core\core.vcxproj">
+      <Project>{1E09175F-BA11-345A-B0BD-29AD1E6FB2FE}</Project>
+      <Name>core</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\core_tokenizers.vcxproj">
+      <Project>{7A8C96E5-50E2-3E74-8F98-C9CD8EC09770}</Project>
+      <Name>core_tokenizers</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\decoders\decoders.vcxproj">
+      <Project>{E4460843-23E1-373F-B17F-C7EA295E5736}</Project>
+      <Name>decoders</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\extern_dart.vcxproj">
+      <Project>{3A0EF3A7-C655-3A35-B939-1961D9395D4C}</Project>
+      <Name>extern_dart</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\extern_gflags.vcxproj">
+      <Project>{3656452B-B19C-3248-8485-158F53528614}</Project>
+      <Name>extern_gflags</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\extern_glog.vcxproj">
+      <Project>{5AA4943A-E70F-3CED-AA1E-783A5F4D279A}</Project>
+      <Name>extern_glog</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\extern_icu.vcxproj">
+      <Project>{9FD14557-2DB4-3CF9-AEED-867ED48E6F0A}</Project>
+      <Name>extern_icu</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\extern_json.vcxproj">
+      <Project>{45C964AA-88BE-361D-B1BA-41B44DB67A39}</Project>
+      <Name>extern_json</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\extern_re2.vcxproj">
+      <Project>{0E3CEFAE-530C-3CCD-AC5C-626B0EC4B146}</Project>
+      <Name>extern_re2</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\utils\failure.vcxproj">
+      <Project>{07C7284F-2B90-3F75-9287-30C17C25DD4C}</Project>
+      <Name>failure</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\utils\lattice.vcxproj">
+      <Project>{2D72E916-227E-313B-A00A-FFF2E3D92A6B}</Project>
+      <Name>lattice</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\models\models.vcxproj">
+      <Project>{C2516958-34AB-3DC8-888C-985AF1D4BD2D}</Project>
+      <Name>models</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\normalizers\normalizers.vcxproj">
+      <Project>{15F87106-58B2-3757-8590-4EAA655417DF}</Project>
+      <Name>normalizers</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\pcre2-8-static.vcxproj">
+      <Project>{0A03F070-7758-3B18-931B-D36C0C5A930C}</Project>
+      <Name>pcre2-8-static</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\postprocessors\postprocessors.vcxproj">
+      <Project>{1CE6AB32-B537-30FA-8DA0-38E286FD8739}</Project>
+      <Name>postprocessors</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\pretokenizers\pretokenizers.vcxproj">
+      <Project>{020997E8-317F-358B-920E-9A3CCF9FAEA5}</Project>
+      <Name>pretokenizers</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\_deps\sentencepiece-build\src\sentencepiece-static.vcxproj">
+      <Project>{2693B8EA-9CC3-31BD-8E0A-5679491A7EAC}</Project>
+      <Name>sentencepiece-static</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\utils\sentencepiece_normalizer.vcxproj">
+      <Project>{B8DC499F-3B74-33ED-8EDE-3FC1F7E47916}</Project>
+      <Name>sentencepiece_normalizer</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\core\tokenizer.vcxproj">
+      <Project>{6FBC6018-6980-391B-AB3A-58811FB856DA}</Project>
+      <Name>tokenizer</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\utils\trie.vcxproj">
+      <Project>{64C24BB5-F114-3321-B00E-7BACE0C5DFA0}</Project>
+      <Name>trie</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\fast_tokenizer\utils\utils.vcxproj">
+      <Project>{4DB98ED5-4526-3B63-AD93-8DEE0EE78DBB}</Project>
+      <Name>utils</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

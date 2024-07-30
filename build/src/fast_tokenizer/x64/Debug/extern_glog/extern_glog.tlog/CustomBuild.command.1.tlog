@@ -1,0 +1,148 @@
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\5774A0988843A35EC7B1D1F81672B52C\EXTERN_GLOG-MKDIR.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-build
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/glog
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/glog/tmp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/glog/src
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-mkdir
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\5774A0988843A35EC7B1D1F81672B52C\EXTERN_GLOG-DOWNLOAD.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\glog\src
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -P C:/src/openvino_tokenizers_public/build/third_party/glog/tmp/extern_glog-gitclone.cmake
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-download
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\5774A0988843A35EC7B1D1F81672B52C\EXTERN_GLOG-UPDATE.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\glog\src\extern_glog
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-update
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\5774A0988843A35EC7B1D1F81672B52C\EXTERN_GLOG-PATCH.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E echo_append
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-patch
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\5774A0988843A35EC7B1D1F81672B52C\EXTERN_GLOG-CONFIGURE.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\glog\src\extern_glog-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" "-DCMAKE_CXX_COMPILER=C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.29.30133/bin/Hostx86/x64/cl.exe" "-DCMAKE_C_COMPILER=C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.29.30133/bin/Hostx86/x64/cl.exe" "-DCMAKE_CXX_FLAGS=/DWIN32 /D_WINDOWS /GR /EHsc  /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /MT /w /wd4267 /wd4530" "-DCMAKE_CXX_FLAGS_RELEASE=/O2 /Ob2 /DNDEBUG  /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /MT /bigobj" "-DCMAKE_CXX_FLAGS_DEBUG=/Zi /Ob0 /Od /RTC1 /MT /bigobj" "-DCMAKE_C_FLAGS= /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /MT /w" "-DCMAKE_C_FLAGS_DEBUG=/Zi /Ob0 /Od /RTC1 /MT /bigobj" "-DCMAKE_C_FLAGS_RELEASE= /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /MT /bigobj" -DCMAKE_INSTALL_PREFIX=C:/src/openvino_tokenizers_public/build/third_party/install/glog -DCMAKE_INSTALL_LIBDIR=C:/src/openvino_tokenizers_public/build/third_party/install/glog/lib -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DWITH_GFLAGS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE= "-GVisual Studio 16 2019" -Ax64 -Thost=x86 "-DCMAKE_GENERATOR_INSTANCE:INTERNAL=C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional" -CC:/src/openvino_tokenizers_public/build/third_party/glog/tmp/extern_glog-cache-Debug.cmake C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-configure
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\5774A0988843A35EC7B1D1F81672B52C\EXTERN_GLOG-BUILD.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\glog\src\extern_glog-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" --build . --config Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-build
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\5774A0988843A35EC7B1D1F81672B52C\EXTERN_GLOG-INSTALL.RULE
+setlocal
+cd C:\src\openvino_tokenizers_public\build\third_party\glog\src\extern_glog-build
+if %errorlevel% neq 0 goto :cmEnd
+C:
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" --build . --config Debug --target install
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-install
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\36C3484E04A481A6FD41B4AD1BE3C3D2\EXTERN_GLOG-COMPLETE.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -E make_directory C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/Debug
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/Debug/extern_glog-complete
+if %errorlevel% neq 0 goto :cmEnd
+"C:\Program Files\CMake\bin\cmake.exe" -E touch C:/src/openvino_tokenizers_public/build/third_party/glog/src/extern_glog-stamp/Debug/extern_glog-done
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\CMAKEFILES\B21F51584F4E0C73A821E7D5F4127A04\EXTERN_GLOG.RULE
+setlocal
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\_DEPS\FAST_TOKENIZER\SRC\FAST_TOKENIZER\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

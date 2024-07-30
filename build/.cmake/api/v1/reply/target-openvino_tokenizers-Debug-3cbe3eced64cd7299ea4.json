@@ -1,0 +1,836 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "src/Debug/openvino_tokenizers.dll"
+		},
+		{
+			"path" : "src/Debug/openvino_tokenizers.lib"
+		},
+		{
+			"path" : "src/Debug/openvino_tokenizers.pdb"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"install",
+			"target_link_libraries",
+			"ov_tokenizers_link_sentencepiece",
+			"ov_tokenizers_link_fast_tokenizer",
+			"add_dependencies",
+			"include",
+			"ADD_DEPENDENCIES",
+			"set_target_properties",
+			"target_compile_definitions",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"src/CMakeLists.txt",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/dart.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/third_party.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/CMakeLists.txt",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/re2.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/icu.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/gflags.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/glog.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/nlohmann_json.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 266,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 377,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 272,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 145,
+				"parent" : 3
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 273,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 254,
+				"parent" : 5
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 291,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 295,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 279,
+				"parent" : 0
+			},
+			{
+				"file" : 3
+			},
+			{
+				"command" : 6,
+				"file" : 3,
+				"line" : 158,
+				"parent" : 10
+			},
+			{
+				"file" : 2,
+				"parent" : 11
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 28,
+				"parent" : 12
+			},
+			{
+				"file" : 1,
+				"parent" : 13
+			},
+			{
+				"command" : 5,
+				"file" : 1,
+				"line" : 45,
+				"parent" : 14
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 26,
+				"parent" : 12
+			},
+			{
+				"file" : 4,
+				"parent" : 16
+			},
+			{
+				"command" : 7,
+				"file" : 4,
+				"line" : 108,
+				"parent" : 17
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 20,
+				"parent" : 12
+			},
+			{
+				"file" : 5,
+				"parent" : 19
+			},
+			{
+				"command" : 7,
+				"file" : 5,
+				"line" : 132,
+				"parent" : 20
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 24,
+				"parent" : 12
+			},
+			{
+				"file" : 6,
+				"parent" : 22
+			},
+			{
+				"command" : 7,
+				"file" : 6,
+				"line" : 112,
+				"parent" : 23
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 25,
+				"parent" : 12
+			},
+			{
+				"file" : 7,
+				"parent" : 25
+			},
+			{
+				"command" : 7,
+				"file" : 7,
+				"line" : 116,
+				"parent" : 26
+			},
+			{
+				"command" : 6,
+				"file" : 2,
+				"line" : 27,
+				"parent" : 12
+			},
+			{
+				"file" : 8,
+				"parent" : 28
+			},
+			{
+				"command" : 5,
+				"file" : 8,
+				"line" : 46,
+				"parent" : 29
+			},
+			{
+				"command" : 8,
+				"file" : 0,
+				"line" : 276,
+				"parent" : 0
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 278,
+				"parent" : 0
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 296,
+				"parent" : 0
+			},
+			{
+				"command" : 9,
+				"file" : 0,
+				"line" : 292,
+				"parent" : 0
+			},
+			{
+				"command" : 10,
+				"file" : 0,
+				"line" : 133,
+				"parent" : 3
+			},
+			{
+				"command" : 10,
+				"file" : 0,
+				"line" : 253,
+				"parent" : 5
+			},
+			{
+				"command" : 10,
+				"file" : 0,
+				"line" : 290,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /GR /EHsc  /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /Zi /Ob0 /Od /RTC1 -MTd"
+				},
+				{
+					"backtrace" : 31,
+					"fragment" : "/wd4146"
+				},
+				{
+					"backtrace" : 31,
+					"fragment" : "/wd4244"
+				},
+				{
+					"backtrace" : 31,
+					"fragment" : "/wd4267"
+				},
+				{
+					"backtrace" : 31,
+					"fragment" : "/wd4700"
+				},
+				{
+					"backtrace" : 31,
+					"fragment" : "/wd4703"
+				},
+				{
+					"fragment" : "-std:c++17"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 32,
+					"define" : "IMPLEMENT_OPENVINO_EXTENSION_API"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "OV_THREAD=OV_THREAD_TBB"
+				},
+				{
+					"backtrace" : 33,
+					"define" : "OpenVINO_Frontend_TensorFlow_FOUND"
+				},
+				{
+					"backtrace" : 34,
+					"define" : "PCRE2_CODE_UNIT_WIDTH=8"
+				},
+				{
+					"backtrace" : 7,
+					"define" : "PCRE2_STATIC"
+				},
+				{
+					"backtrace" : 4,
+					"define" : "TBB_PREVIEW_WAITING_FOR_WORKERS=1"
+				},
+				{
+					"define" : "openvino_tokenizers_EXPORTS"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 35,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-src/src/builtin_pb"
+				},
+				{
+					"backtrace" : 35,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-src/src"
+				},
+				{
+					"backtrace" : 35,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-src/third_party/protobuf-lite"
+				},
+				{
+					"backtrace" : 35,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-src/third_party"
+				},
+				{
+					"backtrace" : 35,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-src"
+				},
+				{
+					"backtrace" : 35,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-build"
+				},
+				{
+					"backtrace" : 36,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer"
+				},
+				{
+					"backtrace" : 36,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/dart/src/extern_dart/include"
+				},
+				{
+					"backtrace" : 36,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/json/src/extern_json/single_include"
+				},
+				{
+					"backtrace" : 36,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/install/re2/include"
+				},
+				{
+					"backtrace" : 37,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-build"
+				},
+				{
+					"backtrace" : 9,
+					"isSystem" : true,
+					"path" : "C:/src/ov_debug_build/w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64/runtime/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					9
+				],
+				"standard" : "17"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 4,
+			"id" : "sentencepiece-static::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"backtrace" : 15,
+			"id" : "extern_dart::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 18,
+			"id" : "extern_re2::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 21,
+			"id" : "extern_icu::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 24,
+			"id" : "extern_gflags::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 27,
+			"id" : "extern_glog::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 30,
+			"id" : "extern_json::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "core_tokenizers::@3c8ebd91c226c25381fc"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "pretokenizers::@65eb53a2cefa6fe2b495"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "models::@6a562c4a346577c211ac"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "tokenizer::@74ce0647ed337b72115c"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "normalizers::@ad8dd4beeecb599585c3"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "failure::@a104bb9511dfa0e31eff"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "postprocessors::@6f2c6822a9b3115ae28c"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "core::@74ce0647ed337b72115c"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "decoders::@6675c00d534008d4ae91"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "base::@74ce0647ed337b72115c"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "utils::@a104bb9511dfa0e31eff"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "added_vocabulary::@74ce0647ed337b72115c"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "trie::@a104bb9511dfa0e31eff"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "sentencepiece_normalizer::@a104bb9511dfa0e31eff"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "lattice::@a104bb9511dfa0e31eff"
+		},
+		{
+			"backtrace" : 7,
+			"id" : "pcre2-8-static::@10d2123479341c76e92f"
+		},
+		{
+			"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "openvino_tokenizers::@145eef247bfb46b6828c",
+	"install" : 
+	{
+		"destinations" : 
+		[
+			{
+				"backtrace" : 2,
+				"path" : "runtime/bin/intel64/Release"
+			}
+		],
+		"prefix" : 
+		{
+			"path" : "C:/Program Files/openvino_tokenizers"
+		}
+	},
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/machine:x64 /debug /INCREMENTAL",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "..\\_deps\\sentencepiece-build\\src\\Debug\\sentencepiece.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 6,
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\Debug\\core_tokenizers.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 7,
+				"fragment" : "..\\_deps\\pcre2-build\\Debug\\pcre2-8-staticd.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 8,
+				"fragment" : "C:\\src\\ov_debug_build\\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\\runtime\\lib\\intel64\\Debug\\openvino_tensorflow_frontendd.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\core\\Debug\\libtokenizer.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\models\\Debug\\libmodels.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\utils\\Debug\\libfailure.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\utils\\Debug\\liblattice.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\decoders\\Debug\\libdecoders.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\postprocessors\\Debug\\libpostprocessors.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\core\\Debug\\libadded_vocabulary.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\pretokenizers\\Debug\\libpretokenizers.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\normalizers\\Debug\\libnormalizers.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "..\\third_party\\install\\re2\\lib\\re2.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\utils\\Debug\\libsentencepiece_normalizer.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\core\\Debug\\libcore.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\utils\\Debug\\libtrie.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\utils\\Debug\\libutils.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "..\\third_party\\install\\icu\\lib64\\icuuc.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "..\\third_party\\install\\icu\\lib64\\icudt.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "fast_tokenizer\\fast_tokenizer\\core\\Debug\\libbase.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "..\\third_party\\install\\glog\\lib\\glog.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 9,
+				"fragment" : "C:\\src\\ov_debug_build\\w_openvino_toolkit_windows_2024.3.0.dev20240719_x86_64\\runtime\\lib\\intel64\\Debug\\openvinod.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "openvino_tokenizers",
+	"nameOnDisk" : "openvino_tokenizers.dll",
+	"paths" : 
+	{
+		"build" : "src",
+		"source" : "src"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/bpe_tokenizer.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/byte_fallback.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/bytes_to_chars.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/case_fold.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/chars_to_bytes.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/combine_segments.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/equal_str.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/fuze.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/normalize_unicode.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ov_extension.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ragged_tensor_pack.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ragged_to_dense.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ragged_to_ragged.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ragged_to_sparse.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/regex_normalization.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/regex_split.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/sentence_piece.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/string_tensor_pack.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/string_tensor_unpack.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/string_to_hash_bucket.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/tensorflow_translators.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/trie_tokenizer.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/utils.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/vocab_decoder.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/vocab_encoder.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/wordpiece_tokenizer.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "SHARED_LIBRARY"
+}

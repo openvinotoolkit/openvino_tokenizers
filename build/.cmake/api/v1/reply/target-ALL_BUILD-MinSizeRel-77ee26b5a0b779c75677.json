@@ -1,0 +1,108 @@
+{
+	"backtrace" : 0,
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : 
+		[
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "extern_dart::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "copy_shared_library::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "extern_re2::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "extern_icu::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "build_cpp_package_dir::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "extern_gflags::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "extern_glog::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "extern_json::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "create_commit_id_file::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "copy_third_party_headers::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "core_tokenizers::@3c8ebd91c226c25381fc"
+		},
+		{
+			"id" : "pretokenizers::@65eb53a2cefa6fe2b495"
+		},
+		{
+			"id" : "models::@6a562c4a346577c211ac"
+		},
+		{
+			"id" : "tokenizer::@74ce0647ed337b72115c"
+		},
+		{
+			"id" : "normalizers::@ad8dd4beeecb599585c3"
+		},
+		{
+			"id" : "failure::@a104bb9511dfa0e31eff"
+		},
+		{
+			"id" : "postprocessors::@6f2c6822a9b3115ae28c"
+		},
+		{
+			"id" : "core::@74ce0647ed337b72115c"
+		},
+		{
+			"id" : "decoders::@6675c00d534008d4ae91"
+		},
+		{
+			"id" : "base::@74ce0647ed337b72115c"
+		},
+		{
+			"id" : "utils::@a104bb9511dfa0e31eff"
+		},
+		{
+			"id" : "added_vocabulary::@74ce0647ed337b72115c"
+		},
+		{
+			"id" : "trie::@a104bb9511dfa0e31eff"
+		},
+		{
+			"id" : "sentencepiece_normalizer::@a104bb9511dfa0e31eff"
+		},
+		{
+			"id" : "lattice::@a104bb9511dfa0e31eff"
+		},
+		{
+			"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "ALL_BUILD::@bf1d553b5e7490986e07",
+	"isGeneratorProvided" : true,
+	"name" : "ALL_BUILD",
+	"paths" : 
+	{
+		"build" : "src/fast_tokenizer",
+		"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

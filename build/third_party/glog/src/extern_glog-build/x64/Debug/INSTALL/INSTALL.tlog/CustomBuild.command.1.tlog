@@ -1,0 +1,10 @@
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\THIRD_PARTY\GLOG\SRC\EXTERN_GLOG-BUILD\CMAKEFILES\8D0EF6EAC5C3D0E8E1B6C4E015EE7285\INSTALL_FORCE.RULE
+setlocal
+cd .
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

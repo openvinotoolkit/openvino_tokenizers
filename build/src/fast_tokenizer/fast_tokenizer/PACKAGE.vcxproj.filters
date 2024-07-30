@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\fe4d359e04e1f5da3539e2e796eba816\PACKAGE_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{C160CAA1-A1A9-35C2-915A-11975FC733B1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

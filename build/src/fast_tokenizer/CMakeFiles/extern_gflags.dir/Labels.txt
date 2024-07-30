@@ -1,0 +1,13 @@
+# Target labels
+ extern_gflags
+# Source files and their labels
+C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/extern_gflags
+C:/src/openvino_tokenizers_public/build/CMakeFiles/b21f51584f4e0c73a821e7d5f4127a04/extern_gflags.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/36c3484e04a481a6fd41b4ad1be3c3d2/extern_gflags-complete.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-build.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-configure.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-download.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-install.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-mkdir.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-patch.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-update.rule

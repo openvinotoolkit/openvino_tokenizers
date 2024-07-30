@@ -1,0 +1,197 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x86</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F1CB1513-CBD3-362F-9ECF-55DB88CF7CC0}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+    <Keyword>Win32Proj</Keyword>
+    <Platform>x64</Platform>
+    <ProjectName>ALL_BUILD</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <Midl>
+      <AdditionalIncludeDirectories>C:\src\openvino_tokenizers_public\build\_deps\pcre2-build;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\CMakeLists.txt">
+      <StdOutEncoding>UTF-8</StdOutEncoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/build/_deps/pcre2-src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/_deps/pcre2-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeConfigurableFile.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckFunctionExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.c.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFileCXX.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckTypeSize.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindBZip2.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindZLIB.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\SelectLibraryConfigurations.cmake;C:\src\openvino_tokenizers_public\build\CMakeFiles\3.20.5\CMakeCCompiler.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindEditline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindPackageHandleStandardArgs.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindReadline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config-version.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\config-cmake.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-8.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-posix.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\pcre2-config.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2_chartables.c.dist;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/build/_deps/pcre2-src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/_deps/pcre2-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeConfigurableFile.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckFunctionExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.c.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFileCXX.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckTypeSize.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindBZip2.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindZLIB.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\SelectLibraryConfigurations.cmake;C:\src\openvino_tokenizers_public\build\CMakeFiles\3.20.5\CMakeCCompiler.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindEditline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindPackageHandleStandardArgs.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindReadline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config-version.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\config-cmake.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-8.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-posix.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\pcre2-config.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2_chartables.c.dist;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/build/_deps/pcre2-src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/_deps/pcre2-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeConfigurableFile.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckFunctionExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.c.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFileCXX.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckTypeSize.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindBZip2.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindZLIB.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\SelectLibraryConfigurations.cmake;C:\src\openvino_tokenizers_public\build\CMakeFiles\3.20.5\CMakeCCompiler.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindEditline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindPackageHandleStandardArgs.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindReadline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config-version.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\config-cmake.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-8.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-posix.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\pcre2-config.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2_chartables.c.dist;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule C:/src/openvino_tokenizers_public/build/_deps/pcre2-src/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public -BC:/src/openvino_tokenizers_public/build --check-stamp-file C:/src/openvino_tokenizers_public/build/_deps/pcre2-build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeConfigurableFile.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckCSourceCompiles.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckFunctionExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.c.in;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFile.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckIncludeFileCXX.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckSymbolExists.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\CheckTypeSize.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindBZip2.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\FindZLIB.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\GNUInstallDirs.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-3.20\Modules\SelectLibraryConfigurations.cmake;C:\src\openvino_tokenizers_public\build\CMakeFiles\3.20.5\CMakeCCompiler.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindEditline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindPackageHandleStandardArgs.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\FindReadline.cmake;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config-version.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\cmake\pcre2-config.cmake.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\config-cmake.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-8.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\libpcre2-posix.pc.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\pcre2-config.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2.h.in;C:\src\openvino_tokenizers_public\build\_deps\pcre2-src\src\pcre2_chartables.c.dist;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\ZERO_CHECK.vcxproj">
+      <Project>{01C677A0-A595-3E0A-8F5C-335244BD805D}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\pcre2-8-static.vcxproj">
+      <Project>{0A03F070-7758-3B18-931B-D36C0C5A930C}</Project>
+      <Name>pcre2-8-static</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\pcre2-posix-static.vcxproj">
+      <Project>{3B8D896C-2BFC-3533-9813-E6108333FC14}</Project>
+      <Name>pcre2-posix-static</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\pcre2grep.vcxproj">
+      <Project>{BE9789FF-FB7B-379B-9A17-45F408028351}</Project>
+      <Name>pcre2grep</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\pcre2posix_test.vcxproj">
+      <Project>{624004CE-6BF4-3865-B166-FF8884DF23E6}</Project>
+      <Name>pcre2posix_test</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-build\pcre2test.vcxproj">
+      <Project>{197F1A04-E7DF-3128-89A9-65BD1B01CD22}</Project>
+      <Name>pcre2test</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,10 @@
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\THIRD_PARTY\RE2\SRC\EXTERN_RE2-BUILD\CMAKEFILES\2140622F31B2213BDE9497FB3BEA7CE6\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/src/openvino_tokenizers_public/build/third_party/re2/src/extern_re2 -BC:/src/openvino_tokenizers_public/build/third_party/re2/src/extern_re2-build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/src/openvino_tokenizers_public/build/third_party/re2/src/extern_re2-build/RE2.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

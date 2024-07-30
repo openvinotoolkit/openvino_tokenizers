@@ -1,0 +1,14 @@
+# Target labels
+ extern_dart
+# Source files and their labels
+C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/extern_dart
+C:/src/openvino_tokenizers_public/build/CMakeFiles/b21f51584f4e0c73a821e7d5f4127a04/extern_dart.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/36c3484e04a481a6fd41b4ad1be3c3d2/extern_dart-complete.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-build.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-configure.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-download.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-install.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-mkdir.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-patch.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-test.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/f9c24eae7d9cc7c9c22fc497a72cafcd/extern_dart-update.rule

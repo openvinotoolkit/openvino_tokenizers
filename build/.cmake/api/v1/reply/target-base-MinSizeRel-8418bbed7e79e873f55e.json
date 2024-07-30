@@ -1,0 +1,341 @@
+{
+	"archive" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/machine:x64 /ignore:4049 /ignore:4217 /ignore:4006 /ignore:4221 /NODEFAULTLIB:MSVCRT.LIB",
+				"role" : "flags"
+			}
+		]
+	},
+	"artifacts" : 
+	[
+		{
+			"path" : "src/fast_tokenizer/fast_tokenizer/core/MinSizeRel/libbase.lib"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"cc_library",
+			"ADD_DEPENDENCIES",
+			"include",
+			"add_dependencies",
+			"add_definitions",
+			"include_directories",
+			"INCLUDE_DIRECTORIES"
+		],
+		"files" : 
+		[
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/generic.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/core/CMakeLists.txt",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/gflags.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/third_party.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/CMakeLists.txt",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/glog.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/nlohmann_json.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/re2.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/icu.cmake",
+			"build/_deps/fast_tokenizer/src/fast_tokenizer/cmake/external/dart.cmake"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 2,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 30,
+				"parent" : 1
+			},
+			{
+				"file" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 4,
+				"line" : 158,
+				"parent" : 3
+			},
+			{
+				"file" : 3,
+				"parent" : 4
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 24,
+				"parent" : 5
+			},
+			{
+				"file" : 2,
+				"parent" : 6
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 112,
+				"parent" : 7
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 25,
+				"parent" : 5
+			},
+			{
+				"file" : 5,
+				"parent" : 9
+			},
+			{
+				"command" : 2,
+				"file" : 5,
+				"line" : 116,
+				"parent" : 10
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 27,
+				"parent" : 5
+			},
+			{
+				"file" : 6,
+				"parent" : 12
+			},
+			{
+				"command" : 4,
+				"file" : 6,
+				"line" : 46,
+				"parent" : 13
+			},
+			{
+				"command" : 5,
+				"file" : 4,
+				"line" : 24,
+				"parent" : 3
+			},
+			{
+				"command" : 5,
+				"file" : 5,
+				"line" : 26,
+				"parent" : 10
+			},
+			{
+				"command" : 5,
+				"file" : 4,
+				"line" : 76,
+				"parent" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 26,
+				"parent" : 5
+			},
+			{
+				"file" : 7,
+				"parent" : 18
+			},
+			{
+				"command" : 5,
+				"file" : 7,
+				"line" : 24,
+				"parent" : 19
+			},
+			{
+				"command" : 6,
+				"file" : 4,
+				"line" : 155,
+				"parent" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 20,
+				"parent" : 5
+			},
+			{
+				"file" : 8,
+				"parent" : 22
+			},
+			{
+				"command" : 7,
+				"file" : 8,
+				"line" : 56,
+				"parent" : 23
+			},
+			{
+				"command" : 7,
+				"file" : 2,
+				"line" : 30,
+				"parent" : 7
+			},
+			{
+				"command" : 7,
+				"file" : 5,
+				"line" : 32,
+				"parent" : 10
+			},
+			{
+				"command" : 7,
+				"file" : 7,
+				"line" : 46,
+				"parent" : 19
+			},
+			{
+				"command" : 6,
+				"file" : 6,
+				"line" : 22,
+				"parent" : 13
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 28,
+				"parent" : 5
+			},
+			{
+				"file" : 9,
+				"parent" : 29
+			},
+			{
+				"command" : 6,
+				"file" : 9,
+				"line" : 22,
+				"parent" : 30
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /GR /EHsc  /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /MT /w /O1 /Ob1 /DNDEBUG /MT -MT"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 15,
+					"define" : "FASTTOKENIZER_LIB"
+				},
+				{
+					"backtrace" : 16,
+					"define" : "GOOGLE_GLOG_DLL_DECL="
+				},
+				{
+					"backtrace" : 17,
+					"define" : "NOMINMAX"
+				},
+				{
+					"backtrace" : 20,
+					"define" : "RE2_STATIC"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 21,
+					"path" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/src/fast_tokenizer"
+				},
+				{
+					"backtrace" : 24,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/install/icu/include"
+				},
+				{
+					"backtrace" : 25,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/install/gflags/include"
+				},
+				{
+					"backtrace" : 26,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/install/glog/include"
+				},
+				{
+					"backtrace" : 27,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/install/re2/include"
+				},
+				{
+					"backtrace" : 28,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/json/src/extern_json/single_include"
+				},
+				{
+					"backtrace" : 31,
+					"path" : "C:/src/openvino_tokenizers_public/build/third_party/dart/src/extern_dart/include"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					2
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 8,
+			"id" : "extern_gflags::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 11,
+			"id" : "extern_glog::@bf1d553b5e7490986e07"
+		},
+		{
+			"backtrace" : 14,
+			"id" : "extern_json::@bf1d553b5e7490986e07"
+		},
+		{
+			"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "base::@74ce0647ed337b72115c",
+	"name" : "base",
+	"nameOnDisk" : "libbase.lib",
+	"paths" : 
+	{
+		"build" : "src/fast_tokenizer/fast_tokenizer/core",
+		"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/core"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/core/base.cc",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "STATIC_LIBRARY"
+}

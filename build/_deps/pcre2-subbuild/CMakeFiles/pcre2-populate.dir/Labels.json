@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/pcre2-populate"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/c1a92317dcd40b74f678253fabe63c23/pcre2-populate.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/547784328a978547ffd5b32b2a841c48/pcre2-populate-complete.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-build.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-configure.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-download.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-install.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-patch.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-test.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/pcre2-subbuild/CMakeFiles/5f1ef0c06d180ec4444a4bb00e2221c5/pcre2-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"pcre2-populate"
+		],
+		"name" : "pcre2-populate"
+	}
+}

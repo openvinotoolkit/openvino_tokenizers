@@ -1,0 +1,76 @@
+The system is: Windows - 10.0.22631 - AMD64
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.29.30133/bin/Hostx86/x64/cl.exe 
+Build flags: /DWIN32;/D_WINDOWS;/GR;/EHsc;;/wd4146;/wd4244;/wd4267;/wd4700;/wd4703;/MT;/w
+Id flags:  
+
+The output was:
+0
+Microsoft (R) Build Engine version 16.11.2+f32259642 for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Build started 7/30/2024 3:51:37 PM.
+Project "C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\3.20.5\CompilerIdCXX\CompilerIdCXX.vcxproj" on node 1 (default targets).
+PrepareForBuild:
+  Creating directory "Debug\".
+  Creating directory "Debug\CompilerIdCXX.tlog\".
+InitializeBuildStatus:
+  Creating "Debug\CompilerIdCXX.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+ClCompile:
+  C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.29.30133\bin\HostX86\x64\CL.exe /c /nologo /W0 /WX- /diagnostics:column /Od /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Debug\\" /Fd"Debug\vc142.pdb" /external:W0 /Gd /TP /FC /errorReport:queue CMakeCXXCompilerId.cpp
+  CMakeCXXCompilerId.cpp
+Link:
+  C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.29.30133\bin\HostX86\x64\link.exe /ERRORREPORT:QUEUE /OUT:".\CompilerIdCXX.exe" /INCREMENTAL:NO /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /PDB:".\CompilerIdCXX.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:".\CompilerIdCXX.lib" /MACHINE:X64 Debug\CMakeCXXCompilerId.obj
+  CompilerIdCXX.vcxproj -> C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\3.20.5\CompilerIdCXX\CompilerIdCXX.exe
+PostBuildEvent:
+  for %%i in (cl.exe) do @echo CMAKE_CXX_COMPILER=%%~$PATH:i
+  :VCEnd
+  CMAKE_CXX_COMPILER=C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Tools\MSVC\14.29.30133\bin\Hostx86\x64\cl.exe
+FinalizeBuildStatus:
+  Deleting file "Debug\CompilerIdCXX.tlog\unsuccessfulbuild".
+  Touching "Debug\CompilerIdCXX.tlog\CompilerIdCXX.lastbuildstate".
+Done Building Project "C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\3.20.5\CompilerIdCXX\CompilerIdCXX.vcxproj" (default targets).
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.40
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.vcxproj"
+
+The CXX compiler identification is MSVC, found in "C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/3.20.5/CompilerIdCXX/CompilerIdCXX.exe"
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/MSBuild/Current/Bin/MSBuild.exe cmTC_60d30.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.11.2+f32259642 for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.29.30154 for x64
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  CMakeCXXCompilerABI.cpp
+  cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_60d30.dir\Debug\\" /Fd"cmTC_60d30.dir\Debug\vc142.pdb" /external:W1 /Gd /TP /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /errorReport:queue  /w "C:\Program Files\CMake\share\cmake-3.20\Modules\CMakeCXXCompilerABI.cpp"
+cl : command line warning D9025: overriding '/W1' with '/w' [C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\CMakeTmp\cmTC_60d30.vcxproj]
+  cmTC_60d30.vcxproj -> C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\CMakeTmp\Debug\cmTC_60d30.exe
+
+
+
+Determining size of __int32 passed with the following output:
+Change Dir: C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/MSBuild/Current/Bin/MSBuild.exe cmTC_fd673.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.11.2+f32259642 for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.29.30154 for x64
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  __int32.cpp
+  cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_fd673.dir\Debug\\" /Fd"cmTC_fd673.dir\Debug\vc142.pdb" /external:W1 /Gd /TP /wd4146 /wd4244 /wd4267 /wd4700 /wd4703 /errorReport:queue  /w "C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\CheckTypeSize\__int32.cpp"
+cl : command line warning D9025: overriding '/W1' with '/w' [C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\CMakeTmp\cmTC_fd673.vcxproj]
+  cmTC_fd673.vcxproj -> C:\src\openvino_tokenizers_public\build\third_party\gflags\src\extern_gflags-build\CMakeFiles\CMakeTmp\Debug\cmTC_fd673.exe
+
+
+

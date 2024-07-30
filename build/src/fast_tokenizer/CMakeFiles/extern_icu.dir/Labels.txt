@@ -1,0 +1,13 @@
+# Target labels
+ extern_icu
+# Source files and their labels
+C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/extern_icu
+C:/src/openvino_tokenizers_public/build/CMakeFiles/b21f51584f4e0c73a821e7d5f4127a04/extern_icu.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/36c3484e04a481a6fd41b4ad1be3c3d2/extern_icu-complete.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/d9f2a416393ae2fa3e6ada8e43024f39/extern_icu-build.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/d9f2a416393ae2fa3e6ada8e43024f39/extern_icu-configure.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/d9f2a416393ae2fa3e6ada8e43024f39/extern_icu-download.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/d9f2a416393ae2fa3e6ada8e43024f39/extern_icu-install.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/d9f2a416393ae2fa3e6ada8e43024f39/extern_icu-mkdir.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/d9f2a416393ae2fa3e6ada8e43024f39/extern_icu-patch.rule
+C:/src/openvino_tokenizers_public/build/CMakeFiles/d9f2a416393ae2fa3e6ada8e43024f39/extern_icu-update.rule

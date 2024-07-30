@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/fast_tokenizer-populate"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/4b6bceef6790b5300252ad086c05000d/fast_tokenizer-populate.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/027cae1f847f525b45f6982bb9407726/fast_tokenizer-populate-complete.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-build.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-configure.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-download.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-install.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-patch.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-test.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/_deps/fast_tokenizer/sub-build/CMakeFiles/c70b9bc0aedc1c719715fe66e6f1622c/fast_tokenizer-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"fast_tokenizer-populate"
+		],
+		"name" : "fast_tokenizer-populate"
+	}
+}

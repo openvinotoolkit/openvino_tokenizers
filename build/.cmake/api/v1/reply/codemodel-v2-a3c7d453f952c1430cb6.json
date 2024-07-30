@@ -1,0 +1,2800 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						1,
+						4
+					]
+				},
+				{
+					"build" : "src",
+					"childIndexes" : 
+					[
+						2,
+						5,
+						15
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src",
+					"targetIndexes" : 
+					[
+						24
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build",
+					"childIndexes" : 
+					[
+						3,
+						4
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/src",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/src",
+					"targetIndexes" : 
+					[
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/third_party",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/third_party"
+				},
+				{
+					"build" : "src/fast_tokenizer",
+					"childIndexes" : 
+					[
+						6
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						2,
+						7,
+						8,
+						9,
+						12,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer",
+					"childIndexes" : 
+					[
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/decoders",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/decoders",
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/models",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/models",
+					"targetIndexes" : 
+					[
+						22
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/normalizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/normalizers",
+					"targetIndexes" : 
+					[
+						23
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"targetIndexes" : 
+					[
+						31
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"targetIndexes" : 
+					[
+						30
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/core",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/core",
+					"targetIndexes" : 
+					[
+						5,
+						6,
+						10,
+						40
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/utils",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/utils",
+					"targetIndexes" : 
+					[
+						20,
+						21,
+						33,
+						41,
+						42
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/test"
+				},
+				{
+					"build" : "_deps/pcre2-build",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 3,
+					"source" : "build/_deps/pcre2-src",
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "openvino_tokenizers",
+					"targetIndexes" : 
+					[
+						1,
+						4,
+						24
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2,
+						3,
+						4
+					],
+					"name" : "sentencepiece",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"name" : "tokenizers",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						30,
+						31,
+						33,
+						40,
+						41,
+						42
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						15
+					],
+					"name" : "PCRE2",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "ALL_BUILD::@f8e8f93138f9265fe08f",
+					"jsonFile" : "target-ALL_BUILD-Debug-7602a81203abb5a93f79.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ALL_BUILD::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ALL_BUILD-Debug-13df5f7b3cd47f15c141.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "ALL_BUILD::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-ALL_BUILD-Debug-77ee26b5a0b779c75677.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "ALL_BUILD::@10d2123479341c76e92f",
+					"jsonFile" : "target-ALL_BUILD-Debug-192d7a4999e168a93247.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ZERO_CHECK-Debug-56aaf75cdc8a91f4ad79.json",
+					"name" : "ZERO_CHECK",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "added_vocabulary::@74ce0647ed337b72115c",
+					"jsonFile" : "target-added_vocabulary-Debug-2c99f5ba48c24b952e3f.json",
+					"name" : "added_vocabulary",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "base::@74ce0647ed337b72115c",
+					"jsonFile" : "target-base-Debug-d7bc66c25cd127256beb.json",
+					"name" : "base",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "build_cpp_package_dir::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-build_cpp_package_dir-Debug-5a1ce75c01b691ec8bb6.json",
+					"name" : "build_cpp_package_dir",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_shared_library::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_shared_library-Debug-96f6ab5a4040b3e57156.json",
+					"name" : "copy_shared_library",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_third_party_headers::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_third_party_headers-Debug-40473df53f1fc725d2f1.json",
+					"name" : "copy_third_party_headers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "core::@74ce0647ed337b72115c",
+					"jsonFile" : "target-core-Debug-337075c4d4fa3806a8d9.json",
+					"name" : "core",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "core_tokenizers::@3c8ebd91c226c25381fc",
+					"jsonFile" : "target-core_tokenizers-Debug-05582d2c7a3708925422.json",
+					"name" : "core_tokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "create_commit_id_file::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-create_commit_id_file-Debug-995b8a1cbf697c58f290.json",
+					"name" : "create_commit_id_file",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "decoders::@6675c00d534008d4ae91",
+					"jsonFile" : "target-decoders-Debug-c68f7b6709234a86b5d1.json",
+					"name" : "decoders",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_dart::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_dart-Debug-0b4ef4b5ff73986641ed.json",
+					"name" : "extern_dart",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_gflags::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_gflags-Debug-77fe075f0c5ab634ba25.json",
+					"name" : "extern_gflags",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_glog::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_glog-Debug-c46dc54d23127cc6e0a7.json",
+					"name" : "extern_glog",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_icu::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_icu-Debug-340845fea2de0a957e19.json",
+					"name" : "extern_icu",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_json::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_json-Debug-20718d951693120bc62b.json",
+					"name" : "extern_json",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_re2::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_re2-Debug-2fe2725e7db9f8082961.json",
+					"name" : "extern_re2",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "failure::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-failure-Debug-0bf88fbac336d4819d8a.json",
+					"name" : "failure",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "lattice::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-lattice-Debug-799e42a4fd472513e5fd.json",
+					"name" : "lattice",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "models::@6a562c4a346577c211ac",
+					"jsonFile" : "target-models-Debug-b68bf0dd18c83e4c20ee.json",
+					"name" : "models",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "normalizers::@ad8dd4beeecb599585c3",
+					"jsonFile" : "target-normalizers-Debug-5d659b0c461fd17a8279.json",
+					"name" : "normalizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "openvino_tokenizers::@145eef247bfb46b6828c",
+					"jsonFile" : "target-openvino_tokenizers-Debug-3cbe3eced64cd7299ea4.json",
+					"name" : "openvino_tokenizers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-8-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-8-static-Debug-48acf7df8402641d0a87.json",
+					"name" : "pcre2-8-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-posix-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-posix-static-Debug-5060ffb64ec9a82f52b0.json",
+					"name" : "pcre2-posix-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2grep::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2grep-Debug-df3d404eeb507f8b3d4b.json",
+					"name" : "pcre2grep",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2posix_test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2posix_test-Debug-edfa6e7beaf04ceed189.json",
+					"name" : "pcre2posix_test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2test-Debug-95f9b7da4000777666d7.json",
+					"name" : "pcre2test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "postprocessors::@6f2c6822a9b3115ae28c",
+					"jsonFile" : "target-postprocessors-Debug-2fed0772ec2f27cfed3b.json",
+					"name" : "postprocessors",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "pretokenizers::@65eb53a2cefa6fe2b495",
+					"jsonFile" : "target-pretokenizers-Debug-0b1f4c78434b03e5b536.json",
+					"name" : "pretokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece-static-Debug-7e2493039e54b97182b0.json",
+					"name" : "sentencepiece-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "sentencepiece_normalizer::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-sentencepiece_normalizer-Debug-60f8e544ce2446cb237b.json",
+					"name" : "sentencepiece_normalizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece_train-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece_train-static-Debug-35ca2e30c01037464ac9.json",
+					"name" : "sentencepiece_train-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_decode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_decode-Debug-1527da008108feed07b2.json",
+					"name" : "spm_decode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_encode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_encode-Debug-e6b845dc3a96a21c924f.json",
+					"name" : "spm_encode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_export_vocab::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_export_vocab-Debug-515dbbe12f3f3b1a8255.json",
+					"name" : "spm_export_vocab",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_normalize::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_normalize-Debug-50f05bb8453281a28a37.json",
+					"name" : "spm_normalize",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_train::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_train-Debug-3b6496564df567d127ba.json",
+					"name" : "spm_train",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "tokenizer::@74ce0647ed337b72115c",
+					"jsonFile" : "target-tokenizer-Debug-e6382b0cee6a80ce3b07.json",
+					"name" : "tokenizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "trie::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-trie-Debug-fbf9fa7b14d94c949503.json",
+					"name" : "trie",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "utils::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-utils-Debug-86949b3ceafb0984e269.json",
+					"name" : "utils",
+					"projectIndex" : 2
+				}
+			]
+		},
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						1,
+						4
+					]
+				},
+				{
+					"build" : "src",
+					"childIndexes" : 
+					[
+						2,
+						5,
+						15
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src",
+					"targetIndexes" : 
+					[
+						24
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build",
+					"childIndexes" : 
+					[
+						3,
+						4
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/src",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/src",
+					"targetIndexes" : 
+					[
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/third_party",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/third_party"
+				},
+				{
+					"build" : "src/fast_tokenizer",
+					"childIndexes" : 
+					[
+						6
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						2,
+						7,
+						8,
+						9,
+						12,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer",
+					"childIndexes" : 
+					[
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/decoders",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/decoders",
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/models",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/models",
+					"targetIndexes" : 
+					[
+						22
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/normalizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/normalizers",
+					"targetIndexes" : 
+					[
+						23
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"targetIndexes" : 
+					[
+						31
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"targetIndexes" : 
+					[
+						30
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/core",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/core",
+					"targetIndexes" : 
+					[
+						5,
+						6,
+						10,
+						40
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/utils",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/utils",
+					"targetIndexes" : 
+					[
+						20,
+						21,
+						33,
+						41,
+						42
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/test"
+				},
+				{
+					"build" : "_deps/pcre2-build",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 3,
+					"source" : "build/_deps/pcre2-src",
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "openvino_tokenizers",
+					"targetIndexes" : 
+					[
+						1,
+						4,
+						24
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2,
+						3,
+						4
+					],
+					"name" : "sentencepiece",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"name" : "tokenizers",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						30,
+						31,
+						33,
+						40,
+						41,
+						42
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						15
+					],
+					"name" : "PCRE2",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "ALL_BUILD::@f8e8f93138f9265fe08f",
+					"jsonFile" : "target-ALL_BUILD-Release-7602a81203abb5a93f79.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ALL_BUILD::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ALL_BUILD-Release-13df5f7b3cd47f15c141.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "ALL_BUILD::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-ALL_BUILD-Release-77ee26b5a0b779c75677.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "ALL_BUILD::@10d2123479341c76e92f",
+					"jsonFile" : "target-ALL_BUILD-Release-192d7a4999e168a93247.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ZERO_CHECK-Release-56aaf75cdc8a91f4ad79.json",
+					"name" : "ZERO_CHECK",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "added_vocabulary::@74ce0647ed337b72115c",
+					"jsonFile" : "target-added_vocabulary-Release-50d877961bee2c8b8ba9.json",
+					"name" : "added_vocabulary",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "base::@74ce0647ed337b72115c",
+					"jsonFile" : "target-base-Release-eaa1af76c5d2c3de6e8e.json",
+					"name" : "base",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "build_cpp_package_dir::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-build_cpp_package_dir-Release-5a1ce75c01b691ec8bb6.json",
+					"name" : "build_cpp_package_dir",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_shared_library::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_shared_library-Release-96f6ab5a4040b3e57156.json",
+					"name" : "copy_shared_library",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_third_party_headers::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_third_party_headers-Release-40473df53f1fc725d2f1.json",
+					"name" : "copy_third_party_headers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "core::@74ce0647ed337b72115c",
+					"jsonFile" : "target-core-Release-b2608eb3e0ef626ef9a7.json",
+					"name" : "core",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "core_tokenizers::@3c8ebd91c226c25381fc",
+					"jsonFile" : "target-core_tokenizers-Release-b61cabf7ef34a724d837.json",
+					"name" : "core_tokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "create_commit_id_file::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-create_commit_id_file-Release-995b8a1cbf697c58f290.json",
+					"name" : "create_commit_id_file",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "decoders::@6675c00d534008d4ae91",
+					"jsonFile" : "target-decoders-Release-0c34de062d3e07f8364f.json",
+					"name" : "decoders",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_dart::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_dart-Release-0b4ef4b5ff73986641ed.json",
+					"name" : "extern_dart",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_gflags::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_gflags-Release-77fe075f0c5ab634ba25.json",
+					"name" : "extern_gflags",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_glog::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_glog-Release-c46dc54d23127cc6e0a7.json",
+					"name" : "extern_glog",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_icu::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_icu-Release-340845fea2de0a957e19.json",
+					"name" : "extern_icu",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_json::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_json-Release-20718d951693120bc62b.json",
+					"name" : "extern_json",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_re2::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_re2-Release-2fe2725e7db9f8082961.json",
+					"name" : "extern_re2",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "failure::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-failure-Release-bb3ca0297c431152b9fc.json",
+					"name" : "failure",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "lattice::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-lattice-Release-044ebe937d602e4ddc59.json",
+					"name" : "lattice",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "models::@6a562c4a346577c211ac",
+					"jsonFile" : "target-models-Release-9f28810c062f5689d397.json",
+					"name" : "models",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "normalizers::@ad8dd4beeecb599585c3",
+					"jsonFile" : "target-normalizers-Release-01984e1d54f8ef764ac6.json",
+					"name" : "normalizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "openvino_tokenizers::@145eef247bfb46b6828c",
+					"jsonFile" : "target-openvino_tokenizers-Release-ec6c85a299a50d430d03.json",
+					"name" : "openvino_tokenizers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-8-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-8-static-Release-9fecbba391944f3230f6.json",
+					"name" : "pcre2-8-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-posix-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-posix-static-Release-003fe2b068a061d2ee7a.json",
+					"name" : "pcre2-posix-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2grep::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2grep-Release-1c8e4a3cab96265d4c28.json",
+					"name" : "pcre2grep",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2posix_test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2posix_test-Release-bc066c94ba060fd1c88b.json",
+					"name" : "pcre2posix_test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2test-Release-9f67ad8921328b630cd1.json",
+					"name" : "pcre2test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "postprocessors::@6f2c6822a9b3115ae28c",
+					"jsonFile" : "target-postprocessors-Release-9ad90b8c9a1b34e0cfa6.json",
+					"name" : "postprocessors",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "pretokenizers::@65eb53a2cefa6fe2b495",
+					"jsonFile" : "target-pretokenizers-Release-25da904bb9abd8475be8.json",
+					"name" : "pretokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece-static-Release-a6ae6f5cb385cff9d668.json",
+					"name" : "sentencepiece-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "sentencepiece_normalizer::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-sentencepiece_normalizer-Release-177cceaf8c046f743a7c.json",
+					"name" : "sentencepiece_normalizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece_train-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece_train-static-Release-ed928916cf48bbc467d1.json",
+					"name" : "sentencepiece_train-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_decode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_decode-Release-980495d3ea19972e0cad.json",
+					"name" : "spm_decode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_encode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_encode-Release-841b8ee6f38a348bfa44.json",
+					"name" : "spm_encode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_export_vocab::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_export_vocab-Release-04929966b0c09ec4e629.json",
+					"name" : "spm_export_vocab",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_normalize::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_normalize-Release-433d78a2988c6fa66e09.json",
+					"name" : "spm_normalize",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_train::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_train-Release-5487126b62542d1dce90.json",
+					"name" : "spm_train",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "tokenizer::@74ce0647ed337b72115c",
+					"jsonFile" : "target-tokenizer-Release-05e40ab61f10e0940bf8.json",
+					"name" : "tokenizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "trie::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-trie-Release-23c18a78e8e2ca9bfd38.json",
+					"name" : "trie",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "utils::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-utils-Release-a8f81550869439d797aa.json",
+					"name" : "utils",
+					"projectIndex" : 2
+				}
+			]
+		},
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						1,
+						4
+					]
+				},
+				{
+					"build" : "src",
+					"childIndexes" : 
+					[
+						2,
+						5,
+						15
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src",
+					"targetIndexes" : 
+					[
+						24
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build",
+					"childIndexes" : 
+					[
+						3,
+						4
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/src",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/src",
+					"targetIndexes" : 
+					[
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/third_party",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/third_party"
+				},
+				{
+					"build" : "src/fast_tokenizer",
+					"childIndexes" : 
+					[
+						6
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						2,
+						7,
+						8,
+						9,
+						12,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer",
+					"childIndexes" : 
+					[
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/decoders",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/decoders",
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/models",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/models",
+					"targetIndexes" : 
+					[
+						22
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/normalizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/normalizers",
+					"targetIndexes" : 
+					[
+						23
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"targetIndexes" : 
+					[
+						31
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"targetIndexes" : 
+					[
+						30
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/core",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/core",
+					"targetIndexes" : 
+					[
+						5,
+						6,
+						10,
+						40
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/utils",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/utils",
+					"targetIndexes" : 
+					[
+						20,
+						21,
+						33,
+						41,
+						42
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/test"
+				},
+				{
+					"build" : "_deps/pcre2-build",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 3,
+					"source" : "build/_deps/pcre2-src",
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"name" : "MinSizeRel",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "openvino_tokenizers",
+					"targetIndexes" : 
+					[
+						1,
+						4,
+						24
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2,
+						3,
+						4
+					],
+					"name" : "sentencepiece",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"name" : "tokenizers",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						30,
+						31,
+						33,
+						40,
+						41,
+						42
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						15
+					],
+					"name" : "PCRE2",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "ALL_BUILD::@f8e8f93138f9265fe08f",
+					"jsonFile" : "target-ALL_BUILD-MinSizeRel-7602a81203abb5a93f79.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ALL_BUILD::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ALL_BUILD-MinSizeRel-13df5f7b3cd47f15c141.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "ALL_BUILD::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-ALL_BUILD-MinSizeRel-77ee26b5a0b779c75677.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "ALL_BUILD::@10d2123479341c76e92f",
+					"jsonFile" : "target-ALL_BUILD-MinSizeRel-192d7a4999e168a93247.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ZERO_CHECK-MinSizeRel-56aaf75cdc8a91f4ad79.json",
+					"name" : "ZERO_CHECK",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "added_vocabulary::@74ce0647ed337b72115c",
+					"jsonFile" : "target-added_vocabulary-MinSizeRel-8c1cda9131be36b954c9.json",
+					"name" : "added_vocabulary",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "base::@74ce0647ed337b72115c",
+					"jsonFile" : "target-base-MinSizeRel-8418bbed7e79e873f55e.json",
+					"name" : "base",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "build_cpp_package_dir::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-build_cpp_package_dir-MinSizeRel-5a1ce75c01b691ec8bb6.json",
+					"name" : "build_cpp_package_dir",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_shared_library::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_shared_library-MinSizeRel-96f6ab5a4040b3e57156.json",
+					"name" : "copy_shared_library",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_third_party_headers::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_third_party_headers-MinSizeRel-40473df53f1fc725d2f1.json",
+					"name" : "copy_third_party_headers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "core::@74ce0647ed337b72115c",
+					"jsonFile" : "target-core-MinSizeRel-79499beb7c6ac4de19fb.json",
+					"name" : "core",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "core_tokenizers::@3c8ebd91c226c25381fc",
+					"jsonFile" : "target-core_tokenizers-MinSizeRel-85daf9b82f78f564b1ef.json",
+					"name" : "core_tokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "create_commit_id_file::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-create_commit_id_file-MinSizeRel-995b8a1cbf697c58f290.json",
+					"name" : "create_commit_id_file",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "decoders::@6675c00d534008d4ae91",
+					"jsonFile" : "target-decoders-MinSizeRel-6f7ad38369a2611f7aaa.json",
+					"name" : "decoders",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_dart::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_dart-MinSizeRel-0b4ef4b5ff73986641ed.json",
+					"name" : "extern_dart",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_gflags::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_gflags-MinSizeRel-77fe075f0c5ab634ba25.json",
+					"name" : "extern_gflags",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_glog::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_glog-MinSizeRel-c46dc54d23127cc6e0a7.json",
+					"name" : "extern_glog",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_icu::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_icu-MinSizeRel-340845fea2de0a957e19.json",
+					"name" : "extern_icu",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_json::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_json-MinSizeRel-20718d951693120bc62b.json",
+					"name" : "extern_json",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_re2::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_re2-MinSizeRel-2fe2725e7db9f8082961.json",
+					"name" : "extern_re2",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "failure::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-failure-MinSizeRel-a6075614a0f651634010.json",
+					"name" : "failure",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "lattice::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-lattice-MinSizeRel-84696c7c938055c7d75b.json",
+					"name" : "lattice",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "models::@6a562c4a346577c211ac",
+					"jsonFile" : "target-models-MinSizeRel-431b5f6ee3b2a70cfcc2.json",
+					"name" : "models",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "normalizers::@ad8dd4beeecb599585c3",
+					"jsonFile" : "target-normalizers-MinSizeRel-810942fc228026734212.json",
+					"name" : "normalizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "openvino_tokenizers::@145eef247bfb46b6828c",
+					"jsonFile" : "target-openvino_tokenizers-MinSizeRel-e5ca6bde3a2714395d59.json",
+					"name" : "openvino_tokenizers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-8-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-8-static-MinSizeRel-3f84248e3a3ab968e5f8.json",
+					"name" : "pcre2-8-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-posix-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-posix-static-MinSizeRel-f9d1fb2243edc8d22022.json",
+					"name" : "pcre2-posix-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2grep::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2grep-MinSizeRel-4028ffc2de97fde3eb8d.json",
+					"name" : "pcre2grep",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2posix_test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2posix_test-MinSizeRel-cf8783552cd7de401789.json",
+					"name" : "pcre2posix_test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2test-MinSizeRel-fe4997542937e3978d06.json",
+					"name" : "pcre2test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "postprocessors::@6f2c6822a9b3115ae28c",
+					"jsonFile" : "target-postprocessors-MinSizeRel-8ca25ebf611cc4ed5a0a.json",
+					"name" : "postprocessors",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "pretokenizers::@65eb53a2cefa6fe2b495",
+					"jsonFile" : "target-pretokenizers-MinSizeRel-94353d96ca8a1978603c.json",
+					"name" : "pretokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece-static-MinSizeRel-4fdcb1f49baaaab9a965.json",
+					"name" : "sentencepiece-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "sentencepiece_normalizer::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-sentencepiece_normalizer-MinSizeRel-f73647836a1da5b0b9f9.json",
+					"name" : "sentencepiece_normalizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece_train-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece_train-static-MinSizeRel-07271fec0729ecb64364.json",
+					"name" : "sentencepiece_train-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_decode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_decode-MinSizeRel-f95364209755bd8c887e.json",
+					"name" : "spm_decode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_encode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_encode-MinSizeRel-665b8f6d62b68fdea3d8.json",
+					"name" : "spm_encode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_export_vocab::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_export_vocab-MinSizeRel-df0aa3d77e9025f380cf.json",
+					"name" : "spm_export_vocab",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_normalize::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_normalize-MinSizeRel-08d2222068608d29a1ca.json",
+					"name" : "spm_normalize",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_train::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_train-MinSizeRel-4e7d18b5d4e87d066a88.json",
+					"name" : "spm_train",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "tokenizer::@74ce0647ed337b72115c",
+					"jsonFile" : "target-tokenizer-MinSizeRel-b63d26faca8b25c84ee6.json",
+					"name" : "tokenizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "trie::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-trie-MinSizeRel-7099430367dde16d5907.json",
+					"name" : "trie",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "utils::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-utils-MinSizeRel-4aaf82e4ad1e0c8220b5.json",
+					"name" : "utils",
+					"projectIndex" : 2
+				}
+			]
+		},
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						1,
+						4
+					]
+				},
+				{
+					"build" : "src",
+					"childIndexes" : 
+					[
+						2,
+						5,
+						15
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.15"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src",
+					"targetIndexes" : 
+					[
+						24
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build",
+					"childIndexes" : 
+					[
+						3,
+						4
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/src",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/src",
+					"targetIndexes" : 
+					[
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"build" : "_deps/sentencepiece-build/third_party",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.1"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "build/_deps/sentencepiece-src/third_party"
+				},
+				{
+					"build" : "src/fast_tokenizer",
+					"childIndexes" : 
+					[
+						6
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						2,
+						7,
+						8,
+						9,
+						12,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer",
+					"childIndexes" : 
+					[
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer",
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/decoders",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/decoders",
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/models",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/models",
+					"targetIndexes" : 
+					[
+						22
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/normalizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/normalizers",
+					"targetIndexes" : 
+					[
+						23
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/pretokenizers",
+					"targetIndexes" : 
+					[
+						31
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/postprocessors",
+					"targetIndexes" : 
+					[
+						30
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/core",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/core",
+					"targetIndexes" : 
+					[
+						5,
+						6,
+						10,
+						40
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/utils",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/utils",
+					"targetIndexes" : 
+					[
+						20,
+						21,
+						33,
+						41,
+						42
+					]
+				},
+				{
+					"build" : "src/fast_tokenizer/fast_tokenizer/test",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 2,
+					"source" : "build/_deps/fast_tokenizer/src/fast_tokenizer/fast_tokenizer/test"
+				},
+				{
+					"build" : "_deps/pcre2-build",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.5"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 3,
+					"source" : "build/_deps/pcre2-src",
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"name" : "RelWithDebInfo",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "openvino_tokenizers",
+					"targetIndexes" : 
+					[
+						1,
+						4,
+						24
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2,
+						3,
+						4
+					],
+					"name" : "sentencepiece",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						32,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14
+					],
+					"name" : "tokenizers",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						30,
+						31,
+						33,
+						40,
+						41,
+						42
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						15
+					],
+					"name" : "PCRE2",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						3,
+						25,
+						26,
+						27,
+						28,
+						29
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "ALL_BUILD::@f8e8f93138f9265fe08f",
+					"jsonFile" : "target-ALL_BUILD-RelWithDebInfo-7602a81203abb5a93f79.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ALL_BUILD::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ALL_BUILD-RelWithDebInfo-13df5f7b3cd47f15c141.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "ALL_BUILD::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-ALL_BUILD-RelWithDebInfo-77ee26b5a0b779c75677.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "ALL_BUILD::@10d2123479341c76e92f",
+					"jsonFile" : "target-ALL_BUILD-RelWithDebInfo-192d7a4999e168a93247.json",
+					"name" : "ALL_BUILD",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ZERO_CHECK-RelWithDebInfo-56aaf75cdc8a91f4ad79.json",
+					"name" : "ZERO_CHECK",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "added_vocabulary::@74ce0647ed337b72115c",
+					"jsonFile" : "target-added_vocabulary-RelWithDebInfo-70c41a7242f0d0e072c7.json",
+					"name" : "added_vocabulary",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "base::@74ce0647ed337b72115c",
+					"jsonFile" : "target-base-RelWithDebInfo-6d1d1555f4d6a69125ca.json",
+					"name" : "base",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "build_cpp_package_dir::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-build_cpp_package_dir-RelWithDebInfo-5a1ce75c01b691ec8bb6.json",
+					"name" : "build_cpp_package_dir",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_shared_library::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_shared_library-RelWithDebInfo-96f6ab5a4040b3e57156.json",
+					"name" : "copy_shared_library",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "copy_third_party_headers::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-copy_third_party_headers-RelWithDebInfo-40473df53f1fc725d2f1.json",
+					"name" : "copy_third_party_headers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "core::@74ce0647ed337b72115c",
+					"jsonFile" : "target-core-RelWithDebInfo-dc894e95e633a4c574e3.json",
+					"name" : "core",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "core_tokenizers::@3c8ebd91c226c25381fc",
+					"jsonFile" : "target-core_tokenizers-RelWithDebInfo-e4bbbe5883759164b39b.json",
+					"name" : "core_tokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "create_commit_id_file::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-create_commit_id_file-RelWithDebInfo-995b8a1cbf697c58f290.json",
+					"name" : "create_commit_id_file",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "decoders::@6675c00d534008d4ae91",
+					"jsonFile" : "target-decoders-RelWithDebInfo-9a32cc38a256e42d45b8.json",
+					"name" : "decoders",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_dart::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_dart-RelWithDebInfo-0b4ef4b5ff73986641ed.json",
+					"name" : "extern_dart",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_gflags::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_gflags-RelWithDebInfo-77fe075f0c5ab634ba25.json",
+					"name" : "extern_gflags",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_glog::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_glog-RelWithDebInfo-c46dc54d23127cc6e0a7.json",
+					"name" : "extern_glog",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_icu::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_icu-RelWithDebInfo-340845fea2de0a957e19.json",
+					"name" : "extern_icu",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_json::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_json-RelWithDebInfo-20718d951693120bc62b.json",
+					"name" : "extern_json",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "extern_re2::@bf1d553b5e7490986e07",
+					"jsonFile" : "target-extern_re2-RelWithDebInfo-2fe2725e7db9f8082961.json",
+					"name" : "extern_re2",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "failure::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-failure-RelWithDebInfo-815a91311de09f9d7b02.json",
+					"name" : "failure",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "lattice::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-lattice-RelWithDebInfo-9bf63f219021b12f76c4.json",
+					"name" : "lattice",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "models::@6a562c4a346577c211ac",
+					"jsonFile" : "target-models-RelWithDebInfo-ecd31a43bf487e4124a1.json",
+					"name" : "models",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "normalizers::@ad8dd4beeecb599585c3",
+					"jsonFile" : "target-normalizers-RelWithDebInfo-3d401319f3cb49c8b2d2.json",
+					"name" : "normalizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "openvino_tokenizers::@145eef247bfb46b6828c",
+					"jsonFile" : "target-openvino_tokenizers-RelWithDebInfo-73c3bd7773b5ccaa49ca.json",
+					"name" : "openvino_tokenizers",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-8-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-8-static-RelWithDebInfo-98717e9407aa9b940dc8.json",
+					"name" : "pcre2-8-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2-posix-static::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2-posix-static-RelWithDebInfo-1aa22d586cdb58552023.json",
+					"name" : "pcre2-posix-static",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2grep::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2grep-RelWithDebInfo-3af82a946249456c7c1d.json",
+					"name" : "pcre2grep",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2posix_test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2posix_test-RelWithDebInfo-d59bb54fdec6b26766f5.json",
+					"name" : "pcre2posix_test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "pcre2test::@10d2123479341c76e92f",
+					"jsonFile" : "target-pcre2test-RelWithDebInfo-edbf3fe42fec86f0fc5c.json",
+					"name" : "pcre2test",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "postprocessors::@6f2c6822a9b3115ae28c",
+					"jsonFile" : "target-postprocessors-RelWithDebInfo-578345cc57dfddacff47.json",
+					"name" : "postprocessors",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "pretokenizers::@65eb53a2cefa6fe2b495",
+					"jsonFile" : "target-pretokenizers-RelWithDebInfo-829b4065263982c55455.json",
+					"name" : "pretokenizers",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece-static-RelWithDebInfo-596fbfe68a10f47a799c.json",
+					"name" : "sentencepiece-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "sentencepiece_normalizer::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-sentencepiece_normalizer-RelWithDebInfo-a512575541c728a2154b.json",
+					"name" : "sentencepiece_normalizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "sentencepiece_train-static::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-sentencepiece_train-static-RelWithDebInfo-0e0f68cb9b9b5f7967af.json",
+					"name" : "sentencepiece_train-static",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_decode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_decode-RelWithDebInfo-c21fdb88546bb97c8412.json",
+					"name" : "spm_decode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_encode::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_encode-RelWithDebInfo-680619243d681219e732.json",
+					"name" : "spm_encode",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_export_vocab::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_export_vocab-RelWithDebInfo-e092201a6f1326333627.json",
+					"name" : "spm_export_vocab",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_normalize::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_normalize-RelWithDebInfo-aeeba8b9c811477284c2.json",
+					"name" : "spm_normalize",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "spm_train::@c2dbdb3f6fa9eb83cac4",
+					"jsonFile" : "target-spm_train-RelWithDebInfo-580bb5b0bc5af2eeb044.json",
+					"name" : "spm_train",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "tokenizer::@74ce0647ed337b72115c",
+					"jsonFile" : "target-tokenizer-RelWithDebInfo-ac3eb3803fbee3503b1c.json",
+					"name" : "tokenizer",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "trie::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-trie-RelWithDebInfo-dc82755193727e6cbeaf.json",
+					"name" : "trie",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "utils::@a104bb9511dfa0e31eff",
+					"jsonFile" : "target-utils-RelWithDebInfo-49122b32c54c4cc24915.json",
+					"name" : "utils",
+					"projectIndex" : 2
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/src/openvino_tokenizers_public/build",
+		"source" : "C:/src/openvino_tokenizers_public"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 2
+	}
+}

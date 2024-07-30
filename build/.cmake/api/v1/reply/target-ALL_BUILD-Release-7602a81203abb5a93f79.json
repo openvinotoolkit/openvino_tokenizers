@@ -1,0 +1,54 @@
+{
+	"backtrace" : 0,
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : 
+		[
+			"build/_deps/sentencepiece-src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "sentencepiece-static::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"id" : "sentencepiece_train-static::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"id" : "spm_train::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"id" : "spm_export_vocab::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"id" : "spm_decode::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"id" : "spm_normalize::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"id" : "spm_encode::@c2dbdb3f6fa9eb83cac4"
+		},
+		{
+			"id" : "ZERO_CHECK::@6890427a1f51a3e7e1df"
+		}
+	],
+	"id" : "ALL_BUILD::@f8e8f93138f9265fe08f",
+	"isGeneratorProvided" : true,
+	"name" : "ALL_BUILD",
+	"paths" : 
+	{
+		"build" : "_deps/sentencepiece-build",
+		"source" : "build/_deps/sentencepiece-src"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}

@@ -1,0 +1,8 @@
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/INSTALL.dir
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/gflags_static.dir
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/uninstall.dir
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/gflags.dir
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/gflags_nothreads_static.dir
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/gflags_nothreads.dir
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/ALL_BUILD.dir
+C:/src/openvino_tokenizers_public/build/third_party/gflags/src/extern_gflags-build/CMakeFiles/ZERO_CHECK.dir

@@ -1,0 +1,4 @@
+# This is a generated file.
+MESSAGE("When testing is complete, review test output in the
+\"C:/src/openvino_tokenizers_public/build/_deps/pcre2-build/Testing/Temporary\" folder.")
+MESSAGE(" ")

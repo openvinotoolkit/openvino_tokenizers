@@ -1,0 +1,10 @@
+^C:\SRC\OPENVINO_TOKENIZERS_PUBLIC\BUILD\THIRD_PARTY\RE2\SRC\EXTERN_RE2-BUILD\CMAKEFILES\2140622F31B2213BDE9497FB3BEA7CE6\INSTALL_FORCE.RULE
+setlocal
+cd .
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

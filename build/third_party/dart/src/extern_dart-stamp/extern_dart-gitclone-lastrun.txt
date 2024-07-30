@@ -1,0 +1,3 @@
+repository='https://github.com/s-yata/darts-clone.git'
+module=''
+tag='origin'

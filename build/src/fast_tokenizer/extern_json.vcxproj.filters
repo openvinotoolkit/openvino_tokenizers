@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b53d48604fee0e0fe5efcad31e5caffc\extern_json-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\36c3484e04a481a6fd41b4ad1be3c3d2\extern_json-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b21f51584f4e0c73a821e7d5f4127a04\extern_json.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\CMakeFiles\extern_json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{C160CAA1-A1A9-35C2-915A-11975FC733B1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

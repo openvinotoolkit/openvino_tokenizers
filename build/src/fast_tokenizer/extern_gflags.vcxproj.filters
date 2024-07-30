@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\86a0f012241e1c3881af4df17d22abd8\extern_gflags-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\86a0f012241e1c3881af4df17d22abd8\extern_gflags-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\86a0f012241e1c3881af4df17d22abd8\extern_gflags-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\86a0f012241e1c3881af4df17d22abd8\extern_gflags-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\86a0f012241e1c3881af4df17d22abd8\extern_gflags-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\86a0f012241e1c3881af4df17d22abd8\extern_gflags-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\86a0f012241e1c3881af4df17d22abd8\extern_gflags-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\36c3484e04a481a6fd41b4ad1be3c3d2\extern_gflags-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\CMakeFiles\b21f51584f4e0c73a821e7d5f4127a04\extern_gflags.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\fast_tokenizer\src\fast_tokenizer\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\src\openvino_tokenizers_public\build\src\fast_tokenizer\CMakeFiles\extern_gflags" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{C160CAA1-A1A9-35C2-915A-11975FC733B1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/src/fast_tokenizer/CMakeFiles/extern_gflags"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/b21f51584f4e0c73a821e7d5f4127a04/extern_gflags.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/36c3484e04a481a6fd41b4ad1be3c3d2/extern_gflags-complete.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-build.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-configure.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-download.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-install.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-mkdir.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-patch.rule"
+		},
+		{
+			"file" : "C:/src/openvino_tokenizers_public/build/CMakeFiles/86a0f012241e1c3881af4df17d22abd8/extern_gflags-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"extern_gflags"
+		],
+		"name" : "extern_gflags"
+	}
+}

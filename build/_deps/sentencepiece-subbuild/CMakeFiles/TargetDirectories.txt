@@ -1,0 +1,3 @@
+C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-subbuild/CMakeFiles/sentencepiece-populate.dir
+C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-subbuild/CMakeFiles/ALL_BUILD.dir
+C:/src/openvino_tokenizers_public/build/_deps/sentencepiece-subbuild/CMakeFiles/ZERO_CHECK.dir

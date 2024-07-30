@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-mkdir.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-download.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-update.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-patch.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-configure.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-build.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-install.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\5f1ef0c06d180ec4444a4bb00e2221c5\pcre2-populate-test.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\547784328a978547ffd5b32b2a841c48\pcre2-populate-complete.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\c1a92317dcd40b74f678253fabe63c23\pcre2-populate.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\src\openvino_tokenizers_public\build\_deps\pcre2-subbuild\CMakeFiles\pcre2-populate" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{7A2F5A4F-923D-3470-8A0E-447E32506F11}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
