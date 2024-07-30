@@ -156,8 +156,8 @@ jobs:
 
       - name: Cmake install - OpenVINO
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -P ${{ env.BUILD_DIR }}/cmake_install.cmake
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -DCOMPONENT=python_wheels -P ${{ env.BUILD_DIR }}/cmake_install.cmake
+          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -P ${{ env.BUILD_DIR }}/cmake_install.cmake --config ${{ env.CMAKE_BUILD_TYPE }}
+          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -DCOMPONENT=python_wheels -P ${{ env.BUILD_DIR }}/cmake_install.cmake --config ${{ env.CMAKE_BUILD_TYPE }}
 
       - name: Pack Artifacts
         run: |
@@ -258,7 +258,7 @@ jobs:
 
       - name: Cmake install - tokenizers
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers -P ${{ env.BUILD_DIR }}/cmake_install.cmake
+          cmake -DCMAKE_INSTALL_PREFIX=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers -P ${{ env.BUILD_DIR }}/cmake_install.cmake --config ${{ env.CMAKE_BUILD_TYPE }}
 
       - name: Pack Artifacts
         run: |
