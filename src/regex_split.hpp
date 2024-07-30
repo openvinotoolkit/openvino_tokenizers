@@ -55,11 +55,23 @@ public:
         return true;
     }
 
+    enum SplitMode {
+        REMOVED,
+        ISOLATED,
+        MERGED_WITH_PREVIOUS,
+        MERGED_WITH_NEXT,
+        CONTIGUOUS,  // Contiguous is not used during evaluate, replaced with isolated with patched pattern in ctor.
+    };
+
+
 private:
     mutable std::shared_ptr<re2::RE2> m_search_pattern_re2;
     mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
     mutable std::shared_ptr<std::set<std::string>> m_skip_tokens;
     mutable std::string m_behaviour = "remove";
+    mutable SplitMode m_split_mode;
     bool m_invert = false;
     int m_max_splits = -1;
+
+    void compile_pattern_if_necessary(std::string split_pattern) const;
 };

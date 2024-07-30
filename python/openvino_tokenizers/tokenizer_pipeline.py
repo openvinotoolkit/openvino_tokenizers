@@ -198,29 +198,11 @@ class RegexSplitStep(PreTokenizatinStep):
     skip_tokens: List[str] = field(default_factory=list, repr=False)
 
     def __post_init__(self):
-        if self.max_splits <= 0 and self.max_splits != -1:
+        if self.max_splits < -1:
             raise ValueError(
                 "RegexSplitStep max_splits attribute must be greater then `0` or equal to `-1`, "
                 f"got `{self.max_splits}`"
             )
-
-        # 'contiguios' is not yet supported in RegexSplit, replace with supported equvalent split pattern.
-        if self.behaviour == "contiguous":
-            self.behaviour = "isolate"
-            if not self.split_pattern.endswith("+"):
-                self.split_pattern = f"({self.split_pattern})+"
-       
-        replaces = {
-            "\\r": "\r",
-            "\\n": "\n",
-            "\\p": "\p",
-            "\\t": "\t",
-            "\\s": "\s",
-            "\\S": "\S",
-        }
-        for k, v in replaces.items():
-            self.split_pattern = self.split_pattern.replace(k, v)
-
 
     @classmethod
     def bert_whitespace_splitter(cls) -> "RegexSplitStep":
