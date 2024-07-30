@@ -7,20 +7,18 @@
 #include <optional>
 #include "regex_split.hpp"
 #include "utils.hpp"
-#include "fast_tokenizer/normalizers/normalizers.h"
 
 using namespace ov;
 using namespace ov::opset13;
 
 namespace {
 
-using paddlenlp::fast_tokenizer::core::SplitMode;
-const std::map<std::string, SplitMode> split_modes = {
-    {"remove", SplitMode::REMOVED},
-    {"isolate", SplitMode::ISOLATED},
-    {"contiguous", SplitMode::CONTIGUOUS},
-    {"merge_with_previous", SplitMode::MERGED_WITH_PREVIOUS},
-    {"merge_with_next", SplitMode::MERGED_WITH_NEXT},
+const std::vector<std::string> split_modes = {
+    "remove",
+    "isolate",
+    "merge_with_previous",
+    "merge_with_next",
+    "contiguous",
 };
 
 }
@@ -54,7 +52,9 @@ RegexSplit::RegexSplit(
     auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
 
     if (m_search_pattern_re2 == nullptr) {
-        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern);
+        auto options = re2::RE2::Options();
+        options.set_log_errors(false);  
+        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern, options);
     }
 
     if (m_search_pattern_re2->NumberOfCapturingGroups() == -1) {
@@ -89,7 +89,9 @@ RegexSplit::RegexSplit(
     auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
 
     if (m_search_pattern_re2 == nullptr) {
-        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern);
+        auto options = re2::RE2::Options();
+        options.set_log_errors(false);    
+        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern, options);
     }
 
     if (m_search_pattern_re2->NumberOfCapturingGroups() == -1) {
@@ -115,7 +117,7 @@ void RegexSplit::validate_and_infer_types() {
         check_string_input(this, 6);
     }
 
-    OPENVINO_ASSERT(split_modes.find(m_behaviour) != split_modes.end(), "RegexSplit doesn't support unknown split mode: " + m_behaviour);
+    OPENVINO_ASSERT(std::find(split_modes.begin(), split_modes.end(), m_behaviour) != split_modes.end(), "RegexSplit doesn't support unknown split mode: " + m_behaviour); 
     OPENVINO_ASSERT(
         m_max_splits == -1 || m_max_splits > 0,
         "RegexSplit max_splits attribute must be greater then `0` or equal to `-1`, got ", m_max_splits
@@ -130,7 +132,9 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     };
 
     if (m_search_pattern_re2 == nullptr) {
-        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern);
+        auto options = re2::RE2::Options();
+        options.set_log_errors(false);  
+        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern, options);
     }
 
     if (m_search_pattern_re2->NumberOfCapturingGroups() == -1) {
@@ -217,21 +221,41 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                 size_t start = 0;
                 re2::StringPiece result;
                 uint32_t num_splits = 0;
-                auto re2_pattern = re2::RE2(split_pattern);
+                bool is_remove = m_behaviour == std::string("remove");
                 bool is_isolate = m_behaviour == std::string("isolate");
+                bool is_merge_next = m_behaviour == std::string("merge_with_next");
+                bool is_merge_previous = m_behaviour == std::string("merge_with_previous");
+                bool is_contiguous = m_behaviour == std::string("contiguous");
+               
+                size_t last_begin = -1;
+                auto add_split = [&](int begin, int end, bool invert) {
+                    if (is_remove) {
+                        if (invert) {return;}
+                    } else if (is_isolate || is_contiguous) {
+                        // Do nothing. Do not take inver into account add split as is.
+                    } else if (is_merge_next) {
+                        if (invert == false && end != str.length()) {
+                            last_begin = begin;
+                            return;
+                        } else if (invert == true) {
+                            begin = last_begin;
+                        }
+                    } else if (is_merge_previous) {
+                        if (invert == false) {
+                            if (last_begin != -1) { begin = last_begin; }
+                        } else {
+                            last_begin = begin;
+                            return;
+                        }                        
+                    }
 
-                auto add_begin_end = [&](int begin, int end, bool invert) {
-                    if (invert == false){
-                        ++num_splits;
-                    }
-                    if (invert && !is_isolate) {
-                        return;
-                    }
                     new_begins[ragged_offset] = begins[ragged_col] + begin;
-                    if (m_max_splits == num_splits) {
+                    if (num_splits == m_max_splits) {
                         end = str.length();
                     };
                     new_ends[ragged_offset++] = begins[ragged_col] + end;
+                    
+                    ++num_splits; // if (invert == false){ ++num_splits; } // todo: check this
                 };
 
                 std::optional<std::pair<size_t, size_t>> match;
@@ -239,15 +263,14 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                     size_t curr_start = (*match).first;
                     size_t curr_end = (*match).second;
                     
-                    if (start != curr_start) {
-                        add_begin_end(start, curr_start, m_invert); 
+                    if (curr_start != start) {
+                        add_split(start, curr_start, m_invert);
                     }
-                    add_begin_end(curr_start, curr_end, !m_invert); 
+                    add_split(curr_start, curr_end, !m_invert);
                     start = curr_end;
                 }
-
                 if (start < str.length()) {
-                    add_begin_end(start, str.length(), m_invert); 
+                    add_split(start, str.length(), m_invert);
                 }
             }
         }

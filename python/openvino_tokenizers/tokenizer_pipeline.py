@@ -205,16 +205,11 @@ class RegexSplitStep(PreTokenizatinStep):
             )
 
         # 'contiguios' is not yet supported in RegexSplit, replace with supported equvalent split pattern.
-        if self.behaviour == "contiguous" and self.split_pattern.endswith("+"):
+        if self.behaviour == "contiguous":
             self.behaviour = "isolate"
-            self.split_pattern = f"({self.split_pattern})+"
-
-        # print("start")
-        # print(fr"{self.split_pattern}")
-        # print("stop")
-        # import pdb
-        # pdb.set_trace()
-        
+            if not self.split_pattern.endswith("+"):
+                self.split_pattern = f"({self.split_pattern})+"
+       
         replaces = {
             "\\r": "\r",
             "\\n": "\n",
@@ -223,7 +218,6 @@ class RegexSplitStep(PreTokenizatinStep):
             "\\s": "\s",
             "\\S": "\S",
         }
-        orig_pattern = self.split_pattern
         for k, v in replaces.items():
             self.split_pattern = self.split_pattern.replace(k, v)
 
