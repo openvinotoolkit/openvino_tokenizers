@@ -146,10 +146,9 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
-        # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L17
         return cls(
-            regex_search_pattern=r"((?=[^\n\t\r])\p{Cc})|((?=[^\n\t\r])\p{Cf})",
-            replace_term=" ",
+            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F])",  # exclude \n\t\r
+            replace_term="",
         )
 
     @classmethod
@@ -528,11 +527,30 @@ class BPETokenizationStep(TokenizationModelStep):
     def from_tiktoken_encoding(
         cls,
         encoding: "Encoding",  # noqa
+        reference_vocab: Optional[Dict[Union[str, bytes], int]] = None,
     ) -> "BPETokenizationStep":
-        from .tiktoken_parser import generate_vocab_and_merges
+        from .tiktoken_parser import generate_vocab_and_merges, token_bytes_to_string
+        from .utils import apply_bytes_to_unicode
 
         vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
         added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
+
+        if reference_vocab is not None:
+            existing_indices = set(vocab.values())
+
+            for ref_token, ref_idx in reference_vocab.items():
+                if ref_idx in existing_indices:
+                    continue
+
+                if isinstance(ref_token, bytes):
+                    ref_token = token_bytes_to_string(ref_token)
+
+                # (chat)GLM model adds spaces around <sop> token
+                if ref_token == "<sop>":
+                    ref_token = f" {ref_token} "
+
+                vocab[apply_bytes_to_unicode(ref_token)] = ref_idx
+
         return cls(
             unk_token="",
             fuse_unk=False,
