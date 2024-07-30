@@ -129,8 +129,8 @@ jobs:
             -DENABLE_TESTS=OFF `
             -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF `
             -DENABLE_STRICT_DEPENDENCIES=OFF `
-            -DENABLE_PYTHON=ON `
-            -DENABLE_WHEEL=ON `
+            -DENABLE_PYTHON=OFF `
+            -DENABLE_WHEEL=OFF `
             -DENABLE_JS=OFF `
             -DENABLE_SAMPLES=OFF `
             -DENABLE_INTEL_NPU=OFF `
