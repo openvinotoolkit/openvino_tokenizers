@@ -223,7 +223,6 @@ class RegexSplitStep(PreTokenizatinStep):
             "\\s": "\s",
             "\\S": "\S",
         }
-        orig_pattern = self.split_pattern
         for k, v in replaces.items():
             self.split_pattern = self.split_pattern.replace(k, v)
 

@@ -6,12 +6,10 @@
 
 #include <openvino/op/op.hpp>
 #include "openvino/opsets/opset13.hpp"
-#include "fast_tokenizer/pretokenizers/pretokenizers.h"
 #include "utils.hpp"
+#include <re2/re2.h>
 
 using namespace ov;
-using namespace paddlenlp::fast_tokenizer;
-
 
 class RegexSplit : public ov::op::Op {
 public:
@@ -61,7 +59,7 @@ private:
     mutable std::shared_ptr<re2::RE2> m_search_pattern_re2;
     mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
     mutable std::shared_ptr<std::set<std::string>> m_skip_tokens;
-    std::string m_behaviour = "remove";
+    mutable std::string m_behaviour = "remove";
     bool m_invert = false;
     int m_max_splits = -1;
 };

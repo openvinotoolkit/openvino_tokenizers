@@ -228,6 +228,7 @@ PCRE2Wrapper::PCRE2Wrapper(const absl::string_view& pattern) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
         std::cerr << "PCRE2 compilation failed at offset " << erroroffset << ": " << buffer << std::endl;
+        return;
     }
 
     m_match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
