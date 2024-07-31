@@ -24,6 +24,8 @@ const std::map<std::string, RegexSplit::SplitMode> split_modes_map = {
 }
 
 void RegexSplit::compile_pattern_if_necessary(std::string split_pattern) const {
+    m_split_mode = split_modes_map.at(m_behaviour);
+    
     if (m_search_pattern_re2 || m_search_pattern_pcre2) {
         return;
     }
@@ -33,12 +35,10 @@ void RegexSplit::compile_pattern_if_necessary(std::string split_pattern) const {
         tmp_stream << "(" << split_pattern << ")+";
         split_pattern = tmp_stream.str();
     }
-    
-    m_split_mode = split_modes_map.at(m_behaviour);
 
     if (m_search_pattern_re2 == nullptr) {
         auto options = re2::RE2::Options();
-        // options.set_log_errors(false);  
+        options.set_log_errors(false);  
         m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern, options);
     }
 
