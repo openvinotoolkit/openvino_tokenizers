@@ -198,23 +198,10 @@ class RegexSplitStep(PreTokenizatinStep):
     skip_tokens: List[str] = field(default_factory=list, repr=False)
 
     def __post_init__(self):
-        self.vet_split_pattern()
-
-        if self.max_splits <= 0 and self.max_splits != -1:
+        if self.max_splits < -1:
             raise ValueError(
                 "RegexSplitStep max_splits attribute must be greater then `0` or equal to `-1`, "
                 f"got `{self.max_splits}`"
-            )
-
-    def vet_split_pattern(self) -> None:
-        if r"(?!\S)" in self.split_pattern:
-            #  rewrite regex pattern to get results closer to qwen.cpp results
-            logger.warning(r"Replacing `(?!\S)` pattern to `(?:$|[^\S])` in RegexSplit operation")
-            self.split_pattern = self.split_pattern.replace(r"(?!\S)", r"(?:$|[^\S])")
-
-        if has_incompatible_re2_op(self.split_pattern):
-            logger.warning(
-                "RegexSplit pattern is not supported, operation output might differ from the original tokenizer."
             )
 
     @classmethod
