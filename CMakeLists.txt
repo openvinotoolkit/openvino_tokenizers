@@ -25,7 +25,6 @@ project(openvino_tokenizers
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
         LANGUAGES CXX)
 
-        # Check if the build type is Debug
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # Set compiler flags for Debug build
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
