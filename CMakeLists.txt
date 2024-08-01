@@ -44,9 +44,9 @@ if(NOT CMAKE_CROSSCOMPILING)
 endif()
 
 # Find OpenVINODeveloperPackage first to compile with SDL flags
-find_package(OpenVINODeveloperPackage QUIET PATHS "${OpenVINO_DIR}")
+find_package(OpenVINODeveloperPackage 2024.4.0 QUIET PATHS "${OpenVINO_DIR}")
 if(NOT OpenVINODeveloperPackage_FOUND)
-    find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow PATHS "${OpenVINO_DIR_PY}")
+    find_package(OpenVINO 2024.4.0 REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow PATHS "${OpenVINO_DIR_PY}")
 endif()
 
 if(DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION AND NOT PY_BUILD_CMAKE_PACKAGE_VERSION EQUAL CMAKE_PROJECT_VERSION)
