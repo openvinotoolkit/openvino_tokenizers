@@ -382,18 +382,22 @@ class TransformersTokenizerPipelineParser:
 
 def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> Dict[int, str]:
     # the order matters
-    if getattr(hf_tokenizer, "added_tokens_decoder", None):
-        return {
-            idx: added_token.content
-            for idx, added_token in hf_tokenizer.added_tokens_decoder.items()
-            if not only_special_tokens or added_token.special
-        }
-    elif hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
-        return hf_tokenizer.tokenizer.index_special_tokens
-    elif hasattr(hf_tokenizer, "special_tokens"):
-        return {idx: token for token, idx in sorted(hf_tokenizer.special_tokens.items(), key=lambda x: x[1])}
+    result = {}
+    result.update({
+        idx: added_token.content
+        for idx, added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).items()
+        if not only_special_tokens or added_token.special
+    })
+    if hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
+        result.update(hf_tokenizer.tokenizer.index_special_tokens)
+    if hasattr(hf_tokenizer, "special_tokens"):
+        result.update({idx: token for token, idx in sorted(hf_tokenizer.special_tokens.items(), key=lambda x: x[1])})
+        # if padding and unk tokens share the same index, use unk
+        if hf_tokenizer.unk_token is not None and hf_tokenizer.unk_token not in result.values():
+            unk_token_id = hf_tokenizer.unk_token_id or hf_tokenizer.pad_token_id
+            result[unk_token_id] = hf_tokenizer.unk_token
 
-    return {}
+    return result
 
 
 def convert_fast_tokenizer(
@@ -472,7 +476,13 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         return False
 
 
-def align_model_file(model: "ModelProto", hf_tokenizer: PreTrainedTokenizerFast) -> None:  # noqa
+def align_model_file(
+    model: "ModelProto", # noqa
+    hf_tokenizer: PreTrainedTokenizerBase,
+    added_tokens: Optional[Dict[int, str]] = None,
+) -> None:
+    if added_tokens is None:
+        added_tokens = hf_tokenizer.added_tokens_decoder
     def is_byte(token: str) -> bool:
         return len(token) == 6 and token.startswith("<0x") and token.endswith(">")
 
@@ -486,8 +496,12 @@ def align_model_file(model: "ModelProto", hf_tokenizer: PreTrainedTokenizerFast)
     scores = np.array([piece.score for piece in model.pieces])
     score_delta = np.mean(scores[np.where(scores < 0)])
 
-    for idx in range(max(sorted_vocab)):
-        token = sorted_vocab.get(idx, f"<new_token_{idx}>")
+    for idx in range(hf_tokenizer.vocab_size):
+        token = added_tokens.get(idx, sorted_vocab.get(idx))
+
+        not_used = token is None
+        token = f"<new_token_{idx}>" if not_used else token
+
         if token in existing:
             new_pieces.append(existing[token])
             continue
@@ -517,7 +531,8 @@ def align_model_file(model: "ModelProto", hf_tokenizer: PreTrainedTokenizerFast)
             model.trainer_spec.eos_id = idx
         elif is_byte(token):
             new_piece.type = 6
-        elif hf_tokenizer.added_tokens_decoder.get(idx):
+        elif token in added_tokens:
+            model.trainer_spec.bos_piece = token
             new_piece.type = 4
             new_piece.score = 0
         else:
@@ -549,8 +564,8 @@ def modify_sentencepiece_model(
     if add_prefix_space is not None:
         model.normalizer_spec.add_dummy_prefix = add_prefix_space
 
-    if isinstance(hf_tokenizer, PreTrainedTokenizerFast):
-        align_model_file(model, hf_tokenizer)
+    if hasattr(hf_tokenizer, "get_vocab"):
+        align_model_file(model, hf_tokenizer, added_tokens=add_tokens)
 
     existing = {piece.piece: piece for piece in model.pieces}
 
@@ -569,13 +584,25 @@ def modify_sentencepiece_model(
         elif not skip_special_tokens and new_piece.type == 3:
             new_piece.type = 4  # change control type to userdef type
 
+        if hf_tokenizer.is_fast:
+            assert True
+
         if to_add:
             while len(model.pieces) + 1 <= idx:
                 # to place special token in particular idx we have to extend vocab first
                 missing_piece = deepcopy(new_piece)
-                missing_piece.piece = hf_tokenizer.decode(len(model.pieces)) or f"<empty_{len(model.pieces)}>"
+                missing_piece.piece = hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
                 missing_piece.type = 4
                 model.pieces.insert(idx, missing_piece)
+            bos_eos = ("<bos>", "<eos>", "<s>", "</s>")
+            if (
+                idx < len(model.pieces)
+                and (
+                    (model.pieces[idx].type not in (2, 3) or model.pieces[idx].piece == token)
+                    or (token in bos_eos and model.pieces[idx].piece in bos_eos)
+                )
+            ):
+                model.pieces.pop(idx)
             model.pieces.insert(idx, new_piece)
 
     while (idx := len(model.pieces)) < getattr(hf_tokenizer, "vocab_size", len(model.pieces)):
