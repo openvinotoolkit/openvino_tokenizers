@@ -20,6 +20,10 @@ if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
 
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
+
 function(ov_tokenizers_set_cxx_standard)
   foreach(build_type "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
     set(flag_var "CMAKE_CXX_FLAGS${build_type}")
@@ -31,6 +35,11 @@ function(ov_tokenizers_set_cxx_standard)
   set(CMAKE_CXX_EXTENSIONS OFF PARENT_SCOPE)
   set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
 endfunction()
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+endif()
 
 ov_tokenizers_set_cxx_standard()
 
@@ -254,6 +263,23 @@ function(ov_tokenizers_link_fast_tokenizer)
   target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS})
 endfunction()
 
+function(ov_tokenizers_link_pcre2)
+  FetchContent_Declare(
+      prce2
+      URL https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip
+      URL_HASH SHA256=2d87bd1700bd1993ddea7c56aad2b0373ac2b3d52d9cc78842a6d061ffaf0925
+  )
+  FetchContent_GetProperties(prce2)
+  if(NOT prce2_POPULATED)
+    FetchContent_Populate(prce2)
+    add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
+
+  target_include_directories(${TARGET_NAME} PRIVATE ${pcre2_BINARY_DIR})
+  target_link_libraries(${TARGET_NAME} PRIVATE pcre2-8)
+  target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
+endfunction()
+
 #
 # Build library
 #
@@ -271,25 +297,13 @@ add_library(${TARGET_NAME} SHARED ${SRC})
 
 ov_tokenizers_link_sentencepiece(${TARGET_NAME})
 ov_tokenizers_link_fast_tokenizer(${TARGET_NAME})
+ov_tokenizers_link_pcre2(${TARGET_NAME})
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
-
-# Fetch PCRE2
-include(FetchContent)
-FetchContent_Declare(
-    PCRE2
-    URL https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip
-    URL_HASH SHA256=2d87bd1700bd1993ddea7c56aad2b0373ac2b3d52d9cc78842a6d061ffaf0925
-)
-FetchContent_MakeAvailable(PCRE2)
-
-target_include_directories(${TARGET_NAME} PRIVATE ${PCRE2_BINARY_DIR})
-target_link_libraries(${TARGET_NAME} PRIVATE pcre2-8)
-target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 
 if(OpenVINO_Frontend_TensorFlow_FOUND)
   target_link_libraries(${TARGET_NAME} PRIVATE openvino::frontend::tensorflow)
