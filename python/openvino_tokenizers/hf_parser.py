@@ -769,8 +769,8 @@ def convert_sentencepiece_model_tokenizer(
         "SentencepieceTokenizer",
         [sp_model_node, *next_node] + added_inputs,
         {
-            "add_bos": add_bos_token,
-            "add_eos": add_eos_token,
+            "add_bos": add_bos_token and not handle_special_tokens_with_re,
+            "add_eos": add_eos_token and not handle_special_tokens_with_re,
             "reverse": do_left_padding,
             "alpha": 0.0,
         },
@@ -793,6 +793,11 @@ def convert_sentencepiece_model_tokenizer(
 
     if is_chatglm and add_special_tokens:
         prefix_tokens = np.array([hf_tokenizer.get_prefix_tokens()])
+        dense_shape, indices, values, attention_mask = add_prefix_tokens(
+            prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
+        )
+    elif add_bos_token and handle_special_tokens_with_re and hf_tokenizer.bos_token_id is not None:
+        prefix_tokens = np.array([[hf_tokenizer.bos_token_id]])
         dense_shape, indices, values, attention_mask = add_prefix_tokens(
             prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
         )
