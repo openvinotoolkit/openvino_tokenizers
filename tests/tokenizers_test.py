@@ -110,6 +110,7 @@ bpe_models = [
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
 ]
 sentencepiece_models = [
+    # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
     "codellama/CodeLlama-7b-hf",
     "camembert-base",
     "NousResearch/Llama-2-13b-hf",
@@ -352,7 +353,7 @@ def tiktoken_tokenizers(hf_tiktoken_tokenizers):
 
 @pytest.fixture(scope="session")
 def tiktoken_tokenizers_with_padding_options(
-    hf_tiktoken_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding
+    hf_tiktoken_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding, use_left_padding
 ):
     if use_max_padding and getattr(hf_tiktoken_tokenizers_with_padding_sides, "model_max_length") > 2**31:
         pytest.skip("Cannot test max_padding=True for tokenizer without max length.")

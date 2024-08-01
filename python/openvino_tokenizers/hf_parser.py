@@ -6,6 +6,7 @@ import json
 import tempfile
 from copy import deepcopy
 from functools import partial
+from itertools import zip_longest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -381,18 +382,22 @@ class TransformersTokenizerPipelineParser:
 
 def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> Dict[int, str]:
     # the order matters
-    if getattr(hf_tokenizer, "added_tokens_decoder", None):
-        return {
-            idx: added_token.content
-            for idx, added_token in hf_tokenizer.added_tokens_decoder.items()
-            if not only_special_tokens or added_token.special
-        }
-    elif hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
-        return hf_tokenizer.tokenizer.index_special_tokens
-    elif hasattr(hf_tokenizer, "special_tokens"):
-        return {idx: token for token, idx in sorted(hf_tokenizer.special_tokens.items(), key=lambda x: x[1])}
+    result = {}
+    result.update({
+        idx: added_token.content
+        for idx, added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).items()
+        if not only_special_tokens or added_token.special
+    })
+    if hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
+        result.update(hf_tokenizer.tokenizer.index_special_tokens)
+    if hasattr(hf_tokenizer, "special_tokens"):
+        result.update({idx: token for token, idx in sorted(hf_tokenizer.special_tokens.items(), key=lambda x: x[1])})
+        # if padding and unk tokens share the same index, use unk
+        if hf_tokenizer.unk_token is not None and hf_tokenizer.unk_token not in result.values():
+            unk_token_id = hf_tokenizer.unk_token_id or hf_tokenizer.pad_token_id
+            result[unk_token_id] = hf_tokenizer.unk_token
 
-    return {}
+    return result
 
 
 def convert_fast_tokenizer(
@@ -471,12 +476,85 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         return False
 
 
+def align_model_file(
+    model: "ModelProto", # noqa
+    hf_tokenizer: PreTrainedTokenizerBase,
+    added_tokens: Optional[Dict[int, str]] = None,
+) -> None:
+    if added_tokens is None:
+        added_tokens = hf_tokenizer.added_tokens_decoder
+    def is_byte(token: str) -> bool:
+        return len(token) == 6 and token.startswith("<0x") and token.endswith(">")
+
+    new_pieces = []
+
+    existing = {piece.piece: piece for piece in model.pieces}
+    sorted_vocab = {idx: token for token, idx in sorted(hf_tokenizer.get_vocab().items(), key=lambda x: x[1])}
+    if all(left == right for left, right in zip_longest(existing, sorted_vocab.values())):
+        return
+
+    scores = np.array([piece.score for piece in model.pieces])
+    score_delta = np.mean(scores[np.where(scores < 0)])
+
+    for idx in range(hf_tokenizer.vocab_size):
+        token = added_tokens.get(idx, sorted_vocab.get(idx))
+
+        not_used = token is None
+        token = f"<new_token_{idx}>" if not_used else token
+
+        if token in existing:
+            new_pieces.append(existing[token])
+            continue
+        elif new_pieces:
+            new_piece = deepcopy(new_pieces[-1])
+        else:
+            new_piece = deepcopy(model.pieces[-1])
+            new_piece.score = np.max(scores[np.where(scores < 0)])
+
+        new_piece.piece = token
+        if token == hf_tokenizer.unk_token:
+            new_piece.type = 2
+            model.trainer_spec.unk_surface = token
+            model.trainer_spec.unk_piece = token
+            model.trainer_spec.unk_id = idx
+        elif token == hf_tokenizer.pad_token:
+            new_piece.type = 3
+            model.trainer_spec.pad_piece = token
+            model.trainer_spec.pad_id = idx
+        elif token == hf_tokenizer.bos_token:
+            new_piece.type = 3
+            model.trainer_spec.bos_piece = token
+            model.trainer_spec.bos_id = idx
+        elif token == hf_tokenizer.eos_token:
+            new_piece.type = 3
+            model.trainer_spec.eos_piece = token
+            model.trainer_spec.eos_id = idx
+        elif is_byte(token):
+            new_piece.type = 6
+        elif token in added_tokens:
+            model.trainer_spec.bos_piece = token
+            new_piece.type = 4
+            new_piece.score = 0
+        else:
+            new_piece.type = 1
+            new_piece.score -= score_delta
+
+        new_pieces.append(new_piece)
+
+    for _ in range(len(model.pieces)):
+        model.pieces.pop()
+
+    for idx, new_piece in enumerate(new_pieces):
+        model.pieces.append(new_piece)
+
+
 def modify_sentencepiece_model(
     sp_model_path: Path,
     add_tokens: Dict[int, str],
     hf_tokenizer: PreTrainedTokenizerBase,
     skip_special_tokens: bool = False,
     add_prefix_space: Optional[bool] = None,
+    byte_fallback: Optional[bool] = None,
 ) -> str:
     model_pb = import_protobuf()
     model = model_pb.ModelProto()
@@ -486,7 +564,11 @@ def modify_sentencepiece_model(
     if add_prefix_space is not None:
         model.normalizer_spec.add_dummy_prefix = add_prefix_space
 
+    if hasattr(hf_tokenizer, "get_vocab"):
+        align_model_file(model, hf_tokenizer, added_tokens=add_tokens)
+
     existing = {piece.piece: piece for piece in model.pieces}
+
     for idx, token in sorted(add_tokens.items()):
         if to_add := (idx >= len(model.pieces) or model.pieces[idx].piece != token):
             if exists := existing.get(token):
@@ -502,13 +584,25 @@ def modify_sentencepiece_model(
         elif not skip_special_tokens and new_piece.type == 3:
             new_piece.type = 4  # change control type to userdef type
 
+        if hf_tokenizer.is_fast:
+            assert True
+
         if to_add:
             while len(model.pieces) + 1 <= idx:
                 # to place special token in particular idx we have to extend vocab first
                 missing_piece = deepcopy(new_piece)
-                missing_piece.piece = hf_tokenizer.decode(len(model.pieces)) or f"<empty_{len(model.pieces)}>"
+                missing_piece.piece = hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
                 missing_piece.type = 4
                 model.pieces.insert(idx, missing_piece)
+            bos_eos = ("<bos>", "<eos>", "<s>", "</s>")
+            if (
+                idx < len(model.pieces)
+                and (
+                    (model.pieces[idx].type not in (2, 3) or model.pieces[idx].piece == token)
+                    or (token in bos_eos and model.pieces[idx].piece in bos_eos)
+                )
+            ):
+                model.pieces.pop(idx)
             model.pieces.insert(idx, new_piece)
 
     while (idx := len(model.pieces)) < getattr(hf_tokenizer, "vocab_size", len(model.pieces)):
@@ -522,6 +616,14 @@ def modify_sentencepiece_model(
     # change unk token representation from ⁇ to token string
     unk_token = next(piece for piece in model.pieces if piece.type == 2)
     model.trainer_spec.unk_surface = unk_token.piece
+
+    if byte_fallback is not None:
+        model.trainer_spec.byte_fallback = byte_fallback
+
+    if byte_fallback is False:
+        for piece in model.pieces:
+            if piece.type == 6:
+                piece.type = 5  # change BYTE type to UNUSED
 
     return model.SerializeToString()
 
@@ -577,6 +679,7 @@ def convert_sentencepiece_model_tokenizer(
         if not vocab_file.exists():
             raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
+        byte_fallback = None
         tokenizer_json_file = Path(tmp) / "tokenizer.json"
         prepend_scheme = ""
         if (
@@ -588,6 +691,9 @@ def convert_sentencepiece_model_tokenizer(
             with open(tokenizer_json_file, encoding="utf-8") as f:
                 tokenizer_json = json.load(f)
                 pre_tokenizer = tokenizer_json.get("pre_tokenizer")
+
+                byte_fallback = tokenizer_json.get("model", {}).get("byte_fallback", None)
+
                 if pre_tokenizer and pre_tokenizer.get("type") == "Metaspace":
                     metaspace = pre_tokenizer
                 elif pre_tokenizer and pre_tokenizer.get("type") == "Sequence":
@@ -623,6 +729,7 @@ def convert_sentencepiece_model_tokenizer(
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=False,
             add_prefix_space=add_prefix_space and not handle_special_tokens_with_re,
+            byte_fallback=byte_fallback,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
         sp_model_node = as_node(sp_model)
@@ -633,6 +740,7 @@ def convert_sentencepiece_model_tokenizer(
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=skip_special_tokens,
             add_prefix_space=add_prefix_space,
+            byte_fallback=byte_fallback,
         )
         sp_detokenizer_model = np.fromstring(sp_detokenizer_model_string, dtype=np.uint8)
         sp_detokenizer_model_node = as_node(sp_detokenizer_model)
@@ -661,8 +769,8 @@ def convert_sentencepiece_model_tokenizer(
         "SentencepieceTokenizer",
         [sp_model_node, *next_node] + added_inputs,
         {
-            "add_bos": add_bos_token,
-            "add_eos": add_eos_token,
+            "add_bos": add_bos_token and not handle_special_tokens_with_re,
+            "add_eos": add_eos_token and not handle_special_tokens_with_re,
             "reverse": do_left_padding,
             "alpha": 0.0,
         },
@@ -685,6 +793,11 @@ def convert_sentencepiece_model_tokenizer(
 
     if is_chatglm and add_special_tokens:
         prefix_tokens = np.array([hf_tokenizer.get_prefix_tokens()])
+        dense_shape, indices, values, attention_mask = add_prefix_tokens(
+            prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
+        )
+    elif add_bos_token and handle_special_tokens_with_re and hf_tokenizer.bos_token_id is not None:
+        prefix_tokens = np.array([[hf_tokenizer.bos_token_id]])
         dense_shape, indices, values, attention_mask = add_prefix_tokens(
             prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
         )
