@@ -1,3 +1,5 @@
 {
-    "tests/tokenizers_test.py::test_": 0.9003618817852834
+    "tests/tokenizers_test.py::test_": 0.9003618817852834,
+    "tokenizers_test.py::test_": 0.9148884773331186,
+    "tokenizers_test.py::test_hf_bpe_tokenizers_outputs": 0.865990990990991
 }

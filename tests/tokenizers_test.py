@@ -110,6 +110,7 @@ bpe_models = [
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
 ]
 sentencepiece_models = [
+    # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
     "codellama/CodeLlama-7b-hf",
     "camembert-base",
     "NousResearch/Llama-2-13b-hf",
