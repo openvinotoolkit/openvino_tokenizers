@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'releases/2024/3'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux/l_openvino_toolkit_ubuntu20_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/linux/l_openvino_toolkit_centos7_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz'
 
 permissions: read-all
 
@@ -352,4 +352,3 @@ jobs:
         run: |
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
-

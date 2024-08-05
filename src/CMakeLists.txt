@@ -59,7 +59,8 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
   set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
 endif()
 
-option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0" ${USE_ABI0})
+# The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0
+cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF "NOT USE_ABI0" ON)
 
 #
 # Compile flags
