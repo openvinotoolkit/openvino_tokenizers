@@ -35,7 +35,7 @@ multilingual_test_strings = [
     "測試字符串",
     "سلسلة الاختبار",
     "מחרוזת בדיקה",
-    "Сынақ жолы",
+    "Сынақ жолы á",
     "رشته تست",
     # Qwen test
     "介绍下清华大学",
@@ -126,6 +126,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     "Salesforce/xgen-7b-8k-base",
+    "THUDM/glm-4-9b",
 ]
 
 
@@ -355,6 +356,8 @@ def tiktoken_tokenizers_with_padding_options(
 ):
     if use_max_padding and getattr(hf_tiktoken_tokenizers_with_padding_sides, "model_max_length") > 2**31:
         pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
+    if (not use_left_padding and hf_tiktoken_tokenizers_with_padding_sides.name_or_path == "THUDM/glm-4-9b"):
+        pytest.skip("chatglm supports left padding only")
     return get_tokenizer(
         hf_tiktoken_tokenizers_with_padding_sides,
         add_special_tokens=do_add_special_tokens,
@@ -448,8 +451,8 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_
     for output_name, hf_result in hf_tokenized.items():
         #  chatglm has token_type_ids output that we omit
         if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -474,8 +477,8 @@ def test_hf_sentencepiece_tokenizers_multiple_strings(
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -523,8 +526,8 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_t
     for output_name, hf_result in hf_tokenized.items():
         # galactica tokenizer has 3 output, but model has 2 inputs
         if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -549,8 +552,8 @@ def test_hf_bpe_tokenizers_multiple_strings(
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -595,7 +598,8 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -619,8 +623,8 @@ def test_hf_tiktoken_tokenizers_multiple_strings(
 
     for output_name, hf_result in hf_tokenized.items():
         if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
+            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
+            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
