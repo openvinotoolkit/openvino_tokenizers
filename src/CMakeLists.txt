@@ -273,6 +273,11 @@ function(ov_tokenizers_link_pcre2)
   FetchContent_GetProperties(prce2)
   if(NOT prce2_POPULATED)
     FetchContent_Populate(prce2)
+
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(PCRE2_STATIC_PIC ON)
+    set(PCRE2_BUILD_TESTS OFF)
+
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
