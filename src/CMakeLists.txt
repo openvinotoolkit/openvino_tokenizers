@@ -395,24 +395,9 @@ endif()
 
 install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
               "${openvino_tokenizers_SOURCE_DIR}/third-party-programs.txt"
-              "${openvino_tokenizers_SOURCE_DIR}/SECURITY.md"
-        DESTINATION "${PY_BUILD_CMAKE_PACKAGE_NAME}-${PY_BUILD_CMAKE_PACKAGE_VERSION}.dist-info"
-        COMPONENT openvino_tokenizers_licenses
-        EXCLUDE_FROM_ALL)
-
-install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
-              "${openvino_tokenizers_SOURCE_DIR}/third-party-programs.txt"
               "${openvino_tokenizers_SOURCE_DIR}/README.md"
         DESTINATION "docs/openvino_tokenizers"
-        COMPONENT openvino_tokenizers_docs
-        EXCLUDE_FROM_ALL)
-
-configure_file("${openvino_tokenizers_SOURCE_DIR}/cmake/templates/__version__.py.in"
-               "${openvino_tokenizers_BINARY_DIR}/python/__version__.py" @ONLY)
-install(FILES "${openvino_tokenizers_BINARY_DIR}/python/__version__.py"
-        DESTINATION "openvino_tokenizers"
-        COMPONENT openvino_tokenizers_python
-        EXCLUDE_FROM_ALL)
+        COMPONENT openvino_tokenizers_docs)
 
 #
 # Cpack configuration

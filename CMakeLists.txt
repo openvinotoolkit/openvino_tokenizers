@@ -27,24 +27,44 @@ project(openvino_tokenizers
 
 include(cmake/platforms.cmake)
 
-# Looking for OpenVINO in the python distribution. It doesn't work for cross-compiling build
-if(NOT CMAKE_CROSSCOMPILING)
-    find_package(Python3 REQUIRED)
-    execute_process(
-        COMMAND ${Python3_EXECUTABLE} -c "from openvino.utils import get_cmake_path; print(get_cmake_path(), end='')"
-        OUTPUT_VARIABLE OpenVINO_DIR_PY
-        ERROR_QUIET
-    )
-endif()
-
-# Find OpenVINODeveloperPackage first to compile with SDL flags
-find_package(OpenVINODeveloperPackage QUIET PATHS "${OpenVINO_DIR}")
-if(NOT OpenVINODeveloperPackage_FOUND)
-    find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow PATHS "${OpenVINO_DIR_PY}")
-endif()
+option(BUILD_CPP_EXTENSION "Builds C++ extension for OpenVINO Tokenizers" ON)
 
 if(DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION AND NOT PY_BUILD_CMAKE_PACKAGE_VERSION EQUAL CMAKE_PROJECT_VERSION)
     message(FATAL_ERROR "CMAKE_PROJECT_VERSION (${CMAKE_PROJECT_VERSION}) is not equal to PY_BUILD_CMAKE_PACKAGE_VERSION (${PY_BUILD_CMAKE_PACKAGE_VERSION})")
 endif()
 
-add_subdirectory(src)
+if(BUILD_CPP_EXTENSION)
+    # Looking for OpenVINO in the python distribution. It doesn't work for cross-compiling build
+    if(NOT CMAKE_CROSSCOMPILING)
+        find_package(Python3 REQUIRED)
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} -c "from openvino.utils import get_cmake_path; print(get_cmake_path(), end='')"
+            OUTPUT_VARIABLE OpenVINO_DIR_PY
+            ERROR_QUIET
+        )
+    endif()
+
+    # Find OpenVINODeveloperPackage first to compile with SDL flags
+    find_package(OpenVINODeveloperPackage QUIET PATHS "${OpenVINO_DIR}")
+    if(NOT OpenVINODeveloperPackage_FOUND)
+        find_package(OpenVINO REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow PATHS "${OpenVINO_DIR_PY}")
+    endif()
+
+    add_subdirectory(src)
+endif()
+
+# install python files
+
+install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
+              "${openvino_tokenizers_SOURCE_DIR}/third-party-programs.txt"
+              "${openvino_tokenizers_SOURCE_DIR}/SECURITY.md"
+        DESTINATION "${PY_BUILD_CMAKE_PACKAGE_NAME}-${PY_BUILD_CMAKE_PACKAGE_VERSION}.dist-info"
+        COMPONENT openvino_tokenizers_licenses
+        EXCLUDE_FROM_ALL)
+
+configure_file("${openvino_tokenizers_SOURCE_DIR}/cmake/templates/__version__.py.in"
+               "${openvino_tokenizers_BINARY_DIR}/python/__version__.py" @ONLY)
+install(FILES "${openvino_tokenizers_BINARY_DIR}/python/__version__.py"
+        DESTINATION "openvino_tokenizers"
+        COMPONENT openvino_tokenizers_python
+        EXCLUDE_FROM_ALL)
