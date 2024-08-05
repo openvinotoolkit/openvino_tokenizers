@@ -17,7 +17,7 @@ env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '10.12'
   OV_BRANCH: 'releases/2024/3'
-  OV_TARBALL: ''
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/macos/m_openvino_toolkit_macos_12_6_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz'
 
 permissions: read-all
 
