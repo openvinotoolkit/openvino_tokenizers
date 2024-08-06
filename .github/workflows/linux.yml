@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'master'
-  OV_TARBALL: ''
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/2024.4.0-16240-a6413b415ff/l_openvino_toolkit_ubuntu20_2024.4.0.dev20240805_x86_64.tgz'
 
 permissions: read-all
 
@@ -257,6 +257,7 @@ jobs:
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_GENERATOR: 'Unix Makefiles'
+          PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/nightly
 
       #
       # Upload build artifacts
