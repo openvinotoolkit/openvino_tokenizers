@@ -854,7 +854,7 @@ def add_prefix_tokens(
         prefix_tokens = prefix_tokens[..., ::-1]  # reverse prefix
 
     _, prefix_len = prefix_tokens.shape
-    index_update_node = make_constant_node(np.array([0, prefix_len]))
+    index_update_node = make_constant_node(np.array([0, prefix_len]), dtype=indices.element_type)
 
     # update resulting dense tensor shape
     dense_shape = opset.add(dense_shape, opset.convert(index_update_node, destination_type=dense_shape.element_type))
