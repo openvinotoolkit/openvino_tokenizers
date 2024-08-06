@@ -22,6 +22,7 @@ permissions: read-all
 
 jobs:
   openvino_download:
+    name: Try to download prebuilt OpenVINO
     outputs:
       status: ${{ steps.openvino_download.outcome }}
     timeout-minutes: 10
@@ -51,6 +52,7 @@ jobs:
           if-no-files-found: 'error'
 
   openvino_build:
+    name: Build OpenVINO
     needs: [openvino_download]
     if: needs.openvino_download.outputs.status != 'success'
     timeout-minutes: 150
@@ -350,4 +352,3 @@ jobs:
         run: |
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
-
