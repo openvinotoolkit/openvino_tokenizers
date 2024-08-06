@@ -45,11 +45,6 @@ ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-if(WIN32)
-  # Set the runtime library globally
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
 # It needs to be propagated to every library openvino_tokenizers links with.
 # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
@@ -88,6 +83,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${c_cxx_flags}")
 # Apply for 'Release' explicitly for WA '/sdl' issues
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${cxx_flags} ${c_cxx_flags}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
+
+if(BUILD_FAST_TOKENIZERS)
+  # FastTokenizers use static MSVC runtime, hence we have to use it as well
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 #
 # Dependencies
@@ -160,7 +160,6 @@ if(BUILD_FAST_TOKENIZERS)
   set(EXTERNAL_PROJECT_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/src)
   set(EXTERNAL_PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/build)
   set(EXTERNAL_PROJECT_SUBBUILD_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/sub-build)
-  set(WITH_PYTHON OFF CACHE BOOL "")
 
   FetchContent_Declare(
     fast_tokenizer
@@ -204,6 +203,7 @@ else()
         URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
       )
       function(ov_tokenizers_build_static_re2)
+        set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
         set(BUILD_SHARED_LIBS OFF)
         FetchContent_GetProperties(re2)
         if(NOT re2_POPULATED)
