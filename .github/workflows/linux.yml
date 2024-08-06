@@ -337,7 +337,7 @@ jobs:
             python3 -m pip install $wheel_name[dev]
           popd
         env:
-          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://storage.openvinotoolkit.org/simple/wheels/nightly"
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
