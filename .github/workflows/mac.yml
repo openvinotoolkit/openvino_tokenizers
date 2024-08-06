@@ -17,12 +17,13 @@ env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '10.12'
   OV_BRANCH: 'releases/2024/3'
-  OV_TARBALL: ''
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.3/macos/m_openvino_toolkit_macos_12_6_2024.3.0.16041.1e3b88e4e3f_x86_64.tgz'
 
 permissions: read-all
 
 jobs:
   openvino_download:
+    name: Try to download prebuilt OpenVINO
     outputs:
       status: ${{ steps.openvino_download.outcome }}
     timeout-minutes: 10
@@ -52,6 +53,7 @@ jobs:
           if-no-files-found: 'error'
 
   openvino_build:
+    name: Build OpenVINO
     needs: [openvino_download]
     if: needs.openvino_download.outputs.status != 'success'
     timeout-minutes: 150
