@@ -45,11 +45,6 @@ ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-if(WIN32)
-  # Set the runtime library globally
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
 # It needs to be propagated to every library openvino_tokenizers links with.
 # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
@@ -59,7 +54,8 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
   set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
 endif()
 
-option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library. The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0" ${USE_ABI0})
+# The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0
+cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF "NOT USE_ABI0" ON)
 
 #
 # Compile flags
@@ -87,6 +83,11 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${c_cxx_flags}")
 # Apply for 'Release' explicitly for WA '/sdl' issues
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${cxx_flags} ${c_cxx_flags}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
+
+if(BUILD_FAST_TOKENIZERS)
+  # FastTokenizers use static MSVC runtime, hence we have to use it as well
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 #
 # Dependencies
@@ -159,7 +160,6 @@ if(BUILD_FAST_TOKENIZERS)
   set(EXTERNAL_PROJECT_SOURCE_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/src)
   set(EXTERNAL_PROJECT_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/build)
   set(EXTERNAL_PROJECT_SUBBUILD_DIR ${CMAKE_BINARY_DIR}/_deps/fast_tokenizer/sub-build)
-  set(WITH_PYTHON OFF CACHE BOOL "")
 
   FetchContent_Declare(
     fast_tokenizer
@@ -203,6 +203,7 @@ else()
         URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
       )
       function(ov_tokenizers_build_static_re2)
+        set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
         set(BUILD_SHARED_LIBS OFF)
         FetchContent_GetProperties(re2)
         if(NOT re2_POPULATED)
@@ -272,6 +273,11 @@ function(ov_tokenizers_link_pcre2)
   FetchContent_GetProperties(prce2)
   if(NOT prce2_POPULATED)
     FetchContent_Populate(prce2)
+
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(PCRE2_STATIC_PIC ON)
+    set(PCRE2_BUILD_TESTS OFF)
+
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
@@ -409,24 +415,9 @@ endif()
 
 install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
               "${openvino_tokenizers_SOURCE_DIR}/third-party-programs.txt"
-              "${openvino_tokenizers_SOURCE_DIR}/SECURITY.md"
-        DESTINATION "${PY_BUILD_CMAKE_PACKAGE_NAME}-${PY_BUILD_CMAKE_PACKAGE_VERSION}.dist-info"
-        COMPONENT openvino_tokenizers_licenses
-        EXCLUDE_FROM_ALL)
-
-install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
-              "${openvino_tokenizers_SOURCE_DIR}/third-party-programs.txt"
               "${openvino_tokenizers_SOURCE_DIR}/README.md"
         DESTINATION "docs/openvino_tokenizers"
-        COMPONENT openvino_tokenizers_docs
-        EXCLUDE_FROM_ALL)
-
-configure_file("${openvino_tokenizers_SOURCE_DIR}/cmake/templates/__version__.py.in"
-               "${openvino_tokenizers_BINARY_DIR}/python/__version__.py" @ONLY)
-install(FILES "${openvino_tokenizers_BINARY_DIR}/python/__version__.py"
-        DESTINATION "openvino_tokenizers"
-        COMPONENT openvino_tokenizers_python
-        EXCLUDE_FROM_ALL)
+        COMPONENT openvino_tokenizers_docs)
 
 #
 # Cpack configuration
