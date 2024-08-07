@@ -973,6 +973,7 @@ def is_tiktoken_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
 def convert_tiktoken_model_tokenizer(
     hf_tokenizer: PreTrainedTokenizerBase,
     with_detokenizer: bool = False,
+    add_special_tokens: bool = True,
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = None,
     use_max_padding: bool = False,
@@ -986,7 +987,7 @@ def convert_tiktoken_model_tokenizer(
         skip_tokens = list(parse_special_tokens(hf_tokenizer))
 
     add_prefix_steps = []
-    if hasattr(hf_tokenizer, "get_prefix_tokens"):
+    if hasattr(hf_tokenizer, "get_prefix_tokens") and add_special_tokens:
         prefix_tokens = [AddToken(_token_id=token_id) for token_id in hf_tokenizer.get_prefix_tokens()]
         add_prefix_steps.append(CombineSegmentsStep(inputs=prefix_tokens + [Sequence()]))
 

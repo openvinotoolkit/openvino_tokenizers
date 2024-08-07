@@ -126,7 +126,7 @@ sentencepiece_models = [
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
-    "Salesforce/xgen-7b-8k-base",
+    # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
     "THUDM/glm-4-9b",
 ]
 
@@ -347,8 +347,8 @@ def sentencepice_tokenizers_detokenizers(
 
 
 @pytest.fixture(scope="session")
-def tiktoken_tokenizers(hf_tiktoken_tokenizers):
-    return get_tokenizer(hf_tiktoken_tokenizers)
+def tiktoken_tokenizers(hf_tiktoken_tokenizers, do_add_special_tokens):
+    return get_tokenizer(hf_tiktoken_tokenizers, add_special_tokens=do_add_special_tokens)
 
 
 @pytest.fixture(scope="session")
@@ -357,7 +357,7 @@ def tiktoken_tokenizers_with_padding_options(
 ):
     if use_max_padding and getattr(hf_tiktoken_tokenizers_with_padding_sides, "model_max_length") > 2**31:
         pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
-    if (not use_left_padding and hf_tiktoken_tokenizers_with_padding_sides.name_or_path == "THUDM/glm-4-9b"):
+    if not use_left_padding and hf_tiktoken_tokenizers_with_padding_sides.name_or_path == "THUDM/glm-4-9b":
         pytest.skip("chatglm supports left padding only")
     return get_tokenizer(
         hf_tiktoken_tokenizers_with_padding_sides,
@@ -591,10 +591,12 @@ def test_bpe_detokenizer(
         *misc_strings,
     ],
 )
-def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string):
+def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
 
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True)
+    hf_tokenized = hf_tokenizer(
+        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    )
     ov_tokenized = ov_tokenizer([test_string])
 
     for output_name, hf_result in hf_tokenized.items():
