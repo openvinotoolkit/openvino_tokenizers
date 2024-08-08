@@ -219,7 +219,7 @@ if(BUILD_FAST_TOKENIZERS)
     fast_tokenizer
     URL      https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz
     URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
-    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
+    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch" "${CMAKE_CURRENT_LIST_DIR}/glog.patch"
     SOURCE_DIR ${EXTERNAL_PROJECT_SOURCE_DIR}
     BINARY_DIR ${EXTERNAL_PROJECT_BINARY_DIR}
     SUBBUILD_DIR ${EXTERNAL_PROJECT_SUBBUILD_DIR}
@@ -389,10 +389,10 @@ if(ENABLE_FAST_TOKENIZERS)
     endif()
   endif()
 
-  if(WIN32 AND X86_64)
-    list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
-                           "${fast_tokenezers_libs_dir}/icuuc70.dll")
-  endif()
+if(WIN32 AND X86_64)
+  list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
+                         "${fast_tokenezers_libs_dir}/icuuc70${CMAKE_DEBUG_POSTFIX}.dll")
+endif()
 
   if(extra_libs)
     # post build steps
