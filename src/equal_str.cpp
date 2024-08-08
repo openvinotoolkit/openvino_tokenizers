@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#include <openvino/core/parallel.hpp>
+
 #include "equal_str.hpp"
 #include "utils.hpp"
 
@@ -41,28 +43,27 @@ bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
     outputs[0].set_shape(ov::Shape{ num_elems });
     auto result = outputs[0].data<int32_t>();
 
-    for (size_t idx = 0; idx < num_elems; ++idx) {
+    ov::parallel_for(num_elems, [&](size_t idx){
         // handle indices due to broadcasting case
-        size_t idx1 = (idx < num_elems1) ? idx : 0;
-        size_t idx2 = (idx < num_elems2) ? idx : 0;
-        auto begin1 = begins1[idx1];
-        auto begin2 = begins2[idx2];
-        auto end1 = ends1[idx1];
-        auto end2 = ends2[idx2];
+        const size_t idx1 = (idx < num_elems1) ? idx : 0;
+        const size_t idx2 = (idx < num_elems2) ? idx : 0;
+        const auto begin1 = begins1[idx1];
+        const auto begin2 = begins2[idx2];
+        const auto end1 = ends1[idx1];
+        const auto end2 = ends2[idx2];
 
         if ((end1 - begin1) != (end2 - begin2)) {
             // unequal string lengths guarantees false result
             result[idx] = 0;
-            continue;
         } else if (end1 == begin1) {
             // both empty strings case
             result[idx] = 1;
-            continue;
-        }
+        };
 
         std::vector<uint8_t> op1(chars1 + begin1, chars1 + end1);
         std::vector<uint8_t> op2(chars2 + begin2, chars2 + end2);
         result[idx] = (op1 == op2 ? 1 : 0);
-    }
+    });
+
     return true;
 }
