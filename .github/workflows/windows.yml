@@ -159,8 +159,8 @@ jobs:
 
       - name: Cmake install - OpenVINO
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -P ${{ env.BUILD_DIR }}/cmake_install.cmake --config ${{ env.CMAKE_BUILD_TYPE }}
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -DCOMPONENT=python_wheels -P ${{ env.BUILD_DIR }}/cmake_install.cmake --config ${{ env.CMAKE_BUILD_TYPE }}
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ env.CMAKE_BUILD_TYPE }} --prefix=${{ env.INSTALL_DIR }}/ov_package
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ env.CMAKE_BUILD_TYPE }} --prefix=${{ env.INSTALL_DIR }}/ov_package --component=python_wheels
 
       - name: Pack Artifacts
         run: |
