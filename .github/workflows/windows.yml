@@ -260,7 +260,7 @@ jobs:
 
       - name: Cmake install - tokenizers
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers -P ${{ env.BUILD_DIR }}/cmake_install.cmake --config ${{ env.CMAKE_BUILD_TYPE }}
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ env.CMAKE_BUILD_TYPE }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
 
       - name: Pack Artifacts
         run: |
