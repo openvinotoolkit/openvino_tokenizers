@@ -89,6 +89,12 @@ endif()
 # Compile flags
 #
 
+# Make sure to not link debug libs
+# against release libs and vice versa
+IF(WIN32)
+  SET(CMAKE_DEBUG_POSTFIX "d")
+ENDIF(WIN32)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     set(c_cxx_flags "-Wno-undef")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
