@@ -2,6 +2,15 @@ diff --git a/fast_tokenizer/cmake/external/icu.cmake b/fast_tokenizer/cmake/exte
 index cd604d38..6be44bdb 100644
 --- a/fast_tokenizer/cmake/external/icu.cmake
 +++ b/fast_tokenizer/cmake/external/icu.cmake
+@@ -65,7 +65,7 @@ ExternalProject_Add(
+         GIT_PROGRESS      1
+         PREFIX            ${ICU_PREFIX_DIR}
+         UPDATE_COMMAND    ""
+-        CONFIGURE_COMMAND msbuild ..\\extern_icu\\icu4c\\source\\allinone\\allinone.sln /p:Platform=x64 /p:SkipUWP=true
++        CONFIGURE_COMMAND msbuild ..\\extern_icu\\icu4c\\source\\allinone\\allinone.sln /p:Platform=x64 /p:SkipUWP=true
+         BUILD_COMMAND ""
+         INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ../extern_icu/icu4c/include ${ICU_INSTALL_DIR}/include
+                      && ${CMAKE_COMMAND} -E copy_directory ../extern_icu/icu4c/lib64 ${ICU_INSTALL_DIR}/lib64
 @@ -113,7 +113,7 @@ ExternalProject_Add(
          GIT_PROGRESS      1
          PREFIX            ${ICU_PREFIX_DIR}
