@@ -7,6 +7,8 @@
 #    pragma warning(disable : 4275)
 #endif
 
+#include <openvino/core/parallel.hpp>
+
 #include "vocab_encoder.hpp"
 #include "utils.hpp"
 
@@ -19,14 +21,14 @@ void VocabEncoder::validate_and_infer_types() {
     // vocab keys
     check_string_input(this, 3);
     // vocab values
-    FRONT_END_GENERAL_CHECK(this->get_input_element_type(6) == element::i32, "Expected an i32 tensor for VocabEncode values.");
+    OPENVINO_ASSERT(this->get_input_element_type(6) == element::i32, "Expected an i32 tensor for VocabEncode values.");
     // vocab.size == vocab_values.size when vocab is static
-    FRONT_END_GENERAL_CHECK(
+    OPENVINO_ASSERT(
         this->get_input_partial_shape(3).is_dynamic() || this->get_input_partial_shape(3) == this->get_input_partial_shape(6),
         "Expected equal number of vocab keys and values."
     );
     // Default value is compatible to vocab values
-    FRONT_END_GENERAL_CHECK(get_input_element_type(6).compatible(get_input_element_type(7)));
+    OPENVINO_ASSERT(get_input_element_type(6).compatible(get_input_element_type(7)));
     // one data output, reuse ragged dimensions from split
     this->set_output_type(0, element::i32, get_input_partial_shape(0));
 }
@@ -45,11 +47,11 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         auto vocab_chars  = inputs[5].data<const uint8_t>();
 
         auto vocab_values = inputs[6].data<const int32_t>();
-        auto vocab_size = inputs[6].get_size();
+        const auto vocab_size = inputs[6].get_size();
 
-        m_vocab = std::make_shared<std::map<std::vector<unsigned char>, int32_t>>();
+        m_vocab = std::make_shared<absl::flat_hash_map<std::string, int32_t>>();
         for (size_t i = 0; i < vocab_size; ++i) {
-            std::vector<uint8_t> token = std::vector<uint8_t>(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
+            auto token = std::string(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
             m_vocab->insert(std::pair{token, vocab_values[i]});
         };
     }
@@ -61,14 +63,14 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     outputs[0].set_shape({num_elements});
     auto token_ids = outputs[0].data<int32_t>();
 
-    for (size_t element_idx = 0; element_idx < num_elements; ++element_idx) {
-        auto element = m_vocab->find(std::vector<uint8_t>(chars + begins[element_idx], chars + ends[element_idx]));
+    ov::parallel_for(num_elements, [&](size_t element_idx){
+        const auto element = m_vocab->find(std::string(chars + begins[element_idx], chars + ends[element_idx]));
         if (element == m_vocab->end()) {
             token_ids[element_idx] = default_value;
         } else {
             token_ids[element_idx] = element->second;
         };
-    };
+    });
 
     return true;
 }
