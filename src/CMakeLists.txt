@@ -223,7 +223,7 @@ if(BUILD_FAST_TOKENIZERS)
     URL      https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz
     URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
     PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace --verbose "${CMAKE_CURRENT_LIST_DIR}/patches/icu.patch" &&
-                  git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace --inaccurate-eof --verbose "${CMAKE_CURRENT_LIST_DIR}/patches/fast_tokenizers.patch"
+                  git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace --ignore-space-change --verbose "${CMAKE_CURRENT_LIST_DIR}/patches/glog.patch"
     SOURCE_DIR ${EXTERNAL_PROJECT_SOURCE_DIR}
     BINARY_DIR ${EXTERNAL_PROJECT_BINARY_DIR}
     SUBBUILD_DIR ${EXTERNAL_PROJECT_SUBBUILD_DIR}
