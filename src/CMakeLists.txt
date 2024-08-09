@@ -94,7 +94,7 @@ endif()
 
 # Make sure to not link debug libs
 # against release libs and vice versa
-if(WIN32)
+if(WIN32 AND CMAKE_BUILD_TYPE MATCHES Debug)
   set(CMAKE_DEBUG_POSTFIX "d")
 endif(WIN32)
 
