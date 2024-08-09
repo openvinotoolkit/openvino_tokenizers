@@ -43,7 +43,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         auto vocab_chars  = inputs[7].data<const uint8_t>();
         auto vocab_size   = inputs[6].get_size();
 
-        core::Vocab vocab;
+        Vocab vocab;
         for(size_t id = 0; id < vocab_size; ++id) {
             auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
             vocab[token] = int32_t(id); // TODO: Check range
@@ -54,7 +54,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         auto merges_chars  = inputs[10].data<const uint8_t>();
         auto merges_size   = inputs[8].get_size();
 
-        core::Merges merges;
+        TextMerges merges;
         std::string delim = " ";
         for(size_t id = 0; id < merges_size; ++id) {
             auto merge = std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]);
@@ -79,15 +79,22 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             end_suffix.push_back(m_end_suffix);
         };
 
-        m_tokenizer = std::make_shared<models::BPE>(
+        Merges new_merges;
+        for (const auto& pair : merges) {
+            auto id_pair = std::make_pair(vocab[pair.first], vocab[pair.second]);
+            new_merges[id_pair] = new_merges.size() + 256;
+        }
+
+
+        m_tokenizer = std::make_shared<BPETokenizerImpl>(
             vocab,
-            merges,
-            10000 /* default cache size */,
-            std::vector<float> {} /* dropout - don't use dropout for inference */,
-            unk_token,
-            suffix_indicator,
-            end_suffix,
-            m_fuse_unk
+            new_merges
+            // 10000 /* default cache size */,
+            // std::vector<float> {} /* dropout - don't use dropout for inference */,
+            // unk_token,
+            // suffix_indicator,
+            // end_suffix,
+            // m_fuse_unk
         );
     }
 
@@ -141,17 +148,17 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 if (special != m_added_tokens->end()) {
                     new_elems[ragged_offset++] = special->second;
                 } else {
-                    std::vector<core::Token> results = m_tokenizer->Tokenize(str);
-                    for (const core::Token& token : results) {
+                    auto results = m_tokenizer->tokenize(str);
+                    for (const auto& token : results) {
                         OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                        new_elems[ragged_offset++] = token.id_;
+                        new_elems[ragged_offset++] = token;
                     };
                 }
             } else {
-                std::vector<core::Token> results = m_tokenizer->Tokenize(str);
-                for (const core::Token& token : results) {
+                auto results = m_tokenizer->tokenize(str);
+                for (const auto& token : results) {
                     OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                    new_elems[ragged_offset++] = token.id_;
+                    new_elems[ragged_offset++] = token;
                 };
             }
         }
@@ -159,4 +166,76 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     }
     outputs[2].set_shape({size_t(ragged_offset)});
     return true;
+}
+
+
+std::pair<int64_t, int64_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
+    std::map<std::pair<int64_t, int64_t>, int64_t> count_map;
+    // todo: assert tokens.size() is >= 2
+    
+    for (size_t i = 0; i < tokens.size() - 1; i++) {
+        auto pair = std::pair(tokens[i], tokens[i + 1]);
+        count_map[pair] += 1;
+    }
+
+    int min_rank = INT_MAX;
+    std::pair<int64_t, int64_t> min_rank_pair = {tokens[0], tokens[1]};
+    for (auto& [k, v]: count_map) {
+        if (m_merges.count(k) > 0 && m_merges.at(k) < min_rank) {
+            min_rank = m_merges.at(k);
+            min_rank_pair = k;
+        }
+    }
+    return min_rank_pair;
+}
+
+
+Tokens BPETokenizerImpl::tokenize(std::string& text) {
+    // Each character from string will be converted to string of characters
+    // Prompt ' d' ->  'Ġd' = {{0xc4, 0xa0}, 0x64} = {{196, 160}, {100}}
+
+    Tokens res;
+    res.reserve(text.length());
+    
+    if (this->m_vocab.count(text)) {
+        res.emplace_back(this->m_vocab.at(text));
+    } else {
+        for (size_t i = 0; i < text.size(); ) {
+            std::string str_bytes;
+            uint8_t foo = *reinterpret_cast<uint8_t*>(&text[i]);
+            if (foo >= 128) {
+                str_bytes = {text[i], text[i + 1]};
+                i += 2;
+            } else {
+                str_bytes = {text[i]};
+                i++;
+            }
+            res.emplace_back(this->m_vocab.at(str_bytes));
+        }
+    }
+
+    while (res.size() >= 2) {
+        auto pair = get_min_rank_pair(res);
+
+        bool found = false;
+        for (size_t idx = 0; idx < res.size(); ) {
+            if (m_merges.count(pair) < 1) {
+                idx += 1;
+                continue;
+            } else {
+                found = true;
+            }
+            if (idx < res.size() - 1 && res[idx] == pair.first && res[idx + 1] == pair.second) {
+                res.erase(res.begin() + idx, res.begin() + idx + 2);
+                res.insert(res.begin() + idx, m_merges[pair]);
+                idx += 2;
+            } else {
+                idx += 1;
+            }
+        }
+        if (!found) {
+            break;
+        }
+    }
+    return res;
 }

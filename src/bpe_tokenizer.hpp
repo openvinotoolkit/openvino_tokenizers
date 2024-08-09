@@ -11,12 +11,24 @@
 #    pragma warning(disable : 4275)
 #endif
 
-#include "fast_tokenizer/models/models.h"
-
-using namespace paddlenlp::fast_tokenizer;
-
 #undef tokenizer
 #undef m_tokenizer
+
+using TextMerges = std::vector<std::pair<std::string, std::string>>;
+using Merges = std::map<std::pair<int64_t, int64_t>, int64_t>;
+using Vocab = std::unordered_map<std::string, unsigned int>;
+using Tokens = std::vector<int64_t>;
+
+class BPETokenizerImpl {
+private:
+    Vocab m_vocab;
+    Merges m_merges;
+    std::pair<int64_t, int64_t> get_min_rank_pair(Tokens tokens);
+public:
+    BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
+    Tokens tokenize(std::string& text);
+};
+
 
 class BPETokenizer : public ov::op::Op {
 public:
@@ -42,7 +54,7 @@ public:
     }
     BPETokenizer(
         const ov::OutputVector& arguments,
-        const std::shared_ptr<models::BPE>& tokenizer,
+        const std::shared_ptr<BPETokenizerImpl>& tokenizer,
         const std::shared_ptr<std::map<std::string, int32_t>>& added_tokens,
         const std::string& unk_token = "",
         bool fuse_unk = false,
@@ -84,7 +96,7 @@ public:
     }
 
 private:
-    mutable std::shared_ptr<models::BPE> m_tokenizer;
+    mutable std::shared_ptr<BPETokenizerImpl> m_tokenizer;
     mutable std::shared_ptr<std::map<std::string, int32_t>> m_added_tokens;
     std::string m_unk_token;
     bool m_fuse_unk = false;
