@@ -1,0 +1,13 @@
+diff --git a/fast_tokenizer/cmake/external/glog.cmake b/fast_tokenizer/cmake/external/glog.cmake
+index 452d063..0c078d8 100644
+--- a/fast_tokenizer/cmake/external/glog.cmake
++++ b/fast_tokenizer/cmake/external/glog.cmake
+@@ -21,7 +21,7 @@ SET(GLOG_REPOSITORY ${GIT_URL}/google/glog.git)
+ SET(GLOG_TAG        v0.4.0)
+
+ IF(WIN32)
+-  SET(GLOG_LIBRARIES "${GLOG_INSTALL_DIR}/lib/glog.lib" CACHE FILEPATH "glog library." FORCE)
++  SET(GLOG_LIBRARIES "${GLOG_INSTALL_DIR}/lib/glog${CMAKE_DEBUG_POSTFIX}.lib" CACHE FILEPATH "glog library." FORCE)
+   SET(GLOG_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4530")
+   add_definitions("/DGOOGLE_GLOG_DLL_DECL=")
+ ELSE(WIN32)
