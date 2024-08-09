@@ -94,9 +94,9 @@ endif()
 
 # Make sure to not link debug libs
 # against release libs and vice versa
-IF(WIN32)
-  SET(CMAKE_DEBUG_POSTFIX "d")
-ENDIF(WIN32)
+if(WIN32)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif(WIN32)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     set(c_cxx_flags "-Wno-undef")
@@ -124,6 +124,20 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
 if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+  if(WIN32)
+    foreach(
+        flag_var
+        CMAKE_CXX_FLAGS_DEBUG
+        CMAKE_C_FLAGS_DEBUG)
+        if(${flag_var} MATCHES "/MD")
+          string(REGEX REPLACE "/MD" "/MTd" ${flag_var} "${${flag_var}}")
+        elseif(NOT (${flag_var} MATCHES "/MTd"))
+          set(${flag_var} "${${flag_var}} /MTd")
+        endif()
+        set(${flag_var} "${${flag_var}}" CACHE STRING "msvc compiler flags" FORCE)
+    endforeach()
+  endif()
 endif()
 
 #
