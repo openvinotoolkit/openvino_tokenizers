@@ -3,6 +3,7 @@
 //
 
 #include "openvino/op/util/framework_node.hpp"
+#include "openvino/core/parallel.hpp"
 #include "openvino/opsets/opset13.hpp"
 #include "utils.hpp"
 #include "string_tensor_pack.hpp"
@@ -173,7 +174,9 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
 
     // TODO: How to avoid copying from this temporary buffer?
     // TODO: It can be possible to collect output symbols directly in the output tensor memory if `normalizer` has reasonable estimation for the final size.
-    std::deque<uint8_t> buffer;
+//    std::deque<uint8_t> buffer;
+    std::vector<std::string> buffer;
+    buffer.resize(num_elements);
 
     // For the whole implementation below the input shapes can be ignored, we are working with the flatten representaions
     // and only number of elements in the original tensors matter
@@ -182,19 +185,23 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
     auto new_begins = outputs[0].data<int32_t>();
     auto new_ends   = outputs[1].data<int32_t>();
 
-    for(size_t i = 0; i < num_elements; ++i) {
-        new_begins[i] = buffer.size();
-        std::string new_str = normalizer(std::string(chars + begins[i], chars + ends[i]));
-        buffer.insert(buffer.end(), new_str.begin(), new_str.end());
-        new_ends[i] = buffer.size();
-    }
+    size_t total_size = 0;
+    total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> int {
+        const std::string normalized = normalizer(std::string(chars + begins[i], chars + ends[i]));
+        buffer[i] = normalized;
+        return normalized.size();
+    });
 
-    // Copy collected symbols to the target output tensor
-
-    outputs[2].set_shape(Shape{buffer.size()});
+    outputs[2].set_shape(Shape{total_size});
     auto new_chars  = outputs[2].data<uint8_t>();
-    std::copy(buffer.begin(), buffer.end(), new_chars);
 
+    size_t current_size = 0;
+    for(size_t i = 0; i < num_elements; ++i) {
+        new_begins[i] = current_size;
+        std::copy(buffer[i].begin(), buffer[i].end(), new_chars + current_size);
+        current_size += buffer[i].size();
+        new_ends[i] = current_size;
+    }
     return true;
 }
 

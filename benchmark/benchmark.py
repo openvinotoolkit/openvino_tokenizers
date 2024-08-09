@@ -211,7 +211,7 @@ def main(
         dump_latency_stats(result_df, model_name)
 
     title = (
-        f"OV vs HF Latency\n{checkpoint}\n"
+        f"OV vs HF Latency\n{checkpoint}, batch_size={batch}\n"
         f"OV: {ov_fps:.1f} FPS; "
         f"OV Async {async_fps:.1f} FPS; "
         f"HF  {hf_fps:.1f} FPS"
