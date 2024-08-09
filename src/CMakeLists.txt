@@ -96,7 +96,7 @@ endif()
 # against release libs and vice versa
 if(WIN32 AND CMAKE_BUILD_TYPE MATCHES Debug)
   set(CMAKE_DEBUG_POSTFIX "d")
-endif(WIN32)
+endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     set(c_cxx_flags "-Wno-undef")
