@@ -174,7 +174,6 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
 
     // TODO: How to avoid copying from this temporary buffer?
     // TODO: It can be possible to collect output symbols directly in the output tensor memory if `normalizer` has reasonable estimation for the final size.
-//    std::deque<uint8_t> buffer;
     std::vector<std::string> buffer;
     buffer.resize(num_elements);
 
