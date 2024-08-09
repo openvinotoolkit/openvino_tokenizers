@@ -1,5 +1,5 @@
 diff --git a/fast_tokenizer/cmake/ByproductsICU.cmake b/fast_tokenizer/cmake/ByproductsICU.cmake
-index 7d44115..603709c 100644
+index 3b68f08..cf3b5b0 100644
 --- a/fast_tokenizer/cmake/ByproductsICU.cmake
 +++ b/fast_tokenizer/cmake/ByproductsICU.cmake
 @@ -39,6 +39,9 @@ function(GetICUByproducts ICU_PATH ICU_LIB_VAR ICU_INCLUDE_VAR ICU_BASE_NAMES_VA
@@ -11,4 +11,4 @@ index 7d44115..603709c 100644
 +        endif()
          set(ICU_SHARED_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_SHARED_PREFIX}icu${ICU_BASE_NAME}${ICU_SHARED_SUFFIX}")
          set(ICU_STATIC_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_STATIC_PREFIX}icu${ICU_BASE_NAME}${ICU_STATIC_SUFFIX}")
-
+         
