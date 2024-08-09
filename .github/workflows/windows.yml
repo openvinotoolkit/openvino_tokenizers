@@ -288,7 +288,7 @@ jobs:
     name: OpenVINO tokenizers extension (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}) wheel
     strategy:
       matrix:
-        build_fast_tokenizers: [ON, OFF]
+        build_fast_tokenizers: [ON]
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
