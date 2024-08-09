@@ -1,14 +1,20 @@
 diff --git a/fast_tokenizer/cmake/ByproductsICU.cmake b/fast_tokenizer/cmake/ByproductsICU.cmake
-index 3b68f08..cf3b5b0 100644
+index 3b68f08..34875d9 100644
 --- a/fast_tokenizer/cmake/ByproductsICU.cmake
 +++ b/fast_tokenizer/cmake/ByproductsICU.cmake
-@@ -39,6 +39,9 @@ function(GetICUByproducts ICU_PATH ICU_LIB_VAR ICU_INCLUDE_VAR ICU_BASE_NAMES_VA
+@@ -39,8 +39,13 @@ function(GetICUByproducts ICU_PATH ICU_LIB_VAR ICU_INCLUDE_VAR ICU_BASE_NAMES_VA
      endif()
      # add static and shared libs to the libraries variable
      foreach(ICU_BASE_NAME ${ICU_LIB_BASE_NAMES})
-+        if(NOT ICU_BASE_NAME STREQUAL "dt")
-+            set(ICU_BASE_NAME "${ICU_BASE_NAME}${CMAKE_DEBUG_POSTFIX}")
+-        set(ICU_SHARED_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_SHARED_PREFIX}icu${ICU_BASE_NAME}${ICU_SHARED_SUFFIX}")
+-        set(ICU_STATIC_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_STATIC_PREFIX}icu${ICU_BASE_NAME}${ICU_STATIC_SUFFIX}")
++        if(ICU_BASE_NAME STREQUAL "dt")
++            set(ICU_NAME "${ICU_BASE_NAME}")
++        else()
++            set(ICU_NAME "${ICU_BASE_NAME}${CMAKE_DEBUG_POSTFIX}")
 +        endif()
-         set(ICU_SHARED_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_SHARED_PREFIX}icu${ICU_BASE_NAME}${ICU_SHARED_SUFFIX}")
-         set(ICU_STATIC_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_STATIC_PREFIX}icu${ICU_BASE_NAME}${ICU_STATIC_SUFFIX}")
++        set(ICU_SHARED_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_SHARED_PREFIX}icu${ICU_NAME}${ICU_SHARED_SUFFIX}")
++        set(ICU_STATIC_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_STATIC_PREFIX}icu${ICU_NAME}${ICU_STATIC_SUFFIX}")
          
+         if (ICU_STATIC)
+             list(APPEND ${ICU_LIB_VAR} ${ICU_STATIC_LIB})
