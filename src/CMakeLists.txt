@@ -92,12 +92,6 @@ endif()
 # Compile flags
 #
 
-# Make sure to not link debug libs
-# against release libs and vice versa
-if(WIN32 AND CMAKE_BUILD_TYPE MATCHES Debug)
-  set(CMAKE_DEBUG_POSTFIX "d")
-endif()
-
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     set(c_cxx_flags "-Wno-undef")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -125,7 +119,8 @@ if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-  if(WIN32)
+  if(WIN32 AND CMAKE_BUILD_TYPE MATCHES Debug)
+    set(CMAKE_DEBUG_POSTFIX "d")
     foreach(
         flag_var
         CMAKE_CXX_FLAGS_DEBUG
