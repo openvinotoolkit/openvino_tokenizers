@@ -205,7 +205,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
-      CMAKE_BUILD_TYPE: '${{ matrix.build_type }}'
+      CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -256,11 +256,13 @@ jobs:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ env.CMAKE_BUILD_TYPE }} --verbose
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        env:
+          ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
 
       - name: Cmake install - tokenizers
         run: |
-          cmake --install ${{ env.BUILD_DIR }} --config=${{ env.CMAKE_BUILD_TYPE }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
 
       - name: Pack Artifacts
         run: |
