@@ -65,11 +65,7 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
     ov::parallel_for(num_elements, [&](size_t element_idx){
         const auto element = m_vocab->find(std::string(chars + begins[element_idx], chars + ends[element_idx]));
-        if (element == m_vocab->end()) {
-            token_ids[element_idx] = default_value;
-        } else {
-            token_ids[element_idx] = element->second;
-        };
+        token_ids[element_idx] = element == m_vocab->end() ? default_value : element->second;
     });
 
     return true;
