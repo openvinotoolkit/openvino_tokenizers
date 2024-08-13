@@ -54,7 +54,7 @@ bool EqualStr::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
 
         std::string op1(chars1 + begin1, chars1 + end1);
         std::string op2(chars2 + begin2, chars2 + end2);
-        result[idx] = op1 == op2;
+        result[idx] = (op1 == op2);
     });
 
     return true;
