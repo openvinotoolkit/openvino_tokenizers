@@ -82,7 +82,8 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         Merges new_merges;
         for (const auto& pair : merges) {
             auto id_pair = std::make_pair(vocab[pair.first], vocab[pair.second]);
-            new_merges[id_pair] = new_merges.size() + 256;
+            // new_merges[id_pair] = new_merges.size() + 256;
+            new_merges[id_pair] = vocab[pair.first + pair.second];
         }
 
 
