@@ -9,41 +9,6 @@
 using namespace ov;
 
 
-void Trie::add(const std::vector<unsigned char>& str, const int value, int idx) {
-    if (idx == str.size()) {
-        m_value = value;
-    } else {
-        auto ch = str[idx];
-        if (m_to.count(ch) == 0) {
-            m_to[ch] = std::make_unique<Trie>();
-        }
-        m_to[ch]->add(str, value, idx + 1);
-    }
-}
-int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) {
-    int token_id = -1;  // no token found
-    Trie* current_node = this;
-
-    uint8_t ch = str[idx];
-    int end_idx = idx;
-
-    while (current_node->m_to.count(ch)) {
-        current_node = current_node->m_to[ch].get();
-        idx++;
-        if (current_node->m_value != -1) {
-            token_id = current_node->m_value;
-            end_idx = idx;
-        };
-        if (idx == str.size()) {
-            break;
-        }
-        ch = str[idx];
-    };
-    idx = end_idx;
-    return token_id;
-}
-
-
 void TrieTokenizer::validate_and_infer_types() {
     // ragged string inputs
     check_ragged_string_input(this, 0);

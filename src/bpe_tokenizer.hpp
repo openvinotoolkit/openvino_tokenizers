@@ -5,6 +5,7 @@
 #pragma once
 
 #include <openvino/op/op.hpp>
+#include "utils.hpp"
 
 #ifdef _MSC_VER
 #    pragma warning(disable : 4251)
@@ -23,9 +24,11 @@ class BPETokenizerImpl {
 private:
     Vocab m_vocab;
     Merges m_merges;
+    std::shared_ptr<Trie> m_trie;
     std::pair<int64_t, int64_t> get_min_rank_pair(Tokens tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
+    BPETokenizerImpl(const Vocab& vocab, const TextMerges& merges);
     Tokens tokenize(std::string& text);
 };
 
