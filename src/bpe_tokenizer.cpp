@@ -15,20 +15,29 @@ using namespace ov::opset13;
 void BPETokenizer::validate_and_infer_types() {
     auto input_size = get_input_size();
 
-    OPENVINO_ASSERT(input_size == 11 || input_size == 15, "Incorrect number of inputs passed to BPETokenizer, try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
+    OPENVINO_ASSERT(
+        input_size == 11 || input_size == 14 || input_size == 15 || input_size == 18,
+        "Incorrect number of inputs passed to BPETokenizer, try to reconvert tokenizer with newer version of OpenVINO Tokenizers"
+    );
     // main string input
     check_ragged_string_input(this, 0);
     // vocab
     check_string_input(this, 5);
     // merges
     check_string_input(this, 8);
-    if (input_size == 15) {
-        // added tokens
+    if (input_size == 14 || input_size == 18) {
         check_string_input(this, 11);
+    };
+
+    if (input_size == 15 || input_size == 18) {
+        const size_t added_token_input = input_size - 4;
+
+        // added tokens
+        check_string_input(this, added_token_input);
         // added tokens indices
-        OPENVINO_ASSERT(this->get_input_element_type(14) == element::i32, "Expected an i32 tensor for added tokens indices.");
+        OPENVINO_ASSERT(this->get_input_element_type(added_token_input + 3) == element::i32, "Expected an i32 tensor for added tokens indices.");
         OPENVINO_ASSERT(
-            this->get_input_partial_shape(11).is_dynamic() || this->get_input_partial_shape(11) == this->get_input_partial_shape(14),
+            this->get_input_partial_shape(added_token_input).is_dynamic() || this->get_input_partial_shape(added_token_input) == this->get_input_partial_shape(added_token_input + 3),
             "Expected equal number of added tokens and added token indices."
         );
     };
@@ -36,6 +45,8 @@ void BPETokenizer::validate_and_infer_types() {
 }
 
 bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    const auto input_size = get_input_size();
+
     if (m_tokenizer == nullptr) {
         // cache tokenizer
         auto vocab_begins = inputs[5].data<const int32_t>();
@@ -55,16 +66,30 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         auto merges_size   = inputs[8].get_size();
 
         TextMerges merges;
-        std::string delim = " ";
-        for(size_t id = 0; id < merges_size; ++id) {
-            auto merge = std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]);
-            const int delim_pos = merge.find(delim);
+        if (input_size == 11 || input_size == 15){
+            std::string delim = " ";
+            for(size_t id = 0; id < merges_size; ++id) {
+                auto merge = std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]);
+                const int delim_pos = merge.find(delim);
 
-            std::pair<std::string, std::string> merge_pair = {
-                merge.substr(0, delim_pos), merge.substr(delim_pos + 1)
+                std::pair<std::string, std::string> merge_pair = {
+                    merge.substr(0, delim_pos), merge.substr(delim_pos + 1)
+                };
+                merges.emplace_back(merge_pair);
+            }
+        } else {
+            auto right_merges_begins = inputs[11].data<const int32_t>();
+            auto right_merges_ends   = inputs[12].data<const int32_t>();
+            auto right_merges_chars  = inputs[13].data<const uint8_t>();
+
+            for(size_t id = 0; id < merges_size; ++id) {
+                std::pair<const std::string, const std::string> merge_pair = {
+                    std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]),
+                    std::string(right_merges_chars + right_merges_begins[id], right_merges_chars + right_merges_ends[id])
+                };
+                merges.emplace_back(merge_pair);
             };
-            merges.emplace_back(merge_pair);
-        }
+        };
 
         std::vector<std::string> unk_token = {};
         if (m_unk_token.size() > 0) {
@@ -99,23 +124,21 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         );
     }
 
-    auto input_size = get_input_size();
-    if (input_size == 15) {
-        auto added_tokens_size = inputs[14].get_size();
-        if (m_added_tokens == nullptr) {
-            // vocab string keys
-            auto added_tokens_begins = inputs[11].data<const int32_t>();
-            auto added_tokens_ends   = inputs[12].data<const int32_t>();
-            auto added_tokens_chars  = inputs[13].data<const uint8_t>();
+    if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
+        const size_t added_token_input = input_size - 4;
+        const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
 
-            auto added_tokens_values = inputs[14].data<const int32_t>();
-            auto added_tokens_size = inputs[14].get_size();
+        // vocab string keys
+        auto added_tokens_begins = inputs[added_token_input].data<const int32_t>();
+        auto added_tokens_ends   = inputs[added_token_input + 1].data<const int32_t>();
+        auto added_tokens_chars  = inputs[added_token_input + 2].data<const uint8_t>();
+        // vocab indicies
+        auto added_tokens_values = inputs[added_token_input + 3].data<const int32_t>();
 
-            m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
-            for (size_t i = 0; i < added_tokens_size; ++i) {
-                std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
-                m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
-            };
+        m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
+        for (size_t i = 0; i < added_tokens_size; ++i) {
+            std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
+            m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
         };
     };
 
@@ -144,6 +167,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
+            std::cout << "[ BPE ] str=`" << str << "`, size=" << str.size() << "\n";
             if (input_size == 15) {
                 auto special = m_added_tokens->find(str);
                 if (special != m_added_tokens->end()) {
@@ -204,12 +228,12 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
         for (size_t i = 0; i < text.size(); ) {
             std::string str_bytes;
             uint8_t foo = *reinterpret_cast<uint8_t*>(&text[i]);
-            if (foo >= 128) {
+            if (foo >= 194 && foo <= 197) {
                 str_bytes = {text[i], text[i + 1]};
                 i += 2;
             } else {
-                str_bytes = {text[i]};
-                i++;
+            str_bytes = {text[i]};
+            i++;
             }
             res.emplace_back(this->m_vocab.at(str_bytes));
         }

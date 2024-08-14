@@ -996,7 +996,6 @@ def convert_tiktoken_model_tokenizer(
         [
             NormalizeUnicode("NFC"),
             RegexSplitStep(split_pattern, behaviour="contiguous"),
-            BytesToCharsStep(),
             BPETokenizationStep.from_tiktoken_encoding(encoding, reference_vocab=reference_vocab),
             TruncationStep.from_hf_object(hf_tokenizer),
             *add_prefix_steps,
@@ -1007,7 +1006,7 @@ def convert_tiktoken_model_tokenizer(
                 pad_to_max_length=use_max_padding,
             ),
             VocabDecoderStep(skip_tokens=skip_tokens),
-            CharsToBytesStep(),
+            FuseStep(),
         ]
     )
     if clean_up_tokenization_spaces is None:

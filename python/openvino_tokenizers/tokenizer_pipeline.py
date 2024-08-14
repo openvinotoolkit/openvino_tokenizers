@@ -279,7 +279,9 @@ class RegexSplitStep(PreTokenizatinStep):
 
     @classmethod
     def special_tokens_splitter(cls, special_tokens: List[str]) -> "RegexSplitStep":
-        def quote_meta(unquoted: str) -> str:
+        def quote_meta(unquoted: Union[str, bytes]) -> str:
+            if isinstance(unquoted, bytes):
+                unquoted = unquoted.decode()
             symbols = []
             for char in unquoted:
                 if not char.isalnum() and char != "_":
@@ -461,14 +463,14 @@ class WordPieceTokenizationStep(TokenizationModelStep):
 
 @dataclass
 class BPETokenizationStep(TokenizationModelStep):
-    vocab: List[str] = field(repr=False)
-    merges: List[str] = field(repr=False)
+    vocab: Union[List[str], List[bytes]] = field(repr=False)
+    merges: Union[List[str], List[Tuple[bytes, bytes]]] = field(repr=False)
     unk_token: str = ""
     fuse_unk: bool = False
     suffix_indicator: str = ""
     end_suffix: str = ""
     byte_fallback: bool = False
-    added_tokens: Optional[Dict[int, str]] = None
+    added_tokens: Optional[Union[Dict[int, str], Dict[int, bytes]]] = None
 
     def finalize(self) -> None:
         pipeline = self.get_pipeline()
@@ -516,8 +518,7 @@ class BPETokenizationStep(TokenizationModelStep):
         encoding: "Encoding",  # noqa
         reference_vocab: Optional[Dict[Union[str, bytes], int]] = None,
     ) -> "BPETokenizationStep":
-        from .tiktoken_parser import generate_vocab_and_merges, token_bytes_to_string
-        from .utils import apply_bytes_to_unicode
+        from .tiktoken_parser import generate_vocab_and_merges
 
         vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
         added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
@@ -529,14 +530,11 @@ class BPETokenizationStep(TokenizationModelStep):
                 if ref_idx in existing_indices:
                     continue
 
-                if isinstance(ref_token, bytes):
-                    ref_token = token_bytes_to_string(ref_token)
-
                 # (chat)GLM model adds spaces around <sop> token
-                if ref_token == "<sop>":
-                    ref_token = f" {ref_token} "
+                if ref_token == "<sop>".encode():
+                    ref_token = b" " + ref_token.encode() + b" "
 
-                vocab[apply_bytes_to_unicode(ref_token)] = ref_idx
+                vocab[ref_token] = ref_idx
 
         return cls(
             unk_token="",
@@ -547,6 +545,10 @@ class BPETokenizationStep(TokenizationModelStep):
             merges=merges,
             added_tokens=added_tokens,
         )
+
+    @property
+    def merges_is_bytes(self) -> bool:
+        return self.merges and isinstance(self.merges[0], tuple)
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
@@ -561,12 +563,18 @@ class BPETokenizationStep(TokenizationModelStep):
             special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
-        input_nodes.extend(
-            (
-                *pipeline.vocab_node_outputs,
-                *self.create_string_constant_node(self.merges).outputs(),
+        input_nodes.extend(pipeline.vocab_node_outputs)
+        if self.merges_is_bytes:
+            left_merges, right_merges = zip(*self.merges)
+            input_nodes.extend(
+                (
+                    *self.create_string_constant_node(left_merges).outputs(),
+                    *self.create_string_constant_node(right_merges).outputs(),
+                )
             )
-        )
+        else:
+            input_nodes.extend(self.create_string_constant_node(self.merges).outputs())
+
         if special_tokens_outputs:
             input_nodes.extend(
                 (
