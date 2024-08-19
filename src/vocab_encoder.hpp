@@ -6,6 +6,8 @@
 #include <vector>
 #include <openvino/op/op.hpp>
 
+#include "absl/container/flat_hash_map.h"
+
 using namespace ov;
 
 
@@ -20,7 +22,7 @@ public:
         constructor_validate_and_infer_types();
     }
 
-    VocabEncoder(const ov::OutputVector& arguments, std::shared_ptr<std::map<std::vector<unsigned char>, int32_t>> vocab) :
+    VocabEncoder(const ov::OutputVector& arguments, std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> vocab) :
         ov::op::Op(arguments), m_vocab(vocab) {
         constructor_validate_and_infer_types();
     }
@@ -41,5 +43,5 @@ public:
         return true;
     }
 private:
-    mutable std::shared_ptr<std::map<std::vector<unsigned char>, int32_t>> m_vocab;
+    mutable std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> m_vocab;
 };
