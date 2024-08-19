@@ -383,11 +383,13 @@ class TransformersTokenizerPipelineParser:
 def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> Dict[int, str]:
     # the order matters
     result = {}
-    result.update({
-        idx: added_token.content
-        for idx, added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).items()
-        if not only_special_tokens or added_token.special
-    })
+    result.update(
+        {
+            idx: added_token.content
+            for idx, added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).items()
+            if not only_special_tokens or added_token.special
+        }
+    )
     if hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
         result.update(hf_tokenizer.tokenizer.index_special_tokens)
     if hasattr(hf_tokenizer, "special_tokens"):
@@ -477,12 +479,13 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
 
 
 def align_model_file(
-    model: "ModelProto", # noqa
+    model: "ModelProto",  # noqa
     hf_tokenizer: PreTrainedTokenizerBase,
     added_tokens: Optional[Dict[int, str]] = None,
 ) -> None:
     if added_tokens is None:
         added_tokens = hf_tokenizer.added_tokens_decoder
+
     def is_byte(token: str) -> bool:
         return len(token) == 6 and token.startswith("<0x") and token.endswith(">")
 
@@ -584,23 +587,19 @@ def modify_sentencepiece_model(
         elif not skip_special_tokens and new_piece.type == 3:
             new_piece.type = 4  # change control type to userdef type
 
-        if hf_tokenizer.is_fast:
-            assert True
-
         if to_add:
             while len(model.pieces) + 1 <= idx:
                 # to place special token in particular idx we have to extend vocab first
                 missing_piece = deepcopy(new_piece)
-                missing_piece.piece = hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+                missing_piece.piece = (
+                    hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+                )
                 missing_piece.type = 4
                 model.pieces.insert(idx, missing_piece)
             bos_eos = ("<bos>", "<eos>", "<s>", "</s>")
-            if (
-                idx < len(model.pieces)
-                and (
-                    (model.pieces[idx].type not in (2, 3) or model.pieces[idx].piece == token)
-                    or (token in bos_eos and model.pieces[idx].piece in bos_eos)
-                )
+            if idx < len(model.pieces) and (
+                (model.pieces[idx].type not in (2, 3) or model.pieces[idx].piece == token)
+                or (token in bos_eos and model.pieces[idx].piece in bos_eos)
             ):
                 model.pieces.pop(idx)
             model.pieces.insert(idx, new_piece)
@@ -710,7 +709,7 @@ def convert_sentencepiece_model_tokenizer(
                     elif prepend_scheme == "never":
                         add_prefix_space = False
                     elif prepend_scheme == "first":
-                        add_prefix_space = False
+                        add_prefix_space = True
 
                 # metaspace can be emulated with sequence of normalizers
                 if add_prefix_space is None:
@@ -748,11 +747,6 @@ def convert_sentencepiece_model_tokenizer(
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
     next_node = input_node.outputs()
-
-    if prepend_scheme == "first" or (add_prefix_space and handle_special_tokens_with_re):
-        next_node = _get_factory().create("StringTensorUnpack", next_node).outputs()
-        next_node = RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex().get_ov_subgraph(next_node)
-        next_node = _get_factory().create("StringTensorPack", next_node).outputs()
 
     do_left_padding = hf_tokenizer.padding_side == "left"
 
