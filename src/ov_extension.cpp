@@ -8,7 +8,6 @@
 
 #include "tokenizer.hpp"
 
-#ifdef OpenVINO_Frontend_TensorFlow_FOUND
 #define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS                                                                                     \
     std::make_shared<ov::frontend::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),  \
     std::make_shared<ov::frontend::ConversionExtension>("RegexSplitWithOffsets", translate_regex_split_with_offsets),                \
@@ -24,9 +23,6 @@
     std::make_shared<ov::frontend::ConversionExtension>("RaggedTensorToTensor", translate_ragged_tensor_to_tensor),                  \
     std::make_shared<ov::frontend::ConversionExtension>("Equal", translate_equal),                                                   \
     std::make_shared<ov::frontend::ConversionExtension>("StringToHashBucketFast", translate_string_to_hash_bucket_fast)
-#else
-#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
-#endif
 
 // clang-format off
 //! [ov_extension:entry_point]
