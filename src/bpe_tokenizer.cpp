@@ -162,15 +162,11 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
             // std::cout << "[ BPE ] str=`" << str << "`, size=" << str.size() << "\n";
             if (input_size == 15) {
-                auto special = m_added_tokens->find(str);
-                if (special != m_added_tokens->end()) {
-                    new_elems[ragged_offset++] = special->second;
-                } else {
-                    auto results = m_tokenizer->tokenize(str);
-                    for (const auto& token : results) {
-                        OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                        new_elems[ragged_offset++] = token;
-                    };
+                // TODO: move special tokens to vocab.
+                auto results = m_tokenizer->tokenize(str);
+                for (const auto& token : results) {
+                    OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                    new_elems[ragged_offset++] = token;
                 }
             } else {
                 auto results = m_tokenizer->tokenize(str);
@@ -187,24 +183,21 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 
-std::pair<int64_t, int64_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
-    std::map<std::pair<int64_t, int64_t>, int64_t> count_map;
+std::pair<std::pair<int64_t, int64_t>, size_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
     // todo: assert tokens.size() is >= 2
-    
-    for (size_t i = 0; i < tokens.size() - 1; i++) {
-        auto pair = std::pair(tokens[i], tokens[i + 1]);
-        count_map[pair] += 1;
-    }
 
     int min_rank = INT_MAX;
     std::pair<int64_t, int64_t> min_rank_pair = {tokens[0], tokens[1]};
-    for (auto& [k, v]: count_map) {
-        if (m_merges.count(k) > 0 && m_merges.at(k) < min_rank) {
-            min_rank = m_merges.at(k);
-            min_rank_pair = k;
+    size_t position = -1;
+    for (size_t i = 0; i < tokens.size() - 1; i++) {
+        auto pair = std::pair(tokens[i], tokens[i + 1]);
+        if (m_merges.count(pair) && m_merges.at(pair).first < min_rank) {
+            min_rank = m_merges.at(pair).first;
+            min_rank_pair = pair;
+            position = i;
         }
     }
-    return min_rank_pair;
+    return {min_rank_pair, position};
 }
 
 
@@ -216,34 +209,23 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
     // TODO: Add comment on how and why prefix tree is used.
     Tokens res;
     res.reserve(text.length());
+    if (m_old_vocab.count(text)) {
+        res.emplace_back(m_old_vocab.at(text));
+        return res;
+    }
+    const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
     for(int idx = 0; idx < text.size(); ) {
-        const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
         // TODO: Add setting unk_token_id if returned -1.
         res.emplace_back(m_trie->find_longest(text_vec, idx));
     };
 
     while (res.size() >= 2) {
-        auto pair = get_min_rank_pair(res);
-
-        bool found = false;
-        for (size_t idx = 0; idx < res.size(); ) {
-            if (m_merges.count(pair) < 1) {
-                idx += 1;
-                continue;
-            } else {
-                found = true;
-            }
-            if (idx < res.size() - 1 && res[idx] == pair.first && res[idx + 1] == pair.second) {
-                res.erase(res.begin() + idx, res.begin() + idx + 2);
-                res.insert(res.begin() + idx, m_merges[pair]);
-                idx += 2;
-            } else {
-                idx += 1;
-            }
-        }
-        if (!found) {
+        auto [pair, idx] = get_min_rank_pair(res);
+        if (idx == -1) {
             break;
         }
+        res.erase(res.begin() + idx, res.begin() + idx + 2);
+        res.insert(res.begin() + idx, m_merges.at(pair).second);
     }
     return res;
 }
@@ -251,16 +233,20 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
 BPETokenizerImpl::BPETokenizerImpl(const Vocab& vocab, const TextMerges& merges) {
     Merges new_merges;
     Vocab new_vocab = vocab;
-    for (const auto& pair : merges) {
+
+    for (size_t i = 0; i < merges.size(); i++) {
+        auto pair = merges.at(i);
         auto id_pair = std::make_pair(vocab.at(pair.first), vocab.at(pair.second));
-        new_merges[id_pair] = vocab.at(pair.first + pair.second);
+        new_merges[id_pair] = {i, vocab.at(pair.first + pair.second)};
         new_vocab.erase(pair.first + pair.second);
     }
+
     this->m_vocab = new_vocab;
+    this->m_old_vocab = vocab;
     this->m_merges = new_merges;
-        
+
     m_trie = std::make_unique<Trie>();
-    for(const auto& word: vocab) {
+    for(const auto& word: new_vocab) {
         const auto token = std::vector<unsigned char>(word.first.begin(), word.first.end());
         m_trie->add(token, word.second);
     }

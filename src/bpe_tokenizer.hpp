@@ -16,16 +16,17 @@
 #undef m_tokenizer
 
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
-using Merges = std::map<std::pair<int64_t, int64_t>, int64_t>;
+using Merges = std::map<std::pair<int64_t, int64_t>, std::pair<int64_t, int64_t>>;
 using Vocab = std::unordered_map<std::string, unsigned int>;
 using Tokens = std::vector<int64_t>;
 
 class BPETokenizerImpl {
 private:
     Vocab m_vocab;
+    Vocab m_old_vocab;
     Merges m_merges;
     std::shared_ptr<Trie> m_trie;
-    std::pair<int64_t, int64_t> get_min_rank_pair(Tokens tokens);
+    std::pair<std::pair<int64_t, int64_t>, size_t> get_min_rank_pair(Tokens tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
     BPETokenizerImpl(const Vocab& vocab, const TextMerges& merges);
