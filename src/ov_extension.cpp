@@ -9,7 +9,7 @@
 #include "tokenizer.hpp"
 
 #define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS                                                                                     \
-     std::make_shared<ov::frontend::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),  \
+    std::make_shared<ov::frontend::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),  \
     std::make_shared<ov::frontend::ConversionExtension>("RegexSplitWithOffsets", translate_regex_split_with_offsets),                \
     std::make_shared<ov::frontend::ConversionExtension>("NormalizeUTF8", translate_normalize_utf8),                                  \
     std::make_shared<ov::frontend::ConversionExtension>("CaseFoldUTF8", translate_case_fold_utf8),                                   \
