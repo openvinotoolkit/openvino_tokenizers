@@ -399,6 +399,7 @@ def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
 
 def print_diff(left, right) -> str:
     import sys
+
     np.set_printoptions(threshold=sys.maxsize)
 
     left = str(left.reshape(-1)).split("\n")

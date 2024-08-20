@@ -482,10 +482,6 @@ def is_sentencepiece_bpe_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         hf_tokenizer.save_pretrained(tmp)
         vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
-        vocab_file_exists = (
-                getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
-                and vocab_file.exists()
-        )
         model_pb = import_protobuf()
         model = model_pb.ModelProto()
         with open(vocab_file, "rb") as model_file:
