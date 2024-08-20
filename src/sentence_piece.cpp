@@ -186,7 +186,14 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
             if (!special_tokens.empty()) {
                 special_tokens += "|";
             };
-            special_tokens += re2::RE2::QuoteMeta(token);
+
+            // have to check if special token is not a part of some word
+            // chatglm2/3 has "sop" and "eop" special tokens that will split words like "people" otherwise
+            special_tokens += ("^" + re2::RE2::QuoteMeta(token) + "$");
+            special_tokens += "|";
+            special_tokens += ("\\s" + re2::RE2::QuoteMeta(token));
+            special_tokens += "|";
+            special_tokens += (re2::RE2::QuoteMeta(token) + "\\s");
 
             m_special_tokens_map->insert(std::pair{token, special_tokens_ids[i]});
         };

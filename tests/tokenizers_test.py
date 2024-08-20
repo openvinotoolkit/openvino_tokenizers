@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+import difflib
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -396,11 +397,23 @@ def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
     return get_tokenizer_detokenizer(hf_tokenizers_for_streaming, streaming_detokenizer=True)
 
 
+def print_diff(left, right) -> str:
+    import sys
+    np.set_printoptions(threshold=sys.maxsize)
+
+    left = str(left.reshape(-1)).split("\n")
+    right = str(right.reshape(-1)).split("\n")
+
+    diff = "\n".join(difflib.ndiff(left, right))
+    return f"\n{diff}"
+
+
 def check_tokenizer_output(
     tokenizers: Tuple,
     test_string: Union[str, List[str]],
     skip_missing_outputs: bool = False,
     hf_tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+    calculate_diff: bool = False,
 ) -> None:
     hf_tokenizer, ov_tokenizer = tokenizers
     hf_tokenizer_kwargs = {} if hf_tokenizer_kwargs is None else hf_tokenizer_kwargs
@@ -416,10 +429,12 @@ def check_tokenizer_output(
             continue
 
         assert output_name in ov_tokenized, f"OV Tokenizer missing output: {output_name}"
-
         ov_result = ov_tokenized[output_name]
-        assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
-        assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
+
+        outputs = f"\n{hf_result}\n{ov_result}"
+        diff = print_diff(hf_result, ov_result) if calculate_diff and ov_result.shape != hf_result.shape else outputs
+        assert ov_result.shape == hf_result.shape, diff
+        assert np.all(ov_result == hf_result), outputs
 
 
 def check_detokenizer_output(
@@ -453,6 +468,7 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_speci
         test_string=test_string,
         skip_missing_outputs=False,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
     )
 
 
@@ -515,6 +531,7 @@ def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_string
         test_string=test_string,
         skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
     )
 
 
@@ -581,6 +598,7 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_t
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
     )
 
 
@@ -666,6 +684,7 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string, do_add_special_to
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
     )
 
 

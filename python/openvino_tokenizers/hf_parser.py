@@ -478,6 +478,21 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         return False
 
 
+def is_sentencepiece_bpe_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
+    with tempfile.TemporaryDirectory() as tmp:
+        hf_tokenizer.save_pretrained(tmp)
+        vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
+        vocab_file_exists = (
+                getattr(hf_tokenizer, "vocab_files_names", {}).get("vocab_file", "").endswith(".model")
+                and vocab_file.exists()
+        )
+        model_pb = import_protobuf()
+        model = model_pb.ModelProto()
+        with open(vocab_file, "rb") as model_file:
+            model.ParseFromString(model_file.read())
+            return model.trainer_spec.model_type == 2  #  UNIGRAM=1 BPE=2 WORD=3 CHAR=4
+
+
 def align_model_file(
     model: "ModelProto",  # noqa
     hf_tokenizer: PreTrainedTokenizerBase,
@@ -497,7 +512,7 @@ def align_model_file(
         return
 
     scores = np.array([piece.score for piece in model.pieces])
-    score_delta = np.mean(scores[np.where(scores < 0)])
+    score_delta = np.abs(np.mean(np.diff(scores[np.where(scores < 0)])))
 
     for idx in range(hf_tokenizer.vocab_size):
         token = added_tokens.get(idx, sorted_vocab.get(idx))
@@ -538,6 +553,8 @@ def align_model_file(
             model.trainer_spec.bos_piece = token
             new_piece.type = 4
             new_piece.score = 0
+        elif token.startswith("<0x") and token.endswith(">") and len(token) == 6:
+            new_piece.type = 6
         else:
             new_piece.type = 1
             new_piece.score -= score_delta
@@ -636,10 +653,13 @@ def convert_sentencepiece_model_tokenizer(
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = False,
     add_prefix_space: Optional[bool] = None,
-    handle_special_tokens_with_re: bool = False,
+    handle_special_tokens_with_re: Optional[bool] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
+
+    if handle_special_tokens_with_re is None:
+        handle_special_tokens_with_re = is_sentencepiece_bpe_model(hf_tokenizer)
 
     is_chatglm = getattr(hf_tokenizer, "name", None) == "GLMTokenizer"
     add_bos_token = add_eos_token = None
@@ -718,7 +738,7 @@ def convert_sentencepiece_model_tokenizer(
                     prepend_scheme = "never"
 
         elif add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast):
-            add_prefix_space = not add_bos_token
+            add_prefix_space = True
 
         add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
 
@@ -727,7 +747,7 @@ def convert_sentencepiece_model_tokenizer(
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=False,
-            add_prefix_space=add_prefix_space and not handle_special_tokens_with_re,
+            add_prefix_space=add_prefix_space,
             byte_fallback=byte_fallback,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
