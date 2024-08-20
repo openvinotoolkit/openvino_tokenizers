@@ -236,8 +236,6 @@ PCRE2Wrapper::PCRE2Wrapper(const absl::string_view& pattern) {
         std::cerr << "PCRE2 compilation failed at offset " << erroroffset << ": " << buffer << std::endl;
         return;
     }
-
-    m_match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
 }
 
 PCRE2Wrapper::~PCRE2Wrapper() {
@@ -245,15 +243,15 @@ PCRE2Wrapper::~PCRE2Wrapper() {
         pcre2_code_free(m_compiled);
         m_compiled = nullptr;
     }
-    if (m_match_data != nullptr) {
-        pcre2_match_data_free(m_match_data);
-        m_match_data = nullptr;
-    }
 }
 
 std::string PCRE2Wrapper::substitute(const std::string& orig_str, 
                                      const absl::string_view& replace_pattern,
                                      bool global_replace) {
+    if (m_compiled == nullptr) {
+        return orig_str;
+    }
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
     PCRE2_SIZE subject_length = orig_str.size();
     
     // Usually found pattern is replaced by shorter string, but set 3 times more space for safety.
@@ -267,10 +265,11 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         (PCRE2_SPTR) orig_str.c_str(), subject_length,
         0,
         0,
-        m_match_data,
+        match_data,
         NULL
     );
     if (match_result < 0 || match_result == PCRE2_ERROR_NOMATCH) {
+        pcre2_match_data_free(match_data);
         return orig_str;
     }
 
@@ -279,7 +278,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         (PCRE2_SPTR) orig_str.c_str(), orig_str.size(),
         0,
         global_replace ? PCRE2_SUBSTITUTE_GLOBAL : 0,
-        m_match_data,
+        match_data,
         NULL,
         (PCRE2_SPTR) replace_pattern.data(), replace_pattern.size(),
         buffer,
@@ -292,14 +291,20 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         } else {
             std::cerr << "PCRE2 substitution failed with error code " << rc << std::endl;
         }
+        pcre2_match_data_free(match_data);
         return orig_str;
     }
     auto res = std::string(reinterpret_cast<char*>(buffer), subject_length);
     std::free(buffer);
+    pcre2_match_data_free(match_data); 
     return res;
 }
 
 std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t curr_start) {
+    if (m_compiled == nullptr) {
+        return {SIZE_MAX, SIZE_MAX};
+    }
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
     PCRE2_SIZE subject_length = str.length();
 
     int match_result = pcre2_match(
@@ -307,15 +312,18 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
         (PCRE2_SPTR) str.c_str(), subject_length,
         curr_start,
         0,
-        m_match_data,
+        match_data,
         NULL
     );
 
     if (match_result < 0) {
+        pcre2_match_data_free(match_data); 
         return {SIZE_MAX, SIZE_MAX};
     }
     // If we survived the previous IF the is at least one match,
     // not out of bound can happen here.
-    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(m_match_data);
+    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
+    
+    pcre2_match_data_free(match_data); 
     return {ovector[0], ovector[1]};
 }
