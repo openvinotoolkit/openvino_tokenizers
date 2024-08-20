@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import json
+import sys
 import tempfile
 from copy import deepcopy
 from functools import partial
@@ -826,6 +827,22 @@ def convert_sentencepiece_model_tokenizer(
         )
         scattered_input_ids = _get_node_factory_opset1().create(
             "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
+        )
+
+    if 0 < (max_length := getattr(hf_tokenizer, "model_max_length", -1)) < 2**17:
+        scattered_input_ids = opset.slice(
+            scattered_input_ids,
+            start=[-max_length] if do_left_padding else [0],
+            stop=[sys.maxsize] if do_left_padding else [max_length],
+            step=[1],
+            axes=[-1],
+        )
+        attention_mask = opset.slice(
+            attention_mask,
+            start=[-max_length] if do_left_padding else [0],
+            stop=[sys.maxsize] if do_left_padding else [max_length],
+            step=[1],
+            axes=[-1],
         )
 
     scattered_input_ids.output(0).tensor.add_names({TOKEN_IDS_INPUT_NAME})
