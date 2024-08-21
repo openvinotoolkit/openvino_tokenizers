@@ -15,7 +15,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: 'wheel'
+  OV_BRANCH: 'master'
   OV_TARBALL: ''
 
 permissions: read-all
@@ -82,7 +82,7 @@ jobs:
       - name: Clone OpenVINO
         uses: actions/checkout@v4
         with:
-          repository: 'ilya-lavrenov/openvino'
+          repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
           submodules: 'true'
           ref: ${{ env.OV_BRANCH}}
