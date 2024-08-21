@@ -355,12 +355,12 @@ int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) {
         if (current_node->m_value != -1) {
             token_id = current_node->m_value;
             end_idx = idx;
-        };
+        }
         if (idx == str.size()) {
             break;
         }
         ch = str[idx];
-    };
+    }
     idx = end_idx;
     return token_id;
 }

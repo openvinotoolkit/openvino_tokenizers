@@ -103,18 +103,9 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             end_suffix.push_back(m_end_suffix);
         };
         
-        m_tokenizer = std::make_shared<BPETokenizerImpl>(vocab, merges);
-
-        // m_tokenizer = std::make_shared<BPETokenizerImpl>(
-        //     vocab,
-        //     new_merges
-        //     10000 /* default cache size */,
-        //     std::vector<float> {} /* dropout - don't use dropout for inference */,
-        //     unk_token,
-        //     suffix_indicator,
-        //     end_suffix,
-        //     m_fuse_unk
-        // );
+        m_tokenizer = std::make_shared<BPETokenizerImpl>(
+            vocab, merges, 10000, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk
+        );
     }
 
     if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
@@ -184,8 +175,6 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
 
 std::pair<std::pair<int64_t, int64_t>, size_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
-    // todo: assert tokens.size() is >= 2
-
     int min_rank = INT_MAX;
     std::pair<int64_t, int64_t> min_rank_pair = {tokens[0], tokens[1]};
     size_t position = -1;
@@ -202,21 +191,20 @@ std::pair<std::pair<int64_t, int64_t>, size_t> BPETokenizerImpl::get_min_rank_pa
 
 
 Tokens BPETokenizerImpl::tokenize(std::string& text) {
-    // TODO: Check if code below is really bytes_to_chars/chars_to_bytes transformation agnostic.
-    // Each character from string will be converted to string of characters
-    // Prompt ' d' ->  'Ġd' = {{0xc4, 0xa0}, 0x64} = {{196, 160}, {100}}
+    text += m_end_suffix;
     
     // TODO: Add comment on how and why prefix tree is used.
     Tokens res;
     res.reserve(text.length());
-    if (m_old_vocab.count(text)) {
-        res.emplace_back(m_old_vocab.at(text));
-        return res;
-    }
     const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
     for(int idx = 0; idx < text.size(); ) {
         // TODO: Add setting unk_token_id if returned -1.
-        res.emplace_back(m_trie->find_longest(text_vec, idx));
+        auto r = m_trie->find_longest(text_vec, idx);
+        if (r != -1) {
+            res.emplace_back(r);
+        } else {
+            idx++;
+        }
     };
 
     while (res.size() >= 2) {
@@ -230,7 +218,13 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
     return res;
 }
 
-BPETokenizerImpl::BPETokenizerImpl(const Vocab& vocab, const TextMerges& merges) {
+BPETokenizerImpl::BPETokenizerImpl(
+        const Vocab& vocab, const TextMerges& merges, size_t cache_size, 
+        std::string unk_token, 
+        std::string suffix_indicator, 
+        std::string end_suffix, 
+        bool fuse_unk
+    ): m_end_suffix(end_suffix) {
     Merges new_merges;
     Vocab new_vocab = vocab;
 
@@ -242,7 +236,6 @@ BPETokenizerImpl::BPETokenizerImpl(const Vocab& vocab, const TextMerges& merges)
     }
 
     this->m_vocab = new_vocab;
-    this->m_old_vocab = vocab;
     this->m_merges = new_merges;
 
     m_trie = std::make_unique<Trie>();

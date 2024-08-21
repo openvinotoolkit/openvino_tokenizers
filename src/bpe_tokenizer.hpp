@@ -23,13 +23,20 @@ using Tokens = std::vector<int64_t>;
 class BPETokenizerImpl {
 private:
     Vocab m_vocab;
-    Vocab m_old_vocab;
     Merges m_merges;
     std::shared_ptr<Trie> m_trie;
+    std::string m_end_suffix;
     std::pair<std::pair<int64_t, int64_t>, size_t> get_min_rank_pair(Tokens tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
-    BPETokenizerImpl(const Vocab& vocab, const TextMerges& merges);
+    BPETokenizerImpl(
+        const Vocab& vocab, const TextMerges& merges, 
+        size_t cache_size,
+        std::string unk_token,
+        std::string suffix_indicator,
+        std::string end_suffix,
+        bool fuse_unk = false
+    );
     Tokens tokenize(std::string& text);
 };
 
