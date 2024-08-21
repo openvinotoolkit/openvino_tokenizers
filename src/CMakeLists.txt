@@ -286,7 +286,7 @@ function(ov_tokenizers_link_pcre2)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
 
-find_package(TBB REQUIRED
+find_package(TBB 2021.2 REQUIRED
              PATHS "${OpenVINO_DIR_PY}")
 
 #
