@@ -28,7 +28,7 @@ from .constants import (
     TOKENIZER_NAME,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import apply_bytes_to_unicode, has_incompatible_re2_op
+from .utils import apply_bytes_to_unicode, generate_tokens_with_space_symbols, has_incompatible_re2_op
 
 
 logger = logging.getLogger(__name__)
@@ -470,23 +470,28 @@ class BPETokenizationStep(TokenizationModelStep):
     suffix_indicator: str = ""
     end_suffix: str = ""
     byte_fallback: bool = False
-    added_tokens: Optional[Union[Dict[int, str], Dict[int, bytes]]] = None
+    added_tokens: Optional[Union[Dict[str, int], Dict[bytes, int]]] = None
 
     def finalize(self) -> None:
+        if self.added_tokens is None:
+            return
+
         pipeline = self.get_pipeline()
 
         vocab_set = set(self.vocab)
-        for idx, token in sorted(self.added_tokens.items()):
+        for (
+            token,
+            idx,
+        ) in sorted(self.added_tokens.items(), key=lambda x: (x[1], x[0])):
             if token not in vocab_set:
                 if pipeline.is_byte_level:
                     token = apply_bytes_to_unicode(token)
+                if isinstance(idx, str):
+                    assert True
                 if idx >= len(self.vocab):
                     self.vocab.append(token)
 
-        added_tokens = list(self.added_tokens.values())
-
-        if not added_tokens:
-            return
+        added_tokens = sorted(self.added_tokens, reverse=True)
 
         for split_step in pipeline.split_steps:
             split_step.skip_tokens = added_tokens
@@ -502,6 +507,11 @@ class BPETokenizationStep(TokenizationModelStep):
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
         vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
+        for token_json in tokenizer_json["added_tokens"]:
+            if token_json["rstrip"]:
+                for new_token in generate_tokens_with_space_symbols(token_json["content"], depth=2):
+                    added_tokens[new_token] = token_json["id"]
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"] or "",
             fuse_unk=tokenizer_json["model"]["fuse_unk"] or False,
@@ -509,7 +519,7 @@ class BPETokenizationStep(TokenizationModelStep):
             end_suffix=tokenizer_json["model"]["end_of_word_suffix"] or "",
             vocab=vocab,
             merges=tokenizer_json["model"]["merges"],
-            added_tokens={token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"]},
+            added_tokens=added_tokens,
         )
 
     @classmethod
@@ -521,7 +531,7 @@ class BPETokenizationStep(TokenizationModelStep):
         from .tiktoken_parser import generate_vocab_and_merges
 
         vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
-        added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
+        added_tokens.update(dict(encoding._special_tokens.items()))
 
         if reference_vocab is not None:
             existing_indices = set(vocab.values())
@@ -555,7 +565,7 @@ class BPETokenizationStep(TokenizationModelStep):
         pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
 
         if self.added_tokens:
-            special_tokens_outputs = self.create_string_constant_node(self.added_tokens.values()).outputs()
+            special_tokens_outputs = self.create_string_constant_node(self.added_tokens).outputs()
         else:
             special_tokens_outputs = []
 
@@ -579,7 +589,7 @@ class BPETokenizationStep(TokenizationModelStep):
             input_nodes.extend(
                 (
                     *special_tokens_outputs,
-                    *make_constant_node(np.array(list(self.added_tokens)), Type.i32).outputs(),
+                    *make_constant_node(np.array(list(self.added_tokens.values())), Type.i32).outputs(),
                 )
             )
 

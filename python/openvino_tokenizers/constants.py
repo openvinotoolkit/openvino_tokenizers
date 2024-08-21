@@ -27,3 +27,5 @@ GREEDY_DECODER_NAME = "greedy_decoder"
 
 TOKENIZER_NAME = "tokenizer"
 DETOKENIZER_NAME = "detokenizer"
+
+SPACE_SYMBOLS = (" ", "\t", "\n", "\r", "\v", "\f")
