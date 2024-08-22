@@ -2,6 +2,8 @@
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 import difflib
+import sys
+import os
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -13,6 +15,9 @@ from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute
 from transformers import AutoTokenizer
 
+
+if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
+    np.set_printoptions(threshold=sys.maxsize)
 
 core = Core()
 
@@ -399,10 +404,6 @@ def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
 
 
 def print_diff(left, right) -> str:
-    import sys
-
-    np.set_printoptions(threshold=sys.maxsize)
-
     left = str(left.reshape(-1)).split("\n")
     right = str(right.reshape(-1)).split("\n")
 
