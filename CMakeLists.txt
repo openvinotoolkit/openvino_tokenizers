@@ -45,7 +45,7 @@ if(BUILD_CPP_EXTENSION)
     endif()
 
     # Find OpenVINODeveloperPackage first to compile with SDL flags
-    find_package(OpenVINODeveloperPackage ${openvino_tokenizers_VERSION} REQUIRED
+    find_package(OpenVINODeveloperPackage ${openvino_tokenizers_VERSION} QUIET
                  COMPONENTS Runtime Threading
                  PATHS "${OpenVINO_DIR}")
     if(NOT OpenVINODeveloperPackage_FOUND)
