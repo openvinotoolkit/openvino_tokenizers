@@ -15,18 +15,23 @@
 #undef tokenizer
 #undef m_tokenizer
 
+// TODO: replace with int32
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
-using Merges = std::map<std::pair<int64_t, int64_t>, std::pair<int64_t, int64_t>>;
+using Merges = std::map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>>;
 using Vocab = std::unordered_map<std::string, unsigned int>;
-using Tokens = std::vector<int64_t>;
+using Tokens = std::vector<int32_t>;
 
 class BPETokenizerImpl {
 private:
     Vocab m_vocab;
     Merges m_merges;
     std::shared_ptr<Trie> m_trie;
+    std::string m_suffix_indicator;
     std::string m_end_suffix;
-    std::pair<std::pair<int64_t, int64_t>, size_t> get_min_rank_pair(Tokens tokens);
+    bool m_byte_fallback = false;
+    int32_t m_unk_token_id = -1;
+    bool m_fuse_unk = false;
+    std::pair<std::pair<int32_t, int32_t>, size_t> get_min_rank_pair(Tokens tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
     BPETokenizerImpl(
@@ -35,7 +40,8 @@ public:
         std::string unk_token,
         std::string suffix_indicator,
         std::string end_suffix,
-        bool fuse_unk = false
+        bool fuse_unk = false,
+        bool byte_fallback = false
     );
     Tokens tokenize(std::string& text);
 };
@@ -60,7 +66,7 @@ public:
         m_suffix_indicator(suffix_indicator),
         m_end_suffix(end_suffix),
         m_byte_fallback(byte_fallback) {
-
+        std::cout << "aaaaaaaaaaaaaaaaaaaa BYTE FALLBACK IS ENABLED" << byte_fallback << std::endl;
         constructor_validate_and_infer_types();
     }
     BPETokenizer(

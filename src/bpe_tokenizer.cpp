@@ -4,7 +4,7 @@
 
 #include "bpe_tokenizer.hpp"
 #include "openvino/opsets/opset13.hpp"
-
+#include "absl/strings/str_format.h"
 using namespace ov;
 using namespace ov::opset13;
 
@@ -104,7 +104,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         };
         
         m_tokenizer = std::make_shared<BPETokenizerImpl>(
-            vocab, merges, 10000, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk
+            vocab, merges, 10000, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
         );
     }
 
@@ -151,9 +151,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            // std::cout << "[ BPE ] str=`" << str << "`, size=" << str.size() << "\n";
             if (input_size == 15) {
-                // TODO: move special tokens to vocab.
                 auto results = m_tokenizer->tokenize(str);
                 for (const auto& token : results) {
                     OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
@@ -174,9 +172,9 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 
-std::pair<std::pair<int64_t, int64_t>, size_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
+std::pair<std::pair<int32_t, int32_t>, size_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
     int min_rank = INT_MAX;
-    std::pair<int64_t, int64_t> min_rank_pair = {tokens[0], tokens[1]};
+    std::pair<int32_t, int32_t> min_rank_pair = {tokens[0], tokens[1]};
     size_t position = -1;
     for (size_t i = 0; i < tokens.size() - 1; i++) {
         auto pair = std::pair(tokens[i], tokens[i + 1]);
@@ -191,18 +189,26 @@ std::pair<std::pair<int64_t, int64_t>, size_t> BPETokenizerImpl::get_min_rank_pa
 
 
 Tokens BPETokenizerImpl::tokenize(std::string& text) {
+    // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
+    // TODO: CVS-150387 Implement suffix_indicator.
     
-    // TODO: Add comment on how and why prefix tree is used.
+    // Initialize sequence of integer tokens by looking up 
+    // for the longest matching sequnce in the prefix tree.
     Tokens res;
     res.reserve(text.length());
     const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
     for(int idx = 0; idx < text.size(); ) {
-        // TODO: Add setting unk_token_id if returned -1.
         auto r = m_trie->find_longest(text_vec, idx);
         if (r != -1) {
             res.emplace_back(r);
+        } else if (m_byte_fallback) {
+            res.emplace_back(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text[idx]))));
+            idx++;
         } else {
+            if (!m_fuse_unk || res.back() != -1){
+                res.emplace_back(m_unk_token_id);
+            }
             idx++;
         }
     };
@@ -223,8 +229,12 @@ BPETokenizerImpl::BPETokenizerImpl(
         std::string unk_token, 
         std::string suffix_indicator, 
         std::string end_suffix, 
-        bool fuse_unk
-    ): m_end_suffix(end_suffix) {
+        bool fuse_unk,
+        bool byte_fallback
+    ): m_suffix_indicator(suffix_indicator), m_end_suffix(end_suffix), m_byte_fallback(byte_fallback) {
+    if (vocab.count(unk_token)) {
+        m_unk_token_id = vocab.at(unk_token);
+    }
     Merges new_merges;
     Vocab new_vocab = vocab;
 
