@@ -286,9 +286,6 @@ function(ov_tokenizers_link_pcre2)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
 
-find_package(TBB 2021.2 REQUIRED
-             PATHS "${OpenVINO_DIR_PY}")
-
 #
 # Build library
 #
@@ -309,7 +306,7 @@ string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
-target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime TBB::tbb)
+target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
 
 #
 # Post build steps to copy core_tokenizers dependencies

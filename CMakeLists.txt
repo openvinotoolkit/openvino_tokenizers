@@ -45,9 +45,13 @@ if(BUILD_CPP_EXTENSION)
     endif()
 
     # Find OpenVINODeveloperPackage first to compile with SDL flags
-    find_package(OpenVINODeveloperPackage ${openvino_tokenizers_VERSION} QUIET PATHS "${OpenVINO_DIR}")
+    find_package(OpenVINODeveloperPackage ${openvino_tokenizers_VERSION} REQUIRED
+                 COMPONENTS Runtime Threading
+                 PATHS "${OpenVINO_DIR}")
     if(NOT OpenVINODeveloperPackage_FOUND)
-        find_package(OpenVINO  ${openvino_tokenizers_VERSION} REQUIRED COMPONENTS Runtime OPTIONAL_COMPONENTS TensorFlow PATHS "${OpenVINO_DIR_PY}")
+        find_package(OpenVINO ${openvino_tokenizers_VERSION} REQUIRED
+                     COMPONENTS Runtime Threading
+                     PATHS "${OpenVINO_DIR_PY}")
     endif()
 
     add_subdirectory(src)
