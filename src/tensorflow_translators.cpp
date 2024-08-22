@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "openvino/frontend/tensorflow/hash_table.hpp"
+#include "openvino/frontend/hash_table.hpp"
 
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/opsets/opset13.hpp"
@@ -211,20 +211,18 @@ ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node) {
     return { string_lower_result };
 }
 
-OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::NodeContext& node) {
+OutputVector translate_lookup_table_find_op(const ov::frontend::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 3, "LookupTableFind or LookupTableFindV2 expects 3 inputs");
-    auto table_handle = as_type_ptr<ov::frontend::tensorflow::HashTable>(node.get_input_by_reference(0).get_node_shared_ptr());
-    TENSORFLOW_OP_VALIDATION(
-        node,
-        table_handle,
-        "[TensorFlow Frontend] internal error: LookupTableFind operation expects table_handle by the first input");
+    auto table_handle = as_type_ptr<ov::frontend::HashTable>(node.get_input_by_reference(0).get_node_shared_ptr());
+    FRONT_END_GENERAL_CHECK(table_handle,
+        "[TensorFlow Frontend] internal error: LookupTableFind operation expects table_handle by the first input"
+    );
     auto keys = node.get_input(1);
     auto default_value = node.get_input(2);
 
     auto key_type = table_handle->get_key_type();
     auto value_type = default_value.get_element_type();
-    TENSORFLOW_OP_VALIDATION(
-        node,
+    FRONT_END_GENERAL_CHECK(
         key_type.is_integral_number() || (key_type == element::string && value_type == element::i64),
         "[TensorFlow Frontend] internal error: LookupTableFind is supported two cases: "
         "1. integer keys with any value type; 2. string keys with i64 values.");
@@ -263,8 +261,7 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::Node
         set_node_name(node.get_name(), tokens.get_node_shared_ptr());
         return { tokens };
     }
-    TENSORFLOW_OP_VALIDATION(
-        node,
+    FRONT_END_GENERAL_CHECK(
         key_type != element::string,
         "[TensorFlow Frontend] internal error: LookupTableFind operation with string key is only supported for integral values");
 
@@ -314,9 +311,9 @@ NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) 
     auto input = node.get_input(0);
     ov::OutputVector unpacked_input = pre_translate_string_tensor_input(input);
     auto sep_const = ov::as_type_ptr<Constant>(node.get_input(1).get_node_shared_ptr());
-    TENSORFLOW_OP_VALIDATION(node, sep_const, "[TensorFlow Frontend] internal error: only constant separator is supported for StringSplitV2");
+    FRONT_END_GENERAL_CHECK(sep_const, "[TensorFlow Frontend] internal error: only constant separator is supported for StringSplitV2");
     auto sep_value = sep_const->cast_vector<std::string>();
-    TENSORFLOW_OP_VALIDATION(node, sep_value.size() == 1, "[TensorFlow Frontend] inconsistent model: separator must be a scalar");
+    FRONT_END_GENERAL_CHECK(sep_value.size() == 1, "[TensorFlow Frontend] inconsistent model: separator must be a scalar");
     auto sep = std::make_shared<Constant>(element::u8, Shape{ sep_value[0].length() }, (const void*)sep_value[0].data())->output(0);
     if (sep_value[0] == "") {
         // default case that means string elements will be removed from leading and trailing white-space
@@ -376,18 +373,18 @@ NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) 
 ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
     auto node_input_size = node.get_input_size();
-    TENSORFLOW_OP_VALIDATION(node, node_input_size == 4 || node_input_size == 5,
+    FRONT_END_GENERAL_CHECK(node_input_size == 4 || node_input_size == 5,
         "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only with one row partition tensor");
     auto shape = node.get_input(0);
     auto values = node.get_input(1);
     auto default_value = node.get_input(2);
     auto row_partition_types = node.get_attribute<std::vector<std::string>>("row_partition_types");
-    TENSORFLOW_OP_VALIDATION(node, (row_partition_types == std::vector<std::string>{"ROW_SPLITS"}) ||
+    FRONT_END_GENERAL_CHECK((row_partition_types == std::vector<std::string>{"ROW_SPLITS"}) ||
         (row_partition_types == std::vector<std::string>{"FIRST_DIM_SIZE", "VALUE_ROWIDS"}),
         "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for ROW_SPLITS type");
     // currently we support only shape for 2D tensor in output
     // for example, shape can be equal to [2, 5] or [-1, 8]
-    TENSORFLOW_OP_VALIDATION(node, shape.get_partial_shape().is_static() && shape.get_shape() == ov::Shape{ 2 },
+    FRONT_END_GENERAL_CHECK(shape.get_partial_shape().is_static() && shape.get_shape() == ov::Shape{ 2 },
         "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for 2D ragged tensor on input");
 
     // since begins, ends and target shape are expected to be of int32 type
@@ -475,7 +472,7 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
 ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
     auto node_input_size = node.get_input_size();
-    TENSORFLOW_OP_VALIDATION(node, node_input_size == 2,
+    FRONT_END_GENERAL_CHECK(node_input_size == 2,
         "[TensorFlow Frontend] inconsistent model: Equal must have two inputs");
     auto input1 = node.get_input(0);
     auto input2 = node.get_input(1);
@@ -505,11 +502,11 @@ ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
 ov::OutputVector translate_string_to_hash_bucket_fast(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
     auto node_input_size = node.get_input_size();
-    TENSORFLOW_OP_VALIDATION(node, node_input_size == 1,
+    FRONT_END_GENERAL_CHECK(node_input_size == 1,
         "[TensorFlow Frontend] inconsistent model: StringToHashBucketFast must have one input");
     auto input = node.get_input(0);
     auto num_buckets = node.get_attribute<int64_t>("num_buckets");
-    TENSORFLOW_OP_VALIDATION(node, num_buckets > 0,
+    FRONT_END_GENERAL_CHECK(num_buckets > 0,
         "[TensorFlow Frontend] inconsistent model: num_buckets for StringToHashBucketFast must be positive");
 
     ov::OutputVector unpacked_input = pre_translate_string_tensor_input(input);
