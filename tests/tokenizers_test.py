@@ -135,6 +135,7 @@ sentencepiece_models = [
     "facebook/musicgen-small",
     "rinna/bilingual-gpt-neox-4b",
     "microsoft/Phi-3-mini-128k-instruct",
+    "mlx-community/quantized-gemma-7b-it",
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",

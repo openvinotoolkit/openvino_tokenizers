@@ -517,6 +517,10 @@ def align_model_file(
         not_used = token is None
         token = f"<new_token_{idx}>" if not_used else token
 
+        #  gemma-7b has "\t" instead of byte representation
+        if token == "\t" and model.pieces[idx].piece == "<0x09>":
+            token = "<0x09>"
+
         if token in existing:
             new_pieces.append(existing[token])
             continue
@@ -550,8 +554,6 @@ def align_model_file(
             model.trainer_spec.bos_piece = token
             new_piece.type = 4
             new_piece.score = 0
-        elif token.startswith("<0x") and token.endswith(">") and len(token) == 6:
-            new_piece.type = 6
         else:
             new_piece.type = 1
             new_piece.score -= score_delta
@@ -630,10 +632,11 @@ def modify_sentencepiece_model(
     unk_token = next(piece for piece in model.pieces if piece.type == 2)
     model.trainer_spec.unk_surface = unk_token.piece
 
+    has_bytes = any(piece.type == 6 for piece in model.pieces)
     if byte_fallback is not None:
-        model.trainer_spec.byte_fallback = byte_fallback
+        model.trainer_spec.byte_fallback = byte_fallback and has_bytes
 
-    if byte_fallback is False:
+    if byte_fallback is False and has_bytes:
         for piece in model.pieces:
             if piece.type == 6:
                 piece.type = 5  # change BYTE type to UNUSED
