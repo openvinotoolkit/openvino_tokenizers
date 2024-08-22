@@ -5,12 +5,8 @@
 #pragma once
 
 #include <openvino/frontend/node_context.hpp>
-#ifdef OpenVINO_Frontend_TensorFlow_FOUND
-#include <openvino/frontend/tensorflow/node_context.hpp>
-ov::OutputVector translate_lookup_table_find_op(const ov::frontend::tensorflow::NodeContext& node);
+ov::OutputVector translate_lookup_table_find_op(const ov::frontend::NodeContext& node);
 ov::frontend::NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node);
-#endif
-
 ov::OutputVector translate_sentencepiece_op(const ov::frontend::NodeContext& node);
 ov::frontend::NamedOutputVector translate_ragged_tensor_to_sparse(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_case_fold_utf8(const ov::frontend::NodeContext& node);
