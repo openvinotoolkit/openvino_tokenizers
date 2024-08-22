@@ -26,6 +26,8 @@ from .constants import (
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
+    MIN_CACHE_CAPACITY,
+    VOCAB_SIZE_CACHE_PROPORTION,
 )
 from .str_pack import pack_string, pack_strings
 from .utils import apply_bytes_to_unicode, generate_tokens_with_space_symbols, has_incompatible_re2_op
@@ -470,6 +472,7 @@ class BPETokenizationStep(TokenizationModelStep):
     suffix_indicator: str = ""
     end_suffix: str = ""
     byte_fallback: bool = False
+    cache_capacity: int = MIN_CACHE_CAPACITY
     added_tokens: Optional[Union[Dict[str, int], Dict[bytes, int]]] = None
 
     def finalize(self) -> None:
@@ -526,6 +529,8 @@ class BPETokenizationStep(TokenizationModelStep):
             merges=tokenizer_json["model"]["merges"],
             added_tokens=added_tokens,
             byte_fallback=tokenizer_json["model"]["byte_fallback"],
+            # cache_capacity=max(tokenizer_json["model"].get("cache_capacity", int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION)), MIN_CACHE_CAPACITY)
+            cache_capacity=20775
         )
 
     @classmethod
@@ -560,6 +565,7 @@ class BPETokenizationStep(TokenizationModelStep):
             vocab=[token for token, idx in sorted(vocab.items(), key=lambda x: x[1])],
             merges=merges,
             added_tokens=added_tokens,
+            cache_capacity=max(int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION), MIN_CACHE_CAPACITY)
         )
 
     @property
@@ -610,6 +616,7 @@ class BPETokenizationStep(TokenizationModelStep):
                     "suffix_indicator": self.suffix_indicator,
                     "end_suffix": self.end_suffix,
                     "byte_fallback": self.byte_fallback,
+                    "cache_capacity": self.cache_capacity
                 },
             )
             .outputs()

@@ -15,7 +15,6 @@
 #undef tokenizer
 #undef m_tokenizer
 
-// TODO: replace with int32
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
 using Merges = std::map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>>;
 using Vocab = std::unordered_map<std::string, unsigned int>;
@@ -31,12 +30,14 @@ private:
     bool m_byte_fallback = false;
     int32_t m_unk_token_id = -1;
     bool m_fuse_unk = false;
+    size_t m_cache_capacity;
+    std::unordered_map<std::string, std::vector<int32_t>> m_cache;
     std::pair<std::pair<int32_t, int32_t>, size_t> get_min_rank_pair(Tokens tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
     BPETokenizerImpl(
         const Vocab& vocab, const TextMerges& merges, 
-        size_t cache_size,
+        size_t cache_capacity,
         std::string unk_token,
         std::string suffix_indicator,
         std::string end_suffix,
@@ -66,7 +67,6 @@ public:
         m_suffix_indicator(suffix_indicator),
         m_end_suffix(end_suffix),
         m_byte_fallback(byte_fallback) {
-        std::cout << "aaaaaaaaaaaaaaaaaaaa BYTE FALLBACK IS ENABLED" << byte_fallback << std::endl;
         constructor_validate_and_infer_types();
     }
     BPETokenizer(
@@ -77,7 +77,8 @@ public:
         bool fuse_unk = false,
         const std::string& suffix_indicator = "",
         const std::string& end_suffix = "",
-        bool byte_fallback = false
+        bool byte_fallback = false,
+        size_t cache_capacity = 20000
     ) :
         ov::op::Op(arguments),
         m_tokenizer(tokenizer),
@@ -86,7 +87,8 @@ public:
         m_fuse_unk(fuse_unk),
         m_suffix_indicator(suffix_indicator),
         m_end_suffix(end_suffix),
-        m_byte_fallback(byte_fallback) {
+        m_byte_fallback(byte_fallback),
+        m_cache_capacity(cache_capacity) {
 
         constructor_validate_and_infer_types();
     }
@@ -94,7 +96,8 @@ public:
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<BPETokenizer>(inputs, m_tokenizer, m_added_tokens, m_unk_token, m_fuse_unk, m_suffix_indicator, m_end_suffix, m_byte_fallback);
+        return std::make_shared<BPETokenizer>(inputs, m_tokenizer, m_added_tokens, m_unk_token, m_fuse_unk, 
+                                              m_suffix_indicator, m_end_suffix, m_byte_fallback, m_cache_capacity);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -103,6 +106,7 @@ public:
         visitor.on_attribute("suffix_indicator", m_suffix_indicator);
         visitor.on_attribute("end_suffix", m_end_suffix);
         visitor.on_attribute("byte_fallback", m_byte_fallback);
+        visitor.on_attribute("cache_capacity", m_cache_capacity);
         return true;
     }
 
@@ -120,4 +124,5 @@ private:
     std::string m_suffix_indicator;
     std::string m_end_suffix;
     bool m_byte_fallback = false;
+    size_t m_cache_capacity = 20000;
 };

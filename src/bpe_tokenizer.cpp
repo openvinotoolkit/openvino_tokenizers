@@ -104,7 +104,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         };
         
         m_tokenizer = std::make_shared<BPETokenizerImpl>(
-            vocab, merges, 10000, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
+            vocab, merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
         );
     }
 
@@ -189,6 +189,9 @@ std::pair<std::pair<int32_t, int32_t>, size_t> BPETokenizerImpl::get_min_rank_pa
 
 
 Tokens BPETokenizerImpl::tokenize(std::string& text) {
+    if (m_cache.count(text)) {
+        return m_cache.at(text);
+    }
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
     // TODO: CVS-150387 Implement suffix_indicator.
@@ -212,6 +215,7 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
             idx++;
         }
     };
+    size_t initial_num_tokens = res.size();
 
     while (res.size() >= 2) {
         auto [pair, idx] = get_min_rank_pair(res);
@@ -221,17 +225,20 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
         res.erase(res.begin() + idx, res.begin() + idx + 2);
         res.insert(res.begin() + idx, m_merges.at(pair).second);
     }
+    if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
+        m_cache.insert({text, res});
+    }
     return res;
 }
 
 BPETokenizerImpl::BPETokenizerImpl(
-        const Vocab& vocab, const TextMerges& merges, size_t cache_size, 
+        const Vocab& vocab, const TextMerges& merges, size_t cache_capacity, 
         std::string unk_token, 
         std::string suffix_indicator, 
         std::string end_suffix, 
         bool fuse_unk,
         bool byte_fallback
-    ): m_suffix_indicator(suffix_indicator), m_end_suffix(end_suffix), m_byte_fallback(byte_fallback) {
+    ): m_cache_capacity(cache_capacity), m_suffix_indicator(suffix_indicator), m_end_suffix(end_suffix), m_byte_fallback(byte_fallback) {
     if (vocab.count(unk_token)) {
         m_unk_token_id = vocab.at(unk_token);
     }
@@ -253,4 +260,5 @@ BPETokenizerImpl::BPETokenizerImpl(
         const auto token = std::vector<unsigned char>(word.first.begin(), word.first.end());
         m_trie->add(token, word.second);
     }
+    m_cache.reserve(cache_capacity);
 }
