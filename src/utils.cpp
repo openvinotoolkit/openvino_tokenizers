@@ -320,10 +320,46 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
         pcre2_match_data_free(match_data); 
         return {SIZE_MAX, SIZE_MAX};
     }
-    // If we survived the previous IF the is at least one match,
-    // not out of bound can happen here.
+    // If we survived the previous IF there is at least one match, no out of bound can happen here.
     PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
     
     pcre2_match_data_free(match_data); 
     return {ovector[0], ovector[1]};
+}
+
+
+void Trie::add(const std::vector<unsigned char>& str, const int value, int idx) {
+    if (idx == str.size()) {
+        m_value = value;
+    } else {
+        auto ch = str[idx];
+        if (m_to.count(ch) == 0) {
+            m_to[ch] = std::make_unique<Trie>();
+        }
+        m_to[ch]->add(str, value, idx + 1);
+    }
+}
+
+
+int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) {
+    int token_id = -1;  // no token found
+    Trie* current_node = this;
+
+    uint8_t ch = str[idx];
+    int end_idx = idx;
+
+    while (current_node->m_to.count(ch)) {
+        current_node = current_node->m_to[ch].get();
+        idx++;
+        if (current_node->m_value != -1) {
+            token_id = current_node->m_value;
+            end_idx = idx;
+        }
+        if (idx == str.size()) {
+            break;
+        }
+        ch = str[idx];
+    }
+    idx = end_idx;
+    return token_id;
 }

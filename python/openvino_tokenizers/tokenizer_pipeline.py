@@ -26,9 +26,11 @@ from .constants import (
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
+    MIN_CACHE_CAPACITY,
+    VOCAB_SIZE_CACHE_PROPORTION,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import apply_bytes_to_unicode, has_incompatible_re2_op
+from .utils import apply_bytes_to_unicode, generate_tokens_with_space_symbols, has_incompatible_re2_op
 
 
 logger = logging.getLogger(__name__)
@@ -283,7 +285,9 @@ class RegexSplitStep(PreTokenizatinStep):
 
     @classmethod
     def special_tokens_splitter(cls, special_tokens: List[str]) -> "RegexSplitStep":
-        def quote_meta(unquoted: str) -> str:
+        def quote_meta(unquoted: Union[str, bytes]) -> str:
+            if isinstance(unquoted, bytes):
+                unquoted = unquoted.decode()
             symbols = []
             for char in unquoted:
                 if not char.isalnum() and char != "_":
@@ -465,30 +469,36 @@ class WordPieceTokenizationStep(TokenizationModelStep):
 
 @dataclass
 class BPETokenizationStep(TokenizationModelStep):
-    vocab: List[str] = field(repr=False)
-    merges: List[str] = field(repr=False)
+    vocab: Union[List[str], List[bytes]] = field(repr=False)
+    merges: Union[List[str], List[Tuple[bytes, bytes]]] = field(repr=False)
     unk_token: str = ""
     fuse_unk: bool = False
     suffix_indicator: str = ""
     end_suffix: str = ""
     byte_fallback: bool = False
-    added_tokens: Optional[Dict[int, str]] = None
+    cache_capacity: int = MIN_CACHE_CAPACITY
+    added_tokens: Optional[Union[Dict[str, int], Dict[bytes, int]]] = None
 
     def finalize(self) -> None:
+        if self.added_tokens is None:
+            return
+
         pipeline = self.get_pipeline()
 
         vocab_set = set(self.vocab)
-        for idx, token in sorted(self.added_tokens.items()):
+        for (
+            token,
+            idx,
+        ) in sorted(self.added_tokens.items(), key=lambda x: (x[1], x[0])):
             if token not in vocab_set:
                 if pipeline.is_byte_level:
                     token = apply_bytes_to_unicode(token)
+                if isinstance(idx, str):
+                    assert True
                 if idx >= len(self.vocab):
                     self.vocab.append(token)
 
-        added_tokens = list(self.added_tokens.values())
-
-        if not added_tokens:
-            return
+        added_tokens = sorted(self.added_tokens, reverse=True)
 
         for split_step in pipeline.split_steps:
             split_step.skip_tokens = added_tokens
@@ -504,6 +514,16 @@ class BPETokenizationStep(TokenizationModelStep):
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
         vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
+        for token_json in tokenizer_json["added_tokens"]:
+            if token_json["rstrip"]:
+                for new_token in generate_tokens_with_space_symbols(token_json["content"], depth=2):
+                    added_tokens[new_token] = token_json["id"]
+
+        # TODO: CVS-150387 Implement suffix_indicator.
+        if tokenizer_json["model"]["continuing_subword_prefix"]:
+            raise NotImplementedError("continuing_subword_prefix/suffix_indicator is not implemented yet.")
+
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"] or "",
             fuse_unk=tokenizer_json["model"]["fuse_unk"] or False,
@@ -511,7 +531,12 @@ class BPETokenizationStep(TokenizationModelStep):
             end_suffix=tokenizer_json["model"]["end_of_word_suffix"] or "",
             vocab=vocab,
             merges=tokenizer_json["model"]["merges"],
-            added_tokens={token["id"]: token["content"] for token in tokenizer_json["added_tokens"] if token["id"]},
+            added_tokens=added_tokens,
+            byte_fallback=tokenizer_json["model"]["byte_fallback"],
+            cache_capacity=max(
+                tokenizer_json["model"].get("cache_capacity", int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION)),
+                MIN_CACHE_CAPACITY,
+            ),
         )
 
     @classmethod
@@ -520,11 +545,10 @@ class BPETokenizationStep(TokenizationModelStep):
         encoding: "Encoding",  # noqa
         reference_vocab: Optional[Dict[Union[str, bytes], int]] = None,
     ) -> "BPETokenizationStep":
-        from .tiktoken_parser import generate_vocab_and_merges, token_bytes_to_string
-        from .utils import apply_bytes_to_unicode
+        from .tiktoken_parser import generate_vocab_and_merges
 
         vocab, merges, added_tokens = generate_vocab_and_merges(encoding)
-        added_tokens.update({idx: token for token, idx in encoding._special_tokens.items()})
+        added_tokens.update(dict(encoding._special_tokens.items()))
 
         if reference_vocab is not None:
             existing_indices = set(vocab.values())
@@ -533,14 +557,7 @@ class BPETokenizationStep(TokenizationModelStep):
                 if ref_idx in existing_indices:
                     continue
 
-                if isinstance(ref_token, bytes):
-                    ref_token = token_bytes_to_string(ref_token)
-
-                # (chat)GLM model adds spaces around <sop> token
-                if ref_token == "<sop>":
-                    ref_token = f" {ref_token} "
-
-                vocab[apply_bytes_to_unicode(ref_token)] = ref_idx
+                vocab[ref_token] = ref_idx
 
         return cls(
             unk_token="",
@@ -550,14 +567,19 @@ class BPETokenizationStep(TokenizationModelStep):
             vocab=[token for token, idx in sorted(vocab.items(), key=lambda x: x[1])],
             merges=merges,
             added_tokens=added_tokens,
+            cache_capacity=max(int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION), MIN_CACHE_CAPACITY),
         )
+
+    @property
+    def merges_is_bytes(self) -> bool:
+        return self.merges and isinstance(self.merges[0], tuple)
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
         pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
 
         if self.added_tokens:
-            special_tokens_outputs = self.create_string_constant_node(self.added_tokens.values()).outputs()
+            special_tokens_outputs = self.create_string_constant_node(self.added_tokens).outputs()
         else:
             special_tokens_outputs = []
 
@@ -565,17 +587,23 @@ class BPETokenizationStep(TokenizationModelStep):
             special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
-        input_nodes.extend(
-            (
-                *pipeline.vocab_node_outputs,
-                *self.create_string_constant_node(self.merges).outputs(),
+        input_nodes.extend(pipeline.vocab_node_outputs)
+        if self.merges_is_bytes:
+            left_merges, right_merges = zip(*self.merges)
+            input_nodes.extend(
+                (
+                    *self.create_string_constant_node(left_merges).outputs(),
+                    *self.create_string_constant_node(right_merges).outputs(),
+                )
             )
-        )
+        else:
+            input_nodes.extend(self.create_string_constant_node(self.merges).outputs())
+
         if special_tokens_outputs:
             input_nodes.extend(
                 (
                     *special_tokens_outputs,
-                    *make_constant_node(np.array(list(self.added_tokens)), Type.i32).outputs(),
+                    *make_constant_node(np.array(list(self.added_tokens.values())), Type.i32).outputs(),
                 )
             )
 
@@ -590,6 +618,7 @@ class BPETokenizationStep(TokenizationModelStep):
                     "suffix_indicator": self.suffix_indicator,
                     "end_suffix": self.end_suffix,
                     "byte_fallback": self.byte_fallback,
+                    "cache_capacity": self.cache_capacity,
                 },
             )
             .outputs()

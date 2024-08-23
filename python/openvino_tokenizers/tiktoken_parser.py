@@ -29,16 +29,17 @@ def bpe(mergeable_ranks: Dict[bytes, int], token: bytes, max_rank: Optional[int]
     return parts
 
 
-def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[str], Dict[int, str]]:
+def generate_vocab_and_merges(
+    encoding: Encoding,
+) -> Tuple[Dict[bytes, int], List[Tuple[bytes, bytes]], Dict[str, int]]:
     mergeable_ranks = encoding._mergeable_ranks
 
-    merges = []
     vocab = {}
+    merges = []
     added_tokens = {}
 
     for token, rank in mergeable_ranks.items():
-        string_token = token_bytes_to_string(token)
-        vocab[string_token] = rank
+        vocab[token] = rank
 
         if len(token) == 1:
             continue
@@ -49,14 +50,11 @@ def generate_vocab_and_merges(encoding: Encoding) -> Tuple[Dict[str, int], List[
         #  be tokenized into 3 tokens: bpe("\t\t\t") -> ["\t", "\t", "\t"] which is cannot be included
         #  in merges
         if len(merged) == 2:
-            merges.append(" ".join(map(token_bytes_to_string, merged)))
+            merges.append(merged)
         else:
-            try:
-                added_tokens[rank] = token.decode("utf-8")
-            except UnicodeDecodeError:
-                added_tokens[rank] = string_token
+            added_tokens[token.decode("latin-1")] = rank
 
     # Also add special tokens
-    vocab.update(encoding._special_tokens)
+    vocab.update({string.encode(): idx for string, idx in encoding._special_tokens.items()})
 
     return vocab, merges, added_tokens

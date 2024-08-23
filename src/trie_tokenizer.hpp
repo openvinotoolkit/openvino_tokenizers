@@ -7,19 +7,7 @@
 #include <vector>
 #include <unordered_map>
 #include <openvino/op/op.hpp>
-
-
-class Trie {
-    public:
-        Trie() = default;
-
-        void add(const std::vector<unsigned char>& str, const int value, int idx = 0);
-        int find_longest(const std::vector<unsigned char>& str, int& idx);
-
-    private:
-        std::unordered_map<unsigned char, std::unique_ptr<Trie>> m_to;
-        int m_value = -1;  // -1 for unset value
-};
+#include "utils.hpp"
 
 
 class TrieTokenizer : public ov::op::Op {
