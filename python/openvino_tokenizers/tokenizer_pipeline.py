@@ -519,11 +519,11 @@ class BPETokenizationStep(TokenizationModelStep):
             if token_json["rstrip"]:
                 for new_token in generate_tokens_with_space_symbols(token_json["content"], depth=2):
                     added_tokens[new_token] = token_json["id"]
-        
+
         # TODO: CVS-150387 Implement suffix_indicator.
         if tokenizer_json["model"]["continuing_subword_prefix"]:
             raise NotImplementedError("continuing_subword_prefix/suffix_indicator is not implemented yet.")
-        
+
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"] or "",
             fuse_unk=tokenizer_json["model"]["fuse_unk"] or False,
@@ -533,8 +533,10 @@ class BPETokenizationStep(TokenizationModelStep):
             merges=tokenizer_json["model"]["merges"],
             added_tokens=added_tokens,
             byte_fallback=tokenizer_json["model"]["byte_fallback"],
-            # cache_capacity=max(tokenizer_json["model"].get("cache_capacity", int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION)), MIN_CACHE_CAPACITY)
-            cache_capacity=20775
+            cache_capacity=max(
+                tokenizer_json["model"].get("cache_capacity", int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION)),
+                MIN_CACHE_CAPACITY,
+            ),
         )
 
     @classmethod
@@ -565,7 +567,7 @@ class BPETokenizationStep(TokenizationModelStep):
             vocab=[token for token, idx in sorted(vocab.items(), key=lambda x: x[1])],
             merges=merges,
             added_tokens=added_tokens,
-            cache_capacity=max(int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION), MIN_CACHE_CAPACITY)
+            cache_capacity=max(int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION), MIN_CACHE_CAPACITY),
         )
 
     @property
@@ -616,7 +618,7 @@ class BPETokenizationStep(TokenizationModelStep):
                     "suffix_indicator": self.suffix_indicator,
                     "end_suffix": self.end_suffix,
                     "byte_fallback": self.byte_fallback,
-                    "cache_capacity": self.cache_capacity
+                    "cache_capacity": self.cache_capacity,
                 },
             )
             .outputs()

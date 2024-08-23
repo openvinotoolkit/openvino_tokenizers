@@ -225,6 +225,7 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
         res.erase(res.begin() + idx, res.begin() + idx + 2);
         res.insert(res.begin() + idx, m_merges.at(pair).second);
     }
+    // TODO: Check if LRU Cache is more effective.
     if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
         m_cache.insert({text, res});
     }
