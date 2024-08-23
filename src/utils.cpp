@@ -320,11 +320,15 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
         pcre2_match_data_free(match_data); 
         return {SIZE_MAX, SIZE_MAX};
     }
-    // If we survived the previous IF there is at least one match, no out of bound can happen here.
+
+    // At this point there is at least one match, no out of bound can happen here.
+    // If ovector do not contain values early return is done and the code below is not run.
     PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
-    
+    std::pair<size_t, size_t> res = {ovector[0], ovector[1]};
+
+    // Free only after copying results from match_data to res;
     pcre2_match_data_free(match_data); 
-    return {ovector[0], ovector[1]};
+    return res;
 }
 
 
