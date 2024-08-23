@@ -41,6 +41,7 @@ def convert_tokenizer(
         )
 
         if isinstance(tokenizer_object, PreTrainedTokenizerBase):
+            # if False:
             if is_sentencepiece_model(tokenizer_object):
                 logger.info("Convert tokenizer using SentencePiece .model file.")
                 ov_tokenizers = convert_sentencepiece_model_tokenizer(
@@ -93,9 +94,13 @@ def convert_tokenizer(
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
 
     if isinstance(ov_tokenizers, tuple):
+        # import openvino as ov
+        # ov.runtime.save_model(ov_tokenizers[1], "openvino_detokenizer.xml")
+
         return (
             change_outputs_type(ov_tokenizers[0], tokenizer_output_type),
             change_inputs_type(ov_tokenizers[1], detokenizer_input_type),
         )
-
+    # import openvino as ov
+    # ov.runtime.save_model(ov_tokenizers, "openvino_tokenizer.xml")
     return change_outputs_type(ov_tokenizers, tokenizer_output_type)
