@@ -143,6 +143,10 @@ class RegexNormalizationStep(NormalizationStep):
         return cls(regex_search_pattern=r"^([^ ])", replace_term=r" \1")
 
     @classmethod
+    def replace_spaces_metaspace(cls) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r" ", replace_term=r"▁")
+
+    @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
         return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}\2")
 

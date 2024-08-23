@@ -56,6 +56,7 @@ def build_coverege_report(session: pytest.Session) -> None:
         results_df.hf_tiktoken_tokenizers_with_padding_sides_param, inplace=True
     )
     results_df.is_fast_tokenizer_param.fillna(True, inplace=True)
+    results_df = results_df[results_df.status != "skipped"]  # filter skipped tests
     results_df.status = (results_df.status == "passed").astype(int)
     results_df["Model"] = results_df.hf_wordpiece_tokenizers_param + results_df.is_fast_tokenizer_param.apply(
         lambda x: "" if x else "_slow"
