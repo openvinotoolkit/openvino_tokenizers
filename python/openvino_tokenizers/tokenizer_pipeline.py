@@ -555,10 +555,6 @@ class BPETokenizationStep(TokenizationModelStep):
                 if ref_idx in existing_indices:
                     continue
 
-                # (chat)GLM model adds spaces around <sop> token
-                if ref_token == "<sop>".encode():
-                    ref_token = b" " + ref_token.encode() + b" "
-
                 vocab[ref_token] = ref_idx
 
         return cls(

@@ -320,8 +320,7 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
         pcre2_match_data_free(match_data); 
         return {SIZE_MAX, SIZE_MAX};
     }
-    // If we survived the previous IF the is at least one match,
-    // not out of bound can happen here.
+    // If we survived the previous IF there is at least one match, no out of bound can happen here.
     PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
     
     pcre2_match_data_free(match_data); 

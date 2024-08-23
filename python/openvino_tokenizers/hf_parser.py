@@ -1035,10 +1035,20 @@ def convert_tiktoken_model_tokenizer(
                 pad_right=(hf_tokenizer.padding_side == "right"),
                 pad_to_max_length=use_max_padding,
             ),
-            VocabDecoderStep(skip_tokens=skip_tokens),
-            FuseStep(),
         ]
     )
+    
+    # (chat)GLM model adds spaces around <sop> token
+    decoder_vocab = pipeline[2].vocab
+    sop_index = next((idx for idx, token in enumerate(decoder_vocab) if token == "<sop>"), None)
+    if sop_index is not None:
+        decoder_vocab[sop_index] = " <sop> "
+    
+    pipeline.add_steps([
+        VocabDecoderStep(vocab=decoder_vocab, skip_tokens=skip_tokens),
+        FuseStep(),
+    ])
+    
     if clean_up_tokenization_spaces is None:
         clean_up_tokenization_spaces = getattr(hf_tokenizer, "clean_up_tokenization_spaces", None)
 
