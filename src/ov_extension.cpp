@@ -22,7 +22,8 @@
     std::make_shared<ov::frontend::ConversionExtension>("StringSplitV2", translate_string_split),                                    \
     std::make_shared<ov::frontend::ConversionExtension>("RaggedTensorToTensor", translate_ragged_tensor_to_tensor),                  \
     std::make_shared<ov::frontend::ConversionExtension>("Equal", translate_equal),                                                   \
-    std::make_shared<ov::frontend::ConversionExtension>("StringToHashBucketFast", translate_string_to_hash_bucket_fast)
+    std::make_shared<ov::frontend::ConversionExtension>("StringToHashBucketFast", translate_string_to_hash_bucket_fast),             \
+    std::make_shared<ov::frontend::ConversionExtension>("Squeeze", translate_squeeze_op)
 
 // clang-format off
 //! [ov_extension:entry_point]

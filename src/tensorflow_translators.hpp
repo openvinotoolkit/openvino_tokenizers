@@ -18,3 +18,4 @@ ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_equal(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_string_to_hash_bucket_fast(const ov::frontend::NodeContext& node);
+ov::OutputVector translate_squeeze_op(const ov::frontend::NodeContext& node);
