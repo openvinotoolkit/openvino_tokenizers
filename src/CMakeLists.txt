@@ -115,12 +115,15 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${c_cxx_flags}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${cxx_flags} ${c_cxx_flags}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
 
+if(WIN32 OR APPLE)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif()
+
 if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
   if(WIN32 AND CMAKE_BUILD_TYPE MATCHES Debug)
-    set(CMAKE_DEBUG_POSTFIX "d")
     foreach(
         flag_var
         CMAKE_CXX_FLAGS_DEBUG
