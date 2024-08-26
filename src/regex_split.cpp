@@ -137,17 +137,18 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
             re2::StringPiece result;
             bool flag = this->m_search_pattern_re2->Match(str, curr_start, str.length(), RE2::UNANCHORED, &result, 1);
             if (flag) {
-                size_t curr_start = result.data() - str.data();
-                size_t curr_end = curr_start + result.length();
-                return std::pair(curr_start, curr_end);
-            } else {
-                return std::nullopt;
+                size_t start = result.data() - str.data();
+                size_t end = curr_start + result.length();
+                if (start != end) {
+                    return std::pair(start, end);
+                }
             }
+            return std::nullopt;
         };
     } else {
         get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
             auto match = this->m_search_pattern_pcre2->match(str, curr_start);
-            if (match.first != SIZE_MAX) {
+            if (match.first != SIZE_MAX && match.first != match.second) {
                 return match;
             } else {
                 return std::nullopt;
@@ -250,8 +251,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
                 std::optional<std::pair<size_t, size_t>> match;
                 while ((match = get_next_match(str, start)) != std::nullopt) {
-                    size_t curr_start = (*match).first;
-                    size_t curr_end = (*match).second;
+                    auto [curr_start, curr_end] = *match;
                     
                     if (curr_start != start) {
                         add_split(start, curr_start, m_invert);
