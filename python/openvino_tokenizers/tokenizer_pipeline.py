@@ -143,12 +143,16 @@ class RegexNormalizationStep(NormalizationStep):
         return cls(regex_search_pattern=r"^([^ ])", replace_term=r" \1")
 
     @classmethod
-    def replace_spaces_metaspace(cls) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r" ", replace_term=r"▁")
+    def replace_spaces_metaspace(cls, replace_term=r"▁") -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r" ", replace_term=replace_term)
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
         return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}\2")
+
+    @classmethod
+    def prepend_with_check_regex(cls, string: str, check_string: str) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=rf"(^)([^{check_string}])", replace_term=rf"{string}\2")
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
@@ -258,6 +262,10 @@ class RegexSplitStep(PreTokenizatinStep):
     @classmethod
     def whitespace_splitter(cls) -> "RegexSplitStep":
         return cls(r"\w+|[^\w\s]+", invert=True)
+
+    @classmethod
+    def metaspace_splitter(cls, metaspace=r"▁") -> "RegexSplitStep":
+        return cls(metaspace, invert=False, behaviour="merge_with_next")
 
     @classmethod
     def byte_level_splitter(cls) -> "RegexSplitStep":

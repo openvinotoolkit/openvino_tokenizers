@@ -156,13 +156,24 @@ def get_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--use-sentencepiece-backend",
+        "--use_sentencepiece_backend",
+        required=False,
+        action="store_false",
+        help=(
+            "Use Sentencepiece library as a backend for tokenizer operation. "
+            "The repository should contain Sentencepiece `.model` file. "
+            "Unigram models supported by Sentencepiece backend only."
+        ),
+    )
+    parser.add_argument(
         "--handle-special-tokens-with-re",
         "--handle_special_tokens_with_re",
         required=False,
         action="store_true",
         help=(
-            "Use separete regex to handle special tokens for sentencepiece-based tokenizers. Use this option if the "
-            "converted tokenizer doesn't use special tokens during tokenization."
+            "Use a regex to handle special tokens for tokenizers with Sentencepiece backed. "
+            "Use this option if the converted tokenizer doesn't recognize special tokens during tokenization."
         ),
     )
     parser.add_argument(
@@ -243,6 +254,7 @@ def convert_hf_tokenizer() -> None:
         streaming_detokenizer=args.streaming_detokenizer,
         use_max_padding=args.max_padding is not None,
         handle_special_tokens_with_re=args.handle_special_tokens_with_re,
+        use_sentencepiece_backend=args.use_sentencepiece_backend,
     )
     if not isinstance(converted, tuple):
         converted = (converted,)

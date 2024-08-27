@@ -26,6 +26,7 @@ def convert_tokenizer(
     streaming_detokenizer: bool = False,
     use_max_padding: bool = False,
     handle_special_tokens_with_re: Optional[bool] = None,
+    use_sentencepiece_backend: bool = False,
 ) -> Union[Model, Tuple[Model, Model]]:
     ov_tokenizers = None
 
@@ -37,11 +38,16 @@ def convert_tokenizer(
             convert_sentencepiece_model_tokenizer,
             convert_tiktoken_model_tokenizer,
             is_sentencepiece_model,
+            is_sentencepiece_bpe_model,
             is_tiktoken_model,
         )
 
+        can_use_sentencepiece = is_sentencepiece_model(tokenizer_object)
+        is_unigram = can_use_sentencepiece and not is_sentencepiece_bpe_model(tokenizer_object)
         if isinstance(tokenizer_object, PreTrainedTokenizerBase):
-            if is_sentencepiece_model(tokenizer_object):
+            if can_use_sentencepiece and (
+                is_unigram or not tokenizer_object.is_fast or use_sentencepiece_backend
+            ):
                 logger.info("Convert tokenizer using SentencePiece .model file.")
                 ov_tokenizers = convert_sentencepiece_model_tokenizer(
                     tokenizer_object,
