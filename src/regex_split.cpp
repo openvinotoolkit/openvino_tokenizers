@@ -138,7 +138,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
             bool flag = this->m_search_pattern_re2->Match(str, curr_start, str.length(), RE2::UNANCHORED, &result, 1);
             if (flag) {
                 size_t start = result.data() - str.data();
-                size_t end = curr_start + result.length();
+                size_t end = start + result.length();
                 if (start != end) {
                     return std::pair(start, end);
                 }
