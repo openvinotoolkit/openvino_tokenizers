@@ -75,9 +75,20 @@ void set_node_name(const std::string& node_name, const std::shared_ptr<ov::Node>
 class PCRE2Wrapper {
 public:
     pcre2_code* m_compiled = nullptr;
-    pcre2_match_data* m_match_data = nullptr;
     PCRE2Wrapper(const absl::string_view& pattern);
     std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace);
     std::pair<size_t, size_t> match(const std::string& orig_str, size_t curr_start);
     ~PCRE2Wrapper();
+};
+
+class Trie {
+    public:
+        Trie() = default;
+
+        void add(const std::vector<unsigned char>& str, const int value, int idx = 0);
+        int find_longest(const std::vector<unsigned char>& str, int& idx);
+
+    private:
+        std::unordered_map<unsigned char, std::unique_ptr<Trie>> m_to;
+        int m_value = -1;  // -1 for unset value
 };

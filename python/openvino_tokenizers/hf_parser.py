@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import json
+import sys
 import tempfile
 from copy import deepcopy
 from functools import partial
@@ -383,11 +384,13 @@ class TransformersTokenizerPipelineParser:
 def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> Dict[int, str]:
     # the order matters
     result = {}
-    result.update({
-        idx: added_token.content
-        for idx, added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).items()
-        if not only_special_tokens or added_token.special
-    })
+    result.update(
+        {
+            idx: added_token.content
+            for idx, added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).items()
+            if not only_special_tokens or added_token.special
+        }
+    )
     if hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
         result.update(hf_tokenizer.tokenizer.index_special_tokens)
     if hasattr(hf_tokenizer, "special_tokens"):
@@ -476,13 +479,25 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         return False
 
 
+def is_sentencepiece_bpe_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
+    with tempfile.TemporaryDirectory() as tmp:
+        hf_tokenizer.save_pretrained(tmp)
+        vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
+        model_pb = import_protobuf()
+        model = model_pb.ModelProto()
+        with open(vocab_file, "rb") as model_file:
+            model.ParseFromString(model_file.read())
+            return model.trainer_spec.model_type == 2  #  UNIGRAM=1 BPE=2 WORD=3 CHAR=4
+
+
 def align_model_file(
-    model: "ModelProto", # noqa
+    model: "ModelProto",  # noqa
     hf_tokenizer: PreTrainedTokenizerBase,
     added_tokens: Optional[Dict[int, str]] = None,
 ) -> None:
     if added_tokens is None:
         added_tokens = hf_tokenizer.added_tokens_decoder
+
     def is_byte(token: str) -> bool:
         return len(token) == 6 and token.startswith("<0x") and token.endswith(">")
 
@@ -494,13 +509,17 @@ def align_model_file(
         return
 
     scores = np.array([piece.score for piece in model.pieces])
-    score_delta = np.mean(scores[np.where(scores < 0)])
+    score_delta = np.abs(np.mean(np.diff(scores[np.where(scores < 0)])))
 
     for idx in range(hf_tokenizer.vocab_size):
         token = added_tokens.get(idx, sorted_vocab.get(idx))
 
         not_used = token is None
         token = f"<new_token_{idx}>" if not_used else token
+
+        #  gemma-7b has "\t" instead of byte representation
+        if token == "\t" and model.pieces[idx].piece == "<0x09>":
+            token = "<0x09>"
 
         if token in existing:
             new_pieces.append(existing[token])
@@ -584,23 +603,19 @@ def modify_sentencepiece_model(
         elif not skip_special_tokens and new_piece.type == 3:
             new_piece.type = 4  # change control type to userdef type
 
-        if hf_tokenizer.is_fast:
-            assert True
-
         if to_add:
             while len(model.pieces) + 1 <= idx:
                 # to place special token in particular idx we have to extend vocab first
                 missing_piece = deepcopy(new_piece)
-                missing_piece.piece = hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+                missing_piece.piece = (
+                    hf_tokenizer.decode(len(model.pieces), skip_special_tokens=False) or f"<empty_{len(model.pieces)}>"
+                )
                 missing_piece.type = 4
                 model.pieces.insert(idx, missing_piece)
             bos_eos = ("<bos>", "<eos>", "<s>", "</s>")
-            if (
-                idx < len(model.pieces)
-                and (
-                    (model.pieces[idx].type not in (2, 3) or model.pieces[idx].piece == token)
-                    or (token in bos_eos and model.pieces[idx].piece in bos_eos)
-                )
+            if idx < len(model.pieces) and (
+                (model.pieces[idx].type not in (2, 3) or model.pieces[idx].piece == token)
+                or (token in bos_eos and model.pieces[idx].piece in bos_eos)
             ):
                 model.pieces.pop(idx)
             model.pieces.insert(idx, new_piece)
@@ -617,10 +632,11 @@ def modify_sentencepiece_model(
     unk_token = next(piece for piece in model.pieces if piece.type == 2)
     model.trainer_spec.unk_surface = unk_token.piece
 
+    has_bytes = any(piece.type == 6 for piece in model.pieces)
     if byte_fallback is not None:
-        model.trainer_spec.byte_fallback = byte_fallback
+        model.trainer_spec.byte_fallback = byte_fallback and has_bytes
 
-    if byte_fallback is False:
+    if byte_fallback is False and has_bytes:
         for piece in model.pieces:
             if piece.type == 6:
                 piece.type = 5  # change BYTE type to UNUSED
@@ -637,10 +653,13 @@ def convert_sentencepiece_model_tokenizer(
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = False,
     add_prefix_space: Optional[bool] = None,
-    handle_special_tokens_with_re: bool = False,
+    handle_special_tokens_with_re: Optional[bool] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
+
+    if handle_special_tokens_with_re is None:
+        handle_special_tokens_with_re = is_sentencepiece_bpe_model(hf_tokenizer)
 
     is_chatglm = getattr(hf_tokenizer, "name", None) == "GLMTokenizer"
     add_bos_token = add_eos_token = None
@@ -710,7 +729,7 @@ def convert_sentencepiece_model_tokenizer(
                     elif prepend_scheme == "never":
                         add_prefix_space = False
                     elif prepend_scheme == "first":
-                        add_prefix_space = False
+                        add_prefix_space = True
 
                 # metaspace can be emulated with sequence of normalizers
                 if add_prefix_space is None:
@@ -719,7 +738,7 @@ def convert_sentencepiece_model_tokenizer(
                     prepend_scheme = "never"
 
         elif add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast):
-            add_prefix_space = not add_bos_token
+            add_prefix_space = True
 
         add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
 
@@ -728,7 +747,7 @@ def convert_sentencepiece_model_tokenizer(
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=False,
-            add_prefix_space=add_prefix_space and not handle_special_tokens_with_re,
+            add_prefix_space=add_prefix_space,
             byte_fallback=byte_fallback,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
@@ -748,11 +767,6 @@ def convert_sentencepiece_model_tokenizer(
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
     next_node = input_node.outputs()
-
-    if prepend_scheme == "first" or (add_prefix_space and handle_special_tokens_with_re):
-        next_node = _get_factory().create("StringTensorUnpack", next_node).outputs()
-        next_node = RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex().get_ov_subgraph(next_node)
-        next_node = _get_factory().create("StringTensorPack", next_node).outputs()
 
     do_left_padding = hf_tokenizer.padding_side == "left"
 
@@ -816,6 +830,22 @@ def convert_sentencepiece_model_tokenizer(
         )
         scattered_input_ids = _get_node_factory_opset1().create(
             "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
+        )
+
+    if 0 < (max_length := getattr(hf_tokenizer, "model_max_length", -1)) < 2**17:
+        scattered_input_ids = opset.slice(
+            scattered_input_ids,
+            start=[-max_length] if do_left_padding else [0],
+            stop=[sys.maxsize] if do_left_padding else [max_length],
+            step=[1],
+            axes=[-1],
+        )
+        attention_mask = opset.slice(
+            attention_mask,
+            start=[-max_length] if do_left_padding else [0],
+            stop=[sys.maxsize] if do_left_padding else [max_length],
+            step=[1],
+            axes=[-1],
         )
 
     scattered_input_ids.output(0).tensor.add_names({TOKEN_IDS_INPUT_NAME})
@@ -996,7 +1026,6 @@ def convert_tiktoken_model_tokenizer(
         [
             NormalizeUnicode("NFC"),
             RegexSplitStep(split_pattern, behaviour="contiguous"),
-            BytesToCharsStep(),
             BPETokenizationStep.from_tiktoken_encoding(encoding, reference_vocab=reference_vocab),
             TruncationStep.from_hf_object(hf_tokenizer),
             *add_prefix_steps,
@@ -1006,10 +1035,22 @@ def convert_tiktoken_model_tokenizer(
                 pad_right=(hf_tokenizer.padding_side == "right"),
                 pad_to_max_length=use_max_padding,
             ),
-            VocabDecoderStep(skip_tokens=skip_tokens),
-            CharsToBytesStep(),
         ]
     )
+
+    # (chat)GLM model adds spaces around <sop> token
+    decoder_vocab = pipeline[2].vocab
+    sop_index = next((idx for idx, token in enumerate(decoder_vocab) if token == "<sop>"), None)
+    if sop_index is not None:
+        decoder_vocab[sop_index] = " <sop> "
+
+    pipeline.add_steps(
+        [
+            VocabDecoderStep(vocab=decoder_vocab, skip_tokens=skip_tokens),
+            FuseStep(),
+        ]
+    )
+
     if clean_up_tokenization_spaces is None:
         clean_up_tokenization_spaces = getattr(hf_tokenizer, "clean_up_tokenization_spaces", None)
 

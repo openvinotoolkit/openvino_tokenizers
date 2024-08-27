@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+import difflib
+import sys
+import os
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -11,6 +15,9 @@ from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute
 from transformers import AutoTokenizer
 
+
+if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
+    np.set_printoptions(threshold=sys.maxsize)
 
 core = Core()
 
@@ -60,6 +67,15 @@ misc_strings = [
     " " * 256,  # from llama3/stablecode vocab
     "\n",
     " \t\n",
+]
+chat_messages = [
+    [
+        {
+            "role": "system",
+            "content": "You are a friendly chatbot who always responds in the style of a pirate",
+        },
+        {"role": "user", "content": "How many helicopters can a human eat in one sitting?"},
+    ]
 ]
 
 wordpiece_models = [
@@ -123,6 +139,8 @@ sentencepiece_models = [
     "t5-base",
     "facebook/musicgen-small",
     "rinna/bilingual-gpt-neox-4b",
+    "microsoft/Phi-3-mini-128k-instruct",
+    "mlx-community/quantized-gemma-7b-it",
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
@@ -385,6 +403,58 @@ def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
     return get_tokenizer_detokenizer(hf_tokenizers_for_streaming, streaming_detokenizer=True)
 
 
+def print_diff(left, right) -> str:
+    left = str(left.reshape(-1)).split("\n")
+    right = str(right.reshape(-1)).split("\n")
+
+    diff = "\n".join(difflib.ndiff(left, right))
+    return f"\n{diff}"
+
+
+def check_tokenizer_output(
+    tokenizers: Tuple,
+    test_string: Union[str, List[str]],
+    skip_missing_outputs: bool = False,
+    hf_tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+    calculate_diff: bool = False,
+) -> None:
+    hf_tokenizer, ov_tokenizer = tokenizers
+    hf_tokenizer_kwargs = {} if hf_tokenizer_kwargs is None else hf_tokenizer_kwargs
+
+    if isinstance(test_string, str):
+        test_string = [test_string]
+
+    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
+    ov_tokenized = ov_tokenizer(test_string)
+
+    for output_name, hf_result in hf_tokenized.items():
+        if output_name not in ov_tokenized and skip_missing_outputs:
+            continue
+
+        assert output_name in ov_tokenized, f"OV Tokenizer missing output: {output_name}"
+        ov_result = ov_tokenized[output_name]
+
+        outputs = f"\n{hf_result}\n{ov_result}"
+        diff = print_diff(hf_result, ov_result) if calculate_diff and ov_result.shape != hf_result.shape else outputs
+        assert ov_result.shape == hf_result.shape, diff
+        assert np.all(ov_result == hf_result), outputs
+
+
+def check_detokenizer_output(
+    detokenizers: Tuple,
+    test_string: Union[str, List[str]],
+    hf_detokenizer_kwargs: Optional[Dict[str, Any]] = None,
+) -> None:
+    hf_tokenizer, _, ov_detokenizer = detokenizers
+    hf_detokenizer_kwargs = {} if hf_detokenizer_kwargs is None else hf_detokenizer_kwargs
+
+    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
+    hf_output = hf_tokenizer.batch_decode(token_ids, **hf_detokenizer_kwargs)
+    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
+
+    assert ov_output == hf_output
+
+
 @pytest.mark.parametrize(
     "test_string",
     [
@@ -395,15 +465,14 @@ def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
     ],
 )
 def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_special_tokens):
-    hf_tokenizer, ov_tokenizer = wordpiece_tokenizers
-
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
+    check_tokenizer_output(
+        wordpiece_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=False,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
     )
-    ov_tokenized = ov_tokenizer([test_string])
-
-    for output_name, hf_result in hf_tokenized.items():
-        assert np.all((ov_result := ov_tokenized[output_name]) == hf_result), f"{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -418,18 +487,16 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_speci
 def test_hf_wordpiece_tokenizers_multiple_strings(
     wordpiece_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding
 ):
-    hf_tokenizer, ov_tokenizer = wordpiece_tokenizers_with_padding_options
-
-    padding = "max_length" if use_max_padding else True
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", padding=padding, truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {
+        "add_special_tokens": do_add_special_tokens,
+        "padding": "max_length" if use_max_padding else True,
+    }
+    check_tokenizer_output(
+        wordpiece_tokenizers_with_padding_options,
+        test_string=test_string,
+        skip_missing_outputs=False,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
-    ov_tokenized = ov_tokenizer(test_string)
-
-    for output_name, hf_result in hf_tokenized.items():
-        ov_result = ov_tokenized[output_name]
-        assert ov_result.shape == hf_result.shape, f"{hf_result}\n{ov_result}"
-        assert np.all(ov_result == hf_result), f"{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -442,18 +509,33 @@ def test_hf_wordpiece_tokenizers_multiple_strings(
     ],
 )
 def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_add_special_tokens):
-    hf_tokenizer, ov_tokenizer = sentencepice_tokenizers
-
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
+    check_tokenizer_output(
+        sentencepice_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
-    ov_tokenized = ov_tokenizer([test_string])
 
-    for output_name, hf_result in hf_tokenized.items():
-        #  chatglm has token_type_ids output that we omit
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
+
+@pytest.mark.parametrize(
+    "test_string",
+    chat_messages,
+)
+def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_string, do_add_special_tokens):
+    hf_tokenizer, ov_tokenizer = sentencepice_tokenizers
+    if hf_tokenizer.chat_template is None:
+        pytest.skip("No chat template")
+
+    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
+    check_tokenizer_output(
+        sentencepice_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
+    )
 
 
 @pytest.mark.parametrize(
@@ -468,18 +550,16 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_
 def test_hf_sentencepiece_tokenizers_multiple_strings(
     sentencepiece_tokenizers_with_padding_options, test_string, do_add_special_tokens
 ):
-    hf_tokenizer, ov_tokenizer = sentencepiece_tokenizers_with_padding_options
-
-    # padding = "max_length" if use_max_padding else True
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {
+        "add_special_tokens": do_add_special_tokens,
+        "padding": True,
+    }
+    check_tokenizer_output(
+        sentencepiece_tokenizers_with_padding_options,
+        test_string=test_string,
+        skip_missing_outputs=True,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
-    ov_tokenized = ov_tokenizer(test_string)
-
-    for output_name, hf_result in hf_tokenized.items():
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -494,17 +574,15 @@ def test_hf_sentencepiece_tokenizers_multiple_strings(
 def test_sentencepiece_model_detokenizer(
     sentencepice_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
 ):
-    hf_tokenizer, _, ov_detokenizer = sentencepice_tokenizers_detokenizers
-
-    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
-    hf_output = hf_tokenizer.batch_decode(
-        token_ids,
-        skip_special_tokens=do_skip_special_tokens,
-        clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
+    hf_detokenizer_kwargs = {
+        "skip_special_tokens": do_skip_special_tokens,
+        "clean_up_tokenization_spaces": do_clean_up_tokenization_spaces,
+    }
+    check_detokenizer_output(
+        sentencepice_tokenizers_detokenizers,
+        test_string=test_string,
+        hf_detokenizer_kwargs=hf_detokenizer_kwargs,
     )
-    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
-
-    assert ov_output == hf_output
 
 
 @pytest.mark.parametrize(
@@ -517,18 +595,33 @@ def test_sentencepiece_model_detokenizer(
     ],
 )
 def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_tokens):
-    hf_tokenizer, ov_tokenizer = bpe_tokenizers
-
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
+    check_tokenizer_output(
+        bpe_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
     )
-    ov_tokenized = ov_tokenizer([test_string])
 
-    for output_name, hf_result in hf_tokenized.items():
-        # galactica tokenizer has 3 output, but model has 2 inputs
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
+
+@pytest.mark.parametrize(
+    "test_string",
+    chat_messages,
+)
+def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_string, do_add_special_tokens):
+    hf_tokenizer, ov_tokenizer = bpe_tokenizers
+    if hf_tokenizer.chat_template is None:
+        pytest.skip("No chat template")
+
+    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
+    check_tokenizer_output(
+        bpe_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+    )
 
 
 @pytest.mark.parametrize(
@@ -543,18 +636,16 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_t
 def test_hf_bpe_tokenizers_multiple_strings(
     bpe_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding
 ):
-    hf_tokenizer, ov_tokenizer = bpe_tokenizers_with_padding_options
-
-    padding = "max_length" if use_max_padding else True
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", padding=padding, truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {
+        "add_special_tokens": do_add_special_tokens,
+        "padding": "max_length" if use_max_padding else True,
+    }
+    check_tokenizer_output(
+        bpe_tokenizers_with_padding_options,
+        test_string=test_string,
+        skip_missing_outputs=True,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
-    ov_tokenized = ov_tokenizer(test_string)
-
-    for output_name, hf_result in hf_tokenized.items():
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -569,17 +660,15 @@ def test_hf_bpe_tokenizers_multiple_strings(
 def test_bpe_detokenizer(
     bpe_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
 ):
-    hf_tokenizer, _, ov_detokenizer = bpe_tokenizers_detokenizers
-
-    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
-    hf_output = hf_tokenizer.batch_decode(
-        token_ids,
-        skip_special_tokens=do_skip_special_tokens,
-        clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
+    hf_detokenizer_kwargs = {
+        "skip_special_tokens": do_skip_special_tokens,
+        "clean_up_tokenization_spaces": do_clean_up_tokenization_spaces,
+    }
+    check_detokenizer_output(
+        bpe_tokenizers_detokenizers,
+        test_string=test_string,
+        hf_detokenizer_kwargs=hf_detokenizer_kwargs,
     )
-    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
-
-    assert ov_output == hf_output
 
 
 @pytest.mark.parametrize(
@@ -592,17 +681,33 @@ def test_bpe_detokenizer(
     ],
 )
 def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string, do_add_special_tokens):
-    hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
-
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
+    check_tokenizer_output(
+        tiktoken_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
     )
-    ov_tokenized = ov_tokenizer([test_string])
 
-    for output_name, hf_result in hf_tokenized.items():
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
+
+@pytest.mark.parametrize(
+    "test_string",
+    chat_messages,
+)
+def test_tiktoken_model_tokenizer_chat(tiktoken_tokenizers, test_string, do_add_special_tokens):
+    hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
+    if hf_tokenizer.chat_template is None:
+        pytest.skip("No chat template")
+
+    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
+    check_tokenizer_output(
+        tiktoken_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+    )
 
 
 @pytest.mark.parametrize(
@@ -617,17 +722,16 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string, do_add_special_to
 def test_hf_tiktoken_tokenizers_multiple_strings(
     tiktoken_tokenizers_with_padding_options, test_string, do_add_special_tokens
 ):
-    hf_tokenizer, ov_tokenizer = tiktoken_tokenizers_with_padding_options
-
-    hf_tokenized = hf_tokenizer(
-        test_string, return_tensors="np", padding=True, truncation=True, add_special_tokens=do_add_special_tokens
+    hf_tokenizer_kwargs = {
+        "add_special_tokens": do_add_special_tokens,
+        "padding": True,
+    }
+    check_tokenizer_output(
+        tiktoken_tokenizers_with_padding_options,
+        test_string=test_string,
+        skip_missing_outputs=True,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
-    ov_tokenized = ov_tokenizer(test_string)
-
-    for output_name, hf_result in hf_tokenized.items():
-        if (ov_result := ov_tokenized.get(output_name)) is not None:
-            assert ov_result.shape == hf_result.shape, f"\n{hf_result}\n{ov_result}"
-            assert np.all(ov_result == hf_result), f"\n{hf_result}\n{ov_result}"
 
 
 @pytest.mark.parametrize(
@@ -639,14 +743,18 @@ def test_hf_tiktoken_tokenizers_multiple_strings(
         *misc_strings,
     ],
 )
-def test_tiktoken_detokenizer(tiktoken_tokenizers_detokenizers, test_string, do_skip_special_tokens):
-    hf_tokenizer, _, ov_detokenizer = tiktoken_tokenizers_detokenizers
-
-    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
-    hf_output = hf_tokenizer.batch_decode(token_ids, skip_special_tokens=do_skip_special_tokens)
-    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
-
-    assert ov_output == hf_output
+def test_tiktoken_detokenizer(
+    tiktoken_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
+):
+    hf_detokenizer_kwargs = {
+        "skip_special_tokens": do_skip_special_tokens,
+        "clean_up_tokenization_spaces": do_clean_up_tokenization_spaces,
+    }
+    check_detokenizer_output(
+        tiktoken_tokenizers_detokenizers,
+        test_string=test_string,
+        hf_detokenizer_kwargs=hf_detokenizer_kwargs,
+    )
 
 
 def test_streaming_detokenizer(sentencepiece_streaming_tokenizers):

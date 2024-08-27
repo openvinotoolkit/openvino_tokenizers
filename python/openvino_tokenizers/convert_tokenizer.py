@@ -25,7 +25,7 @@ def convert_tokenizer(
     detokenizer_input_type: Type = Type.i64,
     streaming_detokenizer: bool = False,
     use_max_padding: bool = False,
-    handle_special_tokens_with_re: bool = False,
+    handle_special_tokens_with_re: Optional[bool] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     ov_tokenizers = None
 

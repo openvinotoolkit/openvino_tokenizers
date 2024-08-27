@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#include <cctype>
+#include <algorithm>
 #include <functional>
 
 #include "sentencepiece_processor.h"
@@ -186,7 +188,16 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
             if (!special_tokens.empty()) {
                 special_tokens += "|";
             };
-            special_tokens += re2::RE2::QuoteMeta(token);
+
+            if (std::all_of(token.begin(), token.end(), [](char c) { return std::isalpha(c); })) {
+                // have to check if special token is not a part of some word
+                // chatglm2/3 has "sop" and "eop" special tokens that will split words like "people" otherwise
+                special_tokens += ("\\b" + re2::RE2::QuoteMeta(token));
+                special_tokens += "|";
+                special_tokens += (re2::RE2::QuoteMeta(token) + "\\b");
+            } else {
+                special_tokens += re2::RE2::QuoteMeta(token);
+            };
 
             m_special_tokens_map->insert(std::pair{token, special_tokens_ids[i]});
         };
@@ -252,6 +263,11 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
                     auto token_and_id = m_special_tokens_map->find(special_token);
                     if (token_and_id != m_special_tokens_map->end()) {
                         ids.push_back(token_and_id->second);
+                    } else {
+                        // fallback to regular tokenization if no special tokens found the map
+                        CHECK_OK(m_sp->SampleEncode(before_special_token, m_nbest_size, m_alpha, &part_ids));
+                        ids.insert(ids.end(), part_ids.begin(), part_ids.end());
+                        cursor = input.begin();
                     };
                 } else {
                     CHECK_OK(m_sp->SampleEncode(input, m_nbest_size, m_alpha, &part_ids));
