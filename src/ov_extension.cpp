@@ -66,6 +66,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<FuzeRagged>>(),
             std::make_shared<ov::OpExtension<ByteFallback>>(),
             std::make_shared<ov::OpExtension<SpecialTokensSplit>>(),
+            std::make_shared<ov::OpExtension<CharsMapNormalization>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceTokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceDetokenizer>>(),
             std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceStreamDetokenizer>>(),
