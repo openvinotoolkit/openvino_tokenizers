@@ -277,6 +277,8 @@ function(ov_tokenizers_link_pcre2)
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(PCRE2_STATIC_PIC ON)
     set(PCRE2_BUILD_TESTS OFF)
+    set(PCRE2_BUILD_PCRE2GREP OFF)
+    set(PCRE2_BUILD_TESTS)
 
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
@@ -306,7 +308,7 @@ string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
-target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
+target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
 #
 # Post build steps to copy core_tokenizers dependencies
