@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 #ifdef _MSC_VER
 #    pragma warning(disable : 4251)
 #    pragma warning(disable : 4275)
@@ -36,3 +38,5 @@ void NormalizeUnicode::validate_and_infer_types() {
 bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     return evaluate_normalization_helper(outputs, inputs, normalizers.at(m_normalization_form));
 }
+
+#endif // ENABLE_FAST_TOKENIZERS
