@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 #include <openvino/op/op.hpp>
 
 class CaseFold : public ov::op::Op {
@@ -39,3 +41,5 @@ public:
 private:
     std::string m_encoding = "utf-8";
 };
+
+#endif // ENABLE_FAST_TOKENIZERS
