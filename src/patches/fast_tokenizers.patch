@@ -1,20 +1,40 @@
 diff --git a/fast_tokenizer/cmake/ByproductsICU.cmake b/fast_tokenizer/cmake/ByproductsICU.cmake
-index 3b68f08..34875d9 100644
+index 3b68f082..6ae7e8f0 100644
 --- a/fast_tokenizer/cmake/ByproductsICU.cmake
 +++ b/fast_tokenizer/cmake/ByproductsICU.cmake
-@@ -39,8 +39,13 @@ function(GetICUByproducts ICU_PATH ICU_LIB_VAR ICU_INCLUDE_VAR ICU_BASE_NAMES_VA
+@@ -15,14 +15,14 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+
+-function(GetICUByproducts ICU_PATH ICU_LIB_VAR ICU_INCLUDE_VAR ICU_BASE_NAMES_VAR)
++function(GetICUByproducts ICU_PATH ICU_LIB_VAR ICU_INCLUDE_VAR ICU_BASE_NAMES_VAR ICU_LIB_POSTFIX)
+     # include directory
+     set(${ICU_INCLUDE_VAR} "${ICU_PATH}/include" PARENT_SCOPE)
+-
++
+     if (WIN32)
+         # windows basenames and pre/suffixes
+         set(ICU_LIB_BASE_NAMES dt in io tu uc)
+-
++
+         set(ICU_SHARED_PREFIX "lib")
+         set(ICU_STATIC_PREFIX "")
+         set(ICU_SHARED_SUFFIX ".dll.a")
+@@ -39,9 +39,14 @@ function(GetICUByproducts ICU_PATH ICU_LIB_VAR ICU_INCLUDE_VAR ICU_BASE_NAMES_VA
      endif()
      # add static and shared libs to the libraries variable
      foreach(ICU_BASE_NAME ${ICU_LIB_BASE_NAMES})
 -        set(ICU_SHARED_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_SHARED_PREFIX}icu${ICU_BASE_NAME}${ICU_SHARED_SUFFIX}")
 -        set(ICU_STATIC_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_STATIC_PREFIX}icu${ICU_BASE_NAME}${ICU_STATIC_SUFFIX}")
+-
 +        if(ICU_BASE_NAME STREQUAL "dt")
 +            set(ICU_NAME "${ICU_BASE_NAME}")
 +        else()
-+            set(ICU_NAME "${ICU_BASE_NAME}${CMAKE_DEBUG_POSTFIX}")
++            set(ICU_NAME "${ICU_BASE_NAME}${ICU_LIB_POSTFIX}")
 +        endif()
 +        set(ICU_SHARED_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_SHARED_PREFIX}icu${ICU_NAME}${ICU_SHARED_SUFFIX}")
 +        set(ICU_STATIC_LIB "${ICU_PATH}/${ICU_INSTALL_LIB}/${ICU_STATIC_PREFIX}icu${ICU_NAME}${ICU_STATIC_SUFFIX}")
-         
++
          if (ICU_STATIC)
              list(APPEND ${ICU_LIB_VAR} ${ICU_STATIC_LIB})
+         else()
