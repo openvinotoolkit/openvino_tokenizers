@@ -17,6 +17,7 @@ else()
     endif()
     # Setting CMAKE_BUILD_TYPE as CACHE must go before project(). Otherwise project() sets its value and set() doesn't take an effect
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ...")
+    set(THIRD_PARTY_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 endif()
 
 project(openvino_tokenizers
