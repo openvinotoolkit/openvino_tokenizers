@@ -41,6 +41,12 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 endif()
 
+if(GENERATOR_IS_MULTI_CONFIG_VAR)
+  set(build_type $<CONFIG>)
+else()
+  set(build_type ${CMAKE_BUILD_TYPE})
+endif()
+
 ov_tokenizers_set_cxx_standard()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -80,9 +86,9 @@ cmake_dependent_option(ENABLE_FAST_TOKENIZERS "Enables Fast Tokenizers usage in 
 
 if(ENABLE_FAST_TOKENIZERS)
   # The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0 or on Android (where prebuilt version is not available)
-  cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF "NOT FAST_TOKENIZER_FROM_SOURCES" ON)
-  if(NOT BUILD_FAST_TOKENIZERS AND NOT CMAKE_BUILD_TYPE MATCHES Release)
-    message(FATAL_ERROR "The ${CMAKE_BUILD_TYPE} build could not be completed without rebuilding the fast tokenizers. Please manually set BUILD_FAST_TOKENIZERS=ON." )
+  cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF "NOT FAST_TOKENIZER_FROM_SOURCES OR NOT build_type MATCHES Release" ON)
+  if(NOT BUILD_FAST_TOKENIZERS AND NOT build_type MATCHES Release)
+    message(FATAL_ERROR "The ${build_type} build could not be completed without rebuilding the fast tokenizers. Please manually set BUILD_FAST_TOKENIZERS=ON." )
   endif()
 else()
   set(BUILD_FAST_TOKENIZERS OFF CACHE BOOL "Compile core_tokenizers instead of downloading prebuilt library" FORCE)
@@ -460,12 +466,6 @@ elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.
 elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
     OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
   set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
-endif()
-
-if(GENERATOR_IS_MULTI_CONFIG_VAR)
-  set(build_type $<CONFIG>)
-else()
-  set(build_type ${CMAKE_BUILD_TYPE})
 endif()
 
 if(WIN32 OR APPLE)
