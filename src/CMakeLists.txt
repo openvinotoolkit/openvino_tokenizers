@@ -403,10 +403,10 @@ if(ENABLE_FAST_TOKENIZERS)
     endif()
   endif()
 
-if(WIN32 AND X86_64)
-  list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
-                         "${fast_tokenezers_libs_dir}/icuuc70$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>.dll")
-endif()
+  if(WIN32 AND X86_64)
+    list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
+                           "${fast_tokenezers_libs_dir}/icuuc70$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>.dll")
+  endif()
 
   if(extra_libs)
     # post build steps
