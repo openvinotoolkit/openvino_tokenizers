@@ -1,5 +1,5 @@
 diff --git a/fast_tokenizer/cmake/external/icu.cmake b/fast_tokenizer/cmake/external/icu.cmake
-index cd604d38..fd679fa0 100644
+index cd604d38..0ad901b2 100644
 --- a/fast_tokenizer/cmake/external/icu.cmake
 +++ b/fast_tokenizer/cmake/external/icu.cmake
 @@ -32,7 +32,7 @@ if(ANDROID)
@@ -11,7 +11,7 @@ index cd604d38..fd679fa0 100644
  SET(ICU_TAG           release-70-1)
  set(FIND_OR_BUILD_ICU_DIR ${CMAKE_CURRENT_LIST_DIR})
  
-@@ -52,9 +52,22 @@ set(HOST_ENV_CMAKE ${CMAKE_COMMAND} -E env
+@@ -52,9 +52,25 @@ set(HOST_ENV_CMAKE ${CMAKE_COMMAND} -E env
  
  # predict host libraries
  set(ICU_STATIC TRUE)
@@ -22,12 +22,15 @@ index cd604d38..fd679fa0 100644
  
 +if(GENERATOR_IS_MULTI_CONFIG_VAR)
 +  set(ICU_LIBRARIES "$<CONFIG:Debug>:${ICU_LIBRARIES_DEBUG} $<CONFIG:Release>:${ICU_LIBRARIES_RELEASE}")
++  set(ICU_CONFIGURE_FLAGS "$<CONFIG:Debug>:--enable-debug $<CONFIG:Release>:--enable-release")
 +  set(ICU_BUILD_TYPE $<CONFIG>)
 +else()
 +  if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 +    set(ICU_LIBRARIES "${ICU_LIBRARIES_DEBUG}")
++    set(ICU_CONFIGURE_FLAGS "--enable-debug")
 +  else()
 +    set(ICU_LIBRARIES "${ICU_LIBRARIES_RELEASE}")
++    set(ICU_CONFIGURE_FLAGS "--enable-release")
 +  endif()
 +  set(ICU_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 +endif()
@@ -35,7 +38,7 @@ index cd604d38..fd679fa0 100644
  if(WIN32)
  ExternalProject_Add(
          extern_icu
-@@ -65,7 +78,7 @@ ExternalProject_Add(
+@@ -65,7 +81,7 @@ ExternalProject_Add(
          GIT_PROGRESS      1
          PREFIX            ${ICU_PREFIX_DIR}
          UPDATE_COMMAND    ""
@@ -44,7 +47,16 @@ index cd604d38..fd679fa0 100644
          BUILD_COMMAND ""
          INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ../extern_icu/icu4c/include ${ICU_INSTALL_DIR}/include
                       && ${CMAKE_COMMAND} -E copy_directory ../extern_icu/icu4c/lib64 ${ICU_INSTALL_DIR}/lib64
-@@ -98,7 +111,7 @@ ExternalProject_Add(
+@@ -81,7 +97,7 @@ ExternalProject_Add(
+         GIT_PROGRESS      1
+         PREFIX            ${ICU_PREFIX_DIR}
+         UPDATE_COMMAND    ""
+-        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "MacOSX/GCC" --enable-static --disable-shared --enable-rpath
++        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "MacOSX" ${ICU_CONFIGURE_FLAGS} --enable-static --enable-rpath
+         BUILD_COMMAND make -j4
+         INSTALL_COMMAND make install prefix="" DESTDIR=${ICU_INSTALL_DIR} install
+         BUILD_BYPRODUCTS ${ICU_LIBRARIES}
+@@ -98,7 +114,7 @@ ExternalProject_Add(
          BUILD_COMMAND     ""
          INSTALL_COMMAND
            ${CMAKE_COMMAND} -E remove_directory ${ICU_INSTALL_DIR} &&
@@ -53,12 +65,12 @@ index cd604d38..fd679fa0 100644
            ${CMAKE_COMMAND} -E rename ${ICU_PREFIX_DIR}/src/extern_icu/lib/ ${ICU_INSTALL_DIR}/lib &&
            ${CMAKE_COMMAND} -E copy_directory ${ICU_PREFIX_DIR}/src/extern_icu/include ${ICU_INSTALL_DIR}/include
          BUILD_BYPRODUCTS ${ICU_LIBRARIES}
-@@ -113,22 +126,24 @@ ExternalProject_Add(
+@@ -113,22 +129,24 @@ ExternalProject_Add(
          GIT_PROGRESS      1
          PREFIX            ${ICU_PREFIX_DIR}
          UPDATE_COMMAND    ""
 -        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "Linux/gcc" --enable-static --disable-shared --enable-rpath
-+        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "Linux" --enable-static --enable-rpath
++        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "Linux" ${ICU_CONFIGURE_FLAGS} --enable-static --enable-rpath
          BUILD_COMMAND make -j4
          INSTALL_COMMAND make install prefix="" DESTDIR=${ICU_INSTALL_DIR} install
          BUILD_BYPRODUCTS ${ICU_LIBRARIES}
