@@ -52,7 +52,7 @@ index cd604d38..0ad901b2 100644
          PREFIX            ${ICU_PREFIX_DIR}
          UPDATE_COMMAND    ""
 -        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "MacOSX/GCC" --enable-static --disable-shared --enable-rpath
-+        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "MacOSX" ${ICU_CONFIGURE_FLAGS} --enable-static --enable-rpath
++        CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ../extern_icu/icu4c/source/runConfigureICU "MacOSX/GCC" ${ICU_CONFIGURE_FLAGS} --enable-static --enable-rpath
          BUILD_COMMAND make -j4
          INSTALL_COMMAND make install prefix="" DESTDIR=${ICU_INSTALL_DIR} install
          BUILD_BYPRODUCTS ${ICU_LIBRARIES}
