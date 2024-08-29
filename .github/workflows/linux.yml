@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'master'
-  OV_TARBALL: ''
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/2024.4.0-16527-382ac845923/l_openvino_toolkit_ubuntu20_2024.4.0.dev20240828_x86_64.tgz'
 
 permissions: read-all
 
