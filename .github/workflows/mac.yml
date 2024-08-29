@@ -194,6 +194,7 @@ jobs:
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
+      OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
@@ -323,6 +324,7 @@ jobs:
               ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
+          PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/nightly
 
       #
       # Upload build artifacts
