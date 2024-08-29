@@ -42,6 +42,7 @@ from .tokenizer_pipeline import (
     CombineSegmentsStep,
     DecodingStep,
     FuseStep,
+    UTF8ValidateStep,
     NMTNormalizationStep,
     NormalizationStep,
     NormalizeUnicode,
@@ -406,6 +407,9 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
+        
+        # insert UTF8 validate here
+        self.pipeline.add_steps(UTF8ValidateStep())
 
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))

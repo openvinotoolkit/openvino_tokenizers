@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import requests
 from openvino import Core, Model
+import openvino as ov
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute
@@ -127,6 +128,7 @@ bpe_models = [
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
 ]
 sentencepiece_models = [
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
     "codellama/CodeLlama-7b-hf",
     "camembert-base",
@@ -892,3 +894,50 @@ def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers, is_sentencepiece_bac
         hf_sentencepiece_tokenizers, with_detokenizer=True, use_sentencepiece_backend=is_sentencepiece_backend
     )
     check_rt_info(hf_sentencepiece_tokenizers, ov_tokenizer, ov_detokenizer)
+
+
+utf8_validate_strings = [
+    b"Eng... test, string?!",
+    b"Eng... test, string?!", 
+    b"\x81First byte is invalid utf8",
+    "Проверка, как работает кириллица Љ љ Ђ ђ".encode(),
+    "測試字符串".encode(),
+    "Tester, la chaîne...".encode(),
+    "سلسلة الاختبار".encode(),
+    "מחרוזת בדיקה".encode(),
+    "Сынақ жолы á".encode(),
+    "😁😁".encode(),
+    "🤣🤣🤣😁😁😁😁".encode(),
+    "🫠".encode(),
+    "介绍下清华大学".encode(),
+    "折纸的过程看似简单，其实想要做好，还是需要一套很复杂的工艺。以折一支玫瑰花为例，我们可以将整个折纸过程分成三个阶段，即：创建栅格折痕，制作立体基座，完成花瓣修饰。".encode(),
+
+    # TODO: Add invalid sequences as well.
+]
+
+
+def get_utf8_validate_subgraph(replace_mode) -> ov.CompiledModel:
+    import openvino as ov
+    from openvino_tokenizers import _get_factory
+    from openvino.runtime import op
+    from openvino import Model, PartialShape, Type
+
+    replace_mode = False if replace_mode == "ignore" else True
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    input_node.set_friendly_name("string_input")
+    unpacked_ = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    validated_ = _get_factory().create("UTF8Validate", unpacked_, {"replace_mode": replace_mode}).outputs()
+    packed_ = _get_factory().create("StringTensorPack", validated_).outputs()
+
+    ov_model = Model(packed_, [input_node], "test_net")
+    # ov.save_model(ov_model, 'test_net.xml')
+    validator = core.compile_model(ov_model)
+    return validator
+
+@pytest.mark.parametrize("test_string", utf8_validate_strings)
+@pytest.mark.parametrize("replace_mode", ["ignore", "replace"])
+def test_utf8_validate(test_string, replace_mode):
+    compiled_model = get_utf8_validate_subgraph(replace_mode)
+    res_ov = compiled_model([test_string])
+    res_py = test_string.decode(errors=replace_mode)
+    assert res_ov[0] == res_py
