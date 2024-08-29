@@ -203,21 +203,6 @@ jobs:
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
-      - name: Clone Openvino
-        uses: actions/checkout@v4
-        with:
-          repository: 'openvinotoolkit/openvino'
-          path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
-          sparse-checkout: |
-            install_build_dependencies.sh
-
-      - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
