@@ -20,7 +20,7 @@ elseif(NOT GENERATOR_IS_MULTI_CONFIG_VAR)
 endif()
 
 project(openvino_tokenizers
-        VERSION 2024.4.0.0
+        VERSION 2024.5.0.0
         DESCRIPTION "OpenVINO Tokenizers"
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
         LANGUAGES CXX)
