@@ -224,6 +224,7 @@ jobs:
         run: |
           source ${INSTALL_DIR}/setupvars.sh
           cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
                 -B ${{ env.BUILD_DIR }}
 
