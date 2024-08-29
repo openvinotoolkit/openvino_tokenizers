@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 #ifdef _MSC_VER
 #    pragma warning(disable : 4251)
 #    pragma warning(disable : 4275)
@@ -55,3 +57,5 @@ private:
     std::string m_suffix_indicator = "##";
     int m_max_bytes_per_word = 100;   // TODO: Can it be done outside the op as preprocessing of the input?
 };
+
+#endif // ENABLE_FAST_TOKENIZERS

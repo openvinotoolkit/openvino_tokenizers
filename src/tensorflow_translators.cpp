@@ -14,9 +14,7 @@
 #include "string_tensor_pack.hpp"
 #include "string_tensor_unpack.hpp"
 #include "sentence_piece.hpp"
-#include "case_fold.hpp"
 #include "equal_str.hpp"
-#include "normalize_unicode.hpp"
 #include "ragged_to_dense.hpp"
 #include "ragged_to_sparse.hpp"
 #include "ragged_to_ragged.hpp"
@@ -25,7 +23,11 @@
 #include "string_to_hash_bucket.hpp"
 #include "vocab_encoder.hpp"
 
+#ifdef ENABLE_FAST_TOKENIZERS
+#include "case_fold.hpp"
+#include "normalize_unicode.hpp"
 #include "wordpiece_tokenizer.hpp"
+#endif // ENABLE_FAST_TOKENIZERS
 
 using namespace TemplateExtension;
 using namespace ov;
@@ -153,6 +155,8 @@ NamedOutputVector translate_ragged_tensor_to_sparse(const NodeContext& node) {
     return named_results;
 }
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 ov::OutputVector translate_case_fold_utf8(const ov::frontend::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 1, "CaseFold expects only 1 input");
     return { post_translate_string_tensor_output(std::make_shared<CaseFold>(
@@ -165,6 +169,8 @@ ov::OutputVector translate_normalize_utf8(const ov::frontend::NodeContext& node)
         pre_translate_string_tensor_input(node.get_input(0)),
         node.get_attribute<std::string>("normalization_form"))->outputs()) };
 }
+
+#endif // ENABLE_FAST_TOKENIZERS
 
 ov::OutputVector translate_static_regex_replace(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
@@ -188,6 +194,8 @@ ov::OutputVector translate_regex_split_with_offsets(const ov::frontend::NodeCont
     auto flatten_string_tensor = post_translate_string_tensor_output({ outputs[2], outputs[3], outputs[4] });
     return { post_translate_ragged_tensor_output({outputs[0], outputs[1], flatten_string_tensor}) };
 }
+
+#ifdef ENABLE_FAST_TOKENIZERS
 
 ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 2, "WordpieceTokenizeWithOffsets expects 2 inputs");
@@ -223,6 +231,8 @@ ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node) {
     set_node_name(node_name, string_lower_result.get_node_shared_ptr());
     return { string_lower_result };
 }
+
+#endif // ENABLE_FAST_TOKENIZERS
 
 OutputVector translate_lookup_table_find_op(const ov::frontend::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 3, "LookupTableFind or LookupTableFindV2 expects 3 inputs");

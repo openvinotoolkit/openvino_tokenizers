@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 #include "case_fold.hpp"
 #include "utils.hpp"
 
@@ -39,3 +41,5 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
             });
         }
 }
+
+#endif // ENABLE_FAST_TOKENIZERS

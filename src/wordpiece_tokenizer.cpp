@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 #include "wordpiece_tokenizer.hpp"
 #include "utils.hpp"
 #include "openvino/opsets/opset13.hpp"
@@ -107,3 +109,4 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     return true;
 }
 
+#endif // ENABLE_FAST_TOKENIZERS
