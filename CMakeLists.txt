@@ -29,7 +29,11 @@ include(cmake/platforms.cmake)
 
 option(BUILD_CPP_EXTENSION "Builds C++ extension for OpenVINO Tokenizers" ON)
 
-if(DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION AND NOT PY_BUILD_CMAKE_PACKAGE_VERSION EQUAL openvino_tokenizers_VERSION)
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(is_subproject ON)
+endif()
+
+if(NOT is_subproject AND DEFINED PY_BUILD_CMAKE_PACKAGE_VERSION AND NOT PY_BUILD_CMAKE_PACKAGE_VERSION EQUAL openvino_tokenizers_VERSION)
     message(FATAL_ERROR "openvino_tokenizers_VERSION (${openvino_tokenizers_VERSION}) is not equal to PY_BUILD_CMAKE_PACKAGE_VERSION (${PY_BUILD_CMAKE_PACKAGE_VERSION})")
 endif()
 
