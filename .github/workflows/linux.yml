@@ -182,7 +182,101 @@ jobs:
           path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
           if-no-files-found: 'error'
 
-  openvino_tokenizers:
+    openvino_tokenizers_cpack:
+      name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
+      strategy:
+        matrix:
+          build_fast_tokenizers: [ON]
+          build_type: [Release, Debug]
+      needs: [ openvino_download, openvino_build ]
+      if: |
+        always() &&
+        (needs.openvino_download.outputs.status == 'success' || needs.openvino_build.result == 'success')
+      timeout-minutes: 45
+      defaults:
+        run:
+          shell: bash
+      runs-on: ubuntu-20.04
+
+      env:
+        OPENVINO_REPO: ${{ github.workspace }}/openvino
+        INSTALL_DIR: ${{ github.workspace }}/openvino/install
+        OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
+        BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+
+      steps:
+        - name: Clone Openvino tokenizers
+          uses: actions/checkout@v4
+          with:
+            path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
+
+        - name: Clone Openvino
+          uses: actions/checkout@v4
+          with:
+            repository: 'openvinotoolkit/openvino'
+            path: ${{ env.OPENVINO_REPO }}
+            ref: ${{ env.OV_BRANCH }}
+            sparse-checkout: |
+              install_build_dependencies.sh
+
+        - name: Download OpenVINO package
+          uses: actions/download-artifact@v4
+          with:
+            name: openvino_package
+            path: ${{ env.INSTALL_DIR }}
+
+        - name: Extract OpenVINO packages
+          run: |
+            pushd ${INSTALL_DIR}
+              tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
+            popd
+
+        #
+        # Dependencies
+        #
+
+        - name: Install build dependencies
+          run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
+
+        #
+        # Build
+        #
+
+        - name: CMake configure - tokenizers
+          run: |
+            ${{ env.OV_INSTALL_DIR }}/setupvars.sh
+            cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
+                  -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
+                  -B ${{ env.BUILD_DIR }}
+
+        - name: Cmake build - tokenizers
+          run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+          env:
+            CMAKE_BUILD_PARALLEL_LEVEL: '4'
+
+        - name: Cmake install - tokenizers
+          run: |
+            cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
+
+        - name: Pack Artifacts
+          run: |
+            pushd ${OV_TOKENIZERS_INSTALL_DIR}
+              tar -czvf ${BUILD_DIR}/ov_tokenizers.tar.gz *
+            popd
+
+        #
+        # Upload build artifacts
+        #
+
+        - name: Upload openvino tokenizers package
+          if: ${{ always() }}
+          uses: actions/upload-artifact@v4
+          with:
+            name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
+            path: ${{ env.BUILD_DIR }}/*.tar.gz
+            if-no-files-found: 'error'
+
+  openvino_tokenizers_wheel:
     name: OpenVINO tokenizers extension (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
     strategy:
       matrix:
@@ -275,8 +369,8 @@ jobs:
     strategy:
       matrix:
         build_fast_tokenizers: [ON, OFF]
-    needs: [ openvino_download, openvino_build, openvino_tokenizers]
-    if: always() && needs.openvino_tokenizers.result == 'success'
+    needs: [ openvino_download, openvino_build, openvino_tokenizers_wheel]
+    if: always() && needs.openvino_tokenizers_wheel.result == 'success'
     timeout-minutes: 25
     defaults:
       run:
