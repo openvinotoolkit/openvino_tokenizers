@@ -123,7 +123,7 @@ if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-  if(WIN32 AND CMAKE_BUILD_TYPE MATCHES Debug)
+  if(WIN32)
     foreach(
         flag_var
         CMAKE_CXX_FLAGS_DEBUG
@@ -408,7 +408,7 @@ if(ENABLE_FAST_TOKENIZERS)
 
 if(WIN32 AND X86_64)
   list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
-                         "${fast_tokenezers_libs_dir}/icuuc70${CMAKE_DEBUG_POSTFIX}.dll")
+                         "${fast_tokenezers_libs_dir}/icuuc70$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>.dll")
 endif()
 
   if(extra_libs)
@@ -461,8 +461,15 @@ elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_
     OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
   set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
 endif()
+
+if(GENERATOR_IS_MULTI_CONFIG_VAR)
+  set(build_type $<CONFIG>)
+else()
+  set(build_type ${CMAKE_BUILD_TYPE})
+endif()
+
 if(WIN32 OR APPLE)
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
+  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${build_type})
 endif()
 set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
 set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
