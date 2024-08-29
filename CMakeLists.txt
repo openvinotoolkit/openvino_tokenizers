@@ -11,7 +11,7 @@ if(CMAKE_GENERATOR STREQUAL "Ninja Multi-Config")
     # 'Ninja Multi-Config' specific, see:
     # https://cmake.org/cmake/help/latest/variable/CMAKE_DEFAULT_BUILD_TYPE.html
     set(CMAKE_DEFAULT_BUILD_TYPE "Release" CACHE STRING "CMake default build type")
-elseif(NOT GENERATOR_IS_MULTI_CONFIG_VAR)
+else()
     if(NOT DEFINED CMAKE_BUILD_TYPE)
         message(STATUS "CMAKE_BUILD_TYPE is not defined, 'Release' will be used")
     endif()
