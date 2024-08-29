@@ -977,7 +977,12 @@ class FuseStep(DecodingStep):
         *input_nodes, chars_node = input_nodes
         return _get_factory().create("FuzeRagged", input_nodes, {}).outputs() + [chars_node]
 
-
+@dataclass
+class UTF8ValidateStep(DecodingStep):
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        # TODO: get replace mode from cli.
+        return _get_factory().create("UTF8Validate", input_nodes, {"replace_mode": False}).outputs()
+    
 @dataclass
 class ByteFallbackStep(DecodingStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
