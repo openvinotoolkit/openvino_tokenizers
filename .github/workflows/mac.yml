@@ -16,8 +16,8 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '11.0'
-  OV_BRANCH: 'master'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/2024.4.0-16527-382ac845923/m_openvino_toolkit_macos_12_6_2024.4.0.dev20240828_x86_64.tgz'
+  OV_BRANCH: 'releases/2024/4'
+  OV_TARBALL: ''
 
 permissions: read-all
 
@@ -180,7 +180,7 @@ jobs:
     strategy:
       matrix:
         build_fast_tokenizers: [ON]
-        build_type: [Release, Debug]
+        build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&

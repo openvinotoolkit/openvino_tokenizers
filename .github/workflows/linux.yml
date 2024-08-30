@@ -15,8 +15,8 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: 'master'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/nightly/2024.4.0-16550-2cef4788a71/l_openvino_toolkit_centos7_2024.4.0.dev20240829_x86_64.tgz'
+  OV_BRANCH: 'releases/2024/4'
+  OV_TARBALL: ''
 
 permissions: read-all
 
@@ -187,7 +187,7 @@ jobs:
     strategy:
       matrix:
         build_fast_tokenizers: [ON]
-        build_type: [Release, Debug]
+        build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
