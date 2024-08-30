@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2022 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-
+import functools
 import json
 import sys
 import tempfile
@@ -127,6 +127,27 @@ def parse_byte_level_pretokenization_step(
     return steps
 
 
+def parse_metaspace(pretokenizer_dict: Dict[str, Any]) -> List[Union[NormalizationStep, PreTokenizatinStep]]:
+    steps = []
+
+    # old prefix adder
+    if pretokenizer_dict.get("add_prefix_space"):
+        steps.append(RegexNormalizationStep.add_prefix_whitespace_regex())
+
+    replacement = pretokenizer_dict.get("replacement", "▁")
+    steps.append(RegexNormalizationStep.replace_spaces_metaspace(replacement))
+
+    # new prefix adder
+    prepend_scheme = pretokenizer_dict.get("prepend_scheme", "never")
+    if prepend_scheme != "never":
+        steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement, replacement))
+
+    if pretokenizer_dict.get("split", False):
+        steps.append(RegexSplitStep.metaspace_splitter(replacement))
+
+    return steps
+
+
 class TransformersTokenizerPipelineParser:
     def __init__(self, tokenizer_object: Any, number_of_inputs: int = 1, add_special_tokens: bool = True) -> None:
         if not tokenizer_object.is_fast:
@@ -191,6 +212,24 @@ class TransformersTokenizerPipelineParser:
         except KeyError:
             raise OVTypeError(f"Normalizer type '{step_dict['type']}' is not supported")
 
+    @staticmethod
+    def check_metaspace_normalizer(normalizer_dict: Dict[str, Any]) -> bool:
+        if normalizer_dict.get("type") == "Sequence":
+            normalizers = normalizer_dict["normalizers"]
+
+            if len(normalizers) != 2:
+                return False
+            first, second = normalizers
+            first_prerend = bool(first.get("type") == "Prepend" and first.get("prepend") == "▁")
+            second_replace = bool(
+                second.get("type") == "Replace"
+                and second.get("pattern", {}).get("String") == " "
+                and second.get("content") == "▁"
+            )
+            return first_prerend and second_replace
+
+        return False
+
     def normalization(self) -> None:
         if self.tokenizer_json["normalizer"] is None:
             return
@@ -214,6 +253,7 @@ class TransformersTokenizerPipelineParser:
         "Digits": lambda step_dict: RegexSplitStep.digits_splitter(
             "isolate" if step_dict["individual_digits"] else "contiguous"
         ),
+        "Metaspace": parse_metaspace,
     }
 
     def parse_pre_tokenization_step(self, step_dict: Dict[str, Any]) -> None:
@@ -448,6 +488,7 @@ def convert_fast_tokenizer(
     return tokenizer_model
 
 
+@functools.lru_cache(1)
 def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         try:
@@ -479,6 +520,7 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         return False
 
 
+@functools.lru_cache(1)
 def is_sentencepiece_bpe_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         hf_tokenizer.save_pretrained(tmp)
