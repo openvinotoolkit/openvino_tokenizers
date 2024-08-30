@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '11.0'
-  OV_BRANCH: 'master'
+  OV_BRANCH: 'releases/2024/4'
   OV_TARBALL: ''
 
 permissions: read-all
@@ -175,7 +175,87 @@ jobs:
           path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
           if-no-files-found: 'error'
 
-  openvino_tokenizers:
+  openvino_tokenizers_cpack:
+    name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
+    strategy:
+      matrix:
+        build_fast_tokenizers: [ON]
+        build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
+    needs: [ openvino_download, openvino_build ]
+    if: |
+      always() &&
+      (needs.openvino_download.outputs.status == 'success' || needs.openvino_build.result == 'success')
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    runs-on: macos-13
+
+    env:
+      OPENVINO_REPO: ${{ github.workspace }}/openvino
+      INSTALL_DIR: ${{ github.workspace }}/openvino/install
+      OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
+      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+
+    steps:
+      - name: Clone Openvino tokenizers
+        uses: actions/checkout@v4
+        with:
+          path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
+
+      - name: Download OpenVINO package
+        uses: actions/download-artifact@v4
+        with:
+          name: openvino_package
+          path: ${{ env.INSTALL_DIR }}
+
+      - name: Extract OpenVINO packages
+        run: |
+          pushd ${INSTALL_DIR}
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
+          popd
+
+      #
+      # Build
+      #
+
+      - name: CMake configure - tokenizers
+        run: |
+          source ${INSTALL_DIR}/setupvars.sh
+          cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
+                -B ${{ env.BUILD_DIR }}
+
+      - name: Cmake build - tokenizers
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        env:
+          CMAKE_BUILD_PARALLEL_LEVEL: '4'
+
+      - name: Cmake install - tokenizers
+        run: |
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
+
+      - name: Pack Artifacts
+        run: |
+          pushd ${OV_TOKENIZERS_INSTALL_DIR}
+            tar -czvf ${BUILD_DIR}/ov_tokenizers.tar.gz *
+          popd
+
+      #
+      # Upload build artifacts
+      #
+
+      - name: Upload openvino tokenizers package
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
+          path: ${{ env.BUILD_DIR }}/*.tar.gz
+          if-no-files-found: 'error'
+
+  openvino_tokenizers_wheel:
     name: OpenVINO tokenizers extension
     needs: [ openvino_download, openvino_build ]
     if: |
@@ -260,8 +340,8 @@ jobs:
 
   openvino_tokenizers_tests:
     name: OpenVINO tokenizers tests
-    needs: [ openvino_download, openvino_build, openvino_tokenizers]
-    if: always() && needs.openvino_tokenizers.result == 'success'
+    needs: [ openvino_download, openvino_build, openvino_tokenizers_wheel]
+    if: always() && needs.openvino_tokenizers_wheel.result == 'success'
     timeout-minutes: 25
     defaults:
       run:
@@ -321,7 +401,7 @@ jobs:
             python3 -m pip install $wheel_name[dev]
           popd
         env:
-          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'

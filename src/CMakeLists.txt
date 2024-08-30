@@ -69,7 +69,7 @@ if(ANDROID)
   set(FAST_TOKENIZER_FROM_SOURCES ON)
 else()
   set(FAST_TOKENIZERS_SUPPORTED ON)
-  if(USE_ABI0)
+  if(USE_ABI0 OR WIN32 AND CMAKE_BUILD_TYPE MATCHES "Debug")
     set(FAST_TOKENIZER_FROM_SOURCES ON)
   else()
     set(FAST_TOKENIZER_FROM_SOURCES OFF)
@@ -112,9 +112,28 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${c_cxx_flags}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${cxx_flags} ${c_cxx_flags}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
 
+if(WIN32 OR APPLE)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif()
+
 if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set(THIRD_PARTY_BUILD_TYPE ${BUILD_TYPE})
+
+  if(WIN32)
+    foreach(
+        flag_var
+        CMAKE_CXX_FLAGS_DEBUG
+        CMAKE_C_FLAGS_DEBUG)
+        if(${flag_var} MATCHES "/MD")
+          string(REGEX REPLACE "/MD" "/MTd" ${flag_var} "${${flag_var}}")
+        elseif(NOT (${flag_var} MATCHES "/MTd"))
+          set(${flag_var} "${${flag_var}} /MTd")
+        endif()
+        set(${flag_var} "${${flag_var}}" CACHE STRING "msvc compiler flags" FORCE)
+    endforeach()
+  endif()
 endif()
 
 #
@@ -213,7 +232,9 @@ if(BUILD_FAST_TOKENIZERS)
     fast_tokenizer
     URL      https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz
     URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
-    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
+    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/fast_tokenizers.patch" &&
+                  git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/glog.patch" &&
+                  git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/icu.patch"
     SOURCE_DIR ${EXTERNAL_PROJECT_SOURCE_DIR}
     BINARY_DIR ${EXTERNAL_PROJECT_BINARY_DIR}
     SUBBUILD_DIR ${EXTERNAL_PROJECT_SUBBUILD_DIR}
@@ -385,7 +406,7 @@ if(ENABLE_FAST_TOKENIZERS)
 
   if(WIN32 AND X86_64)
     list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
-                           "${fast_tokenezers_libs_dir}/icuuc70.dll")
+                           "${fast_tokenezers_libs_dir}/icuuc70$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>.dll")
   endif()
 
   if(extra_libs)
@@ -438,8 +459,9 @@ elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_
     OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
   set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
 endif()
-if(MSVC OR APPLE)
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
+
+if(WIN32 OR APPLE)
+  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${BUILD_TYPE})
 endif()
 set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
 set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
