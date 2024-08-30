@@ -10,7 +10,7 @@ from copy import copy
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
 from itertools import chain, islice, takewhile
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from openvino.runtime import Model, Output, PartialShape, Type, op
@@ -22,11 +22,11 @@ from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
+    MIN_CACHE_CAPACITY,
     STRING_OUTPUT_NAME,
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
-    MIN_CACHE_CAPACITY,
     VOCAB_SIZE_CACHE_PROPORTION,
 )
 from .str_pack import pack_string, pack_strings
@@ -946,9 +946,12 @@ class VocabDecoderStep(DecodingStep):
     vocab: Optional[List[str]] = None
     skip_tokens: Optional[List[int]] = None
 
-    def __post_init__(self):
-        if self.skip_tokens is None:
-            self.skip_tokens = self.get_pipeline().skip_tokens if self.get_pipeline() is not None else {}
+    def finalize(self) -> None:
+        pipeline = self.get_pipeline()
+        if pipeline is None and self.skip_tokens is None:
+            self.skip_tokens = []
+        elif self.skip_tokens is None:
+            self.skip_tokens = pipeline.skip_tokens
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
         return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None

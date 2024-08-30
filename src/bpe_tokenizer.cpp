@@ -46,6 +46,24 @@ void BPETokenizer::validate_and_infer_types() {
 bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const auto input_size = get_input_size();
 
+    if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
+        const size_t added_token_input = input_size - 4;
+        const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
+
+        // vocab string keys
+        auto added_tokens_begins = inputs[added_token_input].data<const int32_t>();
+        auto added_tokens_ends   = inputs[added_token_input + 1].data<const int32_t>();
+        auto added_tokens_chars  = inputs[added_token_input + 2].data<const uint8_t>();
+        // vocab indicies
+        auto added_tokens_values = inputs[added_token_input + 3].data<const int32_t>();
+
+        m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
+        for (size_t i = 0; i < added_tokens_size; ++i) {
+            std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
+            m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
+        };
+    };
+
     if (m_tokenizer == nullptr) {
         // cache tokenizer
         auto vocab_begins = inputs[5].data<const int32_t>();
@@ -102,29 +120,17 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         if (m_end_suffix.size() > 0) {
             end_suffix.push_back(m_end_suffix);
         };
-        
+
+        if (m_added_tokens){
+            for (const auto& added_token: *m_added_tokens) {
+                vocab.insert(added_token);
+            }
+        }
+
         m_tokenizer = std::make_shared<BPETokenizerImpl>(
             vocab, merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
         );
     }
-
-    if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
-        const size_t added_token_input = input_size - 4;
-        const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
-
-        // vocab string keys
-        auto added_tokens_begins = inputs[added_token_input].data<const int32_t>();
-        auto added_tokens_ends   = inputs[added_token_input + 1].data<const int32_t>();
-        auto added_tokens_chars  = inputs[added_token_input + 2].data<const uint8_t>();
-        // vocab indicies
-        auto added_tokens_values = inputs[added_token_input + 3].data<const int32_t>();
-
-        m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
-        for (size_t i = 0; i < added_tokens_size; ++i) {
-            std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
-            m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
-        };
-    };
 
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
@@ -195,8 +201,8 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
     // TODO: CVS-150387 Implement suffix_indicator.
-    
-    // Initialize sequence of integer tokens by looking up 
+
+    // Initialize sequence of integer tokens by looking up
     // for the longest matching sequnce in the prefix tree.
     Tokens res;
     res.reserve(text.length());
@@ -233,10 +239,10 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
 }
 
 BPETokenizerImpl::BPETokenizerImpl(
-        const Vocab& vocab, const TextMerges& merges, size_t cache_capacity, 
-        std::string unk_token, 
-        std::string suffix_indicator, 
-        std::string end_suffix, 
+        const Vocab& vocab, const TextMerges& merges, size_t cache_capacity,
+        std::string unk_token,
+        std::string suffix_indicator,
+        std::string end_suffix,
         bool fuse_unk,
         bool byte_fallback
     ): m_cache_capacity(cache_capacity), m_suffix_indicator(suffix_indicator), m_end_suffix(end_suffix), m_byte_fallback(byte_fallback) {

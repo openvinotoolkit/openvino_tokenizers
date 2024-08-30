@@ -126,6 +126,7 @@ def parse_byte_level_pretokenization_step(
     steps.append(BytesToCharsStep())
     return steps
 
+
 def parse_metaspace(pretokenizer_dict: Dict[str, Any]) -> List[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
 
@@ -210,6 +211,24 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(self.normalizers_map[step_dict["type"]](step_dict))
         except KeyError:
             raise OVTypeError(f"Normalizer type '{step_dict['type']}' is not supported")
+
+    @staticmethod
+    def check_metaspace_normalizer(normalizer_dict: Dict[str, Any]) -> bool:
+        if normalizer_dict.get("type") == "Sequence":
+            normalizers = normalizer_dict["normalizers"]
+
+            if len(normalizers) != 2:
+                return False
+            first, second = normalizers
+            first_prerend = bool(first.get("type") == "Prepend" and first.get("prepend") == "▁")
+            second_replace = bool(
+                second.get("type") == "Replace"
+                and second.get("pattern", {}).get("String") == " "
+                and second.get("content") == "▁"
+            )
+            return first_prerend and second_replace
+
+        return False
 
     def normalization(self) -> None:
         if self.tokenizer_json["normalizer"] is None:
