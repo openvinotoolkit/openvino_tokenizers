@@ -15,7 +15,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: 'master'
+  OV_BRANCH: 'releases/2024/4'
   OV_TARBALL: ''
 
 permissions: read-all
@@ -158,8 +158,8 @@ jobs:
 
       - name: Cmake install - OpenVINO
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -P ${{ env.BUILD_DIR }}/cmake_install.cmake
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.INSTALL_DIR }}/ov_package -DCOMPONENT=python_wheels -P ${{ env.BUILD_DIR }}/cmake_install.cmake
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ env.CMAKE_BUILD_TYPE }} --prefix=${{ env.INSTALL_DIR }}/ov_package
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ env.CMAKE_BUILD_TYPE }} --prefix=${{ env.INSTALL_DIR }}/ov_package --component=python_wheels
 
       - name: Pack Artifacts
         run: |
@@ -184,10 +184,11 @@ jobs:
           if-no-files-found: 'error'
 
   openvino_tokenizers_cpack:
-    name: OpenVINO tokenizers extension (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}) cpack
+    name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
     strategy:
       matrix:
-        build_fast_tokenizers: [ON, OFF]
+        build_fast_tokenizers: [ON]
+        build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
@@ -204,7 +205,6 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
-      CMAKE_BUILD_TYPE: 'Release'
 
     steps:
       - name: Clone Openvino tokenizers
@@ -225,7 +225,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
 
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
@@ -249,18 +248,20 @@ jobs:
         run: |
           ${{ env.OV_INSTALL_DIR }}/setupvars.ps1
           cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" `
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
         env:
-          ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ env.CMAKE_BUILD_TYPE }} --verbose
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        env:
+          ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
 
       - name: Cmake install - tokenizers
         run: |
-          cmake -DCMAKE_INSTALL_PREFIX=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers -P ${{ env.BUILD_DIR }}/cmake_install.cmake
+          cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
 
       - name: Pack Artifacts
         run: |
@@ -280,15 +281,12 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}
+          name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.zip
           if-no-files-found: 'error'
 
   openvino_tokenizers_wheel:
-    name: OpenVINO tokenizers extension (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}) wheel
-    strategy:
-      matrix:
-        build_fast_tokenizers: [ON, OFF]
+    name: OpenVINO tokenizers wheel
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
@@ -348,11 +346,9 @@ jobs:
           python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
             --find-links ${env:INSTALL_DIR}/tools `
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
-            --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
-          ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
           CMAKE_BUILD_DIR: 'D:\a\b'
 
       #
@@ -363,15 +359,12 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
+          name: openvino_tokenizers_wheel
           path: ${{ env.BUILD_DIR }}/*.whl
           if-no-files-found: 'error'
 
   openvino_tokenizers_tests:
-    name: OpenVINO tokenizers tests (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
-    strategy:
-      matrix:
-        build_fast_tokenizers: [ON, OFF]
+    name: OpenVINO tokenizers tests
     needs: [ openvino_download, openvino_build, openvino_tokenizers_wheel]
     if: always() && needs.openvino_tokenizers_wheel.result == 'success'
     timeout-minutes: 25
@@ -401,7 +394,7 @@ jobs:
       - name: Download tokenizers package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
+          name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}\\ov_tokenizers
 
       - name: Download OpenVINO package
@@ -431,7 +424,7 @@ jobs:
           $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\ov_tokenizers" -Filter openvino_tokenizers*.whl | % { $_.FullName }
           python3 -m pip install "$ovCoreWheelPath[all]"
         env:
-          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
