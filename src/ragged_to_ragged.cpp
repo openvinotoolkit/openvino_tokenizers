@@ -29,7 +29,7 @@ bool RaggedToRagged::evaluate(ov::TensorVector& outputs, const ov::TensorVector&
     auto rowids_size = static_cast<int32_t>(inputs[0].get_size());
     auto first_dim_size = inputs[1].data<const int32_t>();
 
-    const uint64_t batch_size = static_cast<uint64_t>(first_dim_size[0]);
+    const size_t batch_size = static_cast<size_t>(first_dim_size[0]);
     outputs[0].set_shape(ov::Shape{ batch_size });
     outputs[1].set_shape(ov::Shape{ batch_size });
 
@@ -41,7 +41,7 @@ bool RaggedToRagged::evaluate(ov::TensorVector& outputs, const ov::TensorVector&
     // prev_row_id stores row id for previous row
     int32_t prev_row_id = -1;
     for (int32_t rowids_idx = 0; rowids_idx < rowids_size; ++rowids_idx) {
-        int32_t curr_row_id = rowids[rowids_idx];
+        uint32_t curr_row_id = rowids[rowids_idx];
         OPENVINO_ASSERT(0 <= curr_row_id, "row id must be non-negative");
         if (curr_row_id >= batch_size) {
             break;
