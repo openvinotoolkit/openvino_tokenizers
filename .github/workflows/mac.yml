@@ -16,8 +16,8 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '11.0'
-  OV_BRANCH: 'master'
-  OV_TARBALL: ''
+  OV_BRANCH: 'releases/2024/4'
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/pre-release/2024.4.0rc1/macos/m_openvino_toolkit_macos_12_6_2024.4.0.dev20240829_x86_64.tgz'
 
 permissions: read-all
 
@@ -245,6 +245,7 @@ jobs:
               ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
+          PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/pre-release
 
       #
       # Upload build artifacts
@@ -321,7 +322,7 @@ jobs:
             python3 -m pip install $wheel_name[dev]
           popd
         env:
-          PIP_EXTRA_INDEX_URL: https://download.pytorch.org/whl/cpu
+          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://storage.openvinotoolkit.org/simple/wheels/pre-release"
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
