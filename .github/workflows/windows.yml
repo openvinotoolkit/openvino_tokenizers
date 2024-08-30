@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'releases/2024/4'
-  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/pre-release/2024.4.0rc1/windows/w_openvino_toolkit_windows_2024.4.0.dev20240829_x86_64.zip'
+  OV_TARBALL: ''
 
 permissions: read-all
 
@@ -188,7 +188,7 @@ jobs:
     strategy:
       matrix:
         build_fast_tokenizers: [ON]
-        build_type: [Release, Debug]
+        build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download, openvino_build ]
     if: |
       always() &&
@@ -350,7 +350,7 @@ jobs:
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_BUILD_DIR: 'D:\a\b'
-          PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/pre-release
+          PIP_EXTRA_INDEX_URL: https://storage.openvinotoolkit.org/simple/wheels/nightly
 
       #
       # Upload build artifacts
@@ -425,7 +425,7 @@ jobs:
           $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\ov_tokenizers" -Filter openvino_tokenizers*.whl | % { $_.FullName }
           python3 -m pip install "$ovCoreWheelPath[all]"
         env:
-          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://storage.openvinotoolkit.org/simple/wheels/pre-release"
+          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://storage.openvinotoolkit.org/simple/wheels/nightly"
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
