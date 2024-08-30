@@ -119,6 +119,7 @@ endif()
 if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set(THIRD_PARTY_BUILD_TYPE ${BUILD_TYPE})
 
   if(WIN32)
     foreach(
@@ -460,12 +461,7 @@ elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_
 endif()
 
 if(WIN32 OR APPLE)
-  if(GENERATOR_IS_MULTI_CONFIG_VAR)
-    set(build_type $<CONFIG>)
-  else()
-    set(build_type ${CMAKE_BUILD_TYPE})
-  endif()
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${build_type})
+  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${BUILD_TYPE})
 endif()
 set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
 set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
