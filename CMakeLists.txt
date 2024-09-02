@@ -9,7 +9,11 @@ cmake_minimum_required(VERSION 3.15)
 get_property(GENERATOR_IS_MULTI_CONFIG_VAR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
 list(LENGTH CMAKE_CONFIGURATION_TYPES build_types_count)
-if(build_types_count EQUAL 1)
+if(CMAKE_DEFAULT_BUILD_TYPE)
+    # when the user sets both CMAKE_DEFAULT_BUILD_TYPE and CMAKE_CONFIGURATION_TYPES
+    set(build_type_default CMAKE_DEFAULT_BUILD_TYPE)
+elseif(build_types_count EQUAL 1)
+    # When CMAKE_CONFIGURATION_TYPES is directly set to a single value
     set(build_type_default CMAKE_CONFIGURATION_TYPES)
 else()
     set(build_type_default "Release")
