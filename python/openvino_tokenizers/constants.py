@@ -32,3 +32,11 @@ SPACE_SYMBOLS = (" ", "\t", "\n", "\r", "\v", "\f")
 
 MIN_CACHE_CAPACITY = 20_000
 VOCAB_SIZE_CACHE_PROPORTION = 0.2
+
+from enum import Enum
+class UTF8ReplaceMode(Enum):
+    SKIP: str = 'skip'
+    REPLACE: str = 'replace'
+    
+    def __str__(self):
+        return self.value

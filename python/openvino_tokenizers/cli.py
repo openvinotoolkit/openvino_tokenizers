@@ -8,7 +8,7 @@ from pathlib import Path
 from openvino import Type, save_model
 
 from openvino_tokenizers import convert_tokenizer
-
+from constants import UTF8ReplaceMode
 
 class StringToTypeAction(Action):
     string_to_type_dict = {
@@ -214,6 +214,17 @@ def get_parser() -> ArgumentParser:
             "Can be used to stream a model output without TextStreamer buffer."
         ),
     )
+    parser.add_argument(
+        "--utf8_replace_mode",
+        choices=list(UTF8ReplaceMode),
+        type=UTF8ReplaceMode,  # enum with 'skip', 'replace' values.
+        default=None,
+        required=False,
+        help=(
+            "If specified then resulting strings during decoding are checked if sequence of bytes is a valid UTF-8 sequence. "
+            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �, if mode is '{UTF8ReplaceMode.SKIP}' then invalid character are skipped."
+        )
+    )
     return parser
 
 
@@ -255,6 +266,7 @@ def convert_hf_tokenizer() -> None:
         use_max_padding=args.max_padding is not None,
         handle_special_tokens_with_re=args.handle_special_tokens_with_re,
         use_sentencepiece_backend=args.use_sentencepiece_backend,
+        utf8_replace_mode=args.utf8_replace_mode,
     )
     if not isinstance(converted, tuple):
         converted = (converted,)

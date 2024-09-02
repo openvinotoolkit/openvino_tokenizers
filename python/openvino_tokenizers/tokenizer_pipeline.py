@@ -28,6 +28,7 @@ from .constants import (
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
     VOCAB_SIZE_CACHE_PROPORTION,
+    UTF8ReplaceMode
 )
 from .str_pack import pack_string, pack_strings
 from .utils import apply_bytes_to_unicode, generate_tokens_with_space_symbols, has_incompatible_re2_op
@@ -979,9 +980,11 @@ class FuseStep(DecodingStep):
 
 @dataclass
 class UTF8ValidateStep(DecodingStep):
+    mode: UTF8ReplaceMode = UTF8ReplaceMode.SKIP
+    
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        # TODO: get replace mode from cli.
-        return _get_factory().create("UTF8Validate", input_nodes, {"replace_mode": False}).outputs()
+        replace_mode = True if self.mode is UTF8ReplaceMode.REPLACE else False
+        return _get_factory().create("UTF8Validate", input_nodes, {"replace_mode": replace_mode}).outputs()
     
 @dataclass
 class ByteFallbackStep(DecodingStep):

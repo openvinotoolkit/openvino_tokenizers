@@ -12,6 +12,8 @@
 /**
  * @class UTF8Validate
  * @brief Checks the input char sequence and replaces or skips invalid characters based on the mode.
+ * 
+ * If replace_mode is true then values are replaced wtih �, if false then invalid character are skipped.
  */
 class UTF8Validate : public ov::op::Op {
 private:
