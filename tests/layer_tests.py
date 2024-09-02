@@ -1,11 +1,8 @@
 import pytest
 import openvino as ov
+from openvino_tokenizers import _get_factory
 core = ov.Core()
 
-import os, sys
-core.add_extension('/Users/pavel-esir/devel/openvino_tokenizers/build-Debug/src/libopenvino_tokenizersd.dylib')
-os.environ.update({"OV_TOKENIZER_PREBUILD_EXTENSION_PATH": "/Users/pavel-esir/devel/openvino_tokenizers/build-Debug/src/libopenvino_tokenizersd.dylib"})
-sys.path.append("/Users/pavel-esir/devel/openvino_tokenizers/python")
 
 utf8_validate_strings = [
     # Valid sequences.
@@ -42,7 +39,6 @@ utf8_validate_strings = [
 
 
 def get_utf8_validate_subgraph(replace_mode) -> ov.CompiledModel:
-    from openvino_tokenizers import _get_factory
     from openvino.runtime import op
 
     replace_mode = False if replace_mode == "ignore" else True
