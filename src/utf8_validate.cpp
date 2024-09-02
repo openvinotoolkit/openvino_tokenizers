@@ -36,9 +36,6 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto out_ends   = outputs[1].data<int32_t>();
     auto out_bytes  = outputs[2].data<uint8_t>();
 
-    // TODO: Check if tensor is not 1D.
-    // TODO: Add replace mode.
-
     // UTF-8 code points should not intersect:
     // if 2 byte object has code point < 0x80 then it's not valid 2 byte utf-8, 
     // even if it has a valid bit mask.
@@ -59,7 +56,6 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             // Check when the last octate of the previous symbol was processed.
             if (!bytes_to_consume && bytes[j] < 128) {
                 // A valid single byte symbol.
-                // todo: Add byte to the resulting sequence.
                 out_bytes[out_idx] = bytes[j];
                 out_idx += 1;
                 continue;
@@ -90,13 +86,14 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             // Check when we are continuating a multibyte symbol.
             if (bytes_to_consume > 0 && bytes[j] >> 6 != 0b10) {
                 // Incorrect byte. Replace if flag is true, skip in other case.
-                // Incorrect continuation
+                // Incorrect continuation, but might be a valid beggining of another symbol.
+                // Try to run the cycle from the beggining (therefore j -= 1) but in the state of searching the start bit mask.
                 j -= 1;
+                bytes_to_consume = 0;
                 if (m_replace_mode) {
                     std::copy(replacement_symbol, replacement_symbol + 3, out_bytes + out_idx);
                     out_idx += 3;
                 }
-                bytes_to_consume = 0;
                 continue;
             }
 
@@ -109,8 +106,11 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 // utf_code_point is out of range.
                 // Incorrect byte. Replace if flag is true, skip in other case.
                 if (m_replace_mode) {
-                    std::copy(replacement_symbol, replacement_symbol + 3, out_bytes + out_idx);
-                    out_idx += 3;
+                    // For multibyte symbol need to replace with several "�" symbols.
+                    for (size_t num = 0; num < num_bytes; num++) {
+                        std::copy(replacement_symbol, replacement_symbol + 3, out_bytes + out_idx);
+                        out_idx += 3;
+                    }
                 }
                 bytes_to_consume = 0;
                 continue;

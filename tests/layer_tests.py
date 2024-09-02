@@ -2,10 +2,16 @@ import pytest
 import openvino as ov
 core = ov.Core()
 
+import os, sys
+core.add_extension('/Users/pavel-esir/devel/openvino_tokenizers/build-Debug/src/libopenvino_tokenizersd.dylib')
+os.environ.update({"OV_TOKENIZER_PREBUILD_EXTENSION_PATH": "/Users/pavel-esir/devel/openvino_tokenizers/build-Debug/src/libopenvino_tokenizersd.dylib"})
+sys.path.append("/Users/pavel-esir/devel/openvino_tokenizers/python")
+
 utf8_validate_strings = [
     # Valid sequences.
     b"Eng... test, string?!",
     b"Eng... test, string?!", 
+    b'\xe2\x82\xac', # Euro sign €ß
     "Проверка, как работает кириллица Љ љ Ђ ђ".encode(),
     "測試字符串".encode(),
     "Tester, la chaîne...".encode(),
@@ -20,11 +26,18 @@ utf8_validate_strings = [
 
     # Invalid sequences.
     b"\x81First byte is invalid utf8",
+    b'\x80\x80\x80', # Bytes 0x80 are valid as continuation bytes, but not as a start byte
     bytes([0b11000000, 0b11000000, 0b11000000]),
-    bytes([0b11110000, 0b10010011, 0b10000001, 0b11101000, 0b11110000, 0b10010011, 0b10000001, 0b10101000]), # 4th byte is invalid
-    bytes([0b11110000, 0b10011111, 0b10011000, 0b11000001, 0b11110000, 0b10011111, 0b10011000, 0b10000001]), # 4th byte is invalid
-    b'A\xC3\x28B',  # 'A' and 'B' are valid, \xC3\x28 is invalid
-    # TODO: Add more invalid sequences as well.
+    bytes([0b11110000, 0b10010011, 0b10000001, 0b11101000, 0b11110000, 0b10010011, 0b10000001, 0b10101000]), # 4th byte is invalid continuation
+    bytes([0b11110000, 0b10011111, 0b10011000, 0b11000001, 0b11110000, 0b10011111, 0b10011000, 0b10000001]), # 4th byte is invalid continuation
+    b'\xc0\x80', # 2 bytes sequence but codepoint is less than 0x80
+    b'\xe0\x81\x81', # 3 bytes sequence but codepoint is less than 0x800
+    b'\xf0\x80\x80\x80', # 4 bytes sequence but codepoint is less than 0x1000
+    b'\xe2\x28\xa1', # \x28 is not a valid continuation byte
+    b'the following block is invalid \xe2\x28\xa1 but this text is valid', # \x28 is not a valid continuation byte
+    b'A\xC3\x28B',  # 'A' and 'B' are valid \x28 is invalid
+    b'\xe2\x82', # 3 byte symbol but is incomplete
+    b'A\xc3\xa9\xe2\x82\xac\xf0\x90\x8d\x88', # Mix of ASCII, 2-byte, 3-byte, and 4-byte characters
 ]
 
 
@@ -47,6 +60,6 @@ def get_utf8_validate_subgraph(replace_mode) -> ov.CompiledModel:
 @pytest.mark.parametrize("replace_mode", ["ignore", "replace"])
 def test_utf8_validate(test_string, replace_mode):
     compiled_model = get_utf8_validate_subgraph(replace_mode)
-    res_ov = compiled_model([test_string])
+    res_ov = compiled_model([test_string])[0]
     res_py = test_string.decode(errors=replace_mode)
-    assert res_ov[0] == res_py
+    assert res_ov == res_py
