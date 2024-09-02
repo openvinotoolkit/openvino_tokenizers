@@ -30,9 +30,9 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto out_ends   = outputs[1].data<int32_t>();
     auto out_bytes  = outputs[2].data<uint8_t>();
 
-    // TODO: Check iftensor is not 1D.
+    // TODO: Check if tensor is not 1D.
     // TODO: Add replace mode.
-        
+    
     // UTF-8 code points should not intersect: 
     // if 2 byte object has code point < 0x80 then it's not valid 2 byte utf-8, 
     // even if it has a valid bit mask.
