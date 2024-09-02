@@ -69,7 +69,7 @@ if(ANDROID)
   set(FAST_TOKENIZER_FROM_SOURCES ON)
 else()
   set(FAST_TOKENIZERS_SUPPORTED ON)
-  if(USE_ABI0 OR WIN32 AND BUILD_TYPE MATCHES "Debug")
+  if(USE_ABI0 OR WIN32 AND CMAKE_BUILD_TYPE MATCHES "Debug")
     set(FAST_TOKENIZER_FROM_SOURCES ON)
   else()
     set(FAST_TOKENIZER_FROM_SOURCES OFF)
@@ -119,7 +119,7 @@ endif()
 if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  set(THIRD_PARTY_BUILD_TYPE ${BUILD_TYPE})
+  set(THIRD_PARTY_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
   if(WIN32)
     foreach(

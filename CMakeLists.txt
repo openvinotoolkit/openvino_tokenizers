@@ -8,16 +8,23 @@ cmake_minimum_required(VERSION 3.15)
 # CMAKE_CONFIGURATION_TYPES, but limiting options in it completely removes such build options
 get_property(GENERATOR_IS_MULTI_CONFIG_VAR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 
+list(LENGTH CMAKE_CONFIGURATION_TYPES build_types_count)
+if(build_types_count EQUAL 1)
+    set(build_type_default CMAKE_CONFIGURATION_TYPES)
+else()
+    set(build_type_default "Release")
+endif()
+
 if(CMAKE_GENERATOR STREQUAL "Ninja Multi-Config")
     # 'Ninja Multi-Config' specific, see:
     # https://cmake.org/cmake/help/latest/variable/CMAKE_DEFAULT_BUILD_TYPE.html
-    set(CMAKE_DEFAULT_BUILD_TYPE "Release" CACHE STRING "CMake default build type")
+    set(CMAKE_DEFAULT_BUILD_TYPE build_type_default CACHE STRING "CMake default build type")
 else()
     if(NOT DEFINED CMAKE_BUILD_TYPE)
-        message(STATUS "CMAKE_BUILD_TYPE is not defined, 'Release' will be used")
+        message(STATUS "CMAKE_BUILD_TYPE is not defined, '${build_type_default}' will be used")
     endif()
     # Setting CMAKE_BUILD_TYPE as CACHE must go before project(). Otherwise project() sets its value and set() doesn't take an effect
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ...")
+    set(CMAKE_BUILD_TYPE build_type_default CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel ...")
 endif()
 
 if(GENERATOR_IS_MULTI_CONFIG_VAR)
