@@ -21,9 +21,15 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     uint8_t* bytes  = inputs[2].data<uint8_t>();
     auto begins_shape = inputs[0].get_shape();
     auto chars_shape = inputs[2].get_shape();
-
+    
+    const unsigned char replacement_symbol[] = {0xEF, 0xBF, 0xBD};  // UTF-8 encoding for "�"
     outputs[0].set_shape(begins_shape);
     outputs[1].set_shape(begins_shape);
+    
+    // One byte can be replaced by 3 bytes at most,
+    // therefore need to allocate more space
+    size_t last_axis = chars_shape.size() - 1;
+    chars_shape[last_axis] = chars_shape[last_axis] * 3;
     outputs[2].set_shape(chars_shape);
     
     auto out_begins = outputs[0].data<int32_t>();
@@ -32,8 +38,8 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
     // TODO: Check if tensor is not 1D.
     // TODO: Add replace mode.
-    
-    // UTF-8 code points should not intersect: 
+
+    // UTF-8 code points should not intersect:
     // if 2 byte object has code point < 0x80 then it's not valid 2 byte utf-8, 
     // even if it has a valid bit mask.
     const uint64_t code_point_starts[4] = {0x0, 0x80, 0x800, 0x10000};
@@ -73,14 +79,24 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 utf_code_point = (0b111 & bytes[j]) << 6 * bytes_to_consume;
                 continue;
             } else if (!bytes_to_consume) {
-                // TODO: Incorrect byte. Replace or skip.
+                // Incorrect byte. Replace if flag is true, skip in other case.
+                if (m_replace_mode) {
+                    std::copy(replacement_symbol, replacement_symbol + 3, out_bytes + out_idx);
+                    out_idx += 3;
+                }
                 continue;
             }
 
             // Check when we are continuating a multibyte symbol.
             if (bytes_to_consume > 0 && bytes[j] >> 6 != 0b10) {
-                // TODO: Incorrect sequence. Replace or skip.
-                bytes_to_consume = 0; // TODO: double check
+                // Incorrect byte. Replace if flag is true, skip in other case.
+                // Incorrect continuation
+                j -= 1;
+                if (m_replace_mode) {
+                    std::copy(replacement_symbol, replacement_symbol + 3, out_bytes + out_idx);
+                    out_idx += 3;
+                }
+                bytes_to_consume = 0;
                 continue;
             }
 
@@ -91,7 +107,11 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
             if (!bytes_to_consume && utf_code_point < code_point_starts[num_bytes - 1]) {
                 // utf_code_point is out of range.
-                // TODO: Incorrect sequence. Replace or skip.
+                // Incorrect byte. Replace if flag is true, skip in other case.
+                if (m_replace_mode) {
+                    std::copy(replacement_symbol, replacement_symbol + 3, out_bytes + out_idx);
+                    out_idx += 3;
+                }
                 bytes_to_consume = 0;
                 continue;
             } else if (!bytes_to_consume) {
@@ -103,8 +123,15 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 utf_code_point = 0;
             }
         }
+        // Check for unfinished sequence.
+        if (m_replace_mode && bytes_to_consume > 0) {
+            std::copy(replacement_symbol, replacement_symbol + 3, out_bytes + out_idx);
+            out_idx += 3;
+        }
         out_ends[i] = out_idx;
     }
 
+    chars_shape[last_axis] = out_idx - begins[0];
+    outputs[2].set_shape(chars_shape);
     return true;
 }

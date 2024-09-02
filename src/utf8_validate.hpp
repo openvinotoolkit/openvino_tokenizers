@@ -23,15 +23,15 @@ public:
 
     UTF8Validate () = default;
 
-    UTF8Validate(const ov::OutputVector& arguments) :
-        ov::op::Op(arguments) {
+    UTF8Validate(const ov::OutputVector& arguments, bool replace_mode = false) :
+        ov::op::Op(arguments), m_replace_mode(replace_mode) {
         constructor_validate_and_infer_types();
     }
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<UTF8Validate>(inputs);
+        return std::make_shared<UTF8Validate>(inputs, m_replace_mode);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {

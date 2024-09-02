@@ -35,7 +35,7 @@ VOCAB_SIZE_CACHE_PROPORTION = 0.2
 
 from enum import Enum
 class UTF8ReplaceMode(Enum):
-    SKIP: str = 'skip'
+    IGNORE: str = 'ignore'
     REPLACE: str = 'replace'
     
     def __str__(self):

@@ -217,12 +217,12 @@ def get_parser() -> ArgumentParser:
     parser.add_argument(
         "--utf8_replace_mode",
         choices=list(UTF8ReplaceMode),
-        type=UTF8ReplaceMode,  # enum with 'skip', 'replace' values.
+        type=UTF8ReplaceMode,  # enum with 'ignore', 'replace' values.
         default=None,
         required=False,
         help=(
             "If specified then resulting strings during decoding are checked if sequence of bytes is a valid UTF-8 sequence. "
-            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �, if mode is '{UTF8ReplaceMode.SKIP}' then invalid character are skipped."
+            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �, if mode is '{UTF8ReplaceMode.IGNORE}' then invalid character are skipped."
         )
     )
     return parser
