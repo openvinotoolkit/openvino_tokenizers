@@ -20,8 +20,10 @@ utf8_validate_strings = [
 
     # Invalid sequences.
     b"\x81First byte is invalid utf8",
-    bytes([0b11000000, 0b11000000])
-    b'A\xC3\x28B'  # 'A' and 'B' are valid, \xC3\x28 is invalid
+    bytes([0b11000000, 0b11000000, 0b11000000]),
+    bytes([0b11110000, 0b10010011, 0b10000001, 0b11101000, 0b11110000, 0b10010011, 0b10000001, 0b10101000]), # 4th byte is invalid
+    bytes([0b11110000, 0b10011111, 0b10011000, 0b11000001, 0b11110000, 0b10011111, 0b10011000, 0b10000001]), # 4th byte is invalid
+    b'A\xC3\x28B',  # 'A' and 'B' are valid, \xC3\x28 is invalid
     # TODO: Add more invalid sequences as well.
 ]
 
@@ -31,7 +33,7 @@ def get_utf8_validate_subgraph(replace_mode) -> ov.CompiledModel:
     from openvino.runtime import op
 
     replace_mode = False if replace_mode == "ignore" else True
-    input_node = ov.op.Parameter(ov.Type.string, ov.PartialShape(["?"]))
+    input_node = op.Parameter(ov.Type.string, ov.PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
     unpacked_ = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
     validated_ = _get_factory().create("UTF8Validate", unpacked_, {"replace_mode": replace_mode}).outputs()
