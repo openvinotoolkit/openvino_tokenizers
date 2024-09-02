@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '11.0'
-  OV_BRANCH: 'releases/2024/4'
+  OV_BRANCH: 'master'
   OV_TARBALL: ''
 
 permissions: read-all
