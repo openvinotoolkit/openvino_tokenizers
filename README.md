@@ -190,6 +190,22 @@ By default, all available ICU locales are supported, which significantly increas
 
 By following these instructions, you can effectively reduce the size of the ICU libraries in your final package.
 
+### Build OpenVINO Tokenizers without FastTokenizer Library
+
+If a tokenizer doesn't use `CaseFold`, `UnicodeNormalization` or `Wordpiece` operations, you can drastically reduce package binary size by building OpenVINO Tokenizers without FastTokenizer dependency with this flag:
+
+```bash
+-DENABLE_FAST_TOKENIZERS=OFF
+```
+
+This option can also help with building for platform that is supported by FastTokenizer, for example `Android x86_64`.
+
+Example for a pip installation path:
+```bash
+
+pip install git+https://github.com/openvinotoolkit/openvino_tokenizers.git --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly --config-settings=override=cmake.options.ENABLE_FAST_TOKENIZERS=OFF
+```
+
 ## Usage
 
 :warning: OpenVINO Tokenizers can be inferred on a `CPU` device only.

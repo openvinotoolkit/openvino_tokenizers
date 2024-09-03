@@ -119,7 +119,7 @@ endif()
 if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  set(THIRD_PARTY_BUILD_TYPE ${BUILD_TYPE})
+  set(THIRD_PARTY_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 
   if(WIN32)
     foreach(
