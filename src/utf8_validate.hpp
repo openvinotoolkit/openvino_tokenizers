@@ -17,13 +17,13 @@
  */
 class UTF8Validate : public ov::op::Op {
 private:
-    bool m_replace_mode = false;
+    bool m_replace_mode = true;
 public:
     OPENVINO_OP("UTF8Validate");
 
     UTF8Validate () = default;
 
-    UTF8Validate(const ov::OutputVector& arguments, bool replace_mode = false) :
+    UTF8Validate(const ov::OutputVector& arguments, bool replace_mode = true) :
         ov::op::Op(arguments), m_replace_mode(replace_mode) {
         constructor_validate_and_infer_types();
     }
