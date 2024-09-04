@@ -30,6 +30,7 @@ from .constants import (
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
+    UTF8ReplaceMode
 )
 from .tokenizer_pipeline import (
     AddToken,
@@ -42,6 +43,7 @@ from .tokenizer_pipeline import (
     CombineSegmentsStep,
     DecodingStep,
     FuseStep,
+    UTF8ValidateStep,
     NMTNormalizationStep,
     NormalizationStep,
     NormalizeUnicode,
@@ -171,6 +173,8 @@ class TransformersTokenizerPipelineParser:
         skip_special_tokens: bool = False,
         clean_up_tokenization_spaces: Optional[bool] = None,
         use_max_padding: bool = False,
+        utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
+
     ) -> TokenizerPipeline:
         self.number_of_inputs = self.number_of_inputs if number_of_inputs is None else number_of_inputs
         self.pipeline.number_of_inputs = self.number_of_inputs
@@ -183,6 +187,7 @@ class TransformersTokenizerPipelineParser:
                 self.decoding,
                 skip_special_tokens=skip_special_tokens,
                 clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+                utf8_replace_mode=utf8_replace_mode,
             ),
         ]:
             add_steps()
@@ -387,6 +392,7 @@ class TransformersTokenizerPipelineParser:
         self,
         skip_special_tokens: bool = False,
         clean_up_tokenization_spaces: Optional[bool] = None,
+        utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
     ) -> None:
         if self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
@@ -406,6 +412,9 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
+        
+        if utf8_replace_mode is not None:
+            self.pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode))
 
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
@@ -451,6 +460,7 @@ def convert_fast_tokenizer(
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = None,
     use_max_padding: bool = False,
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     pipeline = TransformersTokenizerPipelineParser(hf_tokenizer).parse(
         number_of_inputs=number_of_inputs,
@@ -458,6 +468,7 @@ def convert_fast_tokenizer(
         skip_special_tokens=skip_special_tokens,
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         use_max_padding=use_max_padding,
+        utf8_replace_mode=utf8_replace_mode,
     )
     ov_tokenizer = pipeline.get_tokenizer_ov_subgraph()
     output_names = hf_tokenizer.model_input_names
@@ -696,6 +707,7 @@ def convert_sentencepiece_model_tokenizer(
     clean_up_tokenization_spaces: Optional[bool] = False,
     add_prefix_space: Optional[bool] = None,
     handle_special_tokens_with_re: Optional[bool] = None,
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
@@ -912,6 +924,7 @@ def convert_sentencepiece_model_tokenizer(
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         prepend_scheme=prepend_scheme,
         add_prefix_space=add_prefix_space,
+        utf8_replace_mode=utf8_replace_mode,
     )
     return tokenizer, detokenizer
 
@@ -999,6 +1012,7 @@ def get_sp_detokenizer(
     clean_up_tokenization_spaces: bool = False,
     prepend_scheme: str = "",
     add_prefix_space: Optional[bool] = None,
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
 ) -> Model:
     model_input = token_ids = op.Parameter(Type.i32, PartialShape(["?", "?"]))  # (batch, sequence)
 
@@ -1021,6 +1035,10 @@ def get_sp_detokenizer(
 
     if clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
+
+    if utf8_replace_mode is not None:    
+        replace_mode = True if utf8_replace_mode is UTF8ReplaceMode.REPLACE else False
+        UTF8ValidateStep(mode=replace_mode).get_ov_subgraph(detokenizer)
 
     string_output = _get_factory().create("StringTensorPack", detokenizer).outputs()
     string_output[0].tensor.add_names({STRING_OUTPUT_NAME})
@@ -1049,6 +1067,7 @@ def convert_tiktoken_model_tokenizer(
     skip_special_tokens: bool = False,
     clean_up_tokenization_spaces: Optional[bool] = None,
     use_max_padding: bool = False,
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     encoding = getattr(hf_tokenizer, "tokenizer", None) or hf_tokenizer.encoder
     split_pattern = encoding._pat_str
@@ -1092,6 +1111,9 @@ def convert_tiktoken_model_tokenizer(
             FuseStep(),
         ]
     )
+
+    if utf8_replace_mode is not None:
+        pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode)),
 
     if clean_up_tokenization_spaces is None:
         clean_up_tokenization_spaces = getattr(hf_tokenizer, "clean_up_tokenization_spaces", None)
