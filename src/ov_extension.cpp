@@ -52,6 +52,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<RegexNormalization>>(),
             std::make_shared<ov::OpExtension<RegexSplit>>(),
             std::make_shared<ov::OpExtension<BPETokenizer>>(),
+            std::make_shared<ov::OpExtension<UTF8Validate>>(),
             std::make_shared<ov::OpExtension<BytesToChars>>(),
             std::make_shared<ov::OpExtension<CombineSegments>>(),
             std::make_shared<ov::OpExtension<RaggedToDense>>(),
