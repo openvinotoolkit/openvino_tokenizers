@@ -69,7 +69,7 @@ if(ANDROID)
   set(FAST_TOKENIZER_FROM_SOURCES ON)
 else()
   set(FAST_TOKENIZERS_SUPPORTED ON)
-  if(USE_ABI0 OR WIN32 AND CMAKE_BUILD_TYPE MATCHES "Debug")
+  if(USE_ABI0 OR (WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug"))
     set(FAST_TOKENIZER_FROM_SOURCES ON)
   else()
     set(FAST_TOKENIZER_FROM_SOURCES OFF)
@@ -142,7 +142,11 @@ endif()
 
 include(FetchContent)
 
-find_package(sentencepiece QUIET)
+if(NOT USE_ABI0)
+  # for ABI=0 case, we have to build from sources
+  find_package(sentencepiece QUIET)
+endif()
+
 if(sentencepiece_FOUND)
   find_package(absl REQUIRED)
 else()
@@ -198,7 +202,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     if(CMAKE_CL_64)
         target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
     endif()
+    # to propogate _GLIBCXX_USE_CXX11_ABI value
     target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
@@ -221,6 +227,9 @@ function(ov_tokenizers_build_static_re2)
     FetchContent_Populate(re2)
     add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
+
+  # to propogate _GLIBCXX_USE_CXX11_ABI value
+  target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
 endfunction()
 
 if(BUILD_FAST_TOKENIZERS)
