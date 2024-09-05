@@ -148,7 +148,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
-After that you can transfer all binaries from `build/src` to `<openvino_dir>` as described in the [C++ installation instruction](#C++-Installation).
+After that you can transfer all binaries from `build/src` to `<openvino_dir>` as described in the C++ installation instruction above.
 
 ### Reducing the ICU Data Size
 
