@@ -135,6 +135,21 @@ After that you can add binary extension in the code with:
 and `read`/`compile` converted (de)tokenizers models.
 If you use version `2023.3.0.0`, the binary extension file is called `(lib)user_ov_extension.(dll/dylib/so)`.
 
+### C++ Build
+
+To build OpenVINO Tokenizers binaries locally, use this command:
+
+```bash
+source path/to/installed/openvino/setupvars.sh
+git clone https://github.com/openvinotoolkit/openvino_tokenizers.git
+cd openvino_tokenizers
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+```
+
+After that, you can transfer all binaries from `build/src` to `<openvino_dir>` as described in the C++ installation instruction above.
+
 ### Reducing the ICU Data Size
 
 By default, all available ICU locales are supported, which significantly increases the package size. To reduce the size of the ICU libraries included in your final package, follow these steps:
