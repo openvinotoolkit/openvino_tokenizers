@@ -54,8 +54,36 @@ if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
   set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
 endif()
 
-# The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0
-cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF "NOT USE_ABI0" ON)
+if(ANDROID)
+  if(AARCH64 OR ARM)
+    set(FAST_TOKENIZERS_SUPPORTED ON)
+    if(ANDROID_NATIVE_API_LEVEL LESS 33)
+      message(FATAL_ERROR "FastTokenizers require ANDROID_NATIVE_API_LEVEL to be higher than 33. Please, either disable FastTokenizers or set ANDROID_NATIVE_API_LEVEL / ANDROID_PLATFORM")
+    endif()
+  elseif(X86_64 OR RISCV64)
+    message(WARNING "FastTokenizers are not available on ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}. ENABLE_FAST_TOKENIZERS is set to OFF")
+    set(FAST_TOKENIZERS_SUPPORTED OFF)
+  else()
+    message(WARNING "Unsupport Android ${CMAKE_SYSTEM_PROCESSOR}. Please, contact OpenVINO Tokenizers developers")
+  endif()
+  set(FAST_TOKENIZER_FROM_SOURCES ON)
+else()
+  set(FAST_TOKENIZERS_SUPPORTED ON)
+  if(USE_ABI0 OR WIN32 AND CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(FAST_TOKENIZER_FROM_SOURCES ON)
+  else()
+    set(FAST_TOKENIZER_FROM_SOURCES OFF)
+  endif()
+endif()
+
+cmake_dependent_option(ENABLE_FAST_TOKENIZERS "Enables Fast Tokenizers usage in OpenVINO Tokenizers" ON "FAST_TOKENIZERS_SUPPORTED" OFF)
+
+if(ENABLE_FAST_TOKENIZERS)
+  # The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0 or on Android (where prebuilt version is not available)
+  cmake_dependent_option(BUILD_FAST_TOKENIZERS "Compile core_tokenizers instead of downloading prebuilt library" OFF "NOT FAST_TOKENIZER_FROM_SOURCES" ON)
+else()
+  set(BUILD_FAST_TOKENIZERS OFF CACHE BOOL "Compile core_tokenizers instead of downloading prebuilt library" FORCE)
+endif()
 
 #
 # Compile flags
@@ -84,9 +112,28 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${c_cxx_flags}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${cxx_flags} ${c_cxx_flags}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
 
+if(WIN32 OR APPLE)
+  set(CMAKE_DEBUG_POSTFIX "d")
+endif()
+
 if(BUILD_FAST_TOKENIZERS)
   # FastTokenizers use static MSVC runtime, hence we have to use it as well
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set(THIRD_PARTY_BUILD_TYPE ${CMAKE_BUILD_TYPE})
+
+  if(WIN32)
+    foreach(
+        flag_var
+        CMAKE_CXX_FLAGS_DEBUG
+        CMAKE_C_FLAGS_DEBUG)
+        if(${flag_var} MATCHES "/MD")
+          string(REGEX REPLACE "/MD" "/MTd" ${flag_var} "${${flag_var}}")
+        elseif(NOT (${flag_var} MATCHES "/MTd"))
+          set(${flag_var} "${${flag_var}} /MTd")
+        endif()
+        set(${flag_var} "${${flag_var}}" CACHE STRING "msvc compiler flags" FORCE)
+    endforeach()
+  endif()
 endif()
 
 #
@@ -153,6 +200,26 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     endif()
     target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+    if(ANDROID)
+      # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
+      target_link_libraries(${TARGET_NAME} PRIVATE log)
+    endif()
+  endif()
+endfunction()
+
+function(ov_tokenizers_build_static_re2)
+  FetchContent_Declare(
+    re2
+    URL      https://github.com/google/re2/archive/refs/tags/2022-04-01.tar.gz
+    URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
+  )
+  set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+  set(BUILD_SHARED_LIBS OFF)
+  set(RE2_BUILD_TESTING OFF)
+  FetchContent_GetProperties(re2)
+  if(NOT re2_POPULATED)
+    FetchContent_Populate(re2)
+    add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 endfunction()
 
@@ -165,7 +232,9 @@ if(BUILD_FAST_TOKENIZERS)
     fast_tokenizer
     URL      https://github.com/PaddlePaddle/PaddleNLP/archive/refs/tags/v2.6.1.tar.gz
     URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
-    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/icu4c.patch"
+    PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/fast_tokenizers.patch" &&
+                  git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/glog.patch" &&
+                  git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/icu.patch"
     SOURCE_DIR ${EXTERNAL_PROJECT_SOURCE_DIR}
     BINARY_DIR ${EXTERNAL_PROJECT_BINARY_DIR}
     SUBBUILD_DIR ${EXTERNAL_PROJECT_SUBBUILD_DIR}
@@ -176,7 +245,11 @@ if(BUILD_FAST_TOKENIZERS)
     FetchContent_Populate(
       fast_tokenizer
     )
-    set(WITH_PYTHON OFF CACHE BOOL "Disable Python API for fast_tokenizer")
+    set(EXTERNAL_OPTIONAL_ARGS
+      -DCMAKE_POLICY_DEFAULT_CMP0057=NEW
+      -DCMAKE_POLICY_DEFAULT_CMP0135=NEW)
+    set(WITH_PYTHON OFF)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     add_subdirectory(${fast_tokenizer_SOURCE_DIR}/fast_tokenizer
                      ${CMAKE_CURRENT_BINARY_DIR}/fast_tokenizer
                      EXCLUDE_FROM_ALL
@@ -190,27 +263,13 @@ if(BUILD_FAST_TOKENIZERS)
     "${CMAKE_BINARY_DIR}/third_party/json/src/extern_json/single_include/"
     "${CMAKE_BINARY_DIR}/third_party/install/re2/include/")
   set(FAST_TOKENIZER_LIBS core_tokenizers)
-else()
+elseif(ENABLE_FAST_TOKENIZERS)
   if(WIN32 AND X86_64)
       FetchContent_Declare(
         fast_tokenizer
         URL      https://bj.bcebos.com/paddlenlp/fast_tokenizer/fast_tokenizer-win-x64-1.0.2.zip
         URL_HASH SHA256=56470954014bdd3c8c8ad702d20f5f6aa5ab913bff92fd9c3c49ec6da31ff11d
       )
-      FetchContent_Declare(
-        re2
-        URL      https://github.com/google/re2/archive/refs/tags/2022-04-01.tar.gz
-        URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
-      )
-      function(ov_tokenizers_build_static_re2)
-        set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-        set(BUILD_SHARED_LIBS OFF)
-        FetchContent_GetProperties(re2)
-        if(NOT re2_POPULATED)
-          FetchContent_Populate(re2)
-          add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
-        endif()
-      endfunction()
       ov_tokenizers_build_static_re2()
   elseif(LINUX AND X86_64)
       FetchContent_Declare(
@@ -257,14 +316,22 @@ else()
       # because prebuilt fast_tokenizers package does not provide this library
       list(APPEND FAST_TOKENIZER_LIBS re2)
   endif()
+else()
+  # in case if we don't build fast tokenizers, we have to include re2 explicitly
+  ov_tokenizers_build_static_re2()
 endif()
 
-function(ov_tokenizers_link_fast_tokenizer)
-  target_include_directories(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_INCS})
-  target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS})
+function(ov_tokenizers_link_fast_tokenizer TARGET_NAME)
+  if(ENABLE_FAST_TOKENIZERS)
+    target_include_directories(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_INCS})
+    target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS})
+    target_compile_definitions(${TARGET_NAME} PRIVATE ENABLE_FAST_TOKENIZERS)
+  else()
+    message(FATAL_ERROR "ENABLE_FAST_TOKENIZERS is turned off. This function must not be called")
+  endif()
 endfunction()
 
-function(ov_tokenizers_link_pcre2)
+function(ov_tokenizers_link_pcre2 TARGET_NAME)
   FetchContent_Declare(
       prce2
       URL https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip
@@ -277,6 +344,8 @@ function(ov_tokenizers_link_pcre2)
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(PCRE2_STATIC_PIC ON)
     set(PCRE2_BUILD_TESTS OFF)
+    set(PCRE2_BUILD_PCRE2GREP OFF)
+    set(PCRE2_BUILD_TESTS)
 
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
@@ -286,54 +355,65 @@ function(ov_tokenizers_link_pcre2)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
 
+function(ov_tokenizers_link_re2 TARGET_NAME)
+  if(NOT ENABLE_FAST_TOKENIZERS)
+    target_link_libraries(${TARGET_NAME} PRIVATE re2)
+  endif()
+endfunction()
+
 #
 # Build library
 #
 
-file(GLOB SRC *.cpp)
+file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
-add_library(${TARGET_NAME} SHARED ${SRC})
+add_library(${TARGET_NAME} SHARED ${SRCS})
 
 #
 # Target include dirs, link libraries and other properties
 #
 
 ov_tokenizers_link_sentencepiece(${TARGET_NAME})
-ov_tokenizers_link_fast_tokenizer(${TARGET_NAME})
+if(ENABLE_FAST_TOKENIZERS)
+  ov_tokenizers_link_fast_tokenizer(${TARGET_NAME})
+endif()
 ov_tokenizers_link_pcre2(${TARGET_NAME})
+ov_tokenizers_link_re2(${TARGET_NAME})
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
-target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime)
+target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
 #
 # Post build steps to copy core_tokenizers dependencies
 #
 
-if(BUILD_FAST_TOKENIZERS)
-  set(fast_tokenezers_libs_dir "${CMAKE_BINARY_DIR}/third_party/icu/src/extern_icu/icu4c/bin64")
-else()
-  set(fast_tokenezers_libs_dir "${fast_tokenizer_SOURCE_DIR}/third_party/lib")
-  if(WIN32 AND X86_64)
-    set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/core_tokenizers.dll")
-  elseif(LINUX)
-    set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.so")
-  elseif(APPLE)
-    set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.dylib")
+if(ENABLE_FAST_TOKENIZERS)
+  if(BUILD_FAST_TOKENIZERS)
+    set(fast_tokenezers_libs_dir "${CMAKE_BINARY_DIR}/third_party/icu/src/extern_icu/icu4c/bin64")
+  else()
+    set(fast_tokenezers_libs_dir "${fast_tokenizer_SOURCE_DIR}/third_party/lib")
+    if(WIN32 AND X86_64)
+      set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/core_tokenizers.dll")
+    elseif(LINUX)
+      set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.so")
+    elseif(APPLE)
+      set(extra_libs "${fast_tokenizer_SOURCE_DIR}/lib/libcore_tokenizers.dylib")
+    endif()
   endif()
-endif()
 
-if(WIN32 AND X86_64)
-  list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
-                         "${fast_tokenezers_libs_dir}/icuuc70.dll")
-endif()
+  if(WIN32 AND X86_64)
+    list(APPEND extra_libs "${fast_tokenezers_libs_dir}/icudt70.dll"
+                           "${fast_tokenezers_libs_dir}/icuuc70$<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>.dll")
+  endif()
 
-if(extra_libs)
-  # post build steps
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${extra_libs} $<TARGET_FILE_DIR:${TARGET_NAME}>)
+  if(extra_libs)
+    # post build steps
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy ${extra_libs} $<TARGET_FILE_DIR:${TARGET_NAME}>)
+  endif()
 endif()
 
 #
@@ -379,8 +459,9 @@ elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_
     OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
   set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
 endif()
-if(MSVC OR APPLE)
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${CMAKE_BUILD_TYPE})
+
+if(WIN32 OR APPLE)
+  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${BUILD_TYPE})
 endif()
 set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
 set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")

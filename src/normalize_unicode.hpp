@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 #include <openvino/op/op.hpp>
 
 class NormalizeUnicode : public ov::op::Op {
@@ -39,3 +41,5 @@ private:
 
     std::string m_normalization_form = "NFD";
 };
+
+#endif // ENABLE_FAST_TOKENIZERS

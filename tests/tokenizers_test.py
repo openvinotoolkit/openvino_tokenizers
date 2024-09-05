@@ -2,17 +2,19 @@
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 import difflib
-import sys
 import os
+import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
 import requests
 from openvino import Core, Model
+import openvino as ov
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute
+from tokenizers.models import Unigram
 from transformers import AutoTokenizer
 
 
@@ -126,6 +128,7 @@ bpe_models = [
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
 ]
 sentencepiece_models = [
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
     "codellama/CodeLlama-7b-hf",
     "camembert-base",
@@ -149,16 +152,24 @@ tiktiken_models = [
 ]
 
 
-def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False):
+def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, use_sentencepiece_backend=False):
     ov_tokenizer = convert_tokenizer(
-        hf_tokenizer, with_detokenizer=False, add_special_tokens=add_special_tokens, use_max_padding=use_max_padding
+        hf_tokenizer,
+        with_detokenizer=False,
+        add_special_tokens=add_special_tokens,
+        use_max_padding=use_max_padding,
+        use_sentencepiece_backend=use_sentencepiece_backend,
     )
     compiled_tokenizer = core.compile_model(ov_tokenizer)
     return hf_tokenizer, compiled_tokenizer
 
 
 def get_tokenizer_detokenizer(
-    hf_tokenizer, streaming_detokenizer=False, skip_special_tokens=False, clean_up_tokenization_spaces=None
+    hf_tokenizer,
+    streaming_detokenizer=False,
+    skip_special_tokens=False,
+    clean_up_tokenization_spaces=None,
+    use_sentencepiece_backend=False,
 ):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
         hf_tokenizer,
@@ -166,6 +177,7 @@ def get_tokenizer_detokenizer(
         streaming_detokenizer=streaming_detokenizer,
         skip_special_tokens=skip_special_tokens,
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+        use_sentencepiece_backend=use_sentencepiece_backend,
     )
     compiled_tokenizer = core.compile_model(ov_tokenizer)
     compiled_detokenizer = core.compile_model(ov_detokenizer)
@@ -231,18 +243,50 @@ def do_clean_up_tokenization_spaces(request):
     return request.param
 
 
+@pytest.fixture(scope="session", params=[True, False], ids=lambda do_clean: "sp_backend" if do_clean else "")
+def is_sentencepiece_backend(request):
+    return request.param
+
+
 @pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
-def hf_sentencepiece_tokenizers(request, is_fast_tokenizer):
+def hf_sentencepiece_tokenizers(request, is_fast_tokenizer, is_sentencepiece_backend):
+    if not is_fast_tokenizer and not is_sentencepiece_backend:
+        pytest.skip("Legacy tokenizer must use Sentencepiece backend.")
+
     hf_tokenizer = get_hf_tokenizer(request, fast_tokenizer=is_fast_tokenizer, trust_remote_code=True)
+    if not hf_tokenizer.is_fast and is_fast_tokenizer:
+        pytest.skip("Fast tokenizer should use Rust backend.")
+    if (
+        is_fast_tokenizer
+        and not is_sentencepiece_backend
+        and isinstance(hf_tokenizer.backend_tokenizer.model, Unigram)
+    ):
+        pytest.skip("Unigram model supports only sentencepiece backend.")
+
     return hf_tokenizer
 
 
 @pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
-def hf_sentencepiece_tokenizers_with_padding_sides(request, use_left_padding):
+def hf_sentencepiece_tokenizers_with_padding_sides(
+    request, use_left_padding, is_fast_tokenizer, is_sentencepiece_backend
+):
+    if not is_fast_tokenizer and not is_sentencepiece_backend:
+        pytest.skip("Legacy tokenizer must use sentencepiece backend.")
+
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
+    if not hf_tokenizer.is_fast and is_fast_tokenizer:
+        pytest.skip("Fast tokenizer should use Rust backend.")
+    if (
+        is_fast_tokenizer
+        and not is_sentencepiece_backend
+        and isinstance(hf_tokenizer.backend_tokenizer.model, Unigram)
+    ):
+        pytest.skip("Unigram model supports only sentencepiece backend.")
+
     if hf_tokenizer.pad_token is None:
         hf_tokenizer.pad_token = hf_tokenizer.eos_token
         hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or 0
+
     return hf_tokenizer
 
 
@@ -320,13 +364,17 @@ def bpe_tokenizers_detokenizers(hf_bpe_tokenizers, do_skip_special_tokens, do_cl
 
 
 @pytest.fixture(scope="session")
-def sentencepice_tokenizers(hf_sentencepiece_tokenizers, do_add_special_tokens):
-    return get_tokenizer(hf_sentencepiece_tokenizers, add_special_tokens=do_add_special_tokens)
+def sentencepice_tokenizers(hf_sentencepiece_tokenizers, do_add_special_tokens, is_sentencepiece_backend):
+    return get_tokenizer(
+        hf_sentencepiece_tokenizers,
+        add_special_tokens=do_add_special_tokens,
+        use_sentencepiece_backend=is_sentencepiece_backend,
+    )
 
 
 @pytest.fixture(scope="session")
 def sentencepiece_tokenizers_with_padding_options(
-    hf_sentencepiece_tokenizers_with_padding_sides, do_add_special_tokens, use_left_padding
+    hf_sentencepiece_tokenizers_with_padding_sides, do_add_special_tokens, use_left_padding, is_sentencepiece_backend
 ):
     if (
         hf_sentencepiece_tokenizers_with_padding_sides.name_or_path in ("THUDM/chatglm2-6b", "THUDM/chatglm3-6b")
@@ -349,7 +397,7 @@ def sentencepiece_tokenizers_with_padding_options(
 
 @pytest.fixture(scope="session")
 def sentencepice_tokenizers_detokenizers(
-    hf_sentencepiece_tokenizers, do_skip_special_tokens, do_clean_up_tokenization_spaces
+    hf_sentencepiece_tokenizers, do_skip_special_tokens, do_clean_up_tokenization_spaces, is_sentencepiece_backend
 ):
     # chatglm2 always skips special tokens, chatglam3 always not skip
     if hf_sentencepiece_tokenizers.name_or_path == "THUDM/chatglm2-6b" and not do_skip_special_tokens:
@@ -361,6 +409,7 @@ def sentencepice_tokenizers_detokenizers(
         hf_sentencepiece_tokenizers,
         skip_special_tokens=do_skip_special_tokens,
         clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
+        use_sentencepiece_backend=is_sentencepiece_backend,
     )
 
 
@@ -400,7 +449,9 @@ def hf_tokenizers_for_streaming(request):
 
 @pytest.fixture(scope="session")
 def sentencepiece_streaming_tokenizers(hf_tokenizers_for_streaming):
-    return get_tokenizer_detokenizer(hf_tokenizers_for_streaming, streaming_detokenizer=True)
+    return get_tokenizer_detokenizer(
+        hf_tokenizers_for_streaming, streaming_detokenizer=True, use_sentencepiece_backend=True
+    )
 
 
 def print_diff(left, right) -> str:
@@ -450,7 +501,7 @@ def check_detokenizer_output(
 
     token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
     hf_output = hf_tokenizer.batch_decode(token_ids, **hf_detokenizer_kwargs)
-    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"]
+    ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"].tolist()
 
     assert ov_output == hf_output
 
@@ -527,7 +578,14 @@ def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_string
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
 
-    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    from jinja2 import TemplateError
+
+    try:
+        test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    except TemplateError:
+        # filter system message
+        test_string = hf_tokenizer.apply_chat_template(test_string[1:], tokenize=False, add_generation_prompt=True)
+
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         sentencepice_tokenizers,
@@ -831,9 +889,8 @@ def test_rt_info_tiktoken(hf_tiktoken_tokenizers):
     check_rt_info(hf_tiktoken_tokenizers, ov_tokenizer, ov_detokenizer)
 
 
-def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers):
+def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers, is_sentencepiece_backend, is_fast_tokenizer):
     ov_tokenizer, ov_detokenizer = convert_tokenizer(
-        hf_sentencepiece_tokenizers,
-        with_detokenizer=True,
+        hf_sentencepiece_tokenizers, with_detokenizer=True, use_sentencepiece_backend=is_sentencepiece_backend
     )
     check_rt_info(hf_sentencepiece_tokenizers, ov_tokenizer, ov_detokenizer)

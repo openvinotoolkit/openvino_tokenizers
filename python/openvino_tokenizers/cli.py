@@ -8,7 +8,7 @@ from pathlib import Path
 from openvino import Type, save_model
 
 from openvino_tokenizers import convert_tokenizer
-
+from openvino_tokenizers.constants import UTF8ReplaceMode
 
 class StringToTypeAction(Action):
     string_to_type_dict = {
@@ -156,13 +156,24 @@ def get_parser() -> ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--use-sentencepiece-backend",
+        "--use_sentencepiece_backend",
+        required=False,
+        action="store_false",
+        help=(
+            "Use Sentencepiece library as a backend for tokenizer operation. "
+            "The repository should contain Sentencepiece `.model` file. "
+            "Unigram models supported by Sentencepiece backend only."
+        ),
+    )
+    parser.add_argument(
         "--handle-special-tokens-with-re",
         "--handle_special_tokens_with_re",
         required=False,
         action="store_true",
         help=(
-            "Use separete regex to handle special tokens for sentencepiece-based tokenizers. Use this option if the "
-            "converted tokenizer doesn't use special tokens during tokenization."
+            "Use a regex to handle special tokens for tokenizers with Sentencepiece backed. "
+            "Use this option if the converted tokenizer doesn't recognize special tokens during tokenization."
         ),
     )
     parser.add_argument(
@@ -202,6 +213,17 @@ def get_parser() -> ArgumentParser:
             "[Experimental] Modify SentencePiece based detokenizer to keep spaces leading space. "
             "Can be used to stream a model output without TextStreamer buffer."
         ),
+    )
+    parser.add_argument(
+        "--utf8_replace_mode",
+        choices=list(UTF8ReplaceMode),
+        type=UTF8ReplaceMode,  # enum with 'ignore', 'replace' values.
+        default=None,
+        required=False,
+        help=(
+            "If specified then resulting strings during decoding are checked if sequence of bytes is a valid UTF-8 sequence. "
+            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �, if mode is '{UTF8ReplaceMode.IGNORE}' then invalid character are skipped."
+        )
     )
     return parser
 
@@ -243,6 +265,8 @@ def convert_hf_tokenizer() -> None:
         streaming_detokenizer=args.streaming_detokenizer,
         use_max_padding=args.max_padding is not None,
         handle_special_tokens_with_re=args.handle_special_tokens_with_re,
+        use_sentencepiece_backend=args.use_sentencepiece_backend,
+        utf8_replace_mode=args.utf8_replace_mode,
     )
     if not isinstance(converted, tuple):
         converted = (converted,)
