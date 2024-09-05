@@ -137,7 +137,7 @@ If you use version `2023.3.0.0`, the binary extension file is called `(lib)user_
 
 ### C++ Build
 
-To build OpenVINO Tokenizers binaries locally, use this commands:
+To build OpenVINO Tokenizers binaries locally, use this command:
 
 ```bash
 source path/to/installed/openvino/setupvars.sh
