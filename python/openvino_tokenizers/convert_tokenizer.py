@@ -9,8 +9,8 @@ from typing import Any, Optional, Tuple, Union
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
 
-from .utils import change_inputs_type, change_outputs_type, update_rt_info
-
+from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, update_rt_info
+from openvino_tokenizers.constants import UTF8ReplaceMode
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,7 @@ def convert_tokenizer(
     use_max_padding: bool = False,
     handle_special_tokens_with_re: Optional[bool] = None,
     use_sentencepiece_backend: bool = False,
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     ov_tokenizers = None
 
@@ -56,6 +57,7 @@ def convert_tokenizer(
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                     handle_special_tokens_with_re=handle_special_tokens_with_re,
+                    utf8_replace_mode=utf8_replace_mode,
                 )
             elif is_tiktoken_model(tokenizer_object):
                 logger.info("Convert tiktoken-based tokenizer")
@@ -66,6 +68,7 @@ def convert_tokenizer(
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                     use_max_padding=use_max_padding,
+                    utf8_replace_mode=utf8_replace_mode,
                 )
             elif isinstance(tokenizer_object, PreTrainedTokenizerFast):
                 logger.info("Convert Huggingface Fast tokenizer pipeline.")
@@ -77,6 +80,7 @@ def convert_tokenizer(
                     skip_special_tokens=skip_special_tokens,
                     clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                     use_max_padding=use_max_padding,
+                    utf8_replace_mode=utf8_replace_mode,
                 )
             else:
                 raise OVTypeError(f"Huggingface tokenizer type is not supported: {type(tokenizer_object)}")

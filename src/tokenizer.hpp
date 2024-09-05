@@ -14,6 +14,7 @@
 #include "combine_segments.hpp"
 #include "bytes_to_chars.hpp"
 #include "bpe_tokenizer.hpp"
+#include "utf8_validate.hpp"
 #include "ragged_to_dense.hpp"
 #include "ragged_to_sparse.hpp"
 #include "ragged_to_ragged.hpp"

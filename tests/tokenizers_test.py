@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import requests
 from openvino import Core, Model
+import openvino as ov
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute
@@ -127,6 +128,7 @@ bpe_models = [
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
 ]
 sentencepiece_models = [
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
     "codellama/CodeLlama-7b-hf",
     "camembert-base",
