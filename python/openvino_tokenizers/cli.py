@@ -8,7 +8,7 @@ from pathlib import Path
 from openvino import Type, save_model
 
 from openvino_tokenizers import convert_tokenizer
-from .constants import UTF8ReplaceMode
+from openvino_tokenizers.constants import UTF8ReplaceMode
 
 class StringToTypeAction(Action):
     string_to_type_dict = {

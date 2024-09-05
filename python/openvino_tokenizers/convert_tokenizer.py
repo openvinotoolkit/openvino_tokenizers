@@ -9,8 +9,8 @@ from typing import Any, Optional, Tuple, Union
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
 
-from .utils import change_inputs_type, change_outputs_type, update_rt_info
-from .constants import UTF8ReplaceMode
+from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, update_rt_info
+from openvino_tokenizers.constants import UTF8ReplaceMode
 
 logger = logging.getLogger(__name__)
 
