@@ -25,7 +25,7 @@ jobs:
     name: Try to download prebuilt OpenVINO
     outputs:
       status: ${{ steps.openvino_download.outcome }}
-      ov_package_name: ${{ steps.openvino_download.outputs.ov_package_name }}
+      ov_package_path: ${{ steps.openvino_download.outputs.ov_package_path }}
       ov_wheel_input: ${{ steps.openvino_download.outputs.ov_wheel_input }}
     timeout-minutes: 10
     defaults:
@@ -49,7 +49,7 @@ jobs:
     needs: [openvino_download]
     if: needs.openvino_download.outputs.status != 'success'
     outputs:
-      ov_package_name: ${{ steps.set_outputs.outputs.ov_package_name }}
+      ov_package_path: ${{ steps.set_outputs.outputs.ov_package_path }}
     timeout-minutes: 150
     defaults:
       run:
@@ -180,7 +180,7 @@ jobs:
       - name: Set GHA outputs
         id: set_outputs
         run: |
-          echo "ov_package_name=openvino_package.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "ov_package_path=openvino_package.tar.gz" >> "$GITHUB_OUTPUT"
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
@@ -204,7 +204,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
-      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_name || needs.openvino_build.outputs.ov_package_name }}
+      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_path || needs.openvino_build.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -300,7 +300,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
-      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_name || needs.openvino_build.outputs.ov_package_name }}
+      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_path || needs.openvino_build.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -387,7 +387,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
-      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_name || needs.openvino_build.outputs.ov_package_name }}
+      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_path || needs.openvino_build.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
