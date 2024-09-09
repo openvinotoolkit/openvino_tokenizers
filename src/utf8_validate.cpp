@@ -39,10 +39,10 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     // UTF-8 code points should not intersect:
     // if 2 byte object has code point < 0x80 then it's not valid 2 byte utf-8, 
     // even if it has a valid bit mask.
-    const uint64_t code_point_starts[4] = {0x0, 0x80, 0x800, 0x10000};
-    uint64_t utf_code_point;
-    size_t bytes_to_consume;  // Number of additional 0b10xxxxxx bytes to consume to produce a valid UTF8 symbol.
-    size_t num_bytes;
+    const uint32_t code_point_starts[4] = {0x0, 0x80, 0x800, 0x10000};
+    uint32_t utf_code_point;
+    uint32_t bytes_to_consume;  // Number of additional 0b10xxxxxx bytes to consume to produce a valid UTF8 symbol.
+    uint32_t num_bytes;
 
     size_t out_idx = begins[0];
     for (size_t i = 0; i < begins_shape[0]; i++) {
