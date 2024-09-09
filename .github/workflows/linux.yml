@@ -177,10 +177,6 @@ jobs:
           path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
           if-no-files-found: 'error'
 
-      - name: Set GHA outputs
-        id: set_outputs
-        run: |
-          echo "ov_package_path=openvino_package.tar.gz" >> "$GITHUB_OUTPUT"
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
@@ -204,7 +200,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
-      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_path || needs.openvino_build.outputs.ov_package_path }}
+      OV_ROOT: ${{ github.workspace }}/openvino/install/${{ needs.openvino_download.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -232,7 +228,7 @@ jobs:
         if: needs.openvino_build.result == 'success'
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
       #
@@ -248,7 +244,7 @@ jobs:
 
       - name: CMake configure - tokenizers
         run: |
-          source ${INSTALL_DIR}/setupvars.sh
+          source ${OV_ROOT}/setupvars.sh
           cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
@@ -301,7 +297,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
-      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_path || needs.openvino_build.outputs.ov_package_path }}
+      OV_ROOT: ${{ github.workspace }}/openvino/install/${{ needs.openvino_download.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -334,7 +330,7 @@ jobs:
         if: needs.openvino_build.result == 'success'
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
       #
@@ -353,7 +349,7 @@ jobs:
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
               --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
-              --find-links ${INSTALL_DIR}/tools \
+              --find-links ${OV_ROOT}/tools \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
@@ -389,7 +385,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
-      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_path || needs.openvino_build.outputs.ov_package_path }}
+      OV_ROOT: ${{ github.workspace }}/openvino/install/${{ needs.openvino_download.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
@@ -419,7 +415,7 @@ jobs:
         if: needs.openvino_build.result == 'success'
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
+            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
           popd
 
       - name: Install OpenVINO Python wheel from build
@@ -435,6 +431,8 @@ jobs:
         if: needs.openvino_download.result == 'success'
         run: |
           python3 -m pip install ${{ needs.openvino_download.outputs.ov_wheel_input }}
+        env:
+          PIP_FIND_LINKS: file:////${{ env.OV_ROOT }}/tools
 
       - name: Install OpenVINO tokenizers wheel
         run: |
