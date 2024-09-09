@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'master'
-  OV_TARBALL: ''
+  OV_ARTIFACT_NAME: 'openvino_package'
 
 permissions: read-all
 
@@ -25,31 +25,24 @@ jobs:
     name: Try to download prebuilt OpenVINO
     outputs:
       status: ${{ steps.openvino_download.outcome }}
+      ov_package_path: ${{ steps.openvino_download.outputs.ov_package_path }}
+      ov_wheel_input: ${{ steps.openvino_download.outputs.ov_wheel_input }}
     timeout-minutes: 10
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-20.04
+    runs-on: aks-linux-2-cores-8gb
+    container:
+      image: 'openvinogithubactions.azurecr.io/openvino_provider:0.1.0'
+      volumes: [ "/mount:/mount" ]
 
     steps:
-      - name: Download OpenVINO build
-        id: openvino_download
-        run: |
-          wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.zip
-          unzip -l openvino_package.zip
-        continue-on-error: true
-
-      #
-      # Upload to artifacts
-      #
-
-      - name: Upload openvino package
-        if: steps.openvino_download.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: openvino_package
-          path: openvino_package.zip
-          if-no-files-found: 'error'
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
+      id: openvino_download
+      with:
+        ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
+        commit_build_key: 'public_windows_vs2019_release'
+        revision: 'latest_available'
 
   openvino_build:
     name: Build OpenVINO
@@ -179,7 +172,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ env.OV_ARTIFACT_NAME }}
           path: ${{ env.BUILD_DIR }}/openvino_package.zip
           if-no-files-found: 'error'
 
@@ -205,6 +198,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
+      OV_ROOT: ${{ github.workspace }}\b\ov\${{ needs.openvino_download.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -233,6 +227,7 @@ jobs:
           path: ${{ env.OV_INSTALL_DIR }}
 
       - name: Extract OpenVINO packages
+        if: needs.openvino_build.result == 'success'
         run: |
           pushd ${{ env.OV_INSTALL_DIR }}
             Expand-Archive openvino_package.zip -DestinationPath ./tmp
@@ -246,7 +241,7 @@ jobs:
       - name: CMake configure - tokenizers
         shell: pwsh
         run: |
-          ${{ env.OV_INSTALL_DIR }}/setupvars.ps1
+          ${{ env.OV_ROOT }}/setupvars.ps1
           cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" `
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
@@ -302,6 +297,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}\b\ov
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
+      OV_ROOT: ${{ github.workspace }}\b\ov\${{ needs.openvino_download.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -327,10 +323,11 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ env.OV_ARTIFACT_NAME }}
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO packages
+        if: needs.openvino_build.result == 'success'
         run: |
           pushd ${{ env.INSTALL_DIR }}
             Expand-Archive openvino_package.zip -DestinationPath ./tmp
@@ -344,7 +341,7 @@ jobs:
       - name: Build tokenizers wheel
         run: |
           python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
-            --find-links ${env:INSTALL_DIR}/tools `
+            --find-links ${env:OV_ROOT}/tools `
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
@@ -378,6 +375,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}\\openvino\\install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\\openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}\\openvino_tokenizers\\build
+      OV_ROOT: ${{ github.workspace }}\\openvino\\install\${{ needs.openvino_download.outputs.ov_package_path }}
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
@@ -400,23 +398,30 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ env.OV_ARTIFACT_NAME }}
           path: ${{ env.INSTALL_DIR }}
 
 
       - name: Extract OpenVINO packages
+        if: needs.openvino_build.result == 'success'
         run: |
           pushd ${{ env.INSTALL_DIR }}
             Expand-Archive openvino_package.zip -DestinationPath ./tmp
             mv ./tmp/*/* .
           popd
 
-      - name: Install OpenVINO Python wheel
+      - name: Install OpenVINO Python wheel from build
         if: needs.openvino_build.result == 'success'
         run: |
           # Find and install wheel
           $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\tools" -Filter openvino-*.whl | % { $_.FullName }
           python3 -m pip install "$ovCoreWheelPath"
+
+      - name: Install OpenVINO Python wheel from pre-built artifacts
+        if: needs.openvino_download.result == 'success'
+        run: |
+          python3 -m pip install ${{ needs.openvino_download.outputs.ov_wheel_input }}
+        working-directory: ${{ env.INSTALL_DIR }}
 
       - name: Install OpenVINO tokenizers wheel
         run: |
@@ -429,7 +434,7 @@ jobs:
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
         run: |
-          . "${{ env.INSTALL_DIR }}/setupvars.ps1"
+          . "${{ env.OV_ROOT }}/setupvars.ps1"
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
