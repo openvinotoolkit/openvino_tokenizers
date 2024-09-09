@@ -446,7 +446,7 @@ jobs:
         if: needs.openvino_download.outputs.status == 'success'
         run: |
           source ${OV_ROOT}/setupvars.sh
-          python3 -m pytest tokenizers_test.py layer_test.py
+          python3 -m pytest tokenizers_test.py layer_tests.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
       - name: Tokenizers regression tests (using openvino python wheel)
