@@ -16,7 +16,7 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'master'
-  OV_TARBALL: ''
+  OV_ARTIFACT_NAME: 'openvino_package'
 
 permissions: read-all
 
@@ -25,36 +25,27 @@ jobs:
     name: Try to download prebuilt OpenVINO
     outputs:
       status: ${{ steps.openvino_download.outcome }}
+      ov_package_name: ${{ steps.openvino_download.outputs.ov_package_name }}
+      ov_wheel_input: ${{ steps.openvino_download.outputs.ov_wheel_input }}
     timeout-minutes: 10
     defaults:
       run:
         shell: bash
     runs-on: ubuntu-20.04
 
-    steps:
-      - name: Download OpenVINO build
-        id: openvino_download
-        run: |
-          wget ${{ env.OV_TARBALL}} --progress=bar:force:noscroll -O openvino_package.tar.gz
-          tar -tvf openvino_package.tar.gz
-        continue-on-error: true
-
-      #
-      # Upload to artifacts
-      #
-
-      - name: Upload openvino package
-        if: steps.openvino_download.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: openvino_package
-          path: openvino_package.tar.gz
-          if-no-files-found: 'error'
+    steps: # TODO: replace refs/pull/26471/head with env.OV_BRANCH after merge
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26471/head
+      with:
+        ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
+        commit_build_key: 'public_linux_ubuntu_20_04_release'
+        revision: 'latest_available'
 
   openvino_build:
     name: Build OpenVINO
     needs: [openvino_download]
     if: needs.openvino_download.outputs.status != 'success'
+    outputs:
+      ov_package_name: ${{ steps.set_outputs.outputs.ov_package_name }}
     timeout-minutes: 150
     defaults:
       run:
@@ -178,9 +169,14 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ env.OV_ARTIFACT_NAME }}
           path: ${{ env.BUILD_DIR }}/openvino_package.tar.gz
           if-no-files-found: 'error'
+
+      - name: Set GHA outputs
+        id: set_outputs
+        run: |
+          echo "ov_package_name=openvino_package.tar.gz" >> "$GITHUB_OUTPUT"
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
@@ -204,6 +200,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_name || needs.openvino_build.outputs.ov_package_name }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -211,6 +208,7 @@ jobs:
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
+      # TODO: take install_build_dependencies from package?
       - name: Clone Openvino
         uses: actions/checkout@v4
         with:
@@ -223,13 +221,13 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ env.OV_ARTIFACT_NAME }}
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO packages
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
+            tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
           popd
 
       #
@@ -298,6 +296,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_name || needs.openvino_build.outputs.ov_package_name }}
 
     steps:
       - name: Clone Openvino tokenizers
@@ -323,13 +322,13 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ env.OV_ARTIFACT_NAME }}
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO packages
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
+            tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
           popd
 
       #
@@ -384,6 +383,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+      OV_PACKAGE: ${{ needs.openvino_download.outputs.ov_package_name || needs.openvino_build.outputs.ov_package_name }}
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
@@ -406,16 +406,16 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ env.OV_ARTIFACT_NAME }}
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO build package
         run: |
           pushd ${INSTALL_DIR}
-            tar -xzf openvino_package.tar.gz -C ${INSTALL_DIR} --strip-components=1
+            tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
           popd
 
-      - name: Install OpenVINO Python wheel
+      - name: Install OpenVINO Python wheel from build
         if: needs.openvino_build.result == 'success'
         run: |
           # Find and install wheel
@@ -423,6 +423,11 @@ jobs:
             wheel_name=$(find . -name 'openvino-*.whl')
             python3 -m pip install $wheel_name
           popd
+
+      - name: Install OpenVINO Python wheel from pre-built artifacts
+        if: needs.openvino_download.result == 'success'
+        run: |
+          python3 -m pip install ${{ needs.openvino_download.outputs.ov_wheel_input }}
 
       - name: Install OpenVINO tokenizers wheel
         run: |
