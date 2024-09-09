@@ -31,13 +31,16 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-20.04
+    runs-on: aks-linux-2-cores-8gb
+    container:
+      image: 'openvinogithubactions.azurecr.io/openvino_provider:0.1.0'
+      volumes: [ "/mount:/mount" ]
 
-    steps: # TODO: replace refs/pull/26471/head with env.OV_BRANCH after merge
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26471/head
+    steps:
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@${{ env.OV_BRANCH }}
       with:
         ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
-        commit_build_key: 'public_linux_ubuntu_20_04_release'
+        commit_build_key: 'public_linux_ubuntu_20_04_x86_64_release'
         revision: 'latest_available'
 
   openvino_build:
