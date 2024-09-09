@@ -229,6 +229,7 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO packages
+        if: needs.openvino_build.result == 'success'
         run: |
           pushd ${INSTALL_DIR}
             tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
@@ -330,6 +331,7 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO packages
+        if: needs.openvino_build.result == 'success'
         run: |
           pushd ${INSTALL_DIR}
             tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
@@ -414,6 +416,7 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
 
       - name: Extract OpenVINO build package
+        if: needs.openvino_build.result == 'success'
         run: |
           pushd ${INSTALL_DIR}
             tar -xzf ${{ env.OV_PACKAGE }} -C ${INSTALL_DIR} --strip-components=1
