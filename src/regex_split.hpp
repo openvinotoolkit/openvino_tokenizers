@@ -69,7 +69,7 @@ private:
     mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
     mutable std::shared_ptr<std::set<std::string>> m_skip_tokens;
     mutable std::string m_behaviour = "remove";
-    mutable SplitMode m_split_mode;
+    mutable SplitMode m_split_mode = SplitMode::REMOVED;
     bool m_invert = false;
     int m_max_splits = -1;
 

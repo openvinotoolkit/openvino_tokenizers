@@ -253,17 +253,17 @@ BPETokenizerImpl::BPETokenizerImpl(
     Vocab new_vocab = vocab;
 
     for (size_t i = 0; i < merges.size(); i++) {
-        auto pair = merges.at(i);
+        auto& pair = merges.at(i);
         auto id_pair = std::make_pair(vocab.at(pair.first), vocab.at(pair.second));
         new_merges[id_pair] = {i, vocab.at(pair.first + pair.second)};
         new_vocab.erase(pair.first + pair.second);
     }
 
-    this->m_vocab = new_vocab;
-    this->m_merges = new_merges;
+    m_vocab = std::move(new_vocab);
+    m_merges = std::move(new_merges);
 
     m_trie = std::make_unique<Trie>();
-    for(const auto& word: new_vocab) {
+    for(const auto& word: m_vocab) {
         const auto token = std::vector<unsigned char>(word.first.begin(), word.first.end());
         m_trie->add(token, word.second);
     }
