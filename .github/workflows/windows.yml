@@ -419,7 +419,7 @@ jobs:
           python3 -m pip install "$ovCoreWheelPath"
 
       - name: Install OpenVINO Python wheel from pre-built artifacts
-        if: needs.openvino_download.result == 'success'
+        if: needs.openvino_download.outputs.status == 'success'
         run: |
           python3 -m pip install ${{ needs.openvino_download.outputs.ov_wheel_input }}
         working-directory: ${{ env.INSTALL_DIR }}
