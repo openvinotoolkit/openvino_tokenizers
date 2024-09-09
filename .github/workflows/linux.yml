@@ -429,7 +429,7 @@ jobs:
         if: needs.openvino_download.result == 'success'
         run: |
           python3 -m pip install ${{ needs.openvino_download.outputs.ov_wheel_input }}
-        working-directory: ${{ env.OV_ROOT }}
+        working-directory: ${{ env.INSTALL_DIR }}
 
       - name: Install OpenVINO tokenizers wheel
         run: |
