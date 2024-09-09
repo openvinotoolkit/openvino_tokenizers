@@ -37,7 +37,7 @@ jobs:
       volumes: [ "/mount:/mount" ]
 
     steps:
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@${{ env.OV_BRANCH }}
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       with:
         ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
         commit_build_key: 'public_linux_ubuntu_20_04_x86_64_release'
