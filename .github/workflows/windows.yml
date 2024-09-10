@@ -350,7 +350,7 @@ jobs:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_BUILD_DIR: 'D:\a\b'
           DEFAULT_OV_WHEEL_SOURCE: ${{ env.INSTALL_DIR }}/tools
-        working-directory: ${{ env.OV_ROOT }}
+        working-directory: ${{ env.INSTALL_DIR }}
 
       #
       # Upload build artifacts
