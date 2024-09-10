@@ -27,6 +27,7 @@ jobs:
       status: ${{ steps.openvino_download.outcome }}
       ov_package_path: ${{ steps.openvino_download.outputs.ov_package_path }}
       ov_wheel_input: ${{ steps.openvino_download.outputs.ov_wheel_input }}
+      ov_wheel_source: ${{ steps.openvino_download.outputs.ov_wheel_source }}
     timeout-minutes: 10
     defaults:
       run:
@@ -37,8 +38,8 @@ jobs:
       volumes: [ "/mount:/mount" ]
     continue-on-error: true
 
-    steps:
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
+    steps: # TODO: revert custom PR
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26517/head
       id: openvino_download
       with:
         ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
@@ -342,12 +343,13 @@ jobs:
       - name: Build tokenizers wheel
         run: |
           python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
-            --find-links ${env:OV_ROOT}/tools `
+            --find-links ${{ needs.openvino_download.outputs.ov_wheel_source }} `
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_BUILD_DIR: 'D:\a\b'
+        working-directory: ${{ env.OV_ROOT }}
 
       #
       # Upload build artifacts
