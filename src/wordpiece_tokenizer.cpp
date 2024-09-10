@@ -47,6 +47,8 @@ void WordpieceTokenizer::validate_and_infer_types() {
 
 
 bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    Vocab m_vocab;
+    m_tokenizer = nullptr;
     if (m_tokenizer == nullptr) {
         auto vocab_begins = inputs[5].data<const int32_t>();
         auto vocab_ends   = inputs[6].data<const int32_t>();
@@ -55,6 +57,7 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
 
         auto unk_token_id = *inputs[8].data<const int32_t>();
         core::Vocab vocab;
+
         std::string unk_token;
         if(unk_token_id < 0)
             unk_token_id += vocab_size;
@@ -62,9 +65,12 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         for(size_t id = 0; id < vocab_size; ++id) {
             auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
             vocab[token] = int32_t(id); // TODO: Check range
+            m_vocab[token] = int32_t(id);
+
             if (id == unk_token_id)
                 unk_token = token;
         }
+        m_unk_token_id = unk_token_id;
         m_tokenizer = std::make_shared<models::FastWordPiece>(vocab, unk_token, m_max_bytes_per_word, m_suffix_indicator, true);
     };
 
@@ -90,18 +96,48 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     auto new_elems  = outputs[2].data<int32_t>();
     int32_t ragged_offset = 0;
 
+    m_trie = std::make_unique<Trie>();
+    for(const auto& word: m_vocab) {
+        const auto token = std::vector<unsigned char>(word.first.begin(), word.first.end());
+        m_trie->add(token, word.second);
+    }
+
     for(size_t seq = 0; seq < num_rows; ++seq) {
         new_begins[seq] = ragged_offset;
 
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
+            
+            auto text_orig = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
+            auto text = text_orig;
+            Tokens res;
+            auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
+            int idx = 0;
+            auto token_id = m_trie->find_longest(text_vec, idx);
+            if (token_id == -1) {
+                res.emplace_back(m_unk_token_id);
+            } else {
+                res.emplace_back(token_id);
+            }
+            if (token_id != -1) {
+                for(; idx < text_vec.size();) {
+                    std::cout << "still continuing\n" << std::flush;
+                    text = m_suffix_indicator + text.substr(idx);
+                    text_vec = std::vector<unsigned char>(text.begin(), text.end());
+                    idx = 0;
+                    token_id = m_trie->find_longest(text_vec, idx);
+                    if (token_id == -1) {
+                        res.emplace_back(m_unk_token_id);
+                        idx += 1;
+                        continue;
+                    }
+                    res.emplace_back(token_id);
+                }
+            }
 
-            auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            std::vector<core::Token> results = m_tokenizer->Tokenize(str);
-
-            for (const core::Token& token : results) {
+            for (const auto& token : res) {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                new_elems[ragged_offset++] = token.id_;
-            };
+                new_elems[ragged_offset++] = token;
+            }
         }
         new_ends[seq] = ragged_offset;
     }

@@ -13,6 +13,10 @@
 
 #include <openvino/op/op.hpp>
 #include "fast_tokenizer/models/models.h"
+#include "utils.hpp"
+
+using Vocab = std::unordered_map<std::string, unsigned int>;
+using Tokens = std::vector<int32_t>;
 
 using namespace paddlenlp::fast_tokenizer;
 
@@ -54,8 +58,11 @@ public:
 
 private:
     mutable std::shared_ptr<models::FastWordPiece> m_tokenizer;
+    mutable std::shared_ptr<Trie> m_trie_root;
+    mutable std::shared_ptr<Trie> m_trie_subwords;
     std::string m_suffix_indicator = "##";
     int m_max_bytes_per_word = 100;   // TODO: Can it be done outside the op as preprocessing of the input?
+    mutable int m_unk_token_id;
 };
 
 #endif // ENABLE_FAST_TOKENIZERS
