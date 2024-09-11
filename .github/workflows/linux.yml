@@ -39,7 +39,7 @@ jobs:
     continue-on-error: true
 
     steps: # TODO: revert custom PR
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26517/head
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       id: openvino_download
       with:
         ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
