@@ -43,7 +43,7 @@ jobs:
       id: openvino_download
       with:
         ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
-        commit_build_key: 'public_windows_vs2019_release'
+        commit_build_key: 'public_windows_vs2019_Release'
         revision: 'latest_available'
 
   openvino_build:
