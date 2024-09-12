@@ -117,28 +117,20 @@ if(WIN32 OR APPLE)
 endif()
 
 if(BUILD_FAST_TOKENIZERS)
-  # FastTokenizers use static MSVC runtime, hence we have to use it as well
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
   set(THIRD_PARTY_BUILD_TYPE ${CMAKE_BUILD_TYPE})
-  # PADDLE_LIB
-  set(MSVC_STATIC_CRT OFF)
-  # PCRE2_LIB
-  set(PCRE2_STATIC_RUNTIME OFF)
-  # sentencepiece libs
-  set(SPM_ENABLE_MSVC_MT_BUILD OFF)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NOENTRY")
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /NOENTRY")
+  # Set FastTokenizers to use dynamic MSVC runtime
+  set(MSVC_STATIC_CRT OFF)  # PADDLE_LIB
+  set(PCRE2_STATIC_RUNTIME OFF) # PCRE2_LIB
+  set(SPM_ENABLE_MSVC_MT_BUILD OFF) # sentencepiece libs
   if(WIN32)
     foreach(
         flag_var
         CMAKE_CXX_FLAGS
-        CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_C_FLAGS
-        CMAKE_C_FLAGS_RELEASE)
+        CMAKE_C_FLAGS)
         if(${flag_var} MATCHES "/MT")
-          string(REGEX REPLACE "/MT" "/MD" ${flag_var} "${${flag_var}}")
-        elseif(NOT (${flag_var} MATCHES "/MD"))
-          set(${flag_var} "${${flag_var}} /MD")
+          string(REGEX REPLACE "/MT" "/MD$<$<CONFIG:Debug>:d>" ${flag_var} "${${flag_var}}")
+        elseif(NOT (${flag_var} MATCHES "/MD$<$<CONFIG:Debug>:d>"))
+          set(${flag_var} "${${flag_var}} /MD$<$<CONFIG:Debug>:d>")
         endif()
         set(${flag_var} "${${flag_var}}" CACHE STRING "msvc compiler flags" FORCE)
     endforeach()
