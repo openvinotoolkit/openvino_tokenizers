@@ -96,10 +96,15 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     auto new_elems  = outputs[2].data<int32_t>();
     int32_t ragged_offset = 0;
 
-    m_trie = std::make_unique<Trie>();
+    m_trie_root = std::make_unique<Trie>();
+    m_trie_subwords = std::make_unique<Trie>();
     for(const auto& word: m_vocab) {
         const auto token = std::vector<unsigned char>(word.first.begin(), word.first.end());
-        m_trie->add(token, word.second);
+        if (word.first.substr(0, 2) == "##") {
+            m_trie_subwords->add(token, word.second);
+        } else {
+            m_trie_root->add(token, word.second);
+        }
     }
 
     for(size_t seq = 0; seq < num_rows; ++seq) {
@@ -112,7 +117,7 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
             Tokens res;
             auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
             int idx = 0;
-            auto token_id = m_trie->find_longest(text_vec, idx);
+            auto token_id = m_trie_root->find_longest(text_vec, idx);
             if (token_id == -1) {
                 res.emplace_back(m_unk_token_id);
             } else {
@@ -124,11 +129,11 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
                     text = m_suffix_indicator + text.substr(idx);
                     text_vec = std::vector<unsigned char>(text.begin(), text.end());
                     idx = 0;
-                    token_id = m_trie->find_longest(text_vec, idx);
+                    token_id = m_trie_subwords->find_longest(text_vec, idx);
                     if (token_id == -1) {
                         res.emplace_back(m_unk_token_id);
                         idx += 1;
-                        continue;
+                        break;
                     }
                     res.emplace_back(token_id);
                 }
