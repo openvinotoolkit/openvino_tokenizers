@@ -43,7 +43,7 @@ jobs:
       id: openvino_download
       with:
         ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
-        commit_build_key: 'DUMMY'
+        commit_build_key: 'public_linux_ubuntu_20_04_x86_64_release'
         revision: 'latest_available'
 
   openvino_build:
