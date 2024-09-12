@@ -38,3 +38,17 @@ index 3b68f082..6ae7e8f0 100644
          if (ICU_STATIC)
              list(APPEND ${ICU_LIB_VAR} ${ICU_STATIC_LIB})
          else()
+
+diff --git a/fast_tokenizer/CMakeLists.txt b/fast_tokenizer/CMakeLists.txt
+index ce238239..103a4f3e 100644
+--- a/fast_tokenizer/CMakeLists.txt
++++ b/fast_tokenizer/CMakeLists.txt
+@@ -51,7 +51,7 @@ else()
+     set(CMAKE_CXX_STANDARD 11)
+ endif()
+
+-IF(WIN32)
++IF(WIN32 AND MSVC_STATIC_CRT)
+ # Need to add flags for windows
+ foreach(
+     flag_var
