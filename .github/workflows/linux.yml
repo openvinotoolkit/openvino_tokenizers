@@ -354,7 +354,7 @@ jobs:
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_GENERATOR: 'Unix Makefiles'
-          DEFAULT_OV_WHEEL_SOURCE: ${{ env.INSTALL_DIR }}/tools
+          DEFAULT_OV_WHEEL_SOURCE: "--find-links ${{ env.INSTALL_DIR }}/tools"
         working-directory: ${{ env.INSTALL_DIR }}
 
       #
