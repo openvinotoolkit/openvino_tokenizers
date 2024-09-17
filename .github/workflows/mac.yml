@@ -192,7 +192,7 @@ jobs:
     runs-on: macos-13
 
     env:
-      CMAKE_GENERATOR: 'Ninja Multi-Config'
+      CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}/openvino
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install

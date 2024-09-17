@@ -200,7 +200,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      CMAKE_GENERATOR: 'Ninja Multi-Config'
+      CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
       OV_INSTALL_DIR: ${{ github.workspace }}\b\ov
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
