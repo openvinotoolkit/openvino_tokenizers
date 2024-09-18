@@ -251,6 +251,9 @@ jobs:
           # Add it to the GitHub Path so it would be available in the subsequent steps
           Add-Content -Path $env:GITHUB_PATH -Value "${{ github.workspace }}/ninja-win"
 
+      - name: Configure Developer Command Prompt for Microsoft Visual C++
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: CMake configure - tokenizers
         shell: pwsh
         run: |
