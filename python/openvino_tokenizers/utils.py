@@ -10,6 +10,10 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
+from openvino.runtime.op import Constant
+from openvino.runtime.op.util import VariableInfo, Variable
+from openvino.runtime.passes import ModelPass, Manager
+from openvino.runtime import Node, Input, Shape, Output, PartialShape
 
 from .constants import (
     LOGITS_OUTPUT_NAME,
@@ -203,21 +207,14 @@ def make_combine_segments_stateful(model: Model, default_flag: bool = True) -> N
     Returns:
         None
     """
-    import openvino as ov
-    from openvino.runtime.op import Constant
-    from openvino.runtime.opset13 import assign, read_value, multiply
-    from openvino.runtime.op.util import VariableInfo, Variable
-    from openvino.runtime.passes import ModelPass, Manager
-    from openvino.runtime import Node, Input, Shape, Output
-    from openvino_tokenizers.constants import SPECIAL_TOKENS_STATE_NAME
 
     def check_const(output: Output) -> bool:
         res = output.get_node().get_type_info().name == "Constant"
-        res &= output.get_element_type() == ov.Type.i32
-        res &= output.get_partial_shape() == ov.PartialShape([])
+        res &= output.get_element_type() == Type.i32
+        res &= output.get_partial_shape() == PartialShape([])
         return res
     
-    class MekeCombineSegmentsStatefull(ModelPass):
+    class MakeCombineSegmentsStatefull(ModelPass):
         def __init__(self):
             super().__init__()
 
@@ -228,21 +225,23 @@ def make_combine_segments_stateful(model: Model, default_flag: bool = True) -> N
                 consts_to_patch.extend([node.input(idx) for idx in range(1, len(node.inputs()) - 1, 3) if check_const(node.input_value(idx))])
 
             var_info = VariableInfo()
-            var_info.data_shape = ov.PartialShape([])
-            var_info.data_type = ov.Type.i32
+            var_info.data_shape = PartialShape([])
+            var_info.data_type = Type.i32
+            from openvino_tokenizers.constants import SPECIAL_TOKENS_STATE_NAME
             var_info.variable_id = SPECIAL_TOKENS_STATE_NAME
             variable = Variable(var_info)
             
-            default_val = Constant(ov.Type.i32, ov.Shape([]), [int(default_flag)])
-            read_value_node = read_value(default_val, variable)
+            default_val = Constant(Type.i32, Shape([]), [int(default_flag)])
+            read_value_node = opset.read_value(default_val, variable)
             
+            # Remove this when plugin will be ready to consume ReadVelue without Assign
             model.add_variables([variable])
-            model.add_sinks([assign(read_value_node, variable)])
+            model.add_sinks([opset.assign(read_value_node, variable)])
 
             for input in consts_to_patch:
-                mul_node = multiply(read_value_node, input.get_source_output())
+                mul_node = opset.multiply(read_value_node, input.get_source_output())
                 input.replace_source_output(mul_node.output(0))
 
     manager = Manager()
-    manager.register_pass(MekeCombineSegmentsStatefull())
+    manager.register_pass(MakeCombineSegmentsStatefull())
     manager.run_passes(model)

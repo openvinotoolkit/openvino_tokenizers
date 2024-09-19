@@ -840,20 +840,6 @@ class CombineSegmentsStep(PostTokenizationStep):
         op_inputs = []
         input_nodes_iter = iter(input_nodes)
         from itertools import groupby
-        
-        # connect state flag to end_outputs
-        import openvino as ov
-        from openvino.runtime.op import Constant
-        from openvino.runtime.opset13 import assign, read_value, multiply
-        from openvino.runtime.op.util import VariableInfo, Variable
-        
-        var_info = VariableInfo()
-        var_info.data_shape = ov.PartialShape([])
-        var_info.data_type = ov.Type.i32
-        var_info.variable_id = "ADD_SPECIAL_TOKENS_VAL"
-        variable = Variable(var_info)
-        default_val = Constant(ov.Type.i32, ov.Shape([]), [1 if self.add_special_tokens else 0])
-        # read_value_node = read_value(default_val, variable)
 
         segment_ids = []
         segment_index = 0

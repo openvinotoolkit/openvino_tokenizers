@@ -468,15 +468,26 @@ def check_tokenizer_output(
     skip_missing_outputs: bool = False,
     hf_tokenizer_kwargs: Optional[Dict[str, Any]] = None,
     calculate_diff: bool = False,
+    add_special_tokens_state_flag: Optional[bool] = None,
 ) -> None:
     hf_tokenizer, ov_tokenizer = tokenizers
     hf_tokenizer_kwargs = {} if hf_tokenizer_kwargs is None else hf_tokenizer_kwargs
 
     if isinstance(test_string, str):
         test_string = [test_string]
-
+    
+    hf_tokenizer_kwargs['add_special_tokens'] = add_special_tokens_state_flag
     hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
-    ov_tokenized = ov_tokenizer(test_string)
+    if add_special_tokens_state_flag is not None:
+        ov_infer_request = ov_tokenizer.create_infer_request()
+        states = ov_infer_request.query_state()
+        state_tensor = ov.Tensor(np.array([add_special_tokens_state_flag], dtype=np.int32), ov.Shape([]))
+        assert len(states) == 1
+        states[0].state = state_tensor
+        ov_infer_request.set_input_tensor(ov.Tensor(test_string))
+        ov_tokenized = ov_infer_request.infer()
+    else:
+        ov_tokenized = ov_tokenizer(test_string)
 
     for output_name, hf_result in hf_tokenized.items():
         if output_name not in ov_tokenized and skip_missing_outputs:
@@ -671,14 +682,23 @@ def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_string, do_add_special_to
     hf_tokenizer, ov_tokenizer = bpe_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
-
+    
+    # Here do_add_special_tokens is a default values included in the graph ReadValue default.
+    # Run in runtime with both values of add_special_tokens.
     test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         bpe_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
-        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        add_special_tokens_state_flag=True
+    )
+
+    check_tokenizer_output(
+        bpe_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
+        add_special_tokens_state_flag=False
     )
 
 
