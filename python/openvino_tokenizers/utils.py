@@ -189,6 +189,20 @@ def generate_tokens_with_space_symbols(token: str, depth: int = 1):
 
 
 def make_combine_segments_stateful(model: Model, default_flag: bool = True) -> None:
+    """
+    Transforms the given ov.Model to make the "CombineSegments" operation stateful.
+
+    It patches every 3rd input (ends input) of "CombineSegments" operations if it is a Constant:
+    adds mul operation to make them depend on a runtime-updatable state instead of fixed constants.
+    E.g. if there are 7 inputs, then inputs 1 and 4 will be patched.
+
+    Args:
+        model (Model): The OpenVINO model to modify.
+        default_flag (bool, optional): A flag used to initialize the state variable. Defaults to True.
+
+    Returns:
+        None
+    """
     import openvino as ov
     from openvino.runtime.op import Constant
     from openvino.runtime.opset13 import assign, read_value, multiply
