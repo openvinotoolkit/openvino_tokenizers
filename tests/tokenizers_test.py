@@ -476,9 +476,10 @@ def check_tokenizer_output(
     if isinstance(test_string, str):
         test_string = [test_string]
     
-    hf_tokenizer_kwargs['add_special_tokens'] = add_special_tokens_state_flag
     hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
+    # If add_special_tokens_state_flag is defined, set it's value to state
     if add_special_tokens_state_flag is not None:
+        hf_tokenizer_kwargs['add_special_tokens'] = add_special_tokens_state_flag
         ov_infer_request = ov_tokenizer.create_infer_request()
         states = ov_infer_request.query_state()
         state_tensor = ov.Tensor(np.array([add_special_tokens_state_flag], dtype=np.int32), ov.Shape([]))
@@ -686,7 +687,6 @@ def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_string, do_add_special_to
     # Here do_add_special_tokens is a default values included in the graph ReadValue default.
     # Run in runtime with both values of add_special_tokens.
     test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
-    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         bpe_tokenizers,
         test_string=test_string,
