@@ -9,7 +9,7 @@ from typing import Any, Optional, Tuple, Union
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
 
-from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, update_rt_info
+from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, update_rt_info, make_combine_segments_stateful
 from openvino_tokenizers.constants import UTF8ReplaceMode
 
 logger = logging.getLogger(__name__)
@@ -101,27 +101,8 @@ def convert_tokenizer(
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
     
     ov_tokenizer = ov_tokenizers[0] if isinstance(ov_tokenizers, tuple) else ov_tokenizers
+    make_combine_segments_stateful(ov_tokenizer, add_special_tokens)
 
-    # Add and register assign nodes and variables.
-    # TODO: remove this when CPU plugin fill not fail without assign.
-    from openvino.runtime.opset13 import assign, read_value
-    from openvino.runtime.op.util import VariableInfo, Variable
-    import openvino as ov
-
-    def get_variable(node: read_value) -> Variable:
-        var_info = VariableInfo()
-        var_info.data_shape = ov.PartialShape(node.get_output_shape(0))
-        var_info.data_type = node.get_element_type()
-        var_info.variable_id = node.get_variable_id()
-        return Variable(var_info)
-    
-    read_value_nodes = [op for op in ov_tokenizer.get_ops() if op.get_type_name() == 'ReadValue']
-    assign_nodes = [assign(read_value_node, get_variable(read_value_node)) for read_value_node in read_value_nodes]
-    variables = [get_variable(read_value_node) for read_value_node in read_value_nodes]
-    
-    ov_tokenizer.add_variables(variables)
-    ov_tokenizer.add_sinks(assign_nodes)
-    
     if isinstance(ov_tokenizers, tuple):
         return (
             change_outputs_type(ov_tokenizers[0], tokenizer_output_type),
