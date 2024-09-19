@@ -186,3 +186,14 @@ def generate_tokens_with_space_symbols(token: str, depth: int = 1):
         yield new_token
         if depth > 1:
             yield from generate_tokens_with_space_symbols(new_token, depth - 1)
+
+
+def quote_meta(unquoted: Union[str, bytes]) -> str:
+    if isinstance(unquoted, bytes):
+        unquoted = unquoted.decode("latin1")
+    symbols = []
+    for char in unquoted:
+        if not char.isalnum() and char != "_":
+            symbols.append("\\")
+        symbols.append(char)
+    return "".join(symbols)

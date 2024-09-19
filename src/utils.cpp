@@ -28,9 +28,9 @@ void parse_packed_strings (const Tensor& packed, int32_t& batch_size, const int3
 }
 
 void check_string_input(const Node* node, size_t input_index) {
-    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+0) == element::i32, "Expected an i32 tensor as the first part of the decomposed string representation");
-    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+1) == element::i32, "Expected an i32 tensor as the second part of the decomposed string representation");
-    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+2) == element::u8,  "Expected a u8 tensor as the third part of the decomposed string representation");
+    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+0) == element::i32, "Expected an i32 tensor as the first part of the decomposed string representation, got ", node->get_input_element_type(input_index+0));
+    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+1) == element::i32, "Expected an i32 tensor as the second part of the decomposed string representation, got ", node->get_input_element_type(input_index+1));
+    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+2) == element::u8,  "Expected a u8 tensor as the third part of the decomposed string representation, got ", node->get_input_element_type(input_index+2));
 }
 
 void check_string_scalar_input(const Node* node, size_t input_index) {
@@ -50,7 +50,7 @@ void check_string_scalar_input(const Node* node, size_t input_index) {
     OPENVINO_ASSERT(
         (element_type == element::dynamic || element_type == element::u8) &&
         (shape.rank().is_dynamic() || shape.rank().get_length() == 1),
-        "u8/1D tensor is expected");
+        "u8/1D tensor is expected, got element type ", element_type.to_string(), ", shape ", shape.to_string());
 
     #endif
 }
@@ -162,14 +162,26 @@ ov::Output<ov::Node> post_translate_ragged_tensor_output(const OutputVector& out
     return std::make_shared<RaggedTensorPack>(outputs);
 }
 
-bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorVector& inputs, std::function<std::string(const std::string&)> normalizer) {
+bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorVector& inputs, std::function<std::string(const std::string&)> normalizer, const bool has_skips) {
+
     auto begins = inputs[0].data<const int32_t>();
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
 
+    const auto forth_element_type = inputs[3].get_element_type();
+
+    bool * skips;
+    if (has_skips) {
+        skips = inputs[3].data<bool>();
+    };
+
     // Set output shapes
     outputs[0].set_shape(inputs[0].get_shape());
     outputs[1].set_shape(inputs[1].get_shape());
+    if (has_skips) {
+        outputs[3] = inputs[3];
+    }
+
     const size_t num_elements = inputs[0].get_size();
 
     // TODO: How to avoid copying from this temporary buffer?
@@ -185,11 +197,20 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
     auto new_ends   = outputs[1].data<int32_t>();
 
     size_t total_size = 0;
-    total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> int {
-        const std::string normalized = normalizer(std::string(chars + begins[i], chars + ends[i]));
-        buffer[i] = normalized;
-        return normalized.size();
-    });
+    if (has_skips) {
+        total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> int {
+            const std::string input_string = std::string(chars + begins[i], chars + ends[i]);
+            const std::string normalized = (skips[i] == 0) ? normalizer(input_string) : input_string;
+            buffer[i] = normalized;
+            return normalized.size();
+        });
+    } else {
+        total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> int {
+            const std::string normalized = normalizer(std::string(chars + begins[i], chars + ends[i]));
+            buffer[i] = normalized;
+            return normalized.size();
+        });
+    };
 
     outputs[2].set_shape(Shape{total_size});
     auto new_chars  = outputs[2].data<uint8_t>();

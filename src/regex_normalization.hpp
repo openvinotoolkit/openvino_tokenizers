@@ -35,7 +35,13 @@ public:
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<RegexNormalization>(inputs, m_search_pattern_re, m_search_pattern_pcre2, m_replace_pattern, m_global_replace);
+        return std::make_shared<RegexNormalization>(
+            std::move(inputs),
+            std::move(m_search_pattern_re),
+            std::move(m_search_pattern_pcre2),
+            std::move(m_replace_pattern),
+            std::move(m_global_replace)
+        );
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {

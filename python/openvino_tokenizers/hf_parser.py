@@ -53,6 +53,7 @@ from .tokenizer_pipeline import (
     RegexNormalizationStep,
     RegexSplitStep,
     Sequence,
+    SpecialTokensSplit,
     StripStringStep,
     TokenizerPipeline,
     TruncationStep,
@@ -179,6 +180,7 @@ class TransformersTokenizerPipelineParser:
         self.number_of_inputs = self.number_of_inputs if number_of_inputs is None else number_of_inputs
         self.pipeline.number_of_inputs = self.number_of_inputs
         for add_steps in [
+            self.special_tokens_split,
             self.normalization,
             self.pre_tokenization,
             self.tokenization_model,
@@ -193,6 +195,9 @@ class TransformersTokenizerPipelineParser:
             add_steps()
 
         return self.pipeline
+
+    def special_tokens_split(self) -> None:
+        self.pipeline.add_steps(SpecialTokensSplit.from_hf_tokenizer(self.original_tokenizer))
 
     normalizers_map: Dict[
         str,
@@ -1085,6 +1090,7 @@ def convert_tiktoken_model_tokenizer(
     reference_vocab = getattr(hf_tokenizer, "get_vocab", lambda: None)()
     pipeline.add_steps(
         [
+            SpecialTokensSplit.from_hf_tokenizer(hf_tokenizer),
             NormalizeUnicode("NFC"),
             RegexSplitStep(split_pattern, behaviour="contiguous"),
             BPETokenizationStep.from_tiktoken_encoding(encoding, reference_vocab=reference_vocab),
@@ -1100,7 +1106,7 @@ def convert_tiktoken_model_tokenizer(
     )
 
     # (chat)GLM model adds spaces around <sop> token
-    decoder_vocab = pipeline[2].vocab
+    decoder_vocab = pipeline[3].vocab
     sop_index = next((idx for idx, token in enumerate(decoder_vocab) if token == "<sop>"), None)
     if sop_index is not None:
         decoder_vocab[sop_index] = " <sop> "
