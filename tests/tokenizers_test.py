@@ -12,7 +12,7 @@ import requests
 from openvino import Core, Model
 import openvino as ov
 from openvino_tokenizers import convert_tokenizer
-from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
+from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map, SPECIAL_TOKENS_STATE_NAME
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
@@ -483,8 +483,11 @@ def check_tokenizer_output(
         ov_infer_request = ov_tokenizer.create_infer_request()
         states = ov_infer_request.query_state()
         state_tensor = ov.Tensor(np.array([add_special_tokens_state_flag], dtype=np.int32), ov.Shape([]))
-        assert len(states) == 1
-        states[0].state = state_tensor
+        for state in states:
+            if state.name != SPECIAL_TOKENS_STATE_NAME:
+                continue
+            state.state = state_tensor
+        
         ov_infer_request.set_input_tensor(ov.Tensor(test_string))
         ov_tokenized = ov_infer_request.infer()
     else:
@@ -687,6 +690,8 @@ def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_string, do_add_special_to
     # Here do_add_special_tokens is a default values included in the graph ReadValue default.
     # Run in runtime with both values of add_special_tokens.
     test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}    
+
     check_tokenizer_output(
         bpe_tokenizers,
         test_string=test_string,

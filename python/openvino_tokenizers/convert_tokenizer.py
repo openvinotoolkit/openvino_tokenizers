@@ -108,5 +108,4 @@ def convert_tokenizer(
             change_outputs_type(ov_tokenizers[0], tokenizer_output_type),
             change_inputs_type(ov_tokenizers[1], detokenizer_input_type),
         )
-    else:
-        return change_outputs_type(ov_tokenizers, tokenizer_output_type)
+    return change_outputs_type(ov_tokenizers, tokenizer_output_type)

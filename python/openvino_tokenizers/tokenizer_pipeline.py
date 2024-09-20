@@ -9,7 +9,7 @@ import weakref
 from copy import copy
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
-from itertools import chain, islice, takewhile
+from itertools import chain, islice, takewhile, groupby
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -839,7 +839,6 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         op_inputs = []
         input_nodes_iter = iter(input_nodes)
-        from itertools import groupby
 
         segment_ids = []
         segment_index = 0
@@ -858,7 +857,6 @@ class CombineSegmentsStep(PostTokenizationStep):
                 segment_index += len(ids)
 
                 op_inputs.extend(make_constant_node(0, Type.i32).outputs())
-                # op_inputs.extend([multiply(read_value_node, end) for end in make_constant_node(len(ids), Type.i32).outputs()])
                 op_inputs.extend(make_constant_node(len(ids), Type.i32).outputs())
                 op_inputs.append(make_constant_node(np.array(ids), Type.i32).output(0))
             else:
