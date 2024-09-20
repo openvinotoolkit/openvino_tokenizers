@@ -22,10 +22,9 @@ permissions: read-all
 
 jobs:
   openvino_download:
-    name: Try to download prebuilt OpenVINO
+    name: Download prebuilt OpenVINO
     outputs:
       status: ${{ steps.openvino_download.outcome }}
-      ov_package_path: ${{ steps.openvino_download.outputs.ov_package_path }}
       ov_wheel_source: ${{ steps.openvino_download.outputs.ov_wheel_source }}
       ov_version: ${{ steps.openvino_download.outputs.ov_version }}
     timeout-minutes: 10
@@ -267,8 +266,7 @@ jobs:
 
       - name: Install OpenVINO Python wheel from pre-built artifacts
         run: |
-          python3 -m pip install openvino==${{ needs.openvino_download.outputs.ov_version }} 
-            ${{ needs.openvino_download.outputs.ov_wheel_source }}
+          python3 -m pip install openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
         working-directory: ${{ env.INSTALL_DIR }}
 
       - name: Install OpenVINO tokenizers wheel
