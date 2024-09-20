@@ -842,7 +842,7 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         segment_ids = []
         segment_index = 0
-        for key, group_iter in groupby(self.inputs, key=type):
+        for (key, token_id), group_iter in groupby(self.inputs, key=lambda input: (type(input), getattr(input, 'token_id', None))):
             if key is Sequence:
                 for sequence in group_iter:
                     op_inputs.extend(islice(input_nodes_iter, 3))
@@ -851,8 +851,6 @@ class CombineSegmentsStep(PostTokenizationStep):
             elif key is AddToken:
                 ids = [node._token_id for node in group_iter]
                 
-                tmp_seg_ids = np.array(self.segment_ids[segment_index:segment_index + len(ids)])
-                assert (tmp_seg_ids == tmp_seg_ids[0]).all()
                 segment_ids.append(self.segment_ids[segment_index])
                 segment_index += len(ids)
 

@@ -226,21 +226,21 @@ def make_combine_segments_stateful(model: Model, default_flag: bool = True) -> N
 
             var_info = VariableInfo()
             var_info.data_shape = PartialShape([])
-            var_info.data_type = Type.i32
+            var_info.data_type = Type.boolean
             from openvino_tokenizers.constants import SPECIAL_TOKENS_STATE_NAME
             var_info.variable_id = SPECIAL_TOKENS_STATE_NAME
             variable = Variable(var_info)
             
-            default_val = Constant(Type.i32, Shape([]), [int(default_flag)])
+            default_val = Constant(Type.boolean, Shape([]), [int(default_flag)])
             read_value_node = opset.read_value(default_val, variable)
             
-            # Remove this when plugin will be ready to consume ReadVelue without Assign
+            # Remove this when plugin will be ready to consume ReadValue without Assign
             model.add_variables([variable])
             model.add_sinks([opset.assign(read_value_node, variable)])
 
             for input in consts_to_patch:
-                mul_node = opset.multiply(read_value_node, input.get_source_output())
-                input.replace_source_output(mul_node.output(0))
+                select_node = opset.select(read_value_node, input.get_source_output(), Constant(Type.i32, Shape([]), [0]))
+                input.replace_source_output(select_node.output(0))
 
     manager = Manager()
     manager.register_pass(MakeCombineSegmentsStatefull())

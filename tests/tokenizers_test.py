@@ -480,7 +480,7 @@ def check_tokenizer_output(
     if add_special_tokens_state_flag is not None:
         hf_tokenizer_kwargs['add_special_tokens'] = add_special_tokens_state_flag
         states = ov_tokenizer.query_state()
-        state_tensor = ov.Tensor(np.array([add_special_tokens_state_flag], dtype=np.int32), ov.Shape([]))
+        state_tensor = ov.Tensor(np.array([add_special_tokens_state_flag], dtype=np.bool), ov.Shape([]))
         for state in states:
             if state.name != SPECIAL_TOKENS_STATE_NAME:
                 continue
