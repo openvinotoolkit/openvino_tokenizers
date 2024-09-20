@@ -198,6 +198,8 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
+          pwd
+          ls -la
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
               --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
