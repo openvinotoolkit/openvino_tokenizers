@@ -63,6 +63,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     env:
+      CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}/openvino
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
