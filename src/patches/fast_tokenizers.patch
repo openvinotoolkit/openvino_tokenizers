@@ -38,3 +38,35 @@ index 3b68f082..6ae7e8f0 100644
          if (ICU_STATIC)
              list(APPEND ${ICU_LIB_VAR} ${ICU_STATIC_LIB})
          else()
+
+diff --git a/fast_tokenizer/CMakeLists.txt b/fast_tokenizer/CMakeLists.txt
+index ce238239..39f34fa4 100644
+--- a/fast_tokenizer/CMakeLists.txt
++++ b/fast_tokenizer/CMakeLists.txt
+@@ -51,7 +51,7 @@ else()
+     set(CMAKE_CXX_STANDARD 11)
+ endif()
+ 
+-IF(WIN32)
++IF(WIN32 AND MSVC_STATIC_CRT)
+ # Need to add flags for windows
+ foreach(
+     flag_var
+@@ -126,7 +126,7 @@ set(${flag_var}
+ set(${flag_var} "${${flag_var}} /NODEFAULTLIB:MSVCRT.LIB")
+ endforeach()
+ 
+-ELSE(WIN32)
++ELSE()
+     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fPIC")
+     IF (NOT APPLE)
+       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ldl")
+@@ -137,7 +137,7 @@ ELSE(WIN32)
+       ENDIF()
+     ENDIF()
+     set (PUBLIC_DEPEND_LIBS ${CMAKE_DL_LIBS})
+-ENDIF(WIN32)
++ENDIF()
+ 
+ set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
+ set(TOKENIZERS_INSTALL_INCLUDE_DIR ${PROJECT_SOURCE_DIR})
