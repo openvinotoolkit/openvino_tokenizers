@@ -476,22 +476,18 @@ def check_tokenizer_output(
     if isinstance(test_string, str):
         test_string = [test_string]
     
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
     # If add_special_tokens_state_flag is defined, set it's value to state
     if add_special_tokens_state_flag is not None:
         hf_tokenizer_kwargs['add_special_tokens'] = add_special_tokens_state_flag
-        ov_infer_request = ov_tokenizer.create_infer_request()
-        states = ov_infer_request.query_state()
+        states = ov_tokenizer.query_state()
         state_tensor = ov.Tensor(np.array([add_special_tokens_state_flag], dtype=np.int32), ov.Shape([]))
         for state in states:
             if state.name != SPECIAL_TOKENS_STATE_NAME:
                 continue
             state.state = state_tensor
         
-        ov_infer_request.set_input_tensor(ov.Tensor(test_string))
-        ov_tokenized = ov_infer_request.infer()
-    else:
-        ov_tokenized = ov_tokenizer(test_string)
+    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
+    ov_tokenized = ov_tokenizer(test_string)
 
     for output_name, hf_result in hf_tokenized.items():
         if output_name not in ov_tokenized and skip_missing_outputs:
