@@ -121,9 +121,6 @@ def parse_byte_level_pretokenization_step(
 
     # regex is used by default, but it does not appear in config yet
     if pretokenizer_dict.get("use_regex", True):
-        # re2 does not support negative lookahead, so there is two steps replicate the behaviour
-        # this WA causes segfault for CLIP tokenizer
-        # steps.append(RegexSplitStep.add_whitespace_to_the_next_word())
         steps.append(RegexSplitStep.byte_level_splitter())
 
     steps.append(BytesToCharsStep())
@@ -421,14 +418,15 @@ class TransformersTokenizerPipelineParser:
         if utf8_replace_mode is not None:
             self.pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode))
 
+        if clean_up_tokenization_spaces is None:
+            clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces
+
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
+            self.pipeline.add_steps(RegexDecodingStep.rstrip_space())
 
         if prefix := self.tokenizer_json["model"].get("continuing_subword_prefix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_continuing_subword_prefix(prefix=prefix))
-
-        if clean_up_tokenization_spaces is None:
-            clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces
 
         if clean_up_tokenization_spaces and self.pipeline.decoding_steps:
             self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())

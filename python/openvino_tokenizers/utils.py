@@ -141,7 +141,7 @@ def filter_re2_incompatible(pattern: str) -> str:
 
 # from transformers.models.gpt2.tokenization_gpt2
 @lru_cache()
-def bytes_to_unicode() -> Dict[int, str]:
+def unicode_to_bytes() -> Dict[str, int]:
     bs = (
         list(range(ord("!"), ord("~") + 1)) + list(range(ord("¡"), ord("¬") + 1)) + list(range(ord("®"), ord("ÿ") + 1))
     )
@@ -153,12 +153,13 @@ def bytes_to_unicode() -> Dict[int, str]:
             cs.append(2**8 + n)
             n += 1
     cs = (chr(n) for n in cs)
-    return dict(zip(bs, cs))
+    return dict(zip(cs, bs))
 
 
-def apply_bytes_to_unicode(token: str) -> str:
-    bytes_to_unicode_dict = bytes_to_unicode()
-    return "".join(bytes_to_unicode_dict[byte] for char in token for byte in char.encode())
+def apply_unicode_to_bytes(token: str) -> str:
+    bytes_encoder = unicode_to_bytes()
+    return bytes(bytes_encoder[char] for char in token)
+
 
 
 def get_hf_tokenizer_attribute(

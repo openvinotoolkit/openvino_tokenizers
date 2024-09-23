@@ -31,7 +31,7 @@ from .constants import (
     UTF8ReplaceMode
 )
 from .str_pack import pack_string, pack_strings
-from .utils import apply_bytes_to_unicode, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta
+from .utils import generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta, apply_unicode_to_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -532,10 +532,23 @@ class BPETokenizationStep(TokenizationModelStep):
     added_tokens: Optional[Union[Dict[str, int], Dict[bytes, int]]] = None
 
     def finalize(self) -> None:
+        pipeline = self.get_pipeline()
+
+        # remove BytesToChars transformation
+        if pipeline.is_byte_level:
+            self.vocab = [apply_unicode_to_bytes(token) for token in self.vocab]
+            pipeline.vocab = self.vocab
+            self.merges = [tuple(map(apply_unicode_to_bytes, merge.split(" "))) for merge in self.merges]
+
+            chars_to_bytes_idx = next(idx for idx, step in enumerate(pipeline.steps) if isinstance(step, CharsToBytesStep))
+            pipeline.steps.insert(chars_to_bytes_idx, FuseStep())
+            pipeline.steps = [
+                step for step in pipeline.steps if not isinstance(step, (BytesToCharsStep, CharsToBytesStep))
+            ]
+
+
         if self.added_tokens is None:
             return
-
-        pipeline = self.get_pipeline()
 
         vocab_set = set(self.vocab)
         for (
@@ -543,10 +556,6 @@ class BPETokenizationStep(TokenizationModelStep):
             idx,
         ) in sorted(self.added_tokens.items(), key=lambda x: (x[1], x[0])):
             if token not in vocab_set:
-                # if pipeline.is_byte_level:
-                #     token = apply_bytes_to_unicode(token)
-                if isinstance(idx, str):
-                    assert True
                 if idx >= len(self.vocab):
                     self.vocab.append(token)
 
@@ -743,6 +752,10 @@ class SpecialTokenWithId:
     def token_id(self) -> Optional[int]:
         return self._token_id
 
+    @token_id.setter
+    def token_id(self, value: int) -> None:
+        self._token_id = value
+
 
 @dataclass
 class TokenWithTypeId:
@@ -805,7 +818,7 @@ class CombineSegmentsStep(PostTokenizationStep):
                     token_type_id=template_dict["SpecialToken"]["type_id"],
                 )
                 if special_tokens := post_processor_dict.get("special_tokens", False):
-                    step.token_type_id = special_tokens.get(step.token, {}).get("ids", [None])
+                    step.token_id = next(iter(special_tokens.get(step.token, {}).get("ids", [None])))
                 inputs.append(step)
             elif "Sequence" in template_dict:
                 inputs.append(Sequence(token_type_id=template_dict["Sequence"]["type_id"]))
@@ -854,8 +867,8 @@ class CombineSegmentsStep(PostTokenizationStep):
         if not add_special_tokens or not post_processor_dict.get("add_special_tokens", True):
             return cls(inputs)
 
-        inputs.insert(0, AddToken(token=post_processor_dict["cls"][0], token_type_id=0))
-        inputs.append(AddToken(token=post_processor_dict["sep"][0], token_type_id=0))
+        inputs.insert(0, AddToken(token=post_processor_dict["cls"][0], _token_id=post_processor_dict["cls"][1], token_type_id=0))
+        inputs.append(AddToken(token=post_processor_dict["sep"][0], _token_id=post_processor_dict["sep"][1], token_type_id=0))
         return cls(inputs)
 
     def validate_inputs(self, input_nodes: List[Output]) -> None:
@@ -1056,6 +1069,13 @@ class RegexDecodingStep(DecodingStep):
             raise ValueError(f"Replace Decoding Op with this parameters: `{replace_dict}` does not support yet.")
 
         return cls(regex_search_pattern=f"^{content}", replace_term="")
+
+    @classmethod
+    def rstrip_space(cls) -> "RegexDecodingStep":
+        return cls(
+            regex_search_pattern=r" $",
+            replace_term="",
+        )
 
     @classmethod
     def strip_forward_space(cls) -> "RegexDecodingStep":

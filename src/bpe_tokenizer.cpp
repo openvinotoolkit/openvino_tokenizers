@@ -20,7 +20,6 @@ void BPETokenizer::validate_and_infer_types() {
     );
     // main string input
     check_ragged_string_input(this, 0);
-
     // vocab
     check_string_input(this, 5);
     // merges
