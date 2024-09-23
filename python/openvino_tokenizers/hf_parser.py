@@ -30,7 +30,7 @@ from .constants import (
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
-    UTF8ReplaceMode
+    UTF8ReplaceMode,
 )
 from .tokenizer_pipeline import (
     AddToken,
@@ -43,7 +43,6 @@ from .tokenizer_pipeline import (
     CombineSegmentsStep,
     DecodingStep,
     FuseStep,
-    UTF8ValidateStep,
     NMTNormalizationStep,
     NormalizationStep,
     NormalizeUnicode,
@@ -57,6 +56,7 @@ from .tokenizer_pipeline import (
     StripStringStep,
     TokenizerPipeline,
     TruncationStep,
+    UTF8ValidateStep,
     VocabDecoderStep,
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
@@ -172,7 +172,6 @@ class TransformersTokenizerPipelineParser:
         clean_up_tokenization_spaces: Optional[bool] = None,
         use_max_padding: bool = False,
         utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
-
     ) -> TokenizerPipeline:
         self.number_of_inputs = self.number_of_inputs if number_of_inputs is None else number_of_inputs
         self.pipeline.number_of_inputs = self.number_of_inputs
@@ -414,7 +413,7 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
-        
+
         if utf8_replace_mode is not None:
             self.pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode))
 
@@ -1039,7 +1038,7 @@ def get_sp_detokenizer(
     if clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
 
-    if utf8_replace_mode is not None:    
+    if utf8_replace_mode is not None:
         replace_mode = True if utf8_replace_mode is UTF8ReplaceMode.REPLACE else False
         UTF8ValidateStep(mode=replace_mode).get_ov_subgraph(detokenizer)
 
@@ -1117,7 +1116,7 @@ def convert_tiktoken_model_tokenizer(
     )
 
     if utf8_replace_mode is not None:
-        pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode)),
+        (pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode)),)
 
     if clean_up_tokenization_spaces is None:
         clean_up_tokenization_spaces = getattr(hf_tokenizer, "clean_up_tokenization_spaces", None)

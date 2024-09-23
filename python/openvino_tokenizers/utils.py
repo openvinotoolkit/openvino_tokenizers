@@ -161,7 +161,6 @@ def apply_unicode_to_bytes(token: str) -> str:
     return bytes(bytes_encoder[char] for char in token)
 
 
-
 def get_hf_tokenizer_attribute(
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
     attributes: Tuple[str],
