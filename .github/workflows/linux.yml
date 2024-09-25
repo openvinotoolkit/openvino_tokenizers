@@ -35,8 +35,8 @@ jobs:
       image: 'openvinogithubactions.azurecr.io/openvino_provider:0.1.0'
       volumes: [ "/mount:/mount" ]
 
-    steps: # TODO: revert custom PR
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26636/head
+    steps:
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       id: openvino_download
       with:
         platform: 'ubuntu22'

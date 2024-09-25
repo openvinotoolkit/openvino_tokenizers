@@ -36,8 +36,8 @@ jobs:
       volumes: [ "/mount:/mount" ]
     continue-on-error: true
 
-    steps: # TODO: revert custom PR
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26636/head
+    steps:
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       id: openvino_download
       with:
         platform: 'windows'
