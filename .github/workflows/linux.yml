@@ -16,7 +16,6 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: 'master'
-  OV_ARTIFACT_NAME: 'openvino_package'
 
 permissions: read-all
 
@@ -40,10 +39,8 @@ jobs:
     - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26636/head
       id: openvino_download
       with:
-        ov_artifact_name: ${{ env.OV_ARTIFACT_NAME }}
-        platform: 'ubuntu22_x86_64'
-        revision: 'latest_available'
-        artifacts_source: 'postcommit'
+        platform: 'ubuntu22'
+        revision: 'latest_available_commit'
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
@@ -88,7 +85,7 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.OV_ARTIFACT_NAME }}
+          name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
 
       #
@@ -182,7 +179,7 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.OV_ARTIFACT_NAME }}
+          name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
 
       #
@@ -260,7 +257,7 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.OV_ARTIFACT_NAME }}
+          name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
 
 
