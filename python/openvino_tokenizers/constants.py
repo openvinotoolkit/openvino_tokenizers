@@ -40,5 +40,3 @@ class UTF8ReplaceMode(Enum):
     
     def __str__(self):
         return self.value
-
-SPECIAL_TOKENS_STATE_NAME = "ADD_SPECIAL_TOKENS_VAL"

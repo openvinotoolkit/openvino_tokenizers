@@ -10,10 +10,6 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
-from openvino.runtime.op import Constant
-from openvino.runtime.op.util import VariableInfo, Variable
-from openvino.runtime.passes import ModelPass, Manager
-from openvino.runtime import Node, Input, Shape, Output, PartialShape
 
 from .constants import (
     LOGITS_OUTPUT_NAME,
@@ -190,58 +186,3 @@ def generate_tokens_with_space_symbols(token: str, depth: int = 1):
         yield new_token
         if depth > 1:
             yield from generate_tokens_with_space_symbols(new_token, depth - 1)
-
-
-def make_combine_segments_stateful(model: Model, default_flag: bool = True) -> None:
-    """
-    Transforms the given ov.Model to make the "CombineSegments" operation stateful.
-
-    It patches every 3rd input (ends input) of "CombineSegments" operations if it is a Constant:
-    adds mul operation to make them depend on a runtime-updatable state instead of fixed constants.
-    E.g. if there are 7 inputs, then inputs 1 and 4 will be patched.
-
-    Args:
-        model (Model): The OpenVINO model to modify.
-        default_flag (bool, optional): A flag used to initialize the state variable. Defaults to True.
-
-    Returns:
-        None
-    """
-
-    def check_const(output: Output) -> bool:
-        res = output.get_node().get_type_info().name == "Constant"
-        res &= output.get_element_type() == Type.i32
-        res &= output.get_partial_shape() == PartialShape([])
-        return res
-    
-    class MakeCombineSegmentsStatefull(ModelPass):
-        def __init__(self):
-            super().__init__()
-
-        def run_on_model(self, model):
-            combine_segments = [node for node in model.get_ops() if node.get_type_info().name == "CombineSegments"]
-            consts_to_patch = []
-            for node in combine_segments:
-                consts_to_patch.extend([node.input(idx) for idx in range(1, len(node.inputs()) - 1, 3) if check_const(node.input_value(idx))])
-
-            var_info = VariableInfo()
-            var_info.data_shape = PartialShape([])
-            var_info.data_type = Type.boolean
-            from openvino_tokenizers.constants import SPECIAL_TOKENS_STATE_NAME
-            var_info.variable_id = SPECIAL_TOKENS_STATE_NAME
-            variable = Variable(var_info)
-            
-            default_val = Constant(Type.boolean, Shape([]), [int(default_flag)])
-            read_value_node = opset.read_value(default_val, variable)
-            
-            # Remove this when plugin will be ready to consume ReadValue without Assign
-            model.add_variables([variable])
-            model.add_sinks([opset.assign(read_value_node, variable)])
-
-            for input in consts_to_patch:
-                select_node = opset.select(read_value_node, input.get_source_output(), Constant(Type.i32, Shape([]), [0]))
-                input.replace_source_output(select_node.output(0))
-
-    manager = Manager()
-    manager.register_pass(MakeCombineSegmentsStatefull())
-    manager.run_passes(model)

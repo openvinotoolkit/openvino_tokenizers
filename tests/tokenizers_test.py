@@ -12,7 +12,7 @@ import requests
 from openvino import Core, Model
 import openvino as ov
 from openvino_tokenizers import convert_tokenizer
-from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map, SPECIAL_TOKENS_STATE_NAME
+from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
@@ -468,24 +468,13 @@ def check_tokenizer_output(
     skip_missing_outputs: bool = False,
     hf_tokenizer_kwargs: Optional[Dict[str, Any]] = None,
     calculate_diff: bool = False,
-    add_special_tokens_state_flag: Optional[bool] = None,
 ) -> None:
     hf_tokenizer, ov_tokenizer = tokenizers
     hf_tokenizer_kwargs = {} if hf_tokenizer_kwargs is None else hf_tokenizer_kwargs
 
     if isinstance(test_string, str):
         test_string = [test_string]
-    
-    # If add_special_tokens_state_flag is defined, set it's value to state
-    if add_special_tokens_state_flag is not None:
-        hf_tokenizer_kwargs['add_special_tokens'] = add_special_tokens_state_flag
-        states = ov_tokenizer.query_state()
-        state_tensor = ov.Tensor(np.array([add_special_tokens_state_flag], dtype=np.bool), ov.Shape([]))
-        for state in states:
-            if state.name != SPECIAL_TOKENS_STATE_NAME:
-                continue
-            state.state = state_tensor
-        
+
     hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string)
 
@@ -682,24 +671,14 @@ def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_string, do_add_special_to
     hf_tokenizer, ov_tokenizer = bpe_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
-    
-    # Here do_add_special_tokens is a default values included in the graph ReadValue default.
-    # Run in runtime with both values of add_special_tokens.
+
     test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
-    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}    
-
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         bpe_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
-        add_special_tokens_state_flag=True
-    )
-
-    check_tokenizer_output(
-        bpe_tokenizers,
-        test_string=test_string,
-        skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
-        add_special_tokens_state_flag=False
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
 
 
