@@ -90,7 +90,7 @@ jobs:
       - name: Download OpenVINO package
         uses: actions/download-artifact@v4
         with:
-          name: openvino_package
+          name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.OV_INSTALL_DIR }}
 
       #
