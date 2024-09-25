@@ -92,6 +92,7 @@ jobs:
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.OV_INSTALL_DIR }}
+          merge-multiple: true
 
       #
       # Build
@@ -193,6 +194,7 @@ jobs:
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
+          merge-multiple: true
 
       #
       # Build
@@ -260,6 +262,7 @@ jobs:
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
+          merge-multiple: true
 
       - name: Install OpenVINO Python wheel from pre-built artifacts
         run: |
