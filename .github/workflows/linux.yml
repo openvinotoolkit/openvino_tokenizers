@@ -87,6 +87,7 @@ jobs:
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
+          merge-multiple: true
 
       #
       # Dependencies
@@ -101,6 +102,8 @@ jobs:
 
       - name: CMake configure - tokenizers
         run: |
+          ls -la ${INSTALL_DIR}
+          ls -la ${{ env.INSTALL_DIR }}
           source ${INSTALL_DIR}/setupvars.sh
           cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
@@ -195,6 +198,9 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
+          pwd
+          ls -la
+          ls -la tools
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
               --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
