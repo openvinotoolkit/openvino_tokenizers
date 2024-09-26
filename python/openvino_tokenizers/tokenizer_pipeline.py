@@ -855,13 +855,8 @@ class CombineSegmentsStep(PostTokenizationStep):
                 segment_index += len(ids)
                 
                 op_inputs.extend(make_constant_node(0, Type.i32).outputs())
-
-                # We need to keep end values even if special tokens are not added,
-                # because potentially we can turn on adding special tokens in OV GenAI.
-                op_inputs.extend(opset.select(make_constant_node(self.add_special_tokens, Type.boolean), 
-                                         make_constant_node(len(ids), Type.i32), 
-                                         make_constant_node(0, Type.i32)).outputs())
-                
+                # If we don't add special tokens then end is 0.
+                op_inputs.extend(make_constant_node(len(ids) if self.add_special_tokens else 0, Type.i32).outputs())
                 op_inputs.append(make_constant_node(np.array(ids), Type.i32).output(0))
             else:
                 raise UserInputError(f"Unexpected node type in CombineSegments: {key}")
