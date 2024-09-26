@@ -226,7 +226,7 @@ jobs:
         build_fast_tokenizers: [ON, OFF]
     needs: [ openvino_download, openvino_tokenizers_wheel]
     if: always() && needs.openvino_tokenizers_wheel.result == 'success'
-    timeout-minutes: 25
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
