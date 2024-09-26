@@ -581,7 +581,7 @@ class BPETokenizationStep(TokenizationModelStep):
 
     @property
     def merges_is_bytes(self) -> bool:
-        return self.merges and isinstance(self.merges[0], tuple)
+        return self.merges and not isinstance(self.merges[0], str)
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
