@@ -168,8 +168,6 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
 
-    const auto forth_element_type = inputs[3].get_element_type();
-
     bool * skips;
     if (has_skips) {
         skips = inputs[3].data<bool>();
@@ -198,14 +196,14 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
 
     size_t total_size = 0;
     if (has_skips) {
-        total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> int {
+        total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> size_t {
             const std::string input_string = std::string(chars + begins[i], chars + ends[i]);
             const std::string normalized = (skips[i] == 0) ? normalizer(input_string) : input_string;
             buffer[i] = normalized;
             return normalized.size();
         });
     } else {
-        total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> int {
+        total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> size_t {
             const std::string normalized = normalizer(std::string(chars + begins[i], chars + ends[i]));
             buffer[i] = normalized;
             return normalized.size();

@@ -89,7 +89,6 @@ class SpecialToken:
     def regex_repr(self) -> str:
         # operation has to be rewritten with RE2:Set in order to support multiple
         return r"(?:\s*)" * self.strip_left + f"({quote_meta(self.text)})" + r"(?:\s*)" * self.strip_right
-        # return f"({quote_meta(self.text)})"
 
 
 @dataclass

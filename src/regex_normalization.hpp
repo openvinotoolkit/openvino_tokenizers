@@ -28,7 +28,7 @@ public:
         const ov::OutputVector& arguments,
         const std::shared_ptr<re2::RE2>& search_pattern_re,
         const std::shared_ptr<PCRE2Wrapper>& search_pattern_rcre2,
-        const absl::string_view replace_pattern,
+        const std::string replace_pattern,
         bool global_replace = true
     );
 
@@ -36,11 +36,11 @@ public:
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
         return std::make_shared<RegexNormalization>(
-            std::move(inputs),
-            std::move(m_search_pattern_re),
-            std::move(m_search_pattern_pcre2),
-            std::move(m_replace_pattern),
-            std::move(m_global_replace)
+            inputs,
+            m_search_pattern_re,
+            m_search_pattern_pcre2,
+            m_replace_pattern,
+            m_global_replace
         );
     }
 
@@ -57,6 +57,6 @@ public:
 private:
     mutable std::shared_ptr<re2::RE2> m_search_pattern_re;
     mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
-    mutable absl::string_view m_replace_pattern;
+    mutable std::string m_replace_pattern;
     bool m_global_replace = true;
 };
