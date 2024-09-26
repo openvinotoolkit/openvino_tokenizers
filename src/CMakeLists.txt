@@ -24,13 +24,19 @@ if(POLICY CMP0169)
   cmake_policy(SET CMP0169 OLD)
 endif()
 
-function(ov_tokenizers_set_cxx_standard)
-  foreach(build_type "" "_DEBUG" "_MINSIZEREL" "_RELEASE" "_RELWITHDEBINFO")
-    set(flag_var "CMAKE_CXX_FLAGS${build_type}")
-    string(REPLACE "--std=c++11" "" ${flag_var} "${${flag_var}}")
-    set(${flag_var} "${${flag_var}}" PARENT_SCOPE)
+function(ov_tokenizers_set_flags flags replace_value replace_pattern)
+  foreach(flag ${flags})
+    if(${flag} MATCHES "${replace_pattern}")
+      string(REGEX REPLACE "${replace_pattern}" "${replace_value}" ${flag} "${${flag}}")
+    elseif(NOT (${flag} MATCHES "${replace_value}"))
+      set(${flag} "${${flag}} ${replace_value}")
+    endif()
+    set(${flag} "${${flag}}" PARENT_SCOPE)
   endforeach()
+endfunction()
 
+function(ov_tokenizers_set_cxx_standard)
+ov_tokenizers_set_flags("CMAKE_CXX_FLAGS;CMAKE_CXX_FLAGS_DEBUG;CMAKE_CXX_FLAGS_RELEASE;CMAKE_CXX_FLAGS_MINSIZEREL;CMAKE_CXX_FLAGS_RELWITHDEBINFO" "" "--std=c\\+\\+11")
   set(CMAKE_CXX_STANDARD 17 PARENT_SCOPE)
   set(CMAKE_CXX_EXTENSIONS OFF PARENT_SCOPE)
   set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
@@ -122,18 +128,9 @@ if(BUILD_FAST_TOKENIZERS)
   set(MSVC_STATIC_CRT OFF)  # PADDLE_LIB
   set(PCRE2_STATIC_RUNTIME OFF) # PCRE2_LIB
   set(SPM_ENABLE_MSVC_MT_BUILD OFF) # sentencepiece libs
-  if(WIN32)
-    foreach(
-        flag_var
-        CMAKE_CXX_FLAGS
-        CMAKE_C_FLAGS)
-        if(${flag_var} MATCHES "/MT")
-          string(REGEX REPLACE "/MT" "/MD$<$<CONFIG:Debug>:d>" ${flag_var} "${${flag_var}}")
-        elseif(NOT (${flag_var} MATCHES "/MD$<$<CONFIG:Debug>:d>"))
-          set(${flag_var} "${${flag_var}} /MD$<$<CONFIG:Debug>:d>")
-        endif()
-        set(${flag_var} "${${flag_var}}" CACHE STRING "msvc compiler flags" FORCE)
-    endforeach()
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    ov_tokenizers_set_flags("CMAKE_CXX_FLAGS_RELEASE;CMAKE_CXX_FLAGS_MINSIZEREL;CMAKE_CXX_FLAGS_RELWITHDEBINFO" "/MD" "/MT")
+    ov_tokenizers_set_flags("CMAKE_CXX_FLAGS_DEBUG" "/MDd" "/MT")
   endif()
 endif()
 
@@ -244,6 +241,7 @@ if(BUILD_FAST_TOKENIZERS)
     URL_HASH SHA256=10e3489bc91e938c449a0448fa719e4536803ed6b1c1c95b3402430d6a8a221a
     PATCH_COMMAND git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/fast_tokenizers.patch" &&
                   git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/glog.patch" &&
+                  git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/gflags.patch" &&
                   git --git-dir=${EXTERNAL_PROJECT_SOURCE_DIR} apply --ignore-whitespace "${CMAKE_CURRENT_LIST_DIR}/patches/icu.patch"
     SOURCE_DIR ${EXTERNAL_PROJECT_SOURCE_DIR}
     BINARY_DIR ${EXTERNAL_PROJECT_BINARY_DIR}
