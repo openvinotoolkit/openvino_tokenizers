@@ -55,7 +55,7 @@ RegexNormalization::RegexNormalization(
         auto replace_pattern_const = as_type_ptr<Constant>(arguments[pattern_input + 1].get_node_shared_ptr());
         const char* search_pattern_buf;
         const char* replace_pattern_buf;
-        absl::string_view search_pattern;
+        std::string search_pattern;
 
         if (m_search_pattern_re == nullptr || m_search_pattern_pcre2 == nullptr) {
             search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
@@ -76,7 +76,6 @@ RegexNormalization::RegexNormalization(
             m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
             m_search_pattern_re = nullptr;
         }
-
         constructor_validate_and_infer_types();
     }
 
@@ -105,7 +104,7 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     const bool has_skips = (inputs.size() == 6);
     const auto pattern_input = 3 + has_skips;
 
-    absl::string_view search_pattern;
+    std::string search_pattern;
     if (m_search_pattern_re == nullptr || m_search_pattern_pcre2 == nullptr) {
         search_pattern = std::string(inputs[pattern_input].data<const char>(), inputs[pattern_input].get_size());
         m_replace_pattern = std::string(inputs[pattern_input + 1].data<const char>(), inputs[pattern_input + 1].get_size());
