@@ -10,6 +10,7 @@ from openvino import Type, save_model
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import UTF8ReplaceMode
 
+
 class StringToTypeAction(Action):
     string_to_type_dict = {
         "i32": Type.i32,
@@ -223,7 +224,7 @@ def get_parser() -> ArgumentParser:
         help=(
             "If specified then resulting strings during decoding are checked if sequence of bytes is a valid UTF-8 sequence. "
             f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �, if mode is '{UTF8ReplaceMode.IGNORE}' then invalid character are skipped."
-        )
+        ),
     )
     return parser
 

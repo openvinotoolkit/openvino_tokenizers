@@ -9,8 +9,8 @@ import weakref
 from copy import copy
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
-from itertools import chain, islice, takewhile
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
+from itertools import islice
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from openvino.runtime import Model, Output, PartialShape, Type, op
@@ -28,10 +28,10 @@ from .constants import (
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
     VOCAB_SIZE_CACHE_PROPORTION,
-    UTF8ReplaceMode
+    UTF8ReplaceMode,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import apply_bytes_to_unicode, generate_tokens_with_space_symbols, has_incompatible_re2_op
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta
 
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,74 @@ class BasePipelineStep:
     def finalize(self) -> None:
         """Called after the entire pipeline has been built"""
         return
+
+
+@dataclass(frozen=True, order=True)
+class SpecialToken:
+    text: str
+    strip_left: bool = False
+    strip_right: bool = False
+
+    def regex_repr(self) -> str:
+        # operation has to be rewritten with RE2:Set in order to support multiple
+        return r"(?:\s*)" * self.strip_left + f"({quote_meta(self.text)})" + r"(?:\s*)" * self.strip_right
+
+
+@dataclass
+class SpecialTokensSplit(BasePipelineStep):
+    special_tokens: List[SpecialToken] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.special_tokens:
+            self.special_tokens = sorted(self.special_tokens, reverse=True)
+
+    @classmethod
+    def from_string_iter(cls, strings: Iterable[str]) -> "SpecialTokensSplit":
+        return cls([SpecialToken(string) for string in strings])
+
+    @classmethod
+    def from_hf_tokenizer(cls, hf_tokenizer) -> "SpecialTokensSplit":
+        added_tokens = {}
+
+        if hasattr(hf_tokenizer, "special_tokens"):
+            added_tokens.update(
+                {
+                    idx: SpecialToken(token)
+                    for token, idx in sorted(hf_tokenizer.special_tokens.items(), key=lambda x: x[1])
+                }
+            )
+            # if padding and unk tokens share the same index, use unk
+            if hf_tokenizer.unk_token is not None and hf_tokenizer.unk_token not in (
+                token.text for token in added_tokens.values()
+            ):
+                unk_token_id = hf_tokenizer.unk_token_id or hf_tokenizer.pad_token_id
+                added_tokens[unk_token_id] = hf_tokenizer.unk_token
+
+        if hasattr(hf_tokenizer, "tokenizer") and hasattr(hf_tokenizer.tokenizer, "index_special_tokens"):
+            added_tokens.update(hf_tokenizer.tokenizer.index_special_tokens)
+
+        if added_tokens_decoder := getattr(hf_tokenizer, "added_tokens_decoder", False):
+            added_tokens.update(
+                {
+                    idx: SpecialToken(
+                        text=added_token.content,
+                        strip_left=added_token.lstrip,
+                        strip_right=added_token.rstrip,
+                    )
+                    for idx, added_token in added_tokens_decoder.items()
+                }
+            )
+
+        return cls(special_tokens=list(added_tokens.values()))
+
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        if not self.special_tokens:
+            return list(input_nodes)
+
+        split_pattern = "|".join(token.regex_repr() for token in self.special_tokens)
+        input_nodes.extend(self.create_string_constant_node(split_pattern).outputs())
+
+        return _get_factory().create("SpecialTokensSplit", input_nodes).outputs()
 
 
 @dataclass
@@ -206,7 +274,6 @@ class RegexSplitStep(PreTokenizatinStep):
     invert: bool = False
     behaviour: str = "remove"
     max_splits: int = -1
-    skip_tokens: List[str] = field(default_factory=list, repr=False)
 
     def __post_init__(self):
         if self.max_splits < -1:
@@ -292,32 +359,8 @@ class RegexSplitStep(PreTokenizatinStep):
             behaviour=behaviour,
         )
 
-    @classmethod
-    def special_tokens_splitter(cls, special_tokens: List[str]) -> "RegexSplitStep":
-        def quote_meta(unquoted: Union[str, bytes]) -> str:
-            if isinstance(unquoted, bytes):
-                unquoted = unquoted.decode()
-            symbols = []
-            for char in unquoted:
-                if not char.isalnum() and char != "_":
-                    symbols.append("\\")
-                symbols.append(char)
-            return "".join(symbols)
-
-        return cls(split_pattern="|".join(map(quote_meta, special_tokens)), invert=False, behaviour="isolate")
-
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        if self.skip_tokens:
-            skip_tokens_outputs = self.create_string_constant_node(self.skip_tokens).outputs()
-        else:
-            skip_tokens_outputs = []
-
-        input_nodes.extend(
-            (
-                *self.create_string_constant_node(self.split_pattern).outputs(),
-                *skip_tokens_outputs,
-            )
-        )
+        input_nodes.extend(self.create_string_constant_node(self.split_pattern).outputs())
         return (
             _get_factory()
             .create(
@@ -489,10 +532,27 @@ class BPETokenizationStep(TokenizationModelStep):
     added_tokens: Optional[Union[Dict[str, int], Dict[bytes, int]]] = None
 
     def finalize(self) -> None:
+        pipeline = self.get_pipeline()
+
+        # remove BytesToChars transformation
+        if pipeline.is_byte_level:
+            self.vocab = [apply_unicode_to_bytes(token) for token in self.vocab]
+            pipeline.vocab = self.vocab
+            if self.merges_are_pairs:
+                self.merges = [tuple(map(apply_unicode_to_bytes, merge)) for merge in self.merges]
+            else:
+                self.merges = [tuple(map(apply_unicode_to_bytes, merge.split(" "))) for merge in self.merges]
+
+            chars_to_bytes_idx = next(
+                idx for idx, step in enumerate(pipeline.steps) if isinstance(step, CharsToBytesStep)
+            )
+            pipeline.steps.insert(chars_to_bytes_idx, FuseStep())
+            pipeline.steps = [
+                step for step in pipeline.steps if not isinstance(step, (BytesToCharsStep, CharsToBytesStep))
+            ]
+
         if self.added_tokens is None:
             return
-
-        pipeline = self.get_pipeline()
 
         vocab_set = set(self.vocab)
         for (
@@ -500,25 +560,8 @@ class BPETokenizationStep(TokenizationModelStep):
             idx,
         ) in sorted(self.added_tokens.items(), key=lambda x: (x[1], x[0])):
             if token not in vocab_set:
-                if pipeline.is_byte_level:
-                    token = apply_bytes_to_unicode(token)
-                if isinstance(idx, str):
-                    assert True
                 if idx >= len(self.vocab):
                     self.vocab.append(token)
-
-        added_tokens = sorted(self.added_tokens, reverse=True)
-
-        for split_step in pipeline.split_steps:
-            split_step.skip_tokens = added_tokens
-
-        idx = sum(
-            1
-            for _ in takewhile(
-                lambda step: not isinstance(step, (PreTokenizatinStep, TokenizationModelStep)), pipeline.steps
-            )
-        )
-        pipeline.steps.insert(idx, RegexSplitStep.special_tokens_splitter(added_tokens))
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
@@ -580,8 +623,8 @@ class BPETokenizationStep(TokenizationModelStep):
         )
 
     @property
-    def merges_is_bytes(self) -> bool:
-        return self.merges and isinstance(self.merges[0], tuple)
+    def merges_are_pairs(self) -> bool:
+        return self.merges and not isinstance(self.merges[0], str)
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
@@ -597,7 +640,7 @@ class BPETokenizationStep(TokenizationModelStep):
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
         input_nodes.extend(pipeline.vocab_node_outputs)
-        if self.merges_is_bytes:
+        if self.merges_are_pairs:
             left_merges, right_merges = zip(*self.merges)
             input_nodes.extend(
                 (
@@ -705,14 +748,17 @@ class SpecialTokenWithId:
     token: Optional[str] = None
     _token_id: Optional[int] = None
 
-    def set_token_id(self, vocab: Optional[List[str]], is_byte_level: bool = False) -> None:
-        token = apply_bytes_to_unicode(self.token) if is_byte_level else self.token
-        if self._token_id is None and vocab is not None and token in vocab:
-            self._token_id = vocab.index(token)
+    def set_token_id(self, vocab: Optional[List[str]]) -> None:
+        if self._token_id is None and vocab is not None and self.token in vocab:
+            self._token_id = vocab.index(self.token)
 
     @property
     def token_id(self) -> Optional[int]:
         return self._token_id
+
+    @token_id.setter
+    def token_id(self, value: int) -> None:
+        self._token_id = value
 
 
 @dataclass
@@ -748,12 +794,12 @@ class CombineSegmentsStep(PostTokenizationStep):
 
     def finalize(self) -> None:
         pipeline = self.get_pipeline()
-        self.set_tokens_ids(vocab=pipeline.vocab, is_byte_level=pipeline.is_byte_level)
+        self.set_tokens_ids(vocab=pipeline.vocab)
 
-    def set_tokens_ids(self, vocab: Optional[List[int]], is_byte_level: bool = False) -> None:
+    def set_tokens_ids(self, vocab: Optional[List[int]]) -> None:
         for input_ in self.inputs:
             if isinstance(input_, AddToken) and input_.token_id is None:
-                input_.set_token_id(vocab, is_byte_level)
+                input_.set_token_id(vocab)
 
     @property
     def number_of_added_tokens(self) -> int:
@@ -775,6 +821,8 @@ class CombineSegmentsStep(PostTokenizationStep):
                     token=template_dict["SpecialToken"]["id"],
                     token_type_id=template_dict["SpecialToken"]["type_id"],
                 )
+                if special_tokens := post_processor_dict.get("special_tokens", False):
+                    step.token_id = next(iter(special_tokens.get(step.token, {}).get("ids", [None])))
                 inputs.append(step)
             elif "Sequence" in template_dict:
                 inputs.append(Sequence(token_type_id=template_dict["Sequence"]["type_id"]))
@@ -823,8 +871,12 @@ class CombineSegmentsStep(PostTokenizationStep):
         if not add_special_tokens or not post_processor_dict.get("add_special_tokens", True):
             return cls(inputs)
 
-        inputs.insert(0, AddToken(token=post_processor_dict["cls"][0], token_type_id=0))
-        inputs.append(AddToken(token=post_processor_dict["sep"][0], token_type_id=0))
+        inputs.insert(
+            0, AddToken(token=post_processor_dict["cls"][0], _token_id=post_processor_dict["cls"][1], token_type_id=0)
+        )
+        inputs.append(
+            AddToken(token=post_processor_dict["sep"][0], _token_id=post_processor_dict["sep"][1], token_type_id=0)
+        )
         return cls(inputs)
 
     def validate_inputs(self, input_nodes: List[Output]) -> None:
@@ -978,14 +1030,16 @@ class FuseStep(DecodingStep):
         *input_nodes, chars_node = input_nodes
         return _get_factory().create("FuzeRagged", input_nodes, {}).outputs() + [chars_node]
 
+
 @dataclass
 class UTF8ValidateStep(DecodingStep):
     mode: UTF8ReplaceMode = UTF8ReplaceMode.IGNORE
-    
+
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         replace_mode = True if self.mode is UTF8ReplaceMode.REPLACE else False
         return _get_factory().create("UTF8Validate", input_nodes, {"replace_mode": replace_mode}).outputs()
-    
+
+
 @dataclass
 class ByteFallbackStep(DecodingStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
@@ -1025,6 +1079,13 @@ class RegexDecodingStep(DecodingStep):
             raise ValueError(f"Replace Decoding Op with this parameters: `{replace_dict}` does not support yet.")
 
         return cls(regex_search_pattern=f"^{content}", replace_term="")
+
+    @classmethod
+    def rstrip_space(cls) -> "RegexDecodingStep":
+        return cls(
+            regex_search_pattern=r" $",
+            replace_term="",
+        )
 
     @classmethod
     def strip_forward_space(cls) -> "RegexDecodingStep":
@@ -1080,6 +1141,7 @@ class RegexDecodingStep(DecodingStep):
 class TokenizerPipeline:
     steps: List[BasePipelineStep] = field(default_factory=list)
     vocab: Optional[List[str]] = field(default=None, repr=False)
+    added_tokens: Optional[List[str]] = field(default=None, repr=False)
     skip_tokens: Optional[List[int]] = field(default=None, repr=False)
     number_of_inputs: int = 1
     vocab_node_outputs: Optional[List[Output]] = field(default=None, repr=False)
@@ -1118,12 +1180,26 @@ class TokenizerPipeline:
         processing_outputs = []
         for input_node in string_inputs:
             input_node = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+
+            ragged = []
+            if isinstance(self.steps[0], SpecialTokensSplit):
+                input_node = self.add_ragged_dimension(input_node)
+                input_node = self.steps[0].get_ov_subgraph(input_node)
+                ragged, input_node = input_node[:2], input_node[2:]
+
             for step in self.normalization_steps:
                 input_node = step.get_ov_subgraph(input_node)
-            input_node = self.add_ragged_dimension(input_node)
 
-            for step in chain(self.pre_tokenization_steps, self.tokenization_steps):
+            if not ragged:
+                input_node = self.add_ragged_dimension(input_node)
+            else:
+                input_node = ragged + input_node
+
+            for step in self.pre_tokenization_steps:
                 input_node = step.get_ov_subgraph(input_node)
+
+            for step in self.tokenization_steps:
+                input_node = step.get_ov_subgraph(input_node[:-1])
 
             processing_outputs.extend(input_node)
 
@@ -1148,10 +1224,6 @@ class TokenizerPipeline:
     @property
     def pre_tokenization_steps(self) -> List[PreTokenizatinStep]:
         return [step for step in self.steps if isinstance(step, PreTokenizatinStep)]
-
-    @property
-    def split_steps(self) -> List[RegexSplitStep]:
-        return [step for step in self.pre_tokenization_steps if isinstance(step, RegexSplitStep)]
 
     @property
     def tokenization_steps(self) -> List[TokenizationModelStep]:

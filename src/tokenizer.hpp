@@ -25,6 +25,7 @@
 #include "trie_tokenizer.hpp"
 #include "fuze.hpp"
 #include "byte_fallback.hpp"
+#include "special_tokens_split.hpp"
 
 #ifdef ENABLE_FAST_TOKENIZERS
 #include "case_fold.hpp"

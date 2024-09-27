@@ -2,14 +2,6 @@ from typing import Dict, List, Optional, Tuple
 
 from tiktoken import Encoding
 
-from .utils import bytes_to_unicode
-
-
-#  https://gist.github.com/xenova/a452a6474428de0182b17605a98631ee
-def token_bytes_to_string(b: bytes) -> str:
-    byte_encoder = bytes_to_unicode()
-    return "".join(byte_encoder[ord(char)] for char in b.decode("latin-1"))
-
 
 def bpe(mergeable_ranks: Dict[bytes, int], token: bytes, max_rank: Optional[int] = None) -> List[bytes]:
     parts = [bytes([b]) for b in token]

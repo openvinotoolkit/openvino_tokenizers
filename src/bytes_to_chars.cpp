@@ -271,7 +271,14 @@ const std::array<std::vector<uint8_t>, 256> create_bytes_to_chars_map() {
 
 void BytesToChars::validate_and_infer_types() {
     check_ragged_string_input(this, 0);
+
+    auto input_size = get_input_size();
+    OPENVINO_ASSERT(input_size == 5 || input_size == 6, "supported input sizes are 5 or 6");
+
     set_ragged_string_output(this, 0, get_input_partial_shape(0));
+    if (input_size == 6) {
+        this->set_output_type(5, get_input_element_type(5),  get_input_partial_shape(5));
+    };
 }
 
 bool BytesToChars::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
@@ -281,7 +288,11 @@ bool BytesToChars::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto ends   = inputs[3].data<const int32_t>();
     auto chars  = inputs[4].data<const uint8_t>();
 
-    OPENVINO_ASSERT(inputs.size() == 5, "Too few inputs passed to BytesToChars, it means it is not converted properly or it is not used in the supported pattern");
+    const bool has_skips = inputs.size() == 6;
+    bool * skips;
+    if (has_skips) {
+        skips = inputs[5].data<bool>();
+    };
 
     // Set output shapes
     outputs[0] = inputs[0];
@@ -289,6 +300,9 @@ bool BytesToChars::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     outputs[2].set_shape(inputs[2].get_shape());
     outputs[3].set_shape(inputs[3].get_shape());
     outputs[4].set_shape(Shape({inputs[4].get_size() * 2}));
+    if (has_skips) {
+        outputs[5] = inputs[5];
+    }
     const size_t num_elems = inputs[0].get_size();
 
     // Get pointers in the output tensors
@@ -298,16 +312,28 @@ bool BytesToChars::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     uint32_t char_pointer = 0;
 
     for(size_t j = 0; j < num_elems; ++j) {
-
         for(size_t i = ragged_begins[j]; i < ragged_ends[j]; ++i) {
             const auto word_len = ends[i] - begins[i];
             new_begins[i] = char_pointer;
 
-            for (size_t k = 0; k < word_len; ++k) {
-                for (auto byte : m_bytes_to_chars[chars[begins[i] + k]]) {
-                    new_chars[char_pointer++] = byte;
+            if (has_skips) {
+                if (skips[i]) {
+                      std::copy(chars + begins[i], chars + ends[i], new_chars + char_pointer);
+                      char_pointer += word_len;
+                } else {
+                    for (size_t k = 0; k < word_len; ++k) {
+                        for (auto byte : m_bytes_to_chars[chars[begins[i] + k]]) {
+                            new_chars[char_pointer++] = byte;
+                        }
+                    }
                 }
-            }
+            } else {
+                for (size_t k = 0; k < word_len; ++k) {
+                    for (auto byte : m_bytes_to_chars[chars[begins[i] + k]]) {
+                        new_chars[char_pointer++] = byte;
+                    }
+                }
+            };
             new_ends[i] = char_pointer;
         }
     }

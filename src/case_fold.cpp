@@ -19,9 +19,18 @@ void CaseFold::validate_and_infer_types() {
         "CaseFold operation `encoding` attribute must be one of [\"\", \"utf-8\"], got `", m_encoding, "`."
     );
     set_string_output(this, 0, get_input_partial_shape(0));
+
+    auto input_size = get_input_size();
+    OPENVINO_ASSERT(input_size == 3 || input_size == 4, "supported input sizes are 5 or 6");
+
+    if (input_size == 4) {
+        this->set_output_type(3, get_input_element_type(3),  get_input_partial_shape(3));
+    };
 }
 
 bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    const bool has_skips = (inputs.size() == 4);
+
     if (m_encoding.empty()) {
         return evaluate_normalization_helper(
             outputs, inputs,
@@ -34,11 +43,13 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
             });
     } else {
         return evaluate_normalization_helper(
-            outputs, inputs,
+            outputs,
+            inputs,
             [](const std::string& str) {
                 using namespace paddlenlp::fast_tokenizer;
                 return normalizers::NormalizedString(str).Lowercase().GetStr();
-            });
+            },
+            has_skips);
         }
 }
 
