@@ -137,8 +137,8 @@ sentencepiece_models = [
     "microsoft/deberta-v3-base",
     "xlnet-base-cased",
     # "THUDM/chatglm-6b",  # hf_tokenizer init error
-    "THUDM/chatglm2-6b",  # detokenizer cannot filter special tokens
-    "THUDM/chatglm3-6b",
+    # "THUDM/chatglm2-6b",  # _pad doesn't support padding side - broke in 4.45
+    # "THUDM/chatglm3-6b",  # _pad doesn't support padding side - broke in 4.45
     "t5-base",
     "facebook/musicgen-small",
     "rinna/bilingual-gpt-neox-4b",
@@ -148,7 +148,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
-    "THUDM/glm-4-9b",
+    # "THUDM/glm-4-9b",  # _pad doesn't support padding side - broke in 4.45
 ]
 
 

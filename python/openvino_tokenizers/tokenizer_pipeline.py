@@ -538,7 +538,10 @@ class BPETokenizationStep(TokenizationModelStep):
         if pipeline.is_byte_level:
             self.vocab = [apply_unicode_to_bytes(token) for token in self.vocab]
             pipeline.vocab = self.vocab
-            self.merges = [tuple(map(apply_unicode_to_bytes, merge.split(" "))) for merge in self.merges]
+            if self.merges_are_pairs:
+                self.merges = [tuple(map(apply_unicode_to_bytes, merge)) for merge in self.merges]
+            else:
+                self.merges = [tuple(map(apply_unicode_to_bytes, merge.split(" "))) for merge in self.merges]
 
             chars_to_bytes_idx = next(
                 idx for idx, step in enumerate(pipeline.steps) if isinstance(step, CharsToBytesStep)
@@ -620,7 +623,7 @@ class BPETokenizationStep(TokenizationModelStep):
         )
 
     @property
-    def merges_is_bytes(self) -> bool:
+    def merges_are_pairs(self) -> bool:
         return self.merges and not isinstance(self.merges[0], str)
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
@@ -637,7 +640,7 @@ class BPETokenizationStep(TokenizationModelStep):
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
 
         input_nodes.extend(pipeline.vocab_node_outputs)
-        if self.merges_is_bytes:
+        if self.merges_are_pairs:
             left_merges, right_merges = zip(*self.merges)
             input_nodes.extend(
                 (
