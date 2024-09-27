@@ -30,7 +30,7 @@ from .constants import (
     TOKEN_IDS_INPUT_NAME,
     TOKEN_TYPE_IDS_INPUT_NAME,
     TOKENIZER_NAME,
-    UTF8ReplaceMode
+    UTF8ReplaceMode,
 )
 from .tokenizer_pipeline import (
     AddToken,
@@ -43,7 +43,6 @@ from .tokenizer_pipeline import (
     CombineSegmentsStep,
     DecodingStep,
     FuseStep,
-    UTF8ValidateStep,
     NMTNormalizationStep,
     NormalizationStep,
     NormalizeUnicode,
@@ -53,9 +52,11 @@ from .tokenizer_pipeline import (
     RegexNormalizationStep,
     RegexSplitStep,
     Sequence,
+    SpecialTokensSplit,
     StripStringStep,
     TokenizerPipeline,
     TruncationStep,
+    UTF8ValidateStep,
     VocabDecoderStep,
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
@@ -120,9 +121,6 @@ def parse_byte_level_pretokenization_step(
 
     # regex is used by default, but it does not appear in config yet
     if pretokenizer_dict.get("use_regex", True):
-        # re2 does not support negative lookahead, so there is two steps replicate the behaviour
-        # this WA causes segfault for CLIP tokenizer
-        # steps.append(RegexSplitStep.add_whitespace_to_the_next_word())
         steps.append(RegexSplitStep.byte_level_splitter())
 
     steps.append(BytesToCharsStep())
@@ -174,11 +172,11 @@ class TransformersTokenizerPipelineParser:
         clean_up_tokenization_spaces: Optional[bool] = None,
         use_max_padding: bool = False,
         utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
-
     ) -> TokenizerPipeline:
         self.number_of_inputs = self.number_of_inputs if number_of_inputs is None else number_of_inputs
         self.pipeline.number_of_inputs = self.number_of_inputs
         for add_steps in [
+            self.special_tokens_split,
             self.normalization,
             self.pre_tokenization,
             self.tokenization_model,
@@ -193,6 +191,9 @@ class TransformersTokenizerPipelineParser:
             add_steps()
 
         return self.pipeline
+
+    def special_tokens_split(self) -> None:
+        self.pipeline.add_steps(SpecialTokensSplit.from_hf_tokenizer(self.original_tokenizer))
 
     normalizers_map: Dict[
         str,
@@ -412,18 +413,19 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
-        
+
         if utf8_replace_mode is not None:
             self.pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode))
 
+        if clean_up_tokenization_spaces is None:
+            clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces
+
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
+            self.pipeline.add_steps(RegexDecodingStep.rstrip_space())
 
         if prefix := self.tokenizer_json["model"].get("continuing_subword_prefix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_continuing_subword_prefix(prefix=prefix))
-
-        if clean_up_tokenization_spaces is None:
-            clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces
 
         if clean_up_tokenization_spaces and self.pipeline.decoding_steps:
             self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
@@ -1036,7 +1038,7 @@ def get_sp_detokenizer(
     if clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
 
-    if utf8_replace_mode is not None:    
+    if utf8_replace_mode is not None:
         replace_mode = True if utf8_replace_mode is UTF8ReplaceMode.REPLACE else False
         UTF8ValidateStep(mode=replace_mode).get_ov_subgraph(detokenizer)
 
@@ -1085,6 +1087,7 @@ def convert_tiktoken_model_tokenizer(
     reference_vocab = getattr(hf_tokenizer, "get_vocab", lambda: None)()
     pipeline.add_steps(
         [
+            SpecialTokensSplit.from_hf_tokenizer(hf_tokenizer),
             NormalizeUnicode("NFC"),
             RegexSplitStep(split_pattern, behaviour="contiguous"),
             BPETokenizationStep.from_tiktoken_encoding(encoding, reference_vocab=reference_vocab),
@@ -1100,7 +1103,7 @@ def convert_tiktoken_model_tokenizer(
     )
 
     # (chat)GLM model adds spaces around <sop> token
-    decoder_vocab = pipeline[2].vocab
+    decoder_vocab = pipeline[3].vocab
     sop_index = next((idx for idx, token in enumerate(decoder_vocab) if token == "<sop>"), None)
     if sop_index is not None:
         decoder_vocab[sop_index] = " <sop> "
@@ -1113,7 +1116,7 @@ def convert_tiktoken_model_tokenizer(
     )
 
     if utf8_replace_mode is not None:
-        pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode)),
+        (pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode)),)
 
     if clean_up_tokenization_spaces is None:
         clean_up_tokenization_spaces = getattr(hf_tokenizer, "clean_up_tokenization_spaces", None)

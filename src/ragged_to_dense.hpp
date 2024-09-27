@@ -42,6 +42,6 @@ public:
     }
 
 private:
-    bool m_pad_right;
-    bool m_pad_max_length;
+    bool m_pad_right = true;
+    bool m_pad_max_length = false;
 };

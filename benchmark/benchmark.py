@@ -196,7 +196,10 @@ def main(
     if per_layer_stats:
         config[properties.enable_profiling()] = True
 
+    start_compile = perf_counter()
     ov_tokenizer = compile_model(convert_tokenizer(hf_tokenizer), "CPU", config)
+    end_compile = perf_counter()
+    print(f"Time to compile tokenizer model: {end_compile - start_compile}s")
 
     dataset = sample_texts(dataset, batch * num_pairs)
     result_df = benchmark_tokenizers(ov_tokenizer, hf_tokenizer, dataset, per_layer_stats, batch)

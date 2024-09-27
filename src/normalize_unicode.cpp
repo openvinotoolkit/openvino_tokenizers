@@ -33,10 +33,18 @@ void NormalizeUnicode::validate_and_infer_types() {
     check_string_input(this, 0);
     OPENVINO_ASSERT(normalizers.find(m_normalization_form) != normalizers.end(), "NormalizeUnicode doesn't know normalization form ", m_normalization_form);
     set_string_output(this, 0, get_input_partial_shape(0));
+
+    auto input_size = get_input_size();
+    OPENVINO_ASSERT(input_size == 3 || input_size == 4, "supported input sizes are 5 or 6");
+
+    if (input_size == 4) {
+        this->set_output_type(3, get_input_element_type(3),  get_input_partial_shape(3));
+    };
 }
 
 bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    return evaluate_normalization_helper(outputs, inputs, normalizers.at(m_normalization_form));
+    const bool has_skips = (inputs.size() == 4);
+    return evaluate_normalization_helper(outputs, inputs, normalizers.at(m_normalization_form), has_skips);
 }
 
 #endif // ENABLE_FAST_TOKENIZERS
