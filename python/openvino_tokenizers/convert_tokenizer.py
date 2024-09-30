@@ -12,26 +12,39 @@ from openvino.runtime.exceptions import OVTypeError
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, update_rt_info
 
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
+@dataclass
+class TokenzierConversionParams:
+    with_detokenizer: bool = False
+    add_special_tokens: bool = True
+    skip_special_tokens: bool = True
+    clean_up_tokenization_spaces: Optional[bool] = None
+    tokenizer_output_type: Type = Type.i64
+    detokenizer_input_type: Type = Type.i64
+    streaming_detokenizer: bool = False
+    use_max_padding: bool = False
+    handle_special_tokens_with_re: Optional[bool] = None
+    use_sentencepiece_backend: bool = False
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None
 
-def convert_tokenizer(
-    tokenizer_object: Any,
-    with_detokenizer: bool = False,
-    add_special_tokens: bool = True,
-    skip_special_tokens: bool = True,
-    clean_up_tokenization_spaces: Optional[bool] = None,
-    tokenizer_output_type: Type = Type.i64,
-    detokenizer_input_type: Type = Type.i64,
-    streaming_detokenizer: bool = False,
-    use_max_padding: bool = False,
-    handle_special_tokens_with_re: Optional[bool] = None,
-    use_sentencepiece_backend: bool = False,
-    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
-) -> Union[Model, Tuple[Model, Model]]:
+def convert_tokenizer(tokenizer_object: Any, params: TokenzierConversionParams) -> Union[Model, Tuple[Model, Model]]:
+    with_detokenizer = params.with_detokenizer
+    add_special_tokens = params.add_special_tokens
+    skip_special_tokens = params.skip_special_tokens
+    clean_up_tokenization_spaces = params.clean_up_tokenization_spaces
+    tokenizer_output_type = params.tokenizer_output_type
+    detokenizer_input_type = params.detokenizer_input_type
+    streaming_detokenizer = params.streaming_detokenizer
+    use_max_padding = params.use_max_padding
+    handle_special_tokens_with_re = params.handle_special_tokens_with_re
+    use_sentencepiece_backend = params.use_sentencepiece_backend
+    utf8_replace_mode = params.utf8_replace_mode
+
     ov_tokenizers = None
-
+    
     if "transformers" in sys.modules:
         from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 
@@ -107,3 +120,32 @@ def convert_tokenizer(
             change_inputs_type(ov_tokenizers[1], detokenizer_input_type),
         )
     return change_outputs_type(ov_tokenizers, tokenizer_output_type)
+
+def convert_tokenizer(
+    tokenizer_object: Any,
+    with_detokenizer: bool = False,
+    add_special_tokens: bool = True,
+    skip_special_tokens: bool = True,
+    clean_up_tokenization_spaces: Optional[bool] = None,
+    tokenizer_output_type: Type = Type.i64,
+    detokenizer_input_type: Type = Type.i64,
+    streaming_detokenizer: bool = False,
+    use_max_padding: bool = False,
+    handle_special_tokens_with_re: Optional[bool] = None,
+    use_sentencepiece_backend: bool = False,
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
+) -> Union[Model, Tuple[Model, Model]]:
+    params = TokenzierConversionParams()
+    params.with_detokenizer = with_detokenizer
+    params.add_special_tokens = add_special_tokens
+    params.skip_special_tokens = skip_special_tokens
+    params.clean_up_tokenization_spaces = clean_up_tokenization_spaces
+    params.tokenizer_output_type = tokenizer_output_type
+    params.detokenizer_input_type = detokenizer_input_type
+    params.streaming_detokenizer = streaming_detokenizer
+    params.use_max_padding = use_max_padding
+    params.handle_special_tokens_with_re = handle_special_tokens_with_re
+    params.use_sentencepiece_backend = use_sentencepiece_backend
+    params.utf8_replace_mode = utf8_replace_mode
+    
+    return convert_tokenizer(tokenizer_object, params)
