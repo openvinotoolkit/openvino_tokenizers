@@ -9,7 +9,7 @@ import weakref
 from copy import copy
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
-from itertools import islice
+from itertools import islice, groupby
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -768,6 +768,7 @@ class TokenWithTypeId:
 
 @dataclass
 class AddToken(TokenWithTypeId, SpecialTokenWithId):
+    enabled_by_default: bool = True
     pass
 
 
@@ -781,6 +782,7 @@ class CombineSegmentsStep(PostTokenizationStep):
     inputs: List[TokenWithTypeId] = field(default_factory=list)
     segment_ids: Optional[List[int]] = None
     axis: int = -1
+    add_special_tokens: bool = True
 
     def __post_init__(self):
         if self.segment_ids is not None:
@@ -803,7 +805,7 @@ class CombineSegmentsStep(PostTokenizationStep):
 
     @property
     def number_of_added_tokens(self) -> int:
-        return sum(1 for input_ in self.inputs if isinstance(input_, AddToken))
+        return sum(1 for input_ in self.inputs if (isinstance(input_, AddToken) and input_.enabled_by_default))
 
     @classmethod
     def from_hf_json_template_postprocessor(
@@ -816,48 +818,49 @@ class CombineSegmentsStep(PostTokenizationStep):
             post_processor = post_processor_dict["pair"]
 
         for template_dict in post_processor:
-            if "SpecialToken" in template_dict and add_special_tokens:
+            if "SpecialToken" in template_dict:
                 step = AddToken(
                     token=template_dict["SpecialToken"]["id"],
                     token_type_id=template_dict["SpecialToken"]["type_id"],
+                    enabled_by_default=add_special_tokens
                 )
                 if special_tokens := post_processor_dict.get("special_tokens", False):
                     step.token_id = next(iter(special_tokens.get(step.token, {}).get("ids", [None])))
                 inputs.append(step)
             elif "Sequence" in template_dict:
                 inputs.append(Sequence(token_type_id=template_dict["Sequence"]["type_id"]))
-        return cls(inputs)
+        return cls(inputs, add_special_tokens=add_special_tokens)
 
     @classmethod
     def from_hf_json_bert_postprocessor(
         cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1, add_special_tokens: bool = True
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
-        if add_special_tokens:
-            inputs.append(
-                AddToken(
-                    token=post_processor_dict["cls"][0],
-                    token_type_id=0,
-                )
+        inputs.append(
+            AddToken(
+                token=post_processor_dict["cls"][0],
+                token_type_id=0,
+                enabled_by_default=add_special_tokens
             )
+        )
         inputs.append(Sequence(token_type_id=0))
-        if add_special_tokens:
+        inputs.append(
+            AddToken(
+                token=post_processor_dict["sep"][0],
+                token_type_id=0,
+                enabled_by_default=add_special_tokens
+            )
+        )
+        if number_of_inputs == 2:
+            inputs.append(Sequence(token_type_id=1))
             inputs.append(
                 AddToken(
                     token=post_processor_dict["sep"][0],
-                    token_type_id=0,
+                    token_type_id=1,
+                    enabled_by_default=add_special_tokens
                 )
             )
-        if number_of_inputs == 2:
-            inputs.append(Sequence(token_type_id=1))
-            if add_special_tokens:
-                inputs.append(
-                    AddToken(
-                        token=post_processor_dict["sep"][0],
-                        token_type_id=1,
-                    )
-                )
-        return cls(inputs)
+        return cls(inputs, add_special_tokens=add_special_tokens)
 
     @classmethod
     def from_hf_json_roberta_processor(
@@ -868,16 +871,13 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         inputs: List[TokenWithTypeId] = [Sequence(token_type_id=0)]
 
-        if not add_special_tokens or not post_processor_dict.get("add_special_tokens", True):
-            return cls(inputs)
-
         inputs.insert(
-            0, AddToken(token=post_processor_dict["cls"][0], _token_id=post_processor_dict["cls"][1], token_type_id=0)
+            0, AddToken(token=post_processor_dict["cls"][0], _token_id=post_processor_dict["cls"][1], token_type_id=0, enabled_by_default=add_special_tokens)
         )
         inputs.append(
-            AddToken(token=post_processor_dict["sep"][0], _token_id=post_processor_dict["sep"][1], token_type_id=0)
+            AddToken(token=post_processor_dict["sep"][0], _token_id=post_processor_dict["sep"][1], token_type_id=0, enabled_by_default=add_special_tokens)
         )
-        return cls(inputs)
+        return cls(inputs, add_special_tokens=add_special_tokens)
 
     def validate_inputs(self, input_nodes: List[Output]) -> None:
         number_of_sequence_inputs = sum(1 for input_ in self.inputs if isinstance(input_, Sequence))
@@ -891,18 +891,29 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         op_inputs = []
         input_nodes_iter = iter(input_nodes)
-        for node in self.inputs:
-            if isinstance(node, Sequence):
-                op_inputs.extend(islice(input_nodes_iter, 3))
-            elif isinstance(node, AddToken):
-                # Put a scalar as a ragged tensor with scalar shape and a single element
-                op_inputs.extend(make_constant_node(0, Type.i32).outputs())
-                op_inputs.extend(make_constant_node(1, Type.i32).outputs())
-                op_inputs.append(make_constant_node(np.array([node._token_id]), Type.i32).output(0))
-            else:
-                raise UserInputError(f"Unexpected node type in CombineSegments: {type(node)}")
 
-        op_inputs.append(make_constant_node(self.segment_ids, Type.i32).output(0))
+        segment_ids = []
+        segment_index = 0
+        for (key, token_id), group_iter in groupby(self.inputs, key=lambda input: (type(input), getattr(input, 'token_id', None))):
+            if key is Sequence:
+                for sequence in group_iter:
+                    op_inputs.extend(islice(input_nodes_iter, 3))
+                segment_ids.append(self.segment_ids[segment_index])
+                segment_index += 1
+            elif key is AddToken:
+                ids = [node._token_id for node in group_iter]
+                
+                segment_ids.append(self.segment_ids[segment_index])
+                segment_index += len(ids)
+                
+                op_inputs.extend(make_constant_node(0, Type.i32).outputs())
+                # If we don't add special tokens then end is 0.
+                op_inputs.extend(make_constant_node(len(ids) if self.add_special_tokens else 0, Type.i32).outputs())
+                op_inputs.append(make_constant_node(np.array(ids), Type.i32).output(0))
+            else:
+                raise UserInputError(f"Unexpected node type in CombineSegments: {key}")
+
+        op_inputs.append(make_constant_node(segment_ids, Type.i32).output(0))
         return _get_factory().create("CombineSegments", op_inputs).outputs()
 
 
