@@ -72,8 +72,10 @@ RegexSplit::RegexSplit(
     m_behaviour(behaviour),
     m_invert(invert),
     m_max_splits(max_splits) {
-    
-    auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
+
+    const bool has_skips = get_input_size() == 7;
+
+    auto split_pattern_const = as_type_ptr<Constant>(arguments[5 + has_skips].get_node_shared_ptr());
     auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
     auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
     compile_pattern_if_necessary(split_pattern);
@@ -98,7 +100,9 @@ RegexSplit::RegexSplit(
     m_invert(invert),
     m_max_splits(max_splits) {
 
-    auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
+    const bool has_skips = get_input_size() == 7;
+
+    auto split_pattern_const = as_type_ptr<Constant>(arguments[5 + has_skips].get_node_shared_ptr());
     auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
     auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
     compile_pattern_if_necessary(split_pattern);
@@ -108,13 +112,16 @@ RegexSplit::RegexSplit(
 
 void RegexSplit::validate_and_infer_types() {
     auto input_size = get_input_size();
-    OPENVINO_ASSERT(input_size == 6 || input_size == 9, "Incorrect number of inputs passed to RegexSplit: " + std::to_string(input_size) +  "; try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
+    const bool has_skips = input_size == 7;
+
+    OPENVINO_ASSERT(input_size == 6 || input_size == 7 || input_size == 9, "Incorrect number of inputs passed to RegexSplit: " + std::to_string(input_size) +  "; try to reconvert tokenizer with newer version of OpenVINO Tokenizers");
 
     // input strings
     check_ragged_string_input(this, 0);
     // split pattern
-    check_string_scalar_input(this, 5);
+    check_string_scalar_input(this, 5 + has_skips);
 
+    //skip regex
     if (input_size == 9) {
         check_string_input(this, 6);
     }
@@ -124,6 +131,9 @@ void RegexSplit::validate_and_infer_types() {
         "RegexSplit max_splits attribute must be greater then `0` or equal to `-1`, got ", m_max_splits
     );
     set_ragged_string_output(this, 0, get_input_partial_shape(0));
+    if (has_skips) {
+        this->set_output_type(5, get_input_element_type(5),  get_input_partial_shape(5));
+    };
 }
 
 bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
@@ -181,6 +191,18 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     const size_t num_rows = inputs[0].get_size();
     const size_t num_chars = inputs[4].get_size();
 
+    bool * skips;
+    bool init_skips = false;
+    const bool has_skips = (input_size == 7);
+    if (has_skips) {
+        skips = inputs[5].data<bool>();
+        outputs[5].set_shape(Shape{num_chars});
+    } else {
+        skips = new bool[num_rows];
+        init_skips = true;
+        std::fill(skips, skips + num_rows, false);
+    };
+
     outputs[0].set_shape(inputs[0].get_shape());
     outputs[1].set_shape(inputs[1].get_shape());
 
@@ -194,6 +216,10 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     auto new_ragged_ends   = outputs[1].data<int32_t>();
     auto new_begins = outputs[2].data<int32_t>();
     auto new_ends   = outputs[3].data<int32_t>();
+    bool * new_skips;
+    if (has_skips) {
+        new_skips = outputs[5].data<bool>();
+    };
     int32_t ragged_offset = 0;
 
     for(size_t seq = 0; seq < num_rows; ++seq) {
@@ -202,7 +228,12 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
 
-            if (m_skip_tokens != nullptr && m_skip_tokens->count(str) == 1) {
+            if (skips[ragged_col]) {
+                new_begins[ragged_offset] = begins[ragged_col];
+                new_skips[ragged_offset] = true;
+                new_ends[ragged_offset++] = ends[ragged_col];
+            } else if (m_skip_tokens != nullptr && m_skip_tokens->count(str) == 1) {
+                // legacy skip mechanism
                 new_begins[ragged_offset] = begins[ragged_col];
                 new_ends[ragged_offset++] = ends[ragged_col];
             } else {
@@ -254,12 +285,19 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                     auto [curr_start, curr_end] = *match;
                     
                     if (curr_start != start) {
+                        if (has_skips) {
+                            new_skips[ragged_offset] = false;
+                        };
                         add_split(start, curr_start, m_invert);
                     }
+                    if (has_skips) {
+                        new_skips[ragged_offset] = false;
+                    };
                     add_split(curr_start, curr_end, !m_invert);
                     start = curr_end;
                 }
                 if (start < str.length()) {
+                    if (has_skips) { new_skips[ragged_offset] = false; }
                     add_split(start, str.length(), m_invert);
                 }
             }
@@ -271,6 +309,11 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     // Fix real shape based on collected results
     outputs[2].set_shape({size_t(ragged_offset)});
     outputs[3].set_shape({size_t(ragged_offset)});
-
+    if (has_skips) {
+        outputs[5].set_shape({size_t(ragged_offset)});
+    };
+    if (init_skips) {
+        delete[] skips;
+    };
     return true;
 }

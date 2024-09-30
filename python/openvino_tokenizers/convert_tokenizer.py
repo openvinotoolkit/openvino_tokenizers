@@ -9,8 +9,9 @@ from typing import Any, Optional, Tuple, Union
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
 
-from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, update_rt_info
 from openvino_tokenizers.constants import UTF8ReplaceMode
+from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, update_rt_info
+
 
 logger = logging.getLogger(__name__)
 
@@ -99,11 +100,10 @@ def convert_tokenizer(
 
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
-
+    
     if isinstance(ov_tokenizers, tuple):
         return (
             change_outputs_type(ov_tokenizers[0], tokenizer_output_type),
             change_inputs_type(ov_tokenizers[1], detokenizer_input_type),
         )
-
     return change_outputs_type(ov_tokenizers, tokenizer_output_type)

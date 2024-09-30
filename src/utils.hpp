@@ -66,7 +66,8 @@ ov::Output<ov::Node> post_translate_ragged_tensor_output(const ov::OutputVector&
 bool evaluate_normalization_helper (
     ov::TensorVector& outputs,
     const ov::TensorVector& inputs,
-    std::function<std::string(const std::string&)> normalizer);
+    std::function<std::string(const std::string&)> normalizer,
+    const bool has_skips = false);
 
 std::shared_ptr<ov::Node> string_attribute_to_constant (const ov::frontend::NodeContext& node, const std::string& name);
 

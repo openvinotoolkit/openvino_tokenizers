@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+from enum import Enum
+
 
 ATTENTION_MASK_INPUT_NAME = "attention_mask"
 TOKEN_IDS_INPUT_NAME = "input_ids"
@@ -33,10 +35,9 @@ SPACE_SYMBOLS = (" ", "\t", "\n", "\r", "\v", "\f")
 MIN_CACHE_CAPACITY = 20_000
 VOCAB_SIZE_CACHE_PROPORTION = 0.2
 
-from enum import Enum
 class UTF8ReplaceMode(Enum):
-    IGNORE: str = 'ignore'
-    REPLACE: str = 'replace'
-    
+    IGNORE: str = "ignore"
+    REPLACE: str = "replace"
+
     def __str__(self):
         return self.value

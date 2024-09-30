@@ -9,9 +9,7 @@
 using namespace ov;
 
 void ByteFallback::validate_and_infer_types() {
-    OPENVINO_ASSERT(get_input_element_type(0) == element::i32, "Expected an i32 tensor as the first part of the decomposed ragged string representation");
-    OPENVINO_ASSERT(get_input_element_type(1) == element::i32, "Expected an i32 tensor as the second part of the decomposed ragged string representation");
-
+    check_string_input(this, 0);
     set_string_output(this, 0, get_input_partial_shape(0));
 }
 
