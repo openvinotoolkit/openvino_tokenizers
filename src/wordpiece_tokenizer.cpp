@@ -114,34 +114,46 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
             
             auto text_orig = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
             auto text = text_orig;
-            Tokens res;
+            // Tokens res;
+            // res.reserve(text.length());
+
             auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
             int idx = 0;
             auto token_id = m_trie_root->find_longest(text_vec, idx);
+            int32_t beginning_offset = ragged_offset;
             if (token_id == -1) {
-                res.emplace_back(m_unk_token_id);
+                OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                new_elems[ragged_offset++] = m_unk_token_id;
             } else {
-                res.emplace_back(token_id);
-            }
-            if (token_id != -1) {
+                OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                new_elems[ragged_offset++] = token_id;
+                // res.emplace_back(token_id);
+                
+                // bool exit_flag = false;
                 for(; idx < text_vec.size();) {
-                    std::cout << "still continuing\n" << std::flush;
+                    // std::cout << "still continuing\n" << std::flush;
                     text = m_suffix_indicator + text.substr(idx);
                     text_vec = std::vector<unsigned char>(text.begin(), text.end());
                     idx = 0;
                     token_id = m_trie_subwords->find_longest(text_vec, idx);
                     if (token_id == -1) {
-                        res.emplace_back(m_unk_token_id);
-                        idx += 1;
+                        OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                        new_elems[beginning_offset] = m_unk_token_id;
+                        ragged_offset = beginning_offset + 1;
+                        // exit_flag = true;
                         break;
                     }
-                    res.emplace_back(token_id);
+                    OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                    new_elems[ragged_offset++] = token_id;
+                    // res.emplace_back(token_id);
                 }
-            }
 
-            for (const auto& token : res) {
-                OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                new_elems[ragged_offset++] = token;
+                // if (!exit_flag) {
+                //     for (const auto& token : res) {
+                //             OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                //             new_elems[ragged_offset++] = token;
+                //         }
+                // }
             }
         }
         new_ends[seq] = ragged_offset;
