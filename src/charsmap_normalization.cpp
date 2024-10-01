@@ -4,22 +4,49 @@
 
 #include "charsmap_normalization.hpp"
 #include "utils.hpp"
+#include "sentencepiece_trainer.h"  // for making normalizer spec
+#include "absl/strings/str_format.h"
 
 using namespace ov;
 
+namespace {
+    sentencepiece::NormalizerSpec make_identity_spec() {
+        return sentencepiece::SentencePieceTrainer::GetNormalizerSpec("identity");
+    }
+}  // namespace
+
 
 void CharsMapNormalization::validate_and_infer_types() {
-    check_string_input(this, 0);
+    auto input_size = get_input_size();
+    OPENVINO_ASSERT(input_size == 4 || input_size == 5, "supported input sizes are 4 or 5");
 
-//    OPENVINO_ASSERT(
-//        m_encoding == "" || m_encoding == "utf-8",
-//        "CaseFold operation `encoding` attribute must be one of [\"\", \"utf-8\"], got `", m_encoding, "`."
-//    );
+    const bool has_skips = (input_size == 5);
+
+    check_string_input(this, 0);
+    OPENVINO_ASSERT(get_input_element_type(3 + has_skips) == element::u8, "Charsmap normalizer accepts precompiled mapping and it should be of type u8 tensor");
     set_string_output(this, 0, get_input_partial_shape(0));
+
+    if (has_skips) {
+        this->set_output_type(3, get_input_element_type(3),  get_input_partial_shape(3));
+    };
 }
 
 bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
+    const bool has_skips = (inputs.size() == 5);
+
+    if (m_normalizer == nullptr) {
+        const std::string precompiled_charsmap = std::string(inputs[4 + has_skips].data<const char>(), inputs[4 + has_skips].get_size());
+        sentencepiece::NormalizerSpec spec = make_identity_spec();
+        spec.set_precompiled_charsmap(precompiled_charsmap);
+        m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(spec);
+    }
+
     return evaluate_normalization_helper(
-        outputs, inputs,
-        [](const std::string& str) { return str; });
+        outputs,
+        inputs,
+        [&](const std::string& str) {
+            return m_normalizer->Normalize(str);
+        },
+        has_skips
+    );
 }
