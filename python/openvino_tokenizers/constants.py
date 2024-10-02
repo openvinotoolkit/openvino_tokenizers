@@ -35,6 +35,7 @@ SPACE_SYMBOLS = (" ", "\t", "\n", "\r", "\v", "\f")
 MIN_CACHE_CAPACITY = 20_000
 VOCAB_SIZE_CACHE_PROPORTION = 0.2
 
+
 class UTF8ReplaceMode(Enum):
     IGNORE: str = "ignore"
     REPLACE: str = "replace"

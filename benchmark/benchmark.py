@@ -38,7 +38,9 @@ def batch_iter(dataset: Iterable, batch: int = 1):
         yield next_batch
 
 
-def benchmark_tokenizer_async(ov_tokenizer: CompiledModel, dataset: List[Tuple[str, str]], batch: int = 1) -> Tuple[pd.Series, float]:
+def benchmark_tokenizer_async(
+    ov_tokenizer: CompiledModel, dataset: List[Tuple[str, str]], batch: int = 1
+) -> Tuple[pd.Series, float]:
     def callback(
         ir: InferRequest,
         user_data: Tuple[List[int], float, int],
@@ -53,7 +55,9 @@ def benchmark_tokenizer_async(ov_tokenizer: CompiledModel, dataset: List[Tuple[s
     times = [0 for _ in range(iterations)]
 
     bench_start = perf_counter()
-    for idx, prompt in tqdm(enumerate(batch_iter(chain.from_iterable(dataset), batch)), total=iterations, desc="Async benchmark"):
+    for idx, prompt in tqdm(
+        enumerate(batch_iter(chain.from_iterable(dataset), batch)), total=iterations, desc="Async benchmark"
+    ):
         start = perf_counter()
         async_queue.start_async(prompt, (times, start, idx))
     async_queue.wait_all()
@@ -91,7 +95,9 @@ def benchmark_tokenizers(
         hf_tokenizer(["test " * repeat])
 
     ov_perf_counters = []
-    for prompt in tqdm(batch_iter(chain.from_iterable(dataset), batch), total=len(dataset) * 2 / batch, desc="Sync benchmark"):
+    for prompt in tqdm(
+        batch_iter(chain.from_iterable(dataset), batch), total=len(dataset) * 2 / batch, desc="Sync benchmark"
+    ):
         res = [prompt]
 
         ov_start = perf_counter()
@@ -136,7 +142,9 @@ def dump_latency_stats(results: pd.DataFrame, model_name: str) -> None:
     sorted_res.to_csv(f"latency_res_{model_name}.csv", index=False)
 
 
-def print_stats(results: pd.DataFrame, async_fps: Optional[float] = None, batch: int = 1) -> Tuple[float, float, float]:
+def print_stats(
+    results: pd.DataFrame, async_fps: Optional[float] = None, batch: int = 1
+) -> Tuple[float, float, float]:
     data_size = len(results) * batch
     ov_fps = data_size / results["OV"].sum()
     hf_fps = data_size / results["HF"].sum()
@@ -205,7 +213,9 @@ def main(
     result_df = benchmark_tokenizers(ov_tokenizer, hf_tokenizer, dataset, per_layer_stats, batch)
     async_results, async_fps = benchmark_tokenizer_async(ov_tokenizer, dataset, batch)
     result_df = result_df.assign(OV_ASYNC=async_results.values)
-    result_df["Prompt Length, chars"] = result_df["prompt"].apply(lambda prompts: sum(len(prompt) for prompt in prompts))
+    result_df["Prompt Length, chars"] = result_df["prompt"].apply(
+        lambda prompts: sum(len(prompt) for prompt in prompts)
+    )
 
     ov_fps, async_fps, hf_fps = print_stats(result_df, async_fps, batch)
     model_name = checkpoint.rsplit("/", 1)[-1]

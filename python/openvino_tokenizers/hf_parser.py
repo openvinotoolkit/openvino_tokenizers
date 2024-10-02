@@ -457,8 +457,9 @@ def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tok
     return result
 
 
-def convert_fast_tokenizer(hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams, 
-                           number_of_inputs: int = 1) -> Union[Model, Tuple[Model, Model]]:
+def convert_fast_tokenizer(
+    hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams, number_of_inputs: int = 1
+) -> Union[Model, Tuple[Model, Model]]:
     pipeline = TransformersTokenizerPipelineParser(hf_tokenizer).parse(
         number_of_inputs=number_of_inputs,
         add_special_tokens=params.add_special_tokens,
@@ -694,9 +695,9 @@ def modify_sentencepiece_model(
     return model.SerializeToString()
 
 
-def convert_sentencepiece_model_tokenizer(hf_tokenizer: PreTrainedTokenizerBase, 
-                                          params: TokenzierConversionParams, 
-                                          add_attention_mask: bool = True) -> Union[Model, Tuple[Model, Model]]:
+def convert_sentencepiece_model_tokenizer(
+    hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams, add_attention_mask: bool = True
+) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
@@ -1048,7 +1049,9 @@ def is_tiktoken_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     )
 
 
-def convert_tiktoken_model_tokenizer(hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams) -> Union[Model, Tuple[Model, Model]]:
+def convert_tiktoken_model_tokenizer(
+    hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams
+) -> Union[Model, Tuple[Model, Model]]:
     encoding = getattr(hf_tokenizer, "tokenizer", None) or hf_tokenizer.encoder
     split_pattern = encoding._pat_str
 

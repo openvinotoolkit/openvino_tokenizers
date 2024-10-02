@@ -18,57 +18,60 @@ from .constants import (
     SPACE_SYMBOLS,
     TOKEN_IDS_OUTPUT_NAME,
     rt_info_to_hf_attribute_map,
-    UTF8ReplaceMode
+    UTF8ReplaceMode,
 )
+
 
 @dataclass
 class TokenzierConversionParams:
     """
     with_detokenizer : bool
         Whether to include a detokenizer in the conversion process. Default is False.
-    
+
     add_special_tokens : bool
         Whether to add special tokens during tokenization. Default is True.
-    
+
     skip_special_tokens : bool
         Whether to skip special tokens during detokenization. Default is True.
-    
+
     clean_up_tokenization_spaces : Optional[bool]
         If True, extra spaces will be cleaned up during the tokenization process. Default is None.
-    
+
     tokenizer_output_type : Type
         The output type for the tokenizer model. Default is `Type.i64`.
-    
+
     detokenizer_input_type : Type
         The input type for the detokenizer model. Default is `Type.i64`.
-    
+
     streaming_detokenizer : bool
         If True, enables streaming mode for the detokenizer. Default is False.
-    
+
     use_max_padding : bool
         If True, enables maximum padding for the tokenizer. Default is False.
-    
+
     handle_special_tokens_with_re : Optional[bool]
         If True, uses regular expressions to handle special tokens during tokenization. Default is None.
-    
+
     use_sentencepiece_backend : bool
         If True, forces the use of the SentencePiece backend during tokenization. Default is False.
-    
+
     utf8_replace_mode : Optional[UTF8ReplaceMode]
-        Specifies the UTF-8 replacement mode during tokenization. 
+        Specifies the UTF-8 replacement mode during tokenization.
         Allowed values are UTF8ReplaceMode.IGNORE and UTF8ReplaceMode.REPLACE. Default is None.
     """
+
     with_detokenizer: bool = False
     add_special_tokens: bool = True
     skip_special_tokens: bool = True
     clean_up_tokenization_spaces: Optional[bool] = None
-    tokenizer_output_type: Type = Type.i64,
-    detokenizer_input_type: Type = Type.i64,
+    tokenizer_output_type: Type = (Type.i64,)
+    detokenizer_input_type: Type = (Type.i64,)
     streaming_detokenizer: bool = False
     use_max_padding: bool = False
     handle_special_tokens_with_re: Optional[bool] = None
     use_sentencepiece_backend: bool = False
     utf8_replace_mode: Optional[UTF8ReplaceMode] = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -221,10 +224,10 @@ def get_hf_tokenizer_attribute(
 def update_rt_info(
     ov_tokenizer: Model,
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
-    params: TokenzierConversionParams
+    params: TokenzierConversionParams,
 ) -> None:
     ov_tokenizer.set_rt_info(str(type(hf_tokenizer)), ORIGINAL_TOKENIZER_CLASS_NAME)
-    
+
     for key in params.__match_args__:
         v = getattr(params, key)
         v = str(v) if isinstance(v, bool) else v
