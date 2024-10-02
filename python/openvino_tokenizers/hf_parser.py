@@ -19,6 +19,7 @@ from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
 from openvino.runtime.opset1.ops import _get_node_factory_opset1
 from openvino.runtime.utils.types import as_node, make_constant_node
+from openvino_tokenizers.utils import TokenzierConversionParams
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
 
@@ -62,6 +63,8 @@ from .tokenizer_pipeline import (
     WordPieceTokenizationStep,
 )
 from .utils import filter_re2_incompatible
+
+from dataclasses import dataclass, field, asdict
 
 
 def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:
@@ -454,23 +457,15 @@ def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tok
     return result
 
 
-def convert_fast_tokenizer(
-    hf_tokenizer: PreTrainedTokenizerBase,
-    number_of_inputs: int = 1,
-    with_detokenizer: bool = False,
-    add_special_tokens: bool = True,
-    skip_special_tokens: bool = False,
-    clean_up_tokenization_spaces: Optional[bool] = None,
-    use_max_padding: bool = False,
-    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
-) -> Union[Model, Tuple[Model, Model]]:
+def convert_fast_tokenizer(hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams, 
+                           number_of_inputs: int = 1) -> Union[Model, Tuple[Model, Model]]:
     pipeline = TransformersTokenizerPipelineParser(hf_tokenizer).parse(
         number_of_inputs=number_of_inputs,
-        add_special_tokens=add_special_tokens,
-        skip_special_tokens=skip_special_tokens,
-        clean_up_tokenization_spaces=clean_up_tokenization_spaces,
-        use_max_padding=use_max_padding,
-        utf8_replace_mode=utf8_replace_mode,
+        add_special_tokens=params.add_special_tokens,
+        skip_special_tokens=params.skip_special_tokens,
+        clean_up_tokenization_spaces=params.clean_up_tokenization_spaces,
+        use_max_padding=params.use_max_padding,
+        utf8_replace_mode=params.utf8_replace_mode,
     )
     ov_tokenizer = pipeline.get_tokenizer_ov_subgraph()
     output_names = hf_tokenizer.model_input_names
@@ -495,7 +490,7 @@ def convert_fast_tokenizer(
 
     tokenizer_model = Model(filtered_outputs, ov_tokenizer.get_parameters(), TOKENIZER_NAME)
 
-    if with_detokenizer:
+    if params.with_detokenizer:
         return tokenizer_model, pipeline.get_detokenizer_ov_subgraph()
 
     return tokenizer_model
@@ -699,23 +694,14 @@ def modify_sentencepiece_model(
     return model.SerializeToString()
 
 
-def convert_sentencepiece_model_tokenizer(
-    hf_tokenizer: PreTrainedTokenizerBase,
-    add_attention_mask: bool = True,
-    with_detokenizer: bool = False,
-    streaming_detokenizer: bool = False,
-    add_special_tokens: bool = True,
-    skip_special_tokens: bool = False,
-    clean_up_tokenization_spaces: Optional[bool] = False,
-    add_prefix_space: Optional[bool] = None,
-    handle_special_tokens_with_re: Optional[bool] = None,
-    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
-) -> Union[Model, Tuple[Model, Model]]:
+def convert_sentencepiece_model_tokenizer(hf_tokenizer: PreTrainedTokenizerBase, 
+                                          params: TokenzierConversionParams, 
+                                          add_attention_mask: bool = True) -> Union[Model, Tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
-    if handle_special_tokens_with_re is None:
-        handle_special_tokens_with_re = is_sentencepiece_bpe_model(hf_tokenizer)
+    if params.handle_special_tokens_with_re is None:
+        params.handle_special_tokens_with_re = is_sentencepiece_bpe_model(hf_tokenizer)
 
     is_chatglm = getattr(hf_tokenizer, "name", None) == "GLMTokenizer"
     add_bos_token = add_eos_token = None
@@ -745,7 +731,7 @@ def convert_sentencepiece_model_tokenizer(
             getattr(hf_tokenizer, "add_bos_token", add_eos_token) and hf_tokenizer.bos_token_id is not None
         ) or False
 
-    if add_special_tokens is False:
+    if params.add_special_tokens is False:
         add_bos_token = add_eos_token = False
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -758,7 +744,7 @@ def convert_sentencepiece_model_tokenizer(
         tokenizer_json_file = Path(tmp) / "tokenizer.json"
         prepend_scheme = ""
         if (
-            add_prefix_space is None
+            params.add_prefix_space is None
             and isinstance(hf_tokenizer, PreTrainedTokenizerFast)
             and tokenizer_json_file.exists()
         ):
@@ -781,20 +767,20 @@ def convert_sentencepiece_model_tokenizer(
                 if metaspace is not None:
                     prepend_scheme = metaspace.get("prepend_scheme", "")
                     if prepend_scheme == "always":
-                        add_prefix_space = True
+                        params.add_prefix_space = True
                     elif prepend_scheme == "never":
-                        add_prefix_space = False
+                        params.add_prefix_space = False
                     elif prepend_scheme == "first":
-                        add_prefix_space = True
+                        params.add_prefix_space = True
 
                 # metaspace can be emulated with sequence of normalizers
-                if add_prefix_space is None:
+                if params.add_prefix_space is None:
                     normalizers = tokenizer_json.get("normalizer", {}).get("normalizers", [])
-                    add_prefix_space = any(normalizer.get("prepend") == "▁" for normalizer in normalizers)
+                    params.add_prefix_space = any(normalizer.get("prepend") == "▁" for normalizer in normalizers)
                     prepend_scheme = "never"
 
-        elif add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast):
-            add_prefix_space = True
+        elif params.add_prefix_space is None and isinstance(hf_tokenizer, PreTrainedTokenizerFast):
+            params.add_prefix_space = True
 
         add_tokens = parse_special_tokens(hf_tokenizer, only_special_tokens=False)
 
@@ -803,7 +789,7 @@ def convert_sentencepiece_model_tokenizer(
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
             skip_special_tokens=False,
-            add_prefix_space=add_prefix_space,
+            add_prefix_space=params.add_prefix_space,
             byte_fallback=byte_fallback,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
@@ -813,8 +799,8 @@ def convert_sentencepiece_model_tokenizer(
             sp_model_path=vocab_file,
             add_tokens=add_tokens,
             hf_tokenizer=hf_tokenizer,
-            skip_special_tokens=skip_special_tokens,
-            add_prefix_space=add_prefix_space,
+            skip_special_tokens=params.skip_special_tokens,
+            add_prefix_space=params.add_prefix_space,
             byte_fallback=byte_fallback,
         )
         sp_detokenizer_model = np.fromstring(sp_detokenizer_model_string, dtype=np.uint8)
@@ -826,7 +812,7 @@ def convert_sentencepiece_model_tokenizer(
 
     do_left_padding = hf_tokenizer.padding_side == "left"
 
-    if handle_special_tokens_with_re:
+    if params.handle_special_tokens_with_re:
         tokens, ids = zip(*sorted(((token, id) for id, token in add_tokens.items()), reverse=True))
         added_inputs = [
             *BasePipelineStep.create_string_constant_node(tokens).outputs(),
@@ -839,8 +825,8 @@ def convert_sentencepiece_model_tokenizer(
         "SentencepieceTokenizer",
         [sp_model_node, *next_node] + added_inputs,
         {
-            "add_bos": add_bos_token and not handle_special_tokens_with_re,
-            "add_eos": add_eos_token and not handle_special_tokens_with_re,
+            "add_bos": add_bos_token and not params.handle_special_tokens_with_re,
+            "add_eos": add_eos_token and not params.handle_special_tokens_with_re,
             "reverse": do_left_padding,
             "alpha": 0.0,
         },
@@ -861,12 +847,12 @@ def convert_sentencepiece_model_tokenizer(
             ],
         )
 
-    if is_chatglm and add_special_tokens:
+    if is_chatglm and params.add_special_tokens:
         prefix_tokens = np.array([hf_tokenizer.get_prefix_tokens()])
         dense_shape, indices, values, attention_mask = add_prefix_tokens(
             prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
         )
-    elif add_bos_token and handle_special_tokens_with_re and hf_tokenizer.bos_token_id is not None:
+    elif add_bos_token and params.handle_special_tokens_with_re and hf_tokenizer.bos_token_id is not None:
         prefix_tokens = np.array([[hf_tokenizer.bos_token_id]])
         dense_shape, indices, values, attention_mask = add_prefix_tokens(
             prefix_tokens, dense_shape, indices, values, attention_mask, do_left_padding
@@ -914,19 +900,19 @@ def convert_sentencepiece_model_tokenizer(
     tokenizer = Model(outputs, [input_node], TOKENIZER_NAME)
     tokenizer.validate_nodes_and_infer_types()
 
-    if not with_detokenizer:
+    if not params.with_detokenizer:
         return tokenizer
 
-    if clean_up_tokenization_spaces is None:
-        clean_up_tokenization_spaces = hf_tokenizer.clean_up_tokenization_spaces
+    if params.clean_up_tokenization_spaces is None:
+        params.clean_up_tokenization_spaces = hf_tokenizer.clean_up_tokenization_spaces
 
     detokenizer = get_sp_detokenizer(
         sp_model_node=sp_detokenizer_model_node,
-        streaming_detokenizer=streaming_detokenizer,
-        clean_up_tokenization_spaces=clean_up_tokenization_spaces,
+        streaming_detokenizer=params.streaming_detokenizer,
+        clean_up_tokenization_spaces=params.clean_up_tokenization_spaces,
         prepend_scheme=prepend_scheme,
-        add_prefix_space=add_prefix_space,
-        utf8_replace_mode=utf8_replace_mode,
+        add_prefix_space=params.add_prefix_space,
+        utf8_replace_mode=params.utf8_replace_mode,
     )
     return tokenizer, detokenizer
 
@@ -1062,25 +1048,17 @@ def is_tiktoken_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
     )
 
 
-def convert_tiktoken_model_tokenizer(
-    hf_tokenizer: PreTrainedTokenizerBase,
-    with_detokenizer: bool = False,
-    add_special_tokens: bool = True,
-    skip_special_tokens: bool = False,
-    clean_up_tokenization_spaces: Optional[bool] = None,
-    use_max_padding: bool = False,
-    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
-) -> Union[Model, Tuple[Model, Model]]:
+def convert_tiktoken_model_tokenizer(hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams) -> Union[Model, Tuple[Model, Model]]:
     encoding = getattr(hf_tokenizer, "tokenizer", None) or hf_tokenizer.encoder
     split_pattern = encoding._pat_str
 
     pipeline = TokenizerPipeline()
     skip_tokens = []
-    if skip_special_tokens:
+    if params.skip_special_tokens:
         skip_tokens = list(parse_special_tokens(hf_tokenizer))
 
     add_prefix_steps = []
-    if hasattr(hf_tokenizer, "get_prefix_tokens") and add_special_tokens:
+    if hasattr(hf_tokenizer, "get_prefix_tokens") and params.add_special_tokens:
         prefix_tokens = [AddToken(_token_id=token_id) for token_id in hf_tokenizer.get_prefix_tokens()]
         add_prefix_steps.append(CombineSegmentsStep(inputs=prefix_tokens + [Sequence()]))
 
@@ -1097,7 +1075,7 @@ def convert_tiktoken_model_tokenizer(
                 token=getattr(hf_tokenizer, "pad_token"),
                 _token_id=getattr(hf_tokenizer, "pad_token_id"),
                 pad_right=(hf_tokenizer.padding_side == "right"),
-                pad_to_max_length=use_max_padding,
+                pad_to_max_length=params.use_max_padding,
             ),
         ]
     )
@@ -1115,16 +1093,16 @@ def convert_tiktoken_model_tokenizer(
         ]
     )
 
-    if utf8_replace_mode is not None:
-        (pipeline.add_steps(UTF8ValidateStep(mode=utf8_replace_mode)),)
+    if params.utf8_replace_mode is not None:
+        (pipeline.add_steps(UTF8ValidateStep(mode=params.utf8_replace_mode)),)
 
-    if clean_up_tokenization_spaces is None:
-        clean_up_tokenization_spaces = getattr(hf_tokenizer, "clean_up_tokenization_spaces", None)
+    if params.clean_up_tokenization_spaces is None:
+        params.clean_up_tokenization_spaces = getattr(hf_tokenizer, "clean_up_tokenization_spaces", None)
 
-    if clean_up_tokenization_spaces:
+    if params.clean_up_tokenization_spaces:
         pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
 
-    if not with_detokenizer:
+    if not params.with_detokenizer:
         return pipeline.get_tokenizer_ov_subgraph()
 
     return pipeline.get_tokenizer_ov_subgraph(), pipeline.get_detokenizer_ov_subgraph()

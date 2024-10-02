@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
+from dataclasses import dataclass, field, asdict
 
 from .constants import (
     LOGITS_OUTPUT_NAME,
@@ -17,8 +18,22 @@ from .constants import (
     SPACE_SYMBOLS,
     TOKEN_IDS_OUTPUT_NAME,
     rt_info_to_hf_attribute_map,
+    UTF8ReplaceMode
 )
 
+@dataclass
+class TokenzierConversionParams:
+    with_detokenizer: bool = False
+    add_special_tokens: bool = True
+    skip_special_tokens: bool = True
+    clean_up_tokenization_spaces: Optional[bool] = None
+    tokenizer_output_type: Type = field(default=Type.i64, metadata={'exclude': True}),
+    detokenizer_input_type: Type = field(default=Type.i64, metadata={'exclude': True}),
+    streaming_detokenizer: bool = False
+    use_max_padding: bool = False
+    handle_special_tokens_with_re: Optional[bool] = None
+    use_sentencepiece_backend: bool = False
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None
 
 logger = logging.getLogger(__name__)
 
@@ -171,8 +186,18 @@ def get_hf_tokenizer_attribute(
 def update_rt_info(
     ov_tokenizer: Model,
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+    params: TokenzierConversionParams
 ) -> None:
     ov_tokenizer.set_rt_info(str(type(hf_tokenizer)), ORIGINAL_TOKENIZER_CLASS_NAME)
+    print(params)
+    
+    # TODO: w/a this is done for serialization purposes only because 
+    # ov.Type.i64 can not be deepcopied and asdict fails
+    params.tokenizer_output_type = None
+    params.detokenizer_output_type = None
+    for k, v in asdict(params).items():
+        v = str(v) if isinstance(v, bool) else v
+        ov_tokenizer.set_rt_info(v, k)
 
     for rt_field_name, hf_attributes in rt_info_to_hf_attribute_map.items():
         attribute = get_hf_tokenizer_attribute(hf_tokenizer, hf_attributes)
