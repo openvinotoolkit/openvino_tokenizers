@@ -14,23 +14,46 @@ from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, u
 
 logger = logging.getLogger(__name__)
 
-
 def convert_tokenizer(
         tokenizer_object: Any, 
-        params: TokenzierConversionParams = None, 
+        params: Union[TokenzierConversionParams, dict] = None, 
         *,
         with_detokenizer: bool = False,
         add_special_tokens: bool = True,
         skip_special_tokens: bool = True,
         clean_up_tokenization_spaces: Optional[bool] = None,
-        tokenizer_output_type: Type = None,
-        detokenizer_input_type: Type = None,
+        tokenizer_output_type: Type = Type.i64,
+        detokenizer_input_type: Type = Type.i64,
         streaming_detokenizer: bool = False,
         use_max_padding: bool = False,
         handle_special_tokens_with_re: Optional[bool] = None,
         use_sentencepiece_backend: bool = False,
         utf8_replace_mode: Optional[UTF8ReplaceMode] = None,        
 ) -> Union[Model, Tuple[Model, Model]]:
+    """
+    Converts a given tokenizer object into an OpenVINO-compatible model.
+
+    If no `params` are provided, the function will construct a `TokenzierConversionParams` instance 
+    using the passed keyword arguments to control the behavior of the conversion.
+
+    Parameters:
+    -----------
+    tokenizer_object : Any
+        The tokenizer object to convert. This should be an instance of a supported tokenizer, such 
+        as Huggingface's `PreTrainedTokenizerBase` or `PreTrainedTokenizerFast`.
+
+    params : TokenzierConversionParams, optional
+        If provided, the `TokenzierConversionParams` object containing conversion parameters.
+        If not provided, the parameters will be constructed from the other keyword arguments.
+    """
+    + TokenzierConversionParams.__doc__ + \
+    """
+    Returns:
+    --------
+    Union[Model, Tuple[Model, Model]]
+        The converted tokenizer model, or a tuple tokenizer and detokenizer depending on with_detokenizer value.
+    """
+
     if params is None:
         params = TokenzierConversionParams(
             with_detokenizer = with_detokenizer,
@@ -45,6 +68,9 @@ def convert_tokenizer(
             use_sentencepiece_backend = use_sentencepiece_backend,
             utf8_replace_mode = utf8_replace_mode,
         )
+    
+    if isinstance(params, dict):
+        params = TokenzierConversionParams(**params)
 
     ov_tokenizers = None
     
@@ -91,10 +117,9 @@ def convert_tokenizer(
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
     
-    detokenizer_input_type, tokenizer_output_type = Type.i64, Type.i64
     if isinstance(ov_tokenizers, tuple):
         return (
-            change_outputs_type(ov_tokenizers[0], tokenizer_output_type),
-            change_inputs_type(ov_tokenizers[1], detokenizer_input_type),
+            change_outputs_type(ov_tokenizers[0], params.tokenizer_output_type),
+            change_inputs_type(ov_tokenizers[1], params.detokenizer_input_type),
         )
-    return change_outputs_type(ov_tokenizers, tokenizer_output_type)
+    return change_outputs_type(ov_tokenizers, params.tokenizer_output_type)
