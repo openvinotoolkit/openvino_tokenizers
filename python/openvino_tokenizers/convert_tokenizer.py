@@ -52,15 +52,13 @@ def convert_tokenizer(
         If provided, the `TokenzierConversionParams` object containing conversion parameters.
         If not provided, the parameters will be constructed from the other keyword arguments.
     """
-    (
-        +TokenzierConversionParams.__doc__
-        + """
+    + TokenzierConversionParams.__doc__
+    + """
     Returns:
     --------
     Union[Model, Tuple[Model, Model]]
         The converted tokenizer model, or a tuple tokenizer and detokenizer depending on with_detokenizer value.
     """
-    )
 
     if params is None:
         params = TokenzierConversionParams(
