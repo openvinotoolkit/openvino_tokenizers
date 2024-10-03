@@ -99,13 +99,13 @@ def convert_tokenizer(
     if isinstance(tokenizer_object, PreTrainedTokenizerBase):
         if can_use_sentencepiece and (is_unigram or not tokenizer_object.is_fast or use_sentencepiece_backend):
             logger.info("Convert tokenizer using SentencePiece .model file.")
-            ov_tokenizers = convert_sentencepiece_model_tokenizer(tokenizer_object, params, add_attention_mask=True)
+            ov_tokenizers = convert_sentencepiece_model_tokenizer(tokenizer_object, params)
         elif is_tiktoken_model(tokenizer_object):
             logger.info("Convert tiktoken-based tokenizer")
             ov_tokenizers = convert_tiktoken_model_tokenizer(tokenizer_object, params)
         elif isinstance(tokenizer_object, PreTrainedTokenizerFast):
             logger.info("Convert Huggingface Fast tokenizer pipeline.")
-            ov_tokenizers = convert_fast_tokenizer(tokenizer_object, params, number_of_inputs=1)
+            ov_tokenizers = convert_fast_tokenizer(tokenizer_object, params)
         else:
             raise OVTypeError(f"Huggingface tokenizer type is not supported: {type(tokenizer_object)}")
 

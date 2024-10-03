@@ -71,7 +71,9 @@ class TokenzierConversionParams:
     handle_special_tokens_with_re: Optional[bool] = None
     use_sentencepiece_backend: bool = False
     utf8_replace_mode: Optional[UTF8ReplaceMode] = None
-
+    add_attention_mask: bool = True
+    add_prefix_space: Optional[bool] = None
+    number_of_inputs: int = 1
 
 logger = logging.getLogger(__name__)
 
