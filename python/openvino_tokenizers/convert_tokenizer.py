@@ -51,9 +51,6 @@ def convert_tokenizer(
     params : TokenzierConversionParams, optional
         If provided, the `TokenzierConversionParams` object containing conversion parameters.
         If not provided, the parameters will be constructed from the other keyword arguments.
-    """
-    + TokenzierConversionParams.__doc__
-    + """
     Returns:
     --------
     Union[Model, Tuple[Model, Model]]
@@ -127,3 +124,7 @@ def convert_tokenizer(
             change_inputs_type(ov_tokenizers[1], params.detokenizer_input_type),
         )
     return change_outputs_type(ov_tokenizers, params.tokenizer_output_type)
+
+# Embed convert_tokenizer docstring with TokenzierConversionParams docstring.
+pos = convert_tokenizer.__doc__.find('    Returns:')
+convert_tokenizer.__doc__ = convert_tokenizer.__doc__[:pos] + TokenzierConversionParams.__doc__ + '\n' + convert_tokenizer.__doc__[pos:]
