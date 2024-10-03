@@ -333,7 +333,7 @@ class RegexSplitStep(PreTokenizatinStep):
 
     @classmethod
     def metaspace_splitter(cls, metaspace=r"▁") -> "RegexSplitStep":
-        return cls(metaspace, invert=False, behaviour="merge_with_next")
+        return cls(metaspace, invert=False, behaviour="mergedwithnext")
 
     @classmethod
     def byte_level_splitter(cls) -> "RegexSplitStep":
