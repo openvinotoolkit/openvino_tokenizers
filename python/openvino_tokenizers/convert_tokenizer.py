@@ -20,6 +20,33 @@ from openvino_tokenizers.utils import (
 logger = logging.getLogger(__name__)
 
 
+def capture_arg(func):
+    def wrapper(*argc, **kwargs):
+        params = None
+        if len(argc) > 1 and argc[1] != None:
+            params = argc[1]
+        if 'params' in kwargs:
+            params = kwargs['params']
+        
+        if params is not None:
+            for key in TokenzierConversionParams.__match_args__:
+                if kwargs[key] is not None:
+                    msg = "Cannot specify both 'params' and individual convert_tokenizer arguments simultaneously. " \
+                          "Please pass all conversion params either individually, e.g. " \
+                          "convert_tokenizer(tokenizer_object, with_detokenizr=True, add_special_tokens=True,...). " \
+                          "Or within 'params' argument, e.g. " \
+                          "convert_tokenzier(tokenizer_object, params={'with_detokenizr': True, 'add_special_tokens': True, ...})"
+                    raise ValueError(msg)
+        
+        return func(*argc, **kwargs)
+    
+    # Embed convert_tokenizer docstring with TokenzierConversionParams docstring.
+    pos = func.__doc__.find('    Returns:')
+    wrapper.__doc__ = func.__doc__[:pos] + TokenzierConversionParams.__doc__ + '\n' + func.__doc__[pos:]
+    return wrapper
+
+
+@capture_arg
 def convert_tokenizer(
     tokenizer_object: Any,
     params: Union[TokenzierConversionParams, dict] = None,
@@ -124,7 +151,3 @@ def convert_tokenizer(
             change_inputs_type(ov_tokenizers[1], params.detokenizer_input_type),
         )
     return change_outputs_type(ov_tokenizers, params.tokenizer_output_type)
-
-# Embed convert_tokenizer docstring with TokenzierConversionParams docstring.
-pos = convert_tokenizer.__doc__.find('    Returns:')
-convert_tokenizer.__doc__ = convert_tokenizer.__doc__[:pos] + TokenzierConversionParams.__doc__ + '\n' + convert_tokenizer.__doc__[pos:]
