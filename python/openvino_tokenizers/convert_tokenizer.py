@@ -21,28 +21,36 @@ logger = logging.getLogger(__name__)
 
 
 def capture_arg(func):
-    def wrapper(*argc, **kwargs):
+    from functools import wraps
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
         params = None
-        if len(argc) > 1 and argc[1] != None:
-            params = argc[1]
+        if len(args) > 1 and args[1] != None:
+            params = args[1]
         if 'params' in kwargs:
             params = kwargs['params']
         
         if params is not None:
             for key in TokenzierConversionParams.__match_args__:
                 if kwargs[key] is not None:
-                    msg = "Cannot specify both 'params' and individual convert_tokenizer arguments simultaneously. " \
-                          "Please pass all conversion params either individually, e.g. " \
-                          "convert_tokenizer(tokenizer_object, with_detokenizr=True, add_special_tokens=True,...). " \
-                          "Or within 'params' argument, e.g. " \
-                          "convert_tokenzier(tokenizer_object, params={'with_detokenizr': True, 'add_special_tokens': True, ...})"
+                    msg = (
+                        "Cannot specify both 'params' and individual convert_tokenizer arguments simultaneously. "
+                        "Please pass all conversion params either individually, e.g. "
+                        "convert_tokenizer(tokenizer_object, with_detokenizr=True, add_special_tokens=True,...). "
+                        "Or within 'params' argument, e.g. "
+                        "convert_tokenzier(tokenizer_object, params={'with_detokenizr': True, 'add_special_tokens': True, ...})"
+                    )
                     raise ValueError(msg)
         
-        return func(*argc, **kwargs)
+        if isinstance(params, dict):
+            params = TokenzierConversionParams(**params)
+        if params is None:
+            params = TokenzierConversionParams(**kwargs)
+        return func(args[0], params)
     
     # Embed convert_tokenizer docstring with TokenzierConversionParams docstring.
-    pos = func.__doc__.find('    Returns:')
-    wrapper.__doc__ = func.__doc__[:pos] + TokenzierConversionParams.__doc__ + '\n' + func.__doc__[pos:]
+    wrapper.__doc__ = func.__doc__.replace('Returns:',  'Returns:\n'+ TokenzierConversionParams.__doc__ + '\n')
     return wrapper
 
 
@@ -67,7 +75,8 @@ def convert_tokenizer(
     Converts a given tokenizer object into an OpenVINO-compatible model.
 
     If no `params` are provided, the function will construct a `TokenzierConversionParams` instance
-    using the passed keyword arguments to control the behavior of the conversion.
+    using the passed keyword arguments to control the behavior of the conversion. Either params, 
+    or keyword arguments should be passed, if both are specified an Error will be thrown.
 
     Parameters:
     -----------
@@ -83,25 +92,6 @@ def convert_tokenizer(
     Union[Model, Tuple[Model, Model]]
         The converted tokenizer model, or a tuple tokenizer and detokenizer depending on with_detokenizer value.
     """
-
-    if params is None:
-        params = TokenzierConversionParams(
-            with_detokenizer=with_detokenizer,
-            add_special_tokens=add_special_tokens,
-            skip_special_tokens=skip_special_tokens,
-            clean_up_tokenization_spaces=clean_up_tokenization_spaces,
-            tokenizer_output_type=tokenizer_output_type,
-            detokenizer_input_type=detokenizer_input_type,
-            streaming_detokenizer=streaming_detokenizer,
-            use_max_padding=use_max_padding,
-            handle_special_tokens_with_re=handle_special_tokens_with_re,
-            use_sentencepiece_backend=use_sentencepiece_backend,
-            utf8_replace_mode=utf8_replace_mode,
-        )
-
-    if isinstance(params, dict):
-        params = TokenzierConversionParams(**params)
-
     ov_tokenizers = None
 
     if "transformers" not in sys.modules:
