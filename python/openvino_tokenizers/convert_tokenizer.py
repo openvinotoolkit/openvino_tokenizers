@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 def capture_arg(func):
-    def wrapper(*argc, **kwargs):
+    def wrapper(*args, **kwargs):
         params = None
-        if len(argc) > 1 and argc[1] != None:
-            params = argc[1]
+        if len(args) > 1 and args[1] != None:
+            params = args[1]
         if 'params' in kwargs:
             params = kwargs['params']
         
@@ -38,7 +38,7 @@ def capture_arg(func):
                           "convert_tokenzier(tokenizer_object, params={'with_detokenizr': True, 'add_special_tokens': True, ...})"
                     raise ValueError(msg)
         
-        return func(*argc, **kwargs)
+        return func(*args, **kwargs)
     
     # Embed convert_tokenizer docstring with TokenzierConversionParams docstring.
     pos = func.__doc__.find('    Returns:')
