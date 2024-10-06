@@ -559,7 +559,7 @@ class BPETokenizationStep(TokenizationModelStep):
             token,
             idx,
         ) in sorted(self.added_tokens.items(), key=lambda x: (x[1], x[0])):
-            if token not in vocab_set:
+            if token.encode() not in vocab_set:
                 if idx >= len(self.vocab):
                     self.vocab.append(token)
 
