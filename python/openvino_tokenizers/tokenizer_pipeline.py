@@ -554,14 +554,14 @@ class BPETokenizationStep(TokenizationModelStep):
         if self.added_tokens is None:
             return
 
-        vocab_set = set(self.vocab)
-        for (
-            token,
-            idx,
-        ) in sorted(self.added_tokens.items(), key=lambda x: (x[1], x[0])):
-            if token not in vocab_set:
-                if idx >= len(self.vocab):
-                    self.vocab.append(token)
+        size_diff = max(self.added_tokens.values()) - len(self.vocab) + 1
+        if size_diff > 0:
+            self.vocab.extend(type(self.vocab[0])() for _ in range(size_diff))
+
+        for token, idx in self.added_tokens.items():
+            if isinstance(self.vocab[0], bytes) and not isinstance(token, bytes):
+                token = token.encode()
+            self.vocab[idx] = token
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
