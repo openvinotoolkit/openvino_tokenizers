@@ -5,6 +5,7 @@
 import logging
 import sys
 from typing import Any, Optional, Tuple, Union
+from functools import wraps
 
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
@@ -21,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 def capture_arg(func):
-    from functools import wraps
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -33,7 +33,7 @@ def capture_arg(func):
         
         if params is not None:
             for key in TokenzierConversionParams.__match_args__:
-                if kwargs[key] is not None:
+                if kwargs.get(key) is not None:
                     msg = (
                         "Cannot specify both 'params' and individual convert_tokenizer arguments simultaneously. "
                         "Please pass all conversion params either individually, e.g. "
