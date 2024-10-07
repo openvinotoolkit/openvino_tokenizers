@@ -408,8 +408,8 @@ class TransformersTokenizerPipelineParser:
         if self.utf8_replace_mode is not None:
             self.pipeline.add_steps(UTF8ValidateStep(mode=self.utf8_replace_mode))
 
-        if clean_up_tokenization_spaces is None:
-            clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces
+        if self.clean_up_tokenization_spaces is None:
+            self.clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces
 
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
@@ -418,7 +418,7 @@ class TransformersTokenizerPipelineParser:
         if prefix := self.tokenizer_json["model"].get("continuing_subword_prefix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_continuing_subword_prefix(prefix=prefix))
 
-        if clean_up_tokenization_spaces and self.pipeline.decoding_steps:
+        if self.clean_up_tokenization_spaces and self.pipeline.decoding_steps:
             self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
         return
 
