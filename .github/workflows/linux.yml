@@ -80,7 +80,7 @@ jobs:
           sudo apt-get install --assume-yes --no-install-recommends git ca-certificates
 
       - name: Clone OpenVINO
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -96,7 +96,7 @@ jobs:
           sudo -E ${OPENVINO_REPO}/install_build_dependencies.sh
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -208,12 +208,12 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Clone Openvino
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -302,12 +302,12 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Clone Openvino
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -316,7 +316,7 @@ jobs:
             install_build_dependencies.sh
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -388,12 +388,12 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
