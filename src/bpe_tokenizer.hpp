@@ -18,7 +18,8 @@
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
 using Merges = std::map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>>;
 using Vocab = std::unordered_map<std::string, unsigned int>;
-using Tokens = std::vector<int32_t>;
+using Tokens = std::list<int32_t>;
+using Positions = std::vector<std::list<int32_t>::const_iterator>;
 
 class BPETokenizerImpl {
 private:
@@ -31,8 +32,8 @@ private:
     int32_t m_unk_token_id = -1;
     bool m_fuse_unk = false;
     size_t m_cache_capacity;
-    std::unordered_map<std::string, std::vector<int32_t>> m_cache;
-    std::pair<std::pair<int32_t, int32_t>, size_t> get_min_rank_pair(Tokens tokens);
+    std::unordered_map<std::string, Tokens> m_cache;
+    std::pair<std::vector<int32_t>, Positions> get_min_rank_pairs(Tokens& tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
     BPETokenizerImpl(

@@ -178,26 +178,40 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 
-std::pair<std::pair<int32_t, int32_t>, size_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
+std::pair<std::vector<int32_t>, Positions> BPETokenizerImpl::get_min_rank_pairs(Tokens& tokens) {
     int min_rank = INT_MAX;
-    std::pair<int32_t, int32_t> min_rank_pair = {tokens[0], tokens[1]};
-    size_t position = -1;
-    for (size_t i = 0; i < tokens.size() - 1; i++) {
-        auto pair = std::pair(tokens[i], tokens[i + 1]);
+    std::vector<int32_t> ranks_to_replace;
+    Positions positions;
+    positions.reserve(20);
+    std::pair<int32_t, int32_t> min_pair;
+    auto penultimate_iter = --tokens.end();
+    for (auto it = tokens.begin(); it != penultimate_iter; ++it) {
+        auto first_elem = *it;
+        auto second_elem = *(std::next(it));  // Get the next element for the pair
+        auto pair = std::make_pair(first_elem, second_elem);
+
         if (m_merges.count(pair) && m_merges.at(pair).first < min_rank) {
             min_rank = m_merges.at(pair).first;
-            min_rank_pair = pair;
-            position = i;
-        }
+            min_pair = pair;
+            positions.clear();
+            ranks_to_replace.clear();
+            positions.push_back(it);
+            ranks_to_replace.emplace_back(m_merges.at(pair).second);
+        } 
+        // else if (m_merges.count(pair) && m_merges.at(pair).first == min_rank) {
+        //     min_pair = pair;
+        //     positions.push_back(it);
+        //     ranks_to_replace.emplace_back(m_merges.at(pair).second);
+        // }
     }
-    return {min_rank_pair, position};
+    return {ranks_to_replace, positions};
 }
 
 
 Tokens BPETokenizerImpl::tokenize(std::string& text) {
-    if (m_cache.count(text)) {
-        return m_cache.at(text);
-    }
+    // if (m_cache.count(text)) {
+    //     return m_cache.at(text);
+    // }
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
     // TODO: CVS-150387 Implement suffix_indicator.
@@ -205,7 +219,6 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
     // Initialize sequence of integer tokens by looking up
     // for the longest matching sequnce in the prefix tree.
     Tokens res;
-    res.reserve(text.length());
     const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
     for(int idx = 0; idx < text.size(); ) {
         auto r = m_trie->find_longest(text_vec, idx);
@@ -224,17 +237,22 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
     size_t initial_num_tokens = res.size();
 
     while (res.size() >= 2) {
-        auto [pair, idx] = get_min_rank_pair(res);
-        if (idx == -1) {
+        auto [ranks_to_replace, positions] = get_min_rank_pairs(res);
+        if (ranks_to_replace.empty()) {
             break;
         }
-        res.erase(res.begin() + idx, res.begin() + idx + 2);
-        res.insert(res.begin() + idx, m_merges.at(pair).second);
+        for (size_t i = 0; i < ranks_to_replace.size(); i++) {
+            auto it = res.erase(positions[i]);
+            it = res.erase(it);
+            res.insert(it, ranks_to_replace[i]);
+            if (res.empty())
+                break;
+        }
     }
     // TODO: Check if LRU Cache is more effective.
-    if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-        m_cache.insert({text, res});
-    }
+    // if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
+    //     m_cache.insert({text, res});
+    // }
     return res;
 }
 
