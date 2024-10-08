@@ -17,8 +17,8 @@ const std::map<std::string, RegexSplit::SplitMode> split_modes_map = {
     {"remove", RegexSplit::SplitMode::REMOVED},
     {"isolate", RegexSplit::SplitMode::ISOLATED},
     {"contiguous", RegexSplit::SplitMode::ISOLATED},
-    {"merge_with_previous", RegexSplit::SplitMode::MERGED_WITH_PREVIOUS},
-    {"merge_with_next", RegexSplit::SplitMode::MERGED_WITH_NEXT}
+    {"mergedwithprevious", RegexSplit::SplitMode::MERGED_WITH_PREVIOUS},
+    {"mergedwithnext", RegexSplit::SplitMode::MERGED_WITH_NEXT}
 };
 
 }

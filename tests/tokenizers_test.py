@@ -9,10 +9,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pytest
 import requests
-from openvino import Core, Model
+from openvino import Core, Model, Type
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
-from openvino_tokenizers.utils import get_hf_tokenizer_attribute
+from openvino_tokenizers.utils import get_hf_tokenizer_attribute, TokenzierConversionParams
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
 
@@ -105,7 +105,7 @@ bpe_models = [
     "stabilityai/stablecode-completion-alpha-3b-4k",
     "stabilityai/stablelm-tuned-alpha-7b",
     "databricks/dolly-v2-3b",
-    "EleutherAI/gpt-neo-125m",
+    "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
     "EleutherAI/gpt-j-6b",
     "roberta-base",
     "sentence-transformers/all-roberta-large-v1",  # standin for setfit
@@ -894,3 +894,50 @@ def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers, is_sentencepiece_bac
         hf_sentencepiece_tokenizers, with_detokenizer=True, use_sentencepiece_backend=is_sentencepiece_backend
     )
     check_rt_info(hf_sentencepiece_tokenizers, ov_tokenizer, ov_detokenizer)
+
+models_to_check_rt_info = [
+    # one model from each category
+    "bert-base-uncased",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "Xenova/gpt-4o",
+    "Qwen/Qwen-14B-Chat",
+]
+@pytest.fixture(scope="session", params=models_to_check_rt_info)
+def tokenizer_to_check_rt_info(request):
+    return get_hf_tokenizer(request, trust_remote_code=True)
+
+
+def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
+    conversion_params = TokenzierConversionParams(
+        with_detokenizer = False,
+        add_special_tokens = True,
+        skip_special_tokens = True,
+        clean_up_tokenization_spaces = None,
+        tokenizer_output_type = Type.i64,
+        detokenizer_input_type = Type.i64,
+        streaming_detokenizer = False,
+        use_max_padding = False,
+        handle_special_tokens_with_re = None,
+        use_sentencepiece_backend = False,
+        utf8_replace_mode = None,
+        number_of_inputs = 1,
+    )
+    
+    ov_tokenizer = convert_tokenizer(tokenizer_to_check_rt_info, conversion_params)
+    print(ov_tokenizer)
+    if not conversion_params.with_detokenizer:
+        ov_tokenizer = (ov_tokenizer, )
+    
+    for model in ov_tokenizer:
+        for key in conversion_params.__match_args__:
+            val = getattr(conversion_params, key)
+            if val is None:
+                val = {}
+            elif isinstance(val, (Type, int)) and not isinstance(val, bool):
+                # bool is subcalss of int, hence there are 2 checks.
+                # While bool values are stored as str, e.g. 'False'
+                # type info and integers are stored as object.
+                pass
+            else:
+                val = str(val)
+            assert val == model.get_rt_info(key).value

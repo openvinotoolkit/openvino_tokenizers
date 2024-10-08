@@ -333,7 +333,7 @@ class RegexSplitStep(PreTokenizatinStep):
 
     @classmethod
     def metaspace_splitter(cls, metaspace=r"▁") -> "RegexSplitStep":
-        return cls(metaspace, invert=False, behaviour="merge_with_next")
+        return cls(metaspace, invert=False, behaviour="mergedwithnext")
 
     @classmethod
     def byte_level_splitter(cls) -> "RegexSplitStep":
@@ -554,14 +554,14 @@ class BPETokenizationStep(TokenizationModelStep):
         if self.added_tokens is None:
             return
 
-        vocab_set = set(self.vocab)
-        for (
-            token,
-            idx,
-        ) in sorted(self.added_tokens.items(), key=lambda x: (x[1], x[0])):
-            if token not in vocab_set:
-                if idx >= len(self.vocab):
-                    self.vocab.append(token)
+        size_diff = max(self.added_tokens.values()) - len(self.vocab) + 1
+        if size_diff > 0:
+            self.vocab.extend(type(self.vocab[0])() for _ in range(size_diff))
+
+        for token, idx in self.added_tokens.items():
+            if isinstance(self.vocab[0], bytes) and not isinstance(token, bytes):
+                token = token.encode()
+            self.vocab[idx] = token
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "BPETokenizationStep":
@@ -822,7 +822,7 @@ class CombineSegmentsStep(PostTokenizationStep):
                 step = AddToken(
                     token=template_dict["SpecialToken"]["id"],
                     token_type_id=template_dict["SpecialToken"]["type_id"],
-                    enabled_by_default=add_special_tokens
+                    enabled_by_default=add_special_tokens,
                 )
                 if special_tokens := post_processor_dict.get("special_tokens", False):
                     step.token_id = next(iter(special_tokens.get(step.token, {}).get("ids", [None])))
@@ -837,28 +837,16 @@ class CombineSegmentsStep(PostTokenizationStep):
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
         inputs.append(
-            AddToken(
-                token=post_processor_dict["cls"][0],
-                token_type_id=0,
-                enabled_by_default=add_special_tokens
-            )
+            AddToken(token=post_processor_dict["cls"][0], token_type_id=0, enabled_by_default=add_special_tokens)
         )
         inputs.append(Sequence(token_type_id=0))
         inputs.append(
-            AddToken(
-                token=post_processor_dict["sep"][0],
-                token_type_id=0,
-                enabled_by_default=add_special_tokens
-            )
+            AddToken(token=post_processor_dict["sep"][0], token_type_id=0, enabled_by_default=add_special_tokens)
         )
         if number_of_inputs == 2:
             inputs.append(Sequence(token_type_id=1))
             inputs.append(
-                AddToken(
-                    token=post_processor_dict["sep"][0],
-                    token_type_id=1,
-                    enabled_by_default=add_special_tokens
-                )
+                AddToken(token=post_processor_dict["sep"][0], token_type_id=1, enabled_by_default=add_special_tokens)
             )
         return cls(inputs, add_special_tokens=add_special_tokens)
 
@@ -872,10 +860,21 @@ class CombineSegmentsStep(PostTokenizationStep):
         inputs: List[TokenWithTypeId] = [Sequence(token_type_id=0)]
 
         inputs.insert(
-            0, AddToken(token=post_processor_dict["cls"][0], _token_id=post_processor_dict["cls"][1], token_type_id=0, enabled_by_default=add_special_tokens)
+            0,
+            AddToken(
+                token=post_processor_dict["cls"][0],
+                _token_id=post_processor_dict["cls"][1],
+                token_type_id=0,
+                enabled_by_default=add_special_tokens,
+            ),
         )
         inputs.append(
-            AddToken(token=post_processor_dict["sep"][0], _token_id=post_processor_dict["sep"][1], token_type_id=0, enabled_by_default=add_special_tokens)
+            AddToken(
+                token=post_processor_dict["sep"][0],
+                _token_id=post_processor_dict["sep"][1],
+                token_type_id=0,
+                enabled_by_default=add_special_tokens,
+            )
         )
         return cls(inputs, add_special_tokens=add_special_tokens)
 
@@ -894,7 +893,9 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         segment_ids = []
         segment_index = 0
-        for (key, token_id), group_iter in groupby(self.inputs, key=lambda input: (type(input), getattr(input, 'token_id', None))):
+        for (key, token_id), group_iter in groupby(
+            self.inputs, key=lambda input: (type(input), getattr(input, "token_id", None))
+        ):
             if key is Sequence:
                 for sequence in group_iter:
                     op_inputs.extend(islice(input_nodes_iter, 3))
@@ -902,10 +903,10 @@ class CombineSegmentsStep(PostTokenizationStep):
                 segment_index += 1
             elif key is AddToken:
                 ids = [node._token_id for node in group_iter]
-                
+
                 segment_ids.append(self.segment_ids[segment_index])
                 segment_index += len(ids)
-                
+
                 op_inputs.extend(make_constant_node(0, Type.i32).outputs())
                 # If we don't add special tokens then end is 0.
                 op_inputs.extend(make_constant_node(len(ids) if self.add_special_tokens else 0, Type.i32).outputs())
