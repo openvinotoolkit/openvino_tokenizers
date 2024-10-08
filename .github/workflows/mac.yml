@@ -102,7 +102,7 @@ jobs:
       #
 
       - name: Setup ccache
-        uses: ilammy/msvc-dev-cmd@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
+        uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           max-size: "2000M"
           # Should save cache only if run in the master branch of the base repo
