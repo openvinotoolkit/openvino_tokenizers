@@ -181,13 +181,15 @@ endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
   if(sentencepiece_FOUND)
-    if(TARGET sentencepiece-static)
-      # on Windows conda-forge builds sentencepiece as static library
-      set(sp_target sentencepiece-static)
-    else()
-      set(sp_target sentencepiece)
-    endif()
-    target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target} absl::string_view absl::flat_hash_set)
+    foreach(sp_target sentencepiece sentencepiece_train)
+      if(TARGET ${sp_target}-static)
+        # on Windows conda-forge builds sentencepiece as static library
+        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target}-static)
+      else()
+        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
+      endif()
+    endforeach()
+    target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
   else()
     target_include_directories(${TARGET_NAME} PRIVATE
       "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
@@ -197,13 +199,15 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       "${sentencepiece_SOURCE_DIR}"
       "${sentencepiece_BINARY_DIR}")
 
-    if(CMAKE_CL_64)
-        target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
-    endif()
-    # to propogate _GLIBCXX_USE_CXX11_ABI value
-    target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-
-    target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+    foreach(sp_target sentencepiece-static sentencepiece_train-static)
+      if(CMAKE_CL_64)
+        target_compile_definitions(${sp_target} PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+      endif()
+      # to propogate _GLIBCXX_USE_CXX11_ABI value
+      target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+      target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})      
+    endforeach(sp_target sentencepiece sentencepiece_train)
+    
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
       target_link_libraries(${TARGET_NAME} PRIVATE log)
