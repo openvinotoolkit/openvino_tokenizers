@@ -37,7 +37,7 @@ utf8_validate_strings = [
     b"\xf0\x80\x80\x80",  # 4 bytes sequence but codepoint is less than 0x1000
     b"\xe2\x28\xa1",  # \x28 is not a valid continuation byte
     b"the following block is invalid \xe2\x28\xa1 but this text is valid",  # \x28 is not a valid continuation byte
-    b"A\xC3\x28B",  # 'A' and 'B' are valid \x28 is invalid
+    b"A\xc3\x28B",  # 'A' and 'B' are valid \x28 is invalid
     b"\xe2\x82",  # 3 byte symbol but is incomplete
     b"A\xc3\xa9\xe2\x82\xac\xf0\x90\x8d\x88",  # Mix of ASCII, 2-byte, 3-byte, and 4-byte characters
 ]
