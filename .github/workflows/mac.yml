@@ -324,7 +324,7 @@ jobs:
         run: |
           python3 -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="macosx_10_12_x86_64" \
-              --find-links ${INSTALL_DIR}/tools \
+              --find-links ${INSTALL_DIR}/wheels \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
@@ -391,7 +391,7 @@ jobs:
         if: needs.openvino_build.result == 'success'
         run: |
           # Find and install wheel
-          pushd ${INSTALL_DIR}/tools
+          pushd ${INSTALL_DIR}/wheels
             wheel_name=$(find . -name 'openvino-*.whl')
             python3 -m pip install $wheel_name
           popd

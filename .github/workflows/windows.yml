@@ -355,7 +355,7 @@ jobs:
       - name: Build tokenizers wheel
         run: |
           python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
-            --find-links ${env:INSTALL_DIR}/tools `
+            --find-links ${env:INSTALL_DIR}/wheels `
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
@@ -426,7 +426,7 @@ jobs:
         if: needs.openvino_build.result == 'success'
         run: |
           # Find and install wheel
-          $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\tools" -Filter openvino-*.whl | % { $_.FullName }
+          $ovCoreWheelPath=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\wheels" -Filter openvino-*.whl | % { $_.FullName }
           python3 -m pip install "$ovCoreWheelPath"
 
       - name: Install OpenVINO tokenizers wheel
