@@ -45,7 +45,7 @@ jobs:
 
       - name: Upload openvino package
         if: steps.openvino_download.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
         with:
           name: openvino_package
           path: openvino_package.zip
@@ -74,7 +74,7 @@ jobs:
         run: git config --system core.longpaths true
 
       - name: Clone OpenVINO
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -86,7 +86,7 @@ jobs:
       #
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -108,7 +108,7 @@ jobs:
       #
 
       - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
+        uses: hendrikmuhs/ccache-action@ed74d11c0b343532753ecead8a951bb09bb34bc9 # v1.2.14
         with:
           max-size: "2000M"
           # Should save cache only if run in the master branch of the base repo
@@ -120,7 +120,7 @@ jobs:
             ccache-windows
 
       - name: Configure Developer Command Prompt for Microsoft Visual C++
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
       - name: CMake configure - OpenVINO
         run: |
@@ -177,7 +177,7 @@ jobs:
 
       - name: Upload openvino package
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
         with:
           name: openvino_package
           path: ${{ env.BUILD_DIR }}/openvino_package.zip
@@ -209,12 +209,12 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Clone Openvino
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -223,12 +223,12 @@ jobs:
             install_build_dependencies.sh
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: openvino_package
           path: ${{ env.OV_INSTALL_DIR }}
@@ -252,7 +252,7 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value "${{ github.workspace }}/ninja-win"
 
       - name: Configure Developer Command Prompt for Microsoft Visual C++
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
       - name: CMake configure - tokenizers
         shell: pwsh
@@ -290,7 +290,7 @@ jobs:
 
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
         with:
           name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.zip
@@ -316,12 +316,12 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Clone Openvino
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -330,13 +330,13 @@ jobs:
             install_build_dependencies.sh
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: openvino_package
           path: ${{ env.INSTALL_DIR }}
@@ -368,7 +368,7 @@ jobs:
 
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.BUILD_DIR }}/*.whl
@@ -392,24 +392,24 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
-        uses: actions/checkout@v4
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
       - name: Download tokenizers package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}\\ov_tokenizers
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: openvino_package
           path: ${{ env.INSTALL_DIR }}
