@@ -290,7 +290,8 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     // Usually found pattern is replaced by shorter string, but set 3 times more space for safety.
     // Allocate dynamically since lenght depends dynamically on the lenght of input string.
     // Allocated memory will be freed at the exit from function.
-    auto buffer = (PCRE2_UCHAR*) std::malloc(sizeof(PCRE2_UCHAR) * subject_length * 3);
+    size_t buffer_length = sizeof(PCRE2_UCHAR) * subject_length * 4;
+    PCRE2_UCHAR* buffer = (PCRE2_UCHAR*) std::malloc(buffer_length);
     if (buffer == nullptr) {
         std::cerr << "Memory allocation failed" << std::endl;
         pcre2_match_data_free(match_data);
@@ -306,7 +307,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         NULL,
         (PCRE2_SPTR) replace_pattern.data(), replace_pattern.size(),
         buffer,
-        &subject_length
+        &buffer_length
     );
 
     if (rc < 0) {
