@@ -134,7 +134,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
-    "THUDM/glm-4-9b-chat",  # _pad doesn't support padding side - broke in 4.45
+    "THUDM/glm-4-9b-chat",
 ]
 
 
