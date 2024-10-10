@@ -44,7 +44,7 @@ def generate_vocab_and_merges(
         if len(merged) == 2:
             merges.append(merged)
         else:
-            added_tokens[token.decode("latin-1")] = rank
+            added_tokens[token] = rank
 
     # Also add special tokens
     vocab.update({string.encode(): idx for string, idx in encoding._special_tokens.items()})

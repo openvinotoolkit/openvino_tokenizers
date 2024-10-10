@@ -609,6 +609,10 @@ class BPETokenizationStep(TokenizationModelStep):
                 if ref_idx in existing_indices:
                     continue
 
+                # special tokens from reference vocab can be strings, not bytes
+                if isinstance(ref_token, str):
+                    ref_token = ref_token.encode()
+
                 vocab[ref_token] = ref_idx
 
         return cls(
