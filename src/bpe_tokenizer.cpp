@@ -5,6 +5,7 @@
 #include "bpe_tokenizer.hpp"
 #include "openvino/opsets/opset13.hpp"
 #include "absl/strings/str_format.h"
+#include <queue>
 using namespace ov;
 using namespace ov::opset13;
 
@@ -177,37 +178,27 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     return true;
 }
 
-
-std::pair<std::pair<int32_t, int32_t>, size_t> BPETokenizerImpl::get_min_rank_pair(Tokens tokens) {
-    int min_rank = INT_MAX;
-    std::pair<int32_t, int32_t> min_rank_pair = {tokens[0], tokens[1]};
-    size_t position = -1;
-    for (size_t i = 0; i < tokens.size() - 1; i++) {
-        auto pair = std::pair(tokens[i], tokens[i + 1]);
-        if (m_merges.count(pair) && m_merges.at(pair).first < min_rank) {
-            min_rank = m_merges.at(pair).first;
-            min_rank_pair = pair;
-            position = i;
-        }
+struct CompareRank {
+    bool operator()(const std::tuple<int32_t, int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& lhs,
+                    const std::tuple<int32_t, int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& rhs) const {
+        return std::get<0>(lhs) > std::get<0>(rhs);  // Compare based on the position in merges.
     }
-    return {min_rank_pair, position};
-}
-
+};
 
 Tokens BPETokenizerImpl::tokenize(std::string& text) {
     if (m_cache.count(text)) {
         return m_cache.at(text);
     }
+
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
     // TODO: CVS-150387 Implement suffix_indicator.
 
-    // Initialize sequence of integer tokens by looking up
-    // for the longest matching sequnce in the prefix tree.
+
+    // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
     Tokens res;
-    res.reserve(text.length());
     const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
-    for(int idx = 0; idx < text.size(); ) {
+    for (int idx = 0; idx < text.size();) {
         auto r = m_trie->find_longest(text_vec, idx);
         if (r != -1) {
             res.emplace_back(r);
@@ -215,26 +206,68 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
             res.emplace_back(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text[idx]))));
             idx++;
         } else {
-            if (!m_fuse_unk || res.back() != -1){
+            if (!m_fuse_unk || res.back() != -1) {
                 res.emplace_back(m_unk_token_id);
             }
             idx++;
         }
-    };
+    }
     size_t initial_num_tokens = res.size();
 
-    while (res.size() >= 2) {
-        auto [pair, idx] = get_min_rank_pair(res);
-        if (idx == -1) {
-            break;
+    // Prepare priority queue to store pairs with their ranks
+    // (position in merges, rank, iterator to first, iterator to second)
+    using QueueEntry = std::tuple<int32_t, int32_t, Tokens::iterator, Tokens::iterator>; 
+    std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
+
+    // Fill the priority queue with initial pairs
+    auto penultimate_iter = --res.end();
+    for (auto it = res.begin(); it != penultimate_iter; ++it) {
+        auto next_it = std::next(it);
+        auto pair = std::make_pair(*it, *next_it);
+        if (m_merges.count(pair)) {
+            auto [idx, rank] = m_merges.at(pair);
+            pq.emplace(idx, rank, it, next_it);
         }
-        res.erase(res.begin() + idx, res.begin() + idx + 2);
-        res.insert(res.begin() + idx, m_merges.at(pair).second);
     }
+
+    // Now process the priority queue to merge pairs
+    while (!pq.empty() && res.size() >= 2) {
+        auto [idx, rank, first_it, second_it] = pq.top();
+        pq.pop();
+
+        // Make sure the pair is still valid (iterators must point to adjacent tokens)
+        if (std::next(first_it) != second_it) {
+            continue;  // Skip if iterators are no longer adjacent (they may have been modified in a previous merge)
+        }
+
+        // Erase second element andcReplace first element with the new merged token.
+        auto it = res.erase(second_it);
+        *first_it = rank;
+
+        // Now we need to update the priority queue for the pairs that involve `first_it`
+        if (first_it != res.begin()) {
+            auto prev_it = std::prev(first_it);
+            auto prev_pair = std::make_pair(*prev_it, *first_it);
+            if (m_merges.count(prev_pair)) {
+                auto [idx, rank] = m_merges.at(prev_pair);
+                pq.emplace(idx, rank, prev_it, first_it);
+            }
+        }
+
+        if (it != res.end()) {
+            auto next_pair = std::make_pair(*first_it, *it);
+            if (m_merges.count(next_pair)) {
+                auto [idx, rank] = m_merges.at(next_pair);
+                pq.emplace(idx, rank, first_it, it);
+            }
+        }
+    }
+
     // TODO: Check if LRU Cache is more effective.
     if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
         m_cache.insert({text, res});
     }
+
     return res;
 }
 
