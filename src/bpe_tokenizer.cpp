@@ -178,36 +178,6 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     return true;
 }
 
-
-std::pair<std::vector<int32_t>, Positions> BPETokenizerImpl::get_min_rank_pairs(Tokens& tokens) {
-    int min_rank = INT_MAX;
-    std::vector<int32_t> ranks_to_replace;
-    Positions positions;
-    positions.reserve(20);
-    std::pair<int32_t, int32_t> min_pair;
-    auto penultimate_iter = --tokens.end();
-    for (auto it = tokens.begin(); it != penultimate_iter; ++it) {
-        auto first_elem = *it;
-        auto second_elem = *(std::next(it));  // Get the next element for the pair
-        auto pair = std::make_pair(first_elem, second_elem);
-
-        if (m_merges.count(pair) && m_merges.at(pair).first < min_rank) {
-            min_rank = m_merges.at(pair).first;
-            min_pair = pair;
-            positions.clear();
-            ranks_to_replace.clear();
-            positions.push_back(it);
-            ranks_to_replace.emplace_back(m_merges.at(pair).second);
-        } 
-        // else if (m_merges.count(pair) && m_merges.at(pair).first == min_rank) {
-        //     min_pair = pair;
-        //     positions.push_back(it);
-        //     ranks_to_replace.emplace_back(m_merges.at(pair).second);
-        // }
-    }
-    return {ranks_to_replace, positions};
-}
-
 struct CompareRank {
     bool operator()(const std::tuple<int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& lhs,
                     const std::tuple<int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& rhs) const {
@@ -216,13 +186,14 @@ struct CompareRank {
 };
 
 Tokens BPETokenizerImpl::tokenize(std::string& text) {
-    // Cache logic commented out for now
-    // if (m_cache.count(text)) {
-    //     return m_cache.at(text);
-    // }
+    if (m_cache.count(text)) {
+        return m_cache.at(text);
+    }
 
-    // Add suffix if necessary (e.g., for models with end suffix)
+    // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
+    // TODO: CVS-150387 Implement suffix_indicator.
+
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
     Tokens res;
@@ -241,6 +212,7 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
             idx++;
         }
     }
+    size_t initial_num_tokens = res.size();
 
     // Prepare priority queue to store pairs with their ranks
     using QueueEntry = std::tuple<int32_t, Tokens::iterator, Tokens::iterator>; // (rank, iterator to first, iterator to second)
@@ -295,10 +267,10 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
         }
     }
 
-    // Cache logic can be uncommented if needed
-    // if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-    //     m_cache.insert({text, res});
-    // }
+    // TODO: Check if LRU Cache is more effective.
+    if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
+        m_cache.insert({text, res});
+    }
 
     return res;
 }
