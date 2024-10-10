@@ -179,9 +179,9 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 struct CompareRank {
-    bool operator()(const std::tuple<int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& lhs,
-                    const std::tuple<int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& rhs) const {
-        return std::get<0>(lhs) > std::get<0>(rhs);  // Compare based on the rank (first element)
+    bool operator()(const std::tuple<int32_t, int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& lhs,
+                    const std::tuple<int32_t, int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& rhs) const {
+        return std::get<0>(lhs) > std::get<0>(rhs);  // Compare based on the position in merges.
     }
 };
 
@@ -215,7 +215,8 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
     size_t initial_num_tokens = res.size();
 
     // Prepare priority queue to store pairs with their ranks
-    using QueueEntry = std::tuple<int32_t, Tokens::iterator, Tokens::iterator>; // (rank, iterator to first, iterator to second)
+    // (position in merges, rank, iterator to first, iterator to second)
+    using QueueEntry = std::tuple<int32_t, int32_t, Tokens::iterator, Tokens::iterator>; 
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
 
     // Fill the priority queue with initial pairs
@@ -224,14 +225,14 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
         auto next_it = std::next(it);
         auto pair = std::make_pair(*it, *next_it);
         if (m_merges.count(pair)) {
-            int32_t rank = m_merges.at(pair).first;
-            pq.emplace(rank, it, next_it);
+            auto [idx, rank] = m_merges.at(pair);
+            pq.emplace(idx, rank, it, next_it);
         }
     }
 
     // Now process the priority queue to merge pairs
     while (!pq.empty() && res.size() >= 2) {
-        auto [rank, first_it, second_it] = pq.top();
+        auto [idx, rank, first_it, second_it] = pq.top();
         pq.pop();
 
         // Make sure the pair is still valid (iterators must point to adjacent tokens)
@@ -239,30 +240,25 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
             continue;  // Skip if iterators are no longer adjacent (they may have been modified in a previous merge)
         }
 
-        // Perform the merge
-        if (!m_merges.count(std::make_pair(*first_it, *second_it))) {
-            // std::cout << "error" << std::endl;
-            continue;
-        }
-        int32_t new_token = m_merges.at(std::make_pair(*first_it, *second_it)).second;
-        auto it = res.erase(second_it); // Erase second element
-        *first_it = new_token;          // Replace first element with the new merged token
+        // Erase second element andcReplace first element with the new merged token.
+        auto it = res.erase(second_it);
+        *first_it = rank;
 
         // Now we need to update the priority queue for the pairs that involve `first_it`
         if (first_it != res.begin()) {
             auto prev_it = std::prev(first_it);
             auto prev_pair = std::make_pair(*prev_it, *first_it);
             if (m_merges.count(prev_pair)) {
-                int32_t prev_rank = m_merges.at(prev_pair).first;
-                pq.emplace(prev_rank, prev_it, first_it);  // Add updated pair to priority queue
+                auto [idx, rank] = m_merges.at(prev_pair);
+                pq.emplace(idx, rank, prev_it, first_it);
             }
         }
 
         if (it != res.end()) {
             auto next_pair = std::make_pair(*first_it, *it);
             if (m_merges.count(next_pair)) {
-                int32_t next_rank = m_merges.at(next_pair).first;
-                pq.emplace(next_rank, first_it, it);  // Add updated pair to priority queue
+                auto [idx, rank] = m_merges.at(next_pair);
+                pq.emplace(idx, rank, first_it, it);
             }
         }
     }
