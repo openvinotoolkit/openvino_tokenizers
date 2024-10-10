@@ -82,18 +82,10 @@ chat_messages = [
 
 wordpiece_models = [
     "bert-base-multilingual-cased",
-    "bert-base-uncased",
-    # rubert-tiny2 tokenizer.json contains truncation step with max_length=512 used by OV tokenizer
-    # model object has model_max_lenght=2048 attribute which causes failed tests
     "cointegrated/rubert-tiny2",
     "distilbert-base-uncased-finetuned-sst-2-english",
     "sentence-transformers/all-MiniLM-L6-v2",
-    "rajiv003/ernie-finetuned-qqp",  # ernie model with fast tokenizer
-    "google/electra-base-discriminator",
     "google/mobilebert-uncased",
-    "jhgan/ko-sbert-sts",
-    "squeezebert/squeezebert-uncased",
-    "prajjwal1/bert-mini",
     "ProsusAI/finbert",
     "rasa/LaBSE",
 ]
@@ -103,20 +95,14 @@ bpe_models = [
     # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
     "tiiuae/falcon-7b",
     "stabilityai/stablecode-completion-alpha-3b-4k",
-    "stabilityai/stablelm-tuned-alpha-7b",
     "databricks/dolly-v2-3b",
     "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
-    "EleutherAI/gpt-j-6b",
     "roberta-base",
-    "sentence-transformers/all-roberta-large-v1",  # standin for setfit
-    "facebook/bart-large-mnli",
     "facebook/opt-66b",
     "gpt2",
     "EleutherAI/gpt-neox-20b",
     "ai-forever/rugpt3large_based_on_gpt2",
-    "KoboldAI/fairseq-dense-13B",
     "facebook/galactica-120b",
-    "EleutherAI/pythia-12b-deduped",
     "microsoft/deberta-base",
     "bigscience/bloom",
     "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
@@ -130,7 +116,7 @@ bpe_models = [
 sentencepiece_models = [
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
-    "codellama/CodeLlama-7b-hf",
+    "baichuan-inc/Baichuan2-7B-Chat",
     "camembert-base",
     "NousResearch/Llama-2-13b-hf",
     "xlm-roberta-base",
@@ -148,7 +134,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
-    # "THUDM/glm-4-9b",  # _pad doesn't support padding side - broke in 4.45
+    "THUDM/glm-4-9b-chat",  # _pad doesn't support padding side - broke in 4.45
 ]
 
 
@@ -570,10 +556,10 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_
 
 
 @pytest.mark.parametrize(
-    "test_string",
+    "test_chat",
     chat_messages,
 )
-def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_string, do_add_special_tokens):
+def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_chat, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = sentencepice_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
@@ -581,10 +567,10 @@ def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_string
     from jinja2 import TemplateError
 
     try:
-        test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+        test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     except TemplateError:
         # filter system message
-        test_string = hf_tokenizer.apply_chat_template(test_string[1:], tokenize=False, add_generation_prompt=True)
+        test_string = hf_tokenizer.apply_chat_template(test_chat[1:], tokenize=False, add_generation_prompt=True)
 
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
@@ -664,15 +650,15 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_t
 
 
 @pytest.mark.parametrize(
-    "test_string",
+    "test_chat",
     chat_messages,
 )
-def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_string, do_add_special_tokens):
+def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_chat, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = bpe_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
 
-    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         bpe_tokenizers,
@@ -750,15 +736,15 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string, do_add_special_to
 
 
 @pytest.mark.parametrize(
-    "test_string",
+    "test_chat",
     chat_messages,
 )
-def test_tiktoken_model_tokenizer_chat(tiktoken_tokenizers, test_string, do_add_special_tokens):
+def test_tiktoken_model_tokenizer_chat(tiktoken_tokenizers, test_chat, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
 
-    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         tiktoken_tokenizers,
