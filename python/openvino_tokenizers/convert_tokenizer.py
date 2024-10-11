@@ -2,11 +2,11 @@
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+from dataclasses import fields
 import logging
 import sys
 from typing import Any, Optional, Tuple, Union
 from functools import wraps
-
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
 
@@ -32,7 +32,7 @@ def capture_arg(func):
             params = kwargs['params']
         
         if params is not None:
-            for key in TokenzierConversionParams.__match_args__:
+            for key in fields(TokenzierConversionParams):
                 if kwargs.get(key) is not None:
                     msg = (
                         "Cannot specify both 'params' and individual convert_tokenizer arguments simultaneously. "
