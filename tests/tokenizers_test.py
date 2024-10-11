@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+from dataclasses import fields
 import difflib
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
-
 import numpy as np
 import pytest
 import requests
@@ -15,7 +14,7 @@ from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute, TokenzierConversionParams
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
-
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
     np.set_printoptions(threshold=sys.maxsize)
