@@ -916,7 +916,7 @@ def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
     
     for model in ov_tokenizer:
         for key in fields(conversion_params):
-            val = getattr(conversion_params, key)
+            val = getattr(conversion_params, key.name)
             if val is None:
                 val = {}
             elif isinstance(val, (Type, int)) and not isinstance(val, bool):
