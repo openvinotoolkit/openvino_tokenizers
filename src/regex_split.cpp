@@ -142,10 +142,15 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     
     // If RE2 didn't compiled successfully fallback to PCRE2 matcher.
     std::function<std::optional<std::pair<size_t, size_t>>(const std::string&, size_t)> get_next_match;
+     
+
     if (m_search_pattern_re2) {
-        get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
+        // For thread safety RE2 object should be const
+        const re2::RE2 search_pattern_re2 = re2::RE2(m_search_pattern_re2->pattern(), m_search_pattern_re2->options());
+
+        get_next_match = [this, &search_pattern_re2](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
             re2::StringPiece result;
-            bool flag = this->m_search_pattern_re2->Match(str, curr_start, str.length(), RE2::UNANCHORED, &result, 1);
+            bool flag = search_pattern_re2.Match(str, curr_start, str.length(), RE2::UNANCHORED, &result, 1);
             if (flag) {
                 size_t start = result.data() - str.data();
                 size_t end = start + result.length();

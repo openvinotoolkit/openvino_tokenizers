@@ -119,17 +119,20 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         m_search_pattern_re = nullptr;
     }
 
+     // For thread safety RE2 object should be const.
+    const re2::RE2 search_pattern_re = m_search_pattern_re ? re2::RE2(m_search_pattern_re->pattern(), m_search_pattern_re->options()) : re2::RE2("");
+
     return evaluate_normalization_helper(
         outputs, inputs,
-        [this](const std::string& str) -> std::string {
+        [this, &search_pattern_re](const std::string& str) -> std::string {
             std::string result = str;
 
             // Use RE2 where possible, and fallback to PCRE2 if RE2 was not able to process.
             if (m_search_pattern_re) {
                 if (m_global_replace) {
-                    re2::RE2::GlobalReplace(&result, *m_search_pattern_re, m_replace_pattern);
+                    re2::RE2::GlobalReplace(&result, search_pattern_re, m_replace_pattern);
                 } else {
-                    re2::RE2::Replace(&result, *m_search_pattern_re, m_replace_pattern);
+                    re2::RE2::Replace(&result, search_pattern_re, m_replace_pattern);
                 };
                 return result;
             } else if (m_search_pattern_pcre2) {
