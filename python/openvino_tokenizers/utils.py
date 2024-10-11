@@ -231,7 +231,7 @@ def update_rt_info(
     ov_tokenizer.set_rt_info(str(type(hf_tokenizer)), ORIGINAL_TOKENIZER_CLASS_NAME)
 
     for key in fields(params):
-        v = getattr(params, key)
+        v = getattr(params, key.name)
         v = str(v) if isinstance(v, bool) else v
         ov_tokenizer.set_rt_info(v, key)
 
