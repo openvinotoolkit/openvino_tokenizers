@@ -233,7 +233,7 @@ def update_rt_info(
     for key in fields(params):
         v = getattr(params, key.name)
         v = str(v) if isinstance(v, bool) else v
-        ov_tokenizer.set_rt_info(v, key)
+        ov_tokenizer.set_rt_info(v, key.name)
 
     for rt_field_name, hf_attributes in rt_info_to_hf_attribute_map.items():
         attribute = get_hf_tokenizer_attribute(hf_tokenizer, hf_attributes)
