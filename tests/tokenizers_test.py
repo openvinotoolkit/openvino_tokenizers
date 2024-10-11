@@ -926,4 +926,4 @@ def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
                 pass
             else:
                 val = str(val)
-            assert val == model.get_rt_info(key).value
+            assert val == model.get_rt_info(key.name).value
