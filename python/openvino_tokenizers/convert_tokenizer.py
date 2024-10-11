@@ -33,7 +33,7 @@ def capture_arg(func):
         
         if params is not None:
             for key in fields(TokenzierConversionParams):
-                if kwargs.get(key) is not None:
+                if kwargs.get(key.name) is not None:
                     msg = (
                         "Cannot specify both 'params' and individual convert_tokenizer arguments simultaneously. "
                         "Please pass all conversion params either individually, e.g. "
