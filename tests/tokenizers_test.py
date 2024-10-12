@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+from dataclasses import fields
 import difflib
 import os
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
-
 import numpy as np
 import pytest
 import requests
@@ -15,7 +14,7 @@ from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info
 from openvino_tokenizers.utils import get_hf_tokenizer_attribute, TokenzierConversionParams
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
-
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
     np.set_printoptions(threshold=sys.maxsize)
@@ -915,8 +914,8 @@ def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
         ov_tokenizer = (ov_tokenizer, )
     
     for model in ov_tokenizer:
-        for key in conversion_params.__match_args__:
-            val = getattr(conversion_params, key)
+        for key in fields(conversion_params):
+            val = getattr(conversion_params, key.name)
             if val is None:
                 val = {}
             elif isinstance(val, (Type, int)) and not isinstance(val, bool):
@@ -926,4 +925,4 @@ def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
                 pass
             else:
                 val = str(val)
-            assert val == model.get_rt_info(key).value
+            assert val == model.get_rt_info(key.name).value

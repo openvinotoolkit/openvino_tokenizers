@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 from .constants import (
     LOGITS_OUTPUT_NAME,
@@ -230,10 +230,10 @@ def update_rt_info(
 ) -> None:
     ov_tokenizer.set_rt_info(str(type(hf_tokenizer)), ORIGINAL_TOKENIZER_CLASS_NAME)
 
-    for key in params.__match_args__:
-        v = getattr(params, key)
+    for key in fields(params):
+        v = getattr(params, key.name)
         v = str(v) if isinstance(v, bool) else v
-        ov_tokenizer.set_rt_info(v, key)
+        ov_tokenizer.set_rt_info(v, key.name)
 
     for rt_field_name, hf_attributes in rt_info_to_hf_attribute_map.items():
         attribute = get_hf_tokenizer_attribute(hf_tokenizer, hf_attributes)
