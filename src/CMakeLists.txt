@@ -231,7 +231,7 @@ function(ov_tokenizers_build_static_re2)
   endif()
 
   # to propogate _GLIBCXX_USE_CXX11_ABI value
-  target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+  target_compile_definitions(re2 PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
 endfunction()
 
 if(BUILD_FAST_TOKENIZERS)
