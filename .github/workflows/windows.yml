@@ -37,11 +37,12 @@ jobs:
     continue-on-error: true
 
     steps:
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@refs/pull/26952/head
       id: openvino_download
       with:
         platform: 'windows'
-        revision: 'latest_available_commit'
+        revision: 'f2b325b866a555505dfac8e52a3ce5ef841e4687'
+        ov_artifact_name: 'openvino_wheels'
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
