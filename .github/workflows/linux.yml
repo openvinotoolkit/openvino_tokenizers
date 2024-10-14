@@ -40,7 +40,7 @@ jobs:
       id: openvino_download
       with:
         platform: 'ubuntu22'
-        ov_artifact_name: 'wheels'
+        commit_packages_to_provide: 'wheels'
         revision: 'latest_available_commit'
 
   openvino_tokenizers_cpack:
