@@ -68,12 +68,12 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Clone Openvino
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -128,7 +128,7 @@ jobs:
 
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.tar.gz
@@ -157,12 +157,12 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Clone Openvino
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
           path: ${{ env.BUILD_DIR }}/*.whl
@@ -239,7 +239,7 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
@@ -281,6 +281,7 @@ jobs:
       - name: Tokenizers regression tests (using openvino python modules)
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          python3 -m pytest tokenizers_test.py layer_tests.py
+          python3 -m pytest layer_tests.py
+          python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 

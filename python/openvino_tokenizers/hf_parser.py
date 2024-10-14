@@ -1056,7 +1056,7 @@ def convert_tiktoken_model_tokenizer(
     )
 
     # (chat)GLM model adds spaces around <sop> token
-    decoder_vocab = pipeline[3].vocab
+    decoder_vocab = deepcopy(pipeline[3].vocab)
     sop_index = next((idx for idx, token in enumerate(decoder_vocab) if token == "<sop>".encode()), None)
     if sop_index is not None:
         decoder_vocab[sop_index] = " <sop> ".encode()
