@@ -41,7 +41,7 @@ jobs:
       id: openvino_download
       with:
         platform: 'windows'
-        revision: 'latest_available_commit'
+        revision: 'f2b325b866a555505dfac8e52a3ce5ef841e4687'
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
