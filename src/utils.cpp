@@ -320,7 +320,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         std::free(buffer);
         return orig_str;
     }
-    auto res = std::string(reinterpret_cast<char*>(buffer), subject_length);
+    auto res = std::string(reinterpret_cast<char*>(buffer), buffer_length);
     std::free(buffer);
     pcre2_match_data_free(match_data); 
     return res;
