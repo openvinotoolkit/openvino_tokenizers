@@ -179,16 +179,16 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 struct CompareRank {
-    bool operator()(const std::tuple<int32_t, int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& lhs,
-                    const std::tuple<int32_t, int32_t, std::list<int32_t>::iterator, std::list<int32_t>::iterator>& rhs) const {
+    bool operator()(const std::tuple<int32_t, int32_t, TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& lhs,
+                    const std::tuple<int32_t, int32_t, TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& rhs) const {
         return std::get<0>(lhs) > std::get<0>(rhs);  // Compare based on the position in merges.
     }
 };
 
-Tokens BPETokenizerImpl::tokenize(std::string& text) {
-    if (m_cache.count(text)) {
-        return m_cache.at(text);
-    }
+std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
+    // if (m_cache.count(text)) {
+    //     return m_cache.at(text);
+    // }
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
@@ -196,18 +196,18 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
 
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
-    Tokens res;
+    TokensList res;
     const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
     for (int idx = 0; idx < text.size();) {
         auto r = m_trie->find_longest(text_vec, idx);
         if (r != -1) {
-            res.emplace_back(r);
+            res.insert(r);
         } else if (m_byte_fallback) {
-            res.emplace_back(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text[idx]))));
+            res.insert(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text[idx]))));
             idx++;
         } else {
-            if (!m_fuse_unk || res.back() != -1) {
-                res.emplace_back(m_unk_token_id);
+            if (!m_fuse_unk || (res.tail->data) != -1) {
+                res.insert(m_unk_token_id);
             }
             idx++;
         }
@@ -216,59 +216,88 @@ Tokens BPETokenizerImpl::tokenize(std::string& text) {
 
     // Prepare priority queue to store pairs with their ranks
     // (position in merges, rank, iterator to first, iterator to second)
-    using QueueEntry = std::tuple<int32_t, int32_t, Tokens::iterator, Tokens::iterator>; 
+    using QueueEntry = std::tuple<int32_t, int32_t, TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>; 
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
 
-    // Fill the priority queue with initial pairs
-    auto penultimate_iter = --res.end();
-    for (auto it = res.begin(); it != penultimate_iter; ++it) {
-        auto next_it = std::next(it);
-        auto pair = std::make_pair(*it, *next_it);
+    // Fill the priority queue with initial pairs from TokensList
+    TokensList<int32_t>::Node* curr_node = res.head;
+    OPENVINO_ASSERT(curr_node != nullptr);
+    TokensList<int32_t>::Node* next_node = curr_node->next;
+    
+    do {
+        auto pair = std::make_pair(curr_node->data, next_node->data);
         if (m_merges.count(pair)) {
             auto [idx, rank] = m_merges.at(pair);
-            pq.emplace(idx, rank, it, next_it);
+            pq.emplace(idx, rank, curr_node, next_node);
         }
-    }
+        curr_node = next_node;
+        next_node = curr_node->next;
+    } while (next_node != res.tail);
+
+    std::unordered_set<std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>, NodePairHash, NodePairEqual> invalid_pairs;
+
 
     // Now process the priority queue to merge pairs
     while (!pq.empty() && res.size() >= 2) {
         auto [idx, rank, first_it, second_it] = pq.top();
         pq.pop();
 
-        // Make sure the pair is still valid (iterators must point to adjacent tokens)
-        if (std::next(first_it) != second_it) {
-            continue;  // Skip if iterators are no longer adjacent (they may have been modified in a previous merge)
+        if (!first_it || !second_it)
+            continue;
+        
+        // Check that pair is still valid, if not, then continue.
+        if (invalid_pairs.count({first_it, second_it})) {
+            continue;
         }
 
-        // Erase second element andcReplace first element with the new merged token.
-        auto it = res.erase(second_it);
-        *first_it = rank;
+        // Mark old neighbors as invalid.
+        if (first_it != res.head) {
+            invalid_pairs.insert({first_it->prev, first_it});
+        }
+        if (second_it != res.tail) {
+            invalid_pairs.insert({second_it, second_it->next});
+        }
 
-        // Now we need to update the priority queue for the pairs that involve `first_it`
-        if (first_it != res.begin()) {
-            auto prev_it = std::prev(first_it);
-            auto prev_pair = std::make_pair(*prev_it, *first_it);
+        // Merge the pair.
+        auto new_node = res.merge_neighbors(first_it, second_it, rank);
+        
+        // Need to update the priority queue for the pairs which appeared after merge.
+        if (first_it->prev) {
+            auto prev_pair = std::make_pair(first_it->prev->data, new_node->data);
+            
             if (m_merges.count(prev_pair)) {
                 auto [idx, rank] = m_merges.at(prev_pair);
-                pq.emplace(idx, rank, prev_it, first_it);
+                pq.emplace(idx, rank, first_it->prev, new_node);
             }
         }
 
-        if (it != res.end()) {
-            auto next_pair = std::make_pair(*first_it, *it);
+        if (second_it->next) {
+            auto next_pair = std::make_pair(new_node->data, second_it->next->data);
+            
             if (m_merges.count(next_pair)) {
                 auto [idx, rank] = m_merges.at(next_pair);
-                pq.emplace(idx, rank, first_it, it);
+                pq.emplace(idx, rank, new_node, second_it->next);
             }
         }
+        delete first_it;
+        delete second_it;
     }
 
     // TODO: Check if LRU Cache is more effective.
-    if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-        m_cache.insert({text, res});
+    // if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
+    //     m_cache.insert({text, res});
+    // }
+
+    std::vector<int32_t> res_vec;
+    res_vec.reserve(res.size());
+
+    TokensList<int32_t>::Node* node = res.head;
+    while (node != res.tail) {
+        res_vec.emplace_back(node->data);
+        node = node->next;
     }
 
-    return res;
+    return res_vec;
 }
 
 BPETokenizerImpl::BPETokenizerImpl(

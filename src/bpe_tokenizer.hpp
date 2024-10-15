@@ -21,6 +21,110 @@ using Vocab = std::unordered_map<std::string, unsigned int>;
 using Tokens = std::list<int32_t>;
 using Positions = std::vector<std::list<int32_t>::const_iterator>;
 
+
+template <typename T=int32_t>
+class TokensList {
+public:
+    struct Node {
+        T data;
+        Node* prev;
+        Node* next;
+        Node(const T& data) : data(data), prev(nullptr), next(nullptr) {}
+    };
+    size_t m_size;
+
+public:
+    size_t size() const {
+        return m_size;
+    }
+
+    Node* head;
+    Node* tail;
+
+    TokensList() : head(nullptr), tail(nullptr), m_size(0) {}
+
+    ~TokensList() {
+        while (head) {
+            Node* temp = head;
+            head = head->next;
+            delete temp;
+        }
+    }
+
+    void insert(const T& data) {
+        Node* new_node = new Node(data);
+        if (!head) {
+            head = tail = new_node;
+        } else {
+            tail->next = new_node;
+            new_node->prev = tail;
+            tail = new_node;
+        }
+        m_size++;
+    }
+
+    // void remove(Node* node) {
+    //     if (!node) return;
+
+    //     if (node->prev) {
+    //         node->prev->next = node->next;
+    //     } else {
+    //         head = node->next;
+    //     }
+    //     if (node->next) {
+    //         node->next->prev = node->prev;
+    //     } else {
+    //         tail = node->prev;
+    //     }
+    //     delete node;
+    //     m_size--;
+    // }
+
+    Node* merge_neighbors(Node* first, Node* second, const T& new_data) {
+        // OPENVINO_ASSERT(!first || !second || first->next != second);
+        // OPENVINO_THROW("Nodes must be consecutive and non-null");
+
+        Node* new_node = new Node(new_data);
+
+        new_node->prev = first->prev;
+        new_node->next = second->next;
+
+        if (first->prev) {
+            first->prev->next = new_node;
+        } else {
+            head = new_node;
+        }
+
+        if (second->next) {
+            second->next->prev = new_node;
+        } else {
+            tail = new_node;
+        }
+
+        // delete first;
+        // delete second;
+        m_size -= 1;
+        return new_node;
+    }
+};
+
+// Define a custom hash function for std::pair
+struct NodePairHash {
+    std::size_t operator()(const std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& pair) const {
+        auto hash1 = std::hash<TokensList<int32_t>::Node*>{}(pair.first);
+        auto hash2 = std::hash<TokensList<int32_t>::Node*>{}(pair.second);
+        return hash1 ^ (hash2 << 1);  // Combine the two hash values
+    }
+};
+
+// Define a custom equality function for std::pair
+struct NodePairEqual {
+    bool operator()(const std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& lhs,
+                    const std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& rhs) const {
+        return lhs.first == rhs.first && lhs.second == rhs.second;
+    }
+};
+
 class BPETokenizerImpl {
 private:
     Vocab m_vocab;
@@ -33,7 +137,6 @@ private:
     bool m_fuse_unk = false;
     size_t m_cache_capacity;
     std::unordered_map<std::string, Tokens> m_cache;
-    std::pair<std::vector<int32_t>, Positions> get_min_rank_pairs(Tokens& tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
     BPETokenizerImpl(
@@ -45,7 +148,7 @@ public:
         bool fuse_unk = false,
         bool byte_fallback = false
     );
-    Tokens tokenize(std::string& text);
+    std::vector<int32_t> tokenize(std::string& text);
 };
 
 
