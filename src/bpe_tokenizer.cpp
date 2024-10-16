@@ -224,7 +224,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     OPENVINO_ASSERT(curr_node != nullptr);
     TokensList<int32_t>::Node* next_node = curr_node->next;
     
-    do {
+    while (next_node) {
         auto pair = std::make_pair(curr_node->data, next_node->data);
         if (m_merges.count(pair)) {
             auto [idx, rank] = m_merges.at(pair);
@@ -232,7 +232,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         }
         curr_node = next_node;
         next_node = curr_node->next;
-    } while (next_node != res.tail);
+    };
 
     std::unordered_set<std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>, NodePairHash, NodePairEqual> invalid_pairs;
 
@@ -279,8 +279,8 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
                 pq.emplace(idx, rank, new_node, second_it->next);
             }
         }
-        delete first_it;
-        delete second_it;
+        // delete first_it;
+        // delete second_it;
     }
 
     // TODO: Check if LRU Cache is more effective.
@@ -292,10 +292,10 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     res_vec.reserve(res.size());
 
     TokensList<int32_t>::Node* node = res.head;
-    while (node != res.tail) {
+    while (node) {
         res_vec.emplace_back(node->data);
         node = node->next;
-    }
+    };
 
     return res_vec;
 }
