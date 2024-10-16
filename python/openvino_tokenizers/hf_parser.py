@@ -21,8 +21,6 @@ from openvino.runtime.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
 
-from .utils import TokenzierConversionParams
-
 from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
@@ -61,7 +59,7 @@ from .tokenizer_pipeline import (
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
-from .utils import filter_re2_incompatible
+from .utils import TokenzierConversionParams, filter_re2_incompatible
 
 
 def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:

@@ -9,13 +9,14 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
-import requests
 from openvino import Core, Model, Type
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
 from openvino_tokenizers.utils import TokenzierConversionParams, get_hf_tokenizer_attribute
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
+
+from tests.utils import get_hf_tokenizer
 
 
 if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
@@ -169,21 +170,6 @@ def get_tokenizer_detokenizer(
     compiled_tokenizer = core.compile_model(ov_tokenizer)
     compiled_detokenizer = core.compile_model(ov_detokenizer)
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
-
-
-def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left_padding=None):
-    kwargs = {}
-    if left_padding is not None:
-        kwargs["padding_side"] = "left" if left_padding else "right"
-        kwargs["truncation_side"] = "left" if left_padding else "right"
-
-    for retry in range(2):
-        try:
-            return AutoTokenizer.from_pretrained(
-                request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
-            )
-        except requests.ReadTimeout:
-            pass
 
 
 @pytest.fixture(scope="session", params=[True, False], ids=lambda is_left: "left_pad" if is_left else "right_pad")
