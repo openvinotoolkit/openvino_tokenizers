@@ -10,8 +10,11 @@
 using namespace ov;
 
 namespace {
-    sentencepiece::NormalizerSpec make_identity_spec() {
-        return sentencepiece::SentencePieceTrainer::GetNormalizerSpec("identity");
+    std::shared_ptr<sentencepiece::NormalizerSpec> make_identity_spec() {
+        auto spec = sentencepiece::SentencePieceTrainer::GetNormalizerSpec("identity");
+        spec.set_add_dummy_prefix(false);
+        spec.set_escape_whitespaces(false);
+        return std::make_shared<sentencepiece::NormalizerSpec>(spec);
     }
 }  // namespace
 
@@ -35,17 +38,18 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
     const bool has_skips = (inputs.size() == 5);
 
     if (m_normalizer == nullptr) {
-        const std::string precompiled_charsmap = std::string(inputs[4 + has_skips].data<const char>(), inputs[4 + has_skips].get_size());
-        sentencepiece::NormalizerSpec spec = make_identity_spec();
-        spec.set_precompiled_charsmap(precompiled_charsmap);
-        m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(spec);
+        const std::string precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
+        m_spec = make_identity_spec();
+        m_spec->set_precompiled_charsmap(precompiled_charsmap);
+        m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
     }
 
     return evaluate_normalization_helper(
         outputs,
         inputs,
         [&](const std::string& str) {
-            return m_normalizer->Normalize(str);
+            auto norm = m_normalizer->Normalize(str);
+            return norm;
         },
         has_skips
     );
