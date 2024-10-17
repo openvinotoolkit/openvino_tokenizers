@@ -554,9 +554,10 @@ class BPETokenizationStep(TokenizationModelStep):
         if self.added_tokens is None:
             return
 
-        size_diff = max(self.added_tokens.values()) - len(self.vocab) + 1
-        if size_diff > 0:
-            self.vocab.extend(type(self.vocab[0])() for _ in range(size_diff))
+        if len(self.added_tokens.values()) > 0:
+            size_diff = max(self.added_tokens.values()) - len(self.vocab) + 1
+            if size_diff > 0:
+                self.vocab.extend(type(self.vocab[0])() for _ in range(size_diff))
 
         for token, idx in self.added_tokens.items():
             if isinstance(self.vocab[0], bytes) and not isinstance(token, bytes):
