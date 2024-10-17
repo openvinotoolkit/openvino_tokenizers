@@ -40,6 +40,7 @@ jobs:
       id: openvino_download
       with:
         platform: 'ubuntu22'
+        commit_packages_to_provide: 'wheels'
         revision: 'latest_available_commit'
 
   openvino_tokenizers_cpack:
@@ -281,6 +282,7 @@ jobs:
       - name: Tokenizers regression tests (using openvino python modules)
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          python3 -m pytest tokenizers_test.py layer_tests.py
+          python3 -m pytest layer_tests.py
+          python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
