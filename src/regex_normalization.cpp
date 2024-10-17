@@ -93,8 +93,7 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         outputs, inputs,
         [this](const std::string& str) -> std::string {
             if (m_search_pattern_pcre2) {
-                auto res = m_search_pattern_pcre2->substitute(str, m_replace_pattern, m_global_replace);
-                return res;
+                return m_search_pattern_pcre2->substitute(str, m_replace_pattern, m_global_replace);
             } else {
                 return str;
             }

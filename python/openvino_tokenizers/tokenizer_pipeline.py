@@ -205,11 +205,11 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def add_prefix_whitespace_regex(cls) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"^(\S)", replace_term=r" \1")
+        return cls(regex_search_pattern=r"^(\S)", replace_term=r" $1")
 
     @classmethod
     def add_prefix_whitespace_to_not_whitespace_regex(cls) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"^([^ ])", replace_term=r" \1")
+        return cls(regex_search_pattern=r"^([^ ])", replace_term=r" $1")
 
     @classmethod
     def replace_spaces_metaspace(cls, replace_term=r"▁") -> "RegexNormalizationStep":
@@ -217,11 +217,11 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}\2")
+        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}$2")
 
     @classmethod
     def prepend_with_check_regex(cls, string: str, check_string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=rf"(^)([^{check_string}])", replace_term=rf"{string}\2")
+        return cls(regex_search_pattern=rf"(^)([^{check_string}])", replace_term=rf"{string}$2")
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
@@ -234,7 +234,7 @@ class RegexNormalizationStep(NormalizationStep):
     def clean_up_tokenization_spaces(cls) -> "RegexNormalizationStep":
         return cls(
             regex_search_pattern=r" ([\.\?\!\,])| ('[ms])| (') | ('[rv]e)",
-            replace_term="\1",
+            replace_term="$1",
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
@@ -1076,7 +1076,7 @@ class RegexDecodingStep(DecodingStep):
     def clean_up_tokenization_spaces(cls) -> "RegexDecodingStep":
         return cls(
             regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
-            replace_term=r"\1",
+            replace_term=r"$1",
         )
 
     @classmethod
@@ -1114,7 +1114,7 @@ class RegexDecodingStep(DecodingStep):
     def strip_forward_space_before_not_space(cls) -> "RegexDecodingStep":
         return cls(
             regex_search_pattern=r"(^ )([^ ])",
-            replace_term=r"\2",
+            replace_term=r"$2",
         )
 
     @classmethod
