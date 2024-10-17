@@ -10,6 +10,13 @@
 
 using namespace ov;
 
+/**
+ * @class CharsMapNormalization
+ * @brief A class performs normalization with chars map using SentencePiece normalizer.
+ *
+ * Node requires precompiled chars map from huggingface (or sentencepiece) tokenizer and
+ * applies it using SentencePiece Normalizer class.
+ */
 class CharsMapNormalization : public ov::op::Op {
 public:
     OPENVINO_OP("CharsMapNormalization");
@@ -30,6 +37,8 @@ public:
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
+        visitor.on_attribute("add_dummy_prefix", m_add_dummy_prefix);
+        visitor.on_attribute("escape_whitespaces", m_escape_whitespaces);
         return true;
     }
 
@@ -40,6 +49,9 @@ public:
     }
 private:
     mutable std::shared_ptr<sentencepiece::normalizer::Normalizer> m_normalizer;
+
+    bool m_add_dummy_prefix = false;
+    bool m_escape_whitespaces = false;
 
     // spec should be preserved for the lifetime of the normalizer
     mutable std::shared_ptr<sentencepiece::NormalizerSpec> m_spec;
