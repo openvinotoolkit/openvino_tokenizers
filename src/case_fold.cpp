@@ -21,7 +21,7 @@ void CaseFold::validate_and_infer_types() {
     set_string_output(this, 0, get_input_partial_shape(0));
 
     auto input_size = get_input_size();
-    OPENVINO_ASSERT(input_size == 3 || input_size == 4, "supported input sizes are 5 or 6");
+    OPENVINO_ASSERT(input_size == 3 || input_size == 4, "supported input sizes are 3 or 4");
 
     if (input_size == 4) {
         this->set_output_type(3, get_input_element_type(3),  get_input_partial_shape(3));

@@ -6,7 +6,6 @@ import json
 import sys
 import tempfile
 from copy import deepcopy
-from functools import partial
 from itertools import zip_longest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -19,7 +18,6 @@ from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
 from openvino.runtime.opset1.ops import _get_node_factory_opset1
 from openvino.runtime.utils.types import as_node, make_constant_node
-from openvino_tokenizers.utils import TokenzierConversionParams
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
 
@@ -40,11 +38,11 @@ from .tokenizer_pipeline import (
     ByteFallbackStep,
     BytesToCharsStep,
     CaseFoldStep,
+    CharsmapStep,
     CharsToBytesStep,
     CombineSegmentsStep,
     DecodingStep,
     FuseStep,
-    NMTNormalizationStep,
     NormalizationStep,
     NormalizeUnicode,
     PaddingStep,
@@ -54,7 +52,6 @@ from .tokenizer_pipeline import (
     RegexSplitStep,
     Sequence,
     SpecialTokensSplit,
-    StripStringStep,
     TokenizerPipeline,
     TruncationStep,
     UTF8ValidateStep,
@@ -62,9 +59,7 @@ from .tokenizer_pipeline import (
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
-from .utils import filter_re2_incompatible
-
-from dataclasses import dataclass, field, asdict
+from .utils import TokenzierConversionParams, filter_re2_incompatible
 
 
 def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:
@@ -96,13 +91,6 @@ def parse_bert_normalizer(normalizer_dict: Dict[str, Any]) -> List[Normalization
         steps.append(CaseFoldStep())
 
     return steps
-
-
-def parse_strip_step(split_dict: Dict[str, Any]) -> StripStringStep:
-    return StripStringStep(
-        left=split_dict["strip_left"],
-        right=split_dict["strip_right"],
-    )
 
 
 def parse_split_step(pretokenizer_dict: Dict[str, Any]) -> RegexSplitStep:
@@ -153,7 +141,6 @@ def parse_metaspace(pretokenizer_dict: Dict[str, Any]) -> List[Union[Normalizati
 
 class TransformersTokenizerPipelineParser:
     def __init__(self, tokenizer_object: Any, params: TokenzierConversionParams) -> None:
-
         if not tokenizer_object.is_fast:
             raise OVTypeError("Tokenizer is not supported.")
 
@@ -173,7 +160,7 @@ class TransformersTokenizerPipelineParser:
         self.utf8_replace_mode = params.utf8_replace_mode
         self.number_of_inputs = params.number_of_inputs
         self.num_of_added_tokens = 0
-        
+
     def parse(self) -> TokenizerPipeline:
         self.pipeline.number_of_inputs = self.number_of_inputs
         for add_steps in [
@@ -199,13 +186,12 @@ class TransformersTokenizerPipelineParser:
         "NFD": lambda step_dict: NormalizeUnicode("NFD"),
         "NFKC": lambda step_dict: NormalizeUnicode("NFKC"),
         "NFKD": lambda step_dict: NormalizeUnicode("NFKD"),
-        "Nmt": lambda step_dict: NMTNormalizationStep(),
         "Lowercase": lambda step_dict: CaseFoldStep(),
         "StripAccents": lambda step_dict: RegexNormalizationStep.strip_accents_regex(),
         "BertNormalizer": parse_bert_normalizer,
         "Replace": parse_replace_normalizer,
-        "Strip": parse_strip_step,
         "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", "")),
+        "Precompiled": CharsmapStep.from_hf_step_json,
     }
 
     def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
@@ -448,7 +434,6 @@ def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tok
 def convert_fast_tokenizer(
     hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams, number_of_inputs: int = 1
 ) -> Union[Model, Tuple[Model, Model]]:
-    
     pipeline = TransformersTokenizerPipelineParser(hf_tokenizer, params).parse()
     ov_tokenizer = pipeline.get_tokenizer_ov_subgraph()
     output_names = hf_tokenizer.model_input_names

@@ -4,21 +4,21 @@
 
 import logging
 import re
+from dataclasses import dataclass, fields
 from functools import lru_cache
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
-from dataclasses import dataclass, fields
 
 from .constants import (
     LOGITS_OUTPUT_NAME,
     ORIGINAL_TOKENIZER_CLASS_NAME,
     SPACE_SYMBOLS,
     TOKEN_IDS_OUTPUT_NAME,
-    rt_info_to_hf_attribute_map,
     UTF8ReplaceMode,
+    rt_info_to_hf_attribute_map,
 )
 
 
@@ -74,6 +74,7 @@ class TokenzierConversionParams:
     add_attention_mask: bool = True
     add_prefix_space: Optional[bool] = None
     number_of_inputs: int = 1
+
 
 logger = logging.getLogger(__name__)
 

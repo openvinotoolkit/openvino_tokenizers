@@ -4,12 +4,13 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import weakref
 from copy import copy
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
-from itertools import islice, groupby
+from itertools import groupby, islice
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -250,17 +251,16 @@ class RegexNormalizationStep(NormalizationStep):
 
 
 @dataclass
-class NMTNormalizationStep(NormalizationStep):
-    """Normaization based on NMT task.
+class CharsmapStep(NormalizationStep):
+    charsmap: bytes
 
-    https://github.com/huggingface/tokenizers/blob/28cd3dce2a75d106572392194ff2564574c33235/tokenizers/src/normalizers/unicode.rs#L44
-    """
+    @classmethod
+    def from_hf_step_json(cls, step_json: Dict[str, Any]) -> "CharsmapStep":
+        return cls(charsmap=base64.b64decode(step_json["precompiled_charsmap"]))
 
-
-@dataclass
-class StripStringStep(NormalizationStep):
-    left: bool
-    right: bool
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        input_nodes += make_constant_node(np.frombuffer(self.charsmap, dtype=np.uint8), dtype=Type.u8).outputs()
+        return _get_factory().create("CharsMapNormalization", input_nodes).outputs()
 
 
 @dataclass

@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-from dataclasses import fields
 import difflib
 import os
 import sys
+from dataclasses import fields
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import pytest
-import requests
 from openvino import Core, Model, Type
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
-from openvino_tokenizers.utils import get_hf_tokenizer_attribute, TokenzierConversionParams
+from openvino_tokenizers.utils import TokenzierConversionParams, get_hf_tokenizer_attribute
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
-from typing import Any, Dict, List, Optional, Tuple, Union
+
+from tests.utils import get_hf_tokenizer
+
 
 if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
     np.set_printoptions(threshold=sys.maxsize)
@@ -167,21 +170,6 @@ def get_tokenizer_detokenizer(
     compiled_tokenizer = core.compile_model(ov_tokenizer)
     compiled_detokenizer = core.compile_model(ov_detokenizer)
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
-
-
-def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left_padding=None):
-    kwargs = {}
-    if left_padding is not None:
-        kwargs["padding_side"] = "left" if left_padding else "right"
-        kwargs["truncation_side"] = "left" if left_padding else "right"
-
-    for retry in range(2):
-        try:
-            return AutoTokenizer.from_pretrained(
-                request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
-            )
-        except requests.ReadTimeout:
-            pass
 
 
 @pytest.fixture(scope="session", params=[True, False], ids=lambda is_left: "left_pad" if is_left else "right_pad")
@@ -880,6 +868,7 @@ def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers, is_sentencepiece_bac
     )
     check_rt_info(hf_sentencepiece_tokenizers, ov_tokenizer, ov_detokenizer)
 
+
 models_to_check_rt_info = [
     # one model from each category
     "bert-base-uncased",
@@ -887,6 +876,8 @@ models_to_check_rt_info = [
     "Xenova/gpt-4o",
     "Qwen/Qwen-14B-Chat",
 ]
+
+
 @pytest.fixture(scope="session", params=models_to_check_rt_info)
 def tokenizer_to_check_rt_info(request):
     return get_hf_tokenizer(request, trust_remote_code=True)
@@ -894,25 +885,25 @@ def tokenizer_to_check_rt_info(request):
 
 def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
     conversion_params = TokenzierConversionParams(
-        with_detokenizer = False,
-        add_special_tokens = True,
-        skip_special_tokens = True,
-        clean_up_tokenization_spaces = None,
-        tokenizer_output_type = Type.i64,
-        detokenizer_input_type = Type.i64,
-        streaming_detokenizer = False,
-        use_max_padding = False,
-        handle_special_tokens_with_re = None,
-        use_sentencepiece_backend = False,
-        utf8_replace_mode = None,
-        number_of_inputs = 1,
+        with_detokenizer=False,
+        add_special_tokens=True,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=None,
+        tokenizer_output_type=Type.i64,
+        detokenizer_input_type=Type.i64,
+        streaming_detokenizer=False,
+        use_max_padding=False,
+        handle_special_tokens_with_re=None,
+        use_sentencepiece_backend=False,
+        utf8_replace_mode=None,
+        number_of_inputs=1,
     )
-    
+
     ov_tokenizer = convert_tokenizer(tokenizer_to_check_rt_info, conversion_params)
     print(ov_tokenizer)
     if not conversion_params.with_detokenizer:
-        ov_tokenizer = (ov_tokenizer, )
-    
+        ov_tokenizer = (ov_tokenizer,)
+
     for model in ov_tokenizer:
         for key in fields(conversion_params):
             val = getattr(conversion_params, key.name)
