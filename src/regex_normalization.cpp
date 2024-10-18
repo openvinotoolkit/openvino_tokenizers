@@ -88,7 +88,7 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         m_replace_pattern = std::string(inputs[pattern_input + 1].data<const char>(), inputs[pattern_input + 1].get_size());
         m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
     }
-
+    
     return evaluate_normalization_helper(
         outputs, inputs,
         [this](const std::string& str) -> std::string {
