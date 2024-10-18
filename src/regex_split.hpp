@@ -19,7 +19,6 @@ public:
     RegexSplit(const ov::OutputVector& arguments, const std::string& behaviour = "remove", bool invert = false);
     RegexSplit(
         const ov::OutputVector& arguments,
-        const std::shared_ptr<re2::RE2>& search_pattern_re2,
         const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2,
         const std::string& behaviour = "remove",
         bool invert = false,
@@ -27,7 +26,6 @@ public:
     );
     RegexSplit(
         const ov::OutputVector& arguments,
-        const std::shared_ptr<re2::RE2>& search_pattern_re2,
         const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2,
         const std::shared_ptr<std::set<std::string>>& skip_tokens,
         const std::string& behaviour = "remove",
@@ -38,7 +36,7 @@ public:
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<RegexSplit>(inputs, m_search_pattern_re2, m_search_pattern_pcre2, 
+        return std::make_shared<RegexSplit>(inputs, m_search_pattern_pcre2, 
                                             m_skip_tokens, m_behaviour, m_invert, m_max_splits);
     }
 
@@ -63,9 +61,7 @@ public:
         CONTIGUOUS,  // Contiguous is not used during evaluate, replaced with isolated with patched pattern in ctor.
     };
 
-
 private:
-    mutable std::shared_ptr<re2::RE2> m_search_pattern_re2;
     mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
     mutable std::shared_ptr<std::set<std::string>> m_skip_tokens;
     mutable std::string m_behaviour = "remove";
