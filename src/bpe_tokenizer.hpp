@@ -22,15 +22,16 @@ using Tokens = std::list<int32_t>;
 using Positions = std::vector<std::list<int32_t>::const_iterator>;
 
 
-template <typename T=int32_t>
+template <typename T = int32_t>
 class TokensList {
 public:
     struct Node {
         T data;
-        Node* prev;
-        Node* next;
+        std::shared_ptr<Node> prev;
+        std::shared_ptr<Node> next;
         Node(const T& data) : data(data), prev(nullptr), next(nullptr) {}
     };
+
     size_t m_size;
 
 public:
@@ -38,21 +39,19 @@ public:
         return m_size;
     }
 
-    Node* head;
-    Node* tail;
+    std::shared_ptr<Node> head;
+    std::shared_ptr<Node> tail;
 
     TokensList() : head(nullptr), tail(nullptr), m_size(0) {}
 
     ~TokensList() {
         while (head) {
-            Node* temp = head;
             head = head->next;
-            delete temp;
         }
     }
 
     void insert(const T& data) {
-        Node* new_node = new Node(data);
+        std::shared_ptr<Node> new_node = std::make_shared<Node>(data);
         if (!head) {
             head = tail = new_node;
         } else {
@@ -63,28 +62,11 @@ public:
         m_size++;
     }
 
-    // void remove(Node* node) {
-    //     if (!node) return;
-
-    //     if (node->prev) {
-    //         node->prev->next = node->next;
-    //     } else {
-    //         head = node->next;
-    //     }
-    //     if (node->next) {
-    //         node->next->prev = node->prev;
-    //     } else {
-    //         tail = node->prev;
-    //     }
-    //     delete node;
-    //     m_size--;
-    // }
-
-    Node* merge_neighbors(Node* first, Node* second, const T& new_data) {
+    std::shared_ptr<Node> merge_neighbors(std::shared_ptr<Node> first, std::shared_ptr<Node> second, const T& new_data) {
         // OPENVINO_ASSERT(!first || !second || first->next != second);
         // OPENVINO_THROW("Nodes must be consecutive and non-null");
 
-        Node* new_node = new Node(new_data);
+        std::shared_ptr<Node> new_node = std::make_shared<Node>(new_data);
 
         new_node->prev = first->prev;
         new_node->next = second->next;
@@ -101,8 +83,7 @@ public:
             tail = new_node;
         }
 
-        // delete first;
-        // delete second;
+        // No need to delete first and second as shared_ptr will handle it
         m_size -= 1;
         return new_node;
     }
@@ -110,20 +91,22 @@ public:
 
 // Define a custom hash function for std::pair
 struct NodePairHash {
-    std::size_t operator()(const std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& pair) const {
-        auto hash1 = std::hash<TokensList<int32_t>::Node*>{}(pair.first);
-        auto hash2 = std::hash<TokensList<int32_t>::Node*>{}(pair.second);
+    std::size_t operator()(const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& pair) const {
+        auto hash1 = std::hash<std::shared_ptr<TokensList<int32_t>::Node>>{}(pair.first);
+        auto hash2 = std::hash<std::shared_ptr<TokensList<int32_t>::Node>>{}(pair.second);
         return hash1 ^ (hash2 << 1);  // Combine the two hash values
     }
 };
 
 // Define a custom equality function for std::pair
 struct NodePairEqual {
-    bool operator()(const std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& lhs,
-                    const std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& rhs) const {
+    bool operator()(const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& lhs,
+                    const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& rhs) const {
         return lhs.first == rhs.first && lhs.second == rhs.second;
     }
 };
+
+using TokenNode = std::shared_ptr<TokensList<int32_t>::Node>;
 
 class BPETokenizerImpl {
 private:

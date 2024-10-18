@@ -179,8 +179,8 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 struct CompareRank {
-    bool operator()(const std::tuple<int32_t, int32_t, TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& lhs,
-                    const std::tuple<int32_t, int32_t, TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>& rhs) const {
+    bool operator()(const std::tuple<int32_t, int32_t, TokenNode, TokenNode>& lhs,
+                    const std::tuple<int32_t, int32_t, TokenNode, TokenNode>& rhs) const {
         return std::get<0>(lhs) > std::get<0>(rhs);  // Compare based on the position in merges.
     }
 };
@@ -216,13 +216,13 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
 
     // Prepare priority queue to store pairs with their ranks
     // (position in merges, rank, iterator to first, iterator to second)
-    using QueueEntry = std::tuple<int32_t, int32_t, TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>; 
+    using QueueEntry = std::tuple<int32_t, int32_t, TokenNode, TokenNode>; 
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
 
     // Fill the priority queue with initial pairs from TokensList
-    TokensList<int32_t>::Node* curr_node = res.head;
+    TokenNode curr_node = res.head;
     OPENVINO_ASSERT(curr_node != nullptr);
-    TokensList<int32_t>::Node* next_node = curr_node->next;
+    TokenNode next_node = curr_node->next;
     
     while (next_node) {
         auto pair = std::make_pair(curr_node->data, next_node->data);
@@ -234,7 +234,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         next_node = curr_node->next;
     };
 
-    std::unordered_set<std::pair<TokensList<int32_t>::Node*, TokensList<int32_t>::Node*>, NodePairHash, NodePairEqual> invalid_pairs;
+    std::unordered_set<std::pair<TokenNode, TokenNode>, NodePairHash, NodePairEqual> invalid_pairs;
 
 
     // Now process the priority queue to merge pairs
@@ -291,7 +291,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     std::vector<int32_t> res_vec;
     res_vec.reserve(res.size());
 
-    TokensList<int32_t>::Node* node = res.head;
+    TokenNode node = res.head;
     while (node) {
         res_vec.emplace_back(node->data);
         node = node->next;
