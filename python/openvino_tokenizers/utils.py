@@ -234,7 +234,7 @@ def get_package_version(name: str) -> str:
 
 
 def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
-    """Updates the runtime information with the versions of the HF tokenizer, Tiktoken, Sentencepiece and OpenVINO runtime.
+    """Adds package versions used for conversion to rt_info
 
     :param ov_tokenizer: Thes OpenVINO tokenizer model to update.
     :type ov_tokenizer: openvino.Model
