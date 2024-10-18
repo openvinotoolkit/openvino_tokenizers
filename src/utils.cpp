@@ -287,11 +287,10 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         return orig_str;
     }
     
-    // Usually found pattern is replaced by shorter string, but set 4 times more space for safety.
-    // Also set min length to 16 to avoid too small buffer when single ASCII symbol is replaced with several UTF-8 symbols.
+    // Usually found pattern is replaced by shorter string, but set 3 times more space for safety.
     // Allocate dynamically since lenght depends dynamically on the lenght of input string.
     // Allocated memory will be freed at the exit from function.
-    size_t buffer_length = sizeof(PCRE2_UCHAR) * subject_length * 4 + 16;
+    size_t buffer_length = sizeof(PCRE2_UCHAR) * subject_length * 4;
     PCRE2_UCHAR* buffer = (PCRE2_UCHAR*) std::malloc(buffer_length);
     if (buffer == nullptr) {
         std::cerr << "Memory allocation failed" << std::endl;
@@ -321,7 +320,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         std::free(buffer);
         return orig_str;
     }
-    auto res = std::string(reinterpret_cast<char*>(buffer), buffer_length);
+    auto res = std::string(reinterpret_cast<char*>(buffer), subject_length);
     std::free(buffer);
     pcre2_match_data_free(match_data); 
     return res;
