@@ -223,40 +223,35 @@ def get_hf_tokenizer_attribute(
 ) -> Any:
     return next((value for attr in attributes if (value := getattr(hf_tokenizer, attr, None)) is not None), None)
 
-def update_rt_info_with_versions(ov_tokenizer: Model) -> None:
-    """Updates the runtime information of the OpenVINO tokenizer model with the versions of the 
-    Huggingface tokenizer, Tiktoken, Sentencepiece and OpenVINO runtime.
+
+def get_package_version(name: str) -> str:
+    import importlib.metadata as metadata
+
+    try:
+        return metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return None
+
+
+def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
+    """Updates the runtime information with the versions of the HF tokenizer, Tiktoken, Sentencepiece and OpenVINO runtime.
 
     :param ov_tokenizer: Thes OpenVINO tokenizer model to update.
     :type ov_tokenizer: openvino.Model
-
     """
-    def get_package_version(name: str) -> str:
-        import importlib.metadata as metadata
-        try:
-            return metadata.version(name)
-        except metadata.PackageNotFoundError:
-            return None
-    
-    packages = [
-        "openvino_tokenizers",
-        "transformers", 
-        "tiktoken", 
-        "sentencepiece", 
-        "openvino", 
-        "tokenizers"
-    ]
+    packages = ["openvino_tokenizers", "transformers", "tiktoken", "sentencepiece", "openvino", "tokenizers"]
     for name in packages:
         version = get_package_version(name)
         if version is not None:
             ov_tokenizer.set_rt_info(version, f"{name}_version")
+
 
 def update_rt_info_with_params(
     ov_tokenizer: Model,
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
     params: TokenzierConversionParams,
 ) -> None:
-    """Updates the runtime information of the OpenVINO tokenizer model with the parameters and attributes of the Huggingface
+    """Updates the runtime information of the OpenVINO tokenizer model with the parameters and attributes of the HF.
 
     :param ov_tokenizer: The OpenVINO tokenizer model to update.
     :type ov_tokenizer: openvino.Model
