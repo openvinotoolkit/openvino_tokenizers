@@ -16,7 +16,8 @@ from openvino_tokenizers.utils import (
     TokenzierConversionParams,
     change_inputs_type,
     change_outputs_type,
-    update_rt_info,
+    update_rt_info_with_params,
+    update_rt_info_with_environment,
 )
 
 
@@ -128,11 +129,9 @@ def convert_tokenizer(
         else:
             raise OVTypeError(f"Huggingface tokenizer type is not supported: {type(tokenizer_object)}")
 
-        if isinstance(ov_tokenizers, tuple):
-            for ov_model in ov_tokenizers:
-                update_rt_info(ov_model, tokenizer_object, params)
-        else:
-            update_rt_info(ov_tokenizers, tokenizer_object, params)
+        for model in ov_tokenizers if isinstance(ov_tokenizers, tuple) else [ov_tokenizers]:
+            update_rt_info_with_params(model, tokenizer_object, params)
+            update_rt_info_with_environment(model)
 
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
