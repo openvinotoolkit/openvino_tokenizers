@@ -72,7 +72,7 @@ def convert_tokenizer(
     use_sentencepiece_backend: bool = False,
     utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
-    """u
+    """
     Converts a given tokenizer object into an OpenVINO-compatible model.
 
     If no `params` are provided, the function will construct a `TokenzierConversionParams` instance
