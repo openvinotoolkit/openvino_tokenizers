@@ -14,7 +14,8 @@ from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.utils import (
     change_inputs_type,
     change_outputs_type,
-    update_rt_info,
+    update_rt_info_with_params,
+    update_rt_info_with_versions,
     TokenzierConversionParams,
 )
 
@@ -71,7 +72,7 @@ def convert_tokenizer(
     use_sentencepiece_backend: bool = False,
     utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
-    """
+    """u
     Converts a given tokenizer object into an OpenVINO-compatible model.
 
     If no `params` are provided, the function will construct a `TokenzierConversionParams` instance
@@ -126,11 +127,9 @@ def convert_tokenizer(
         else:
             raise OVTypeError(f"Huggingface tokenizer type is not supported: {type(tokenizer_object)}")
 
-        if isinstance(ov_tokenizers, tuple):
-            for ov_model in ov_tokenizers:
-                update_rt_info(ov_model, tokenizer_object, params)
-        else:
-            update_rt_info(ov_tokenizers, tokenizer_object, params)
+        for model in ov_tokenizers if isinstance(ov_tokenizers, tuple) else [ov_tokenizers]:
+            update_rt_info_with_params(model, tokenizer_object, params)
+            update_rt_info_with_versions(model, tokenizer_object)
 
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
