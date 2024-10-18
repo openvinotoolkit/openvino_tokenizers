@@ -239,8 +239,16 @@ def update_rt_info_with_versions(
             return metadata.version(name)
         except metadata.PackageNotFoundError:
             return None
-
-    for name in ["transformers", "tiktoken", "sentencepiece", "openvino", "tokenizers"]:
+    
+    packages = [
+        "openvino_tokenizers",
+        "transformers", 
+        "tiktoken", 
+        "sentencepiece", 
+        "openvino", 
+        "tokenizers"
+    ]
+    for name in packages:
         version = get_package_version(name)
         if version is not None:
             ov_tokenizer.set_rt_info(version, f"{name}_version")
