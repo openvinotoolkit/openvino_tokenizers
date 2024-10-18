@@ -186,9 +186,9 @@ struct CompareRank {
 };
 
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
-    // if (m_cache.count(text)) {
-    //     return m_cache.at(text);
-    // }
+    if (m_cache.count(text)) {
+        return m_cache.at(text);
+    }
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
@@ -232,7 +232,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         }
         curr_node = next_node;
         next_node = curr_node->next;
-    };
+    }
 
     std::unordered_set<std::pair<TokenNode, TokenNode>, NodePairHash, NodePairEqual> invalid_pairs;
 
@@ -242,9 +242,6 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         auto [idx, rank, first_it, second_it] = pq.top();
         pq.pop();
 
-        if (!first_it || !second_it)
-            continue;
-        
         // Check that pair is still valid, if not, then continue.
         if (invalid_pairs.count({first_it, second_it})) {
             continue;
@@ -279,24 +276,20 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
                 pq.emplace(idx, rank, new_node, second_it->next);
             }
         }
-        // delete first_it;
-        // delete second_it;
     }
-
-    // TODO: Check if LRU Cache is more effective.
-    // if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-    //     m_cache.insert({text, res});
-    // }
 
     std::vector<int32_t> res_vec;
     res_vec.reserve(res.size());
-
     TokenNode node = res.head;
     while (node) {
         res_vec.emplace_back(node->data);
         node = node->next;
-    };
+    }
 
+    // TODO: Check if LRU Cache is more effective.
+    if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
+        m_cache.insert({text, res_vec});
+    }
     return res_vec;
 }
 
