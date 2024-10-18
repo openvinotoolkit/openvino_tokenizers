@@ -1,6 +1,17 @@
+import json
+import tempfile
+from pathlib import Path
+from typing import Union
+
 import openvino as ov
 import pytest
+from openvino import Model, PartialShape, Type
+from openvino.runtime import op
 from openvino_tokenizers import _get_factory
+from openvino_tokenizers.constants import UTF8ReplaceMode
+from openvino_tokenizers.tokenizer_pipeline import CharsmapStep, DecodingStep, NormalizationStep, UTF8ValidateStep
+
+from tests.utils import get_hf_tokenizer
 
 
 core = ov.Core()
@@ -43,25 +54,60 @@ utf8_validate_strings = [
 ]
 
 
-def get_utf8_validate_subgraph(replace_mode) -> ov.CompiledModel:
-    from openvino.runtime import op
-
-    replace_mode = False if replace_mode == "ignore" else True
-    input_node = op.Parameter(ov.Type.string, ov.PartialShape(["?"]))
+def crate_normalization_model(layer: Union[NormalizationStep, DecodingStep]) -> ov.CompiledModel:
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
-    unpacked_ = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
-    validated_ = _get_factory().create("UTF8Validate", unpacked_, {"replace_mode": replace_mode}).outputs()
-    packed_ = _get_factory().create("StringTensorPack", validated_).outputs()
 
-    ov_model = ov.Model(packed_, [input_node], "test_net")
-    validator = core.compile_model(ov_model)
-    return validator
+    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = layer.get_ov_subgraph(output)
+    output = _get_factory().create("StringTensorPack", output).outputs()
+    normalizer = Model(output, [input_node], "normalizer")
+
+    return core.compile_model(normalizer)
 
 
 @pytest.mark.parametrize("test_string", utf8_validate_strings)
 @pytest.mark.parametrize("replace_mode", ["ignore", "replace"])
 def test_utf8_validate(test_string, replace_mode):
-    compiled_model = get_utf8_validate_subgraph(replace_mode)
+    utf_validation_node = UTF8ValidateStep(
+        UTF8ReplaceMode.REPLACE if replace_mode == "replace" else UTF8ReplaceMode.IGNORE
+    )
+    compiled_model = crate_normalization_model(utf_validation_node)
     res_ov = compiled_model([test_string])[0]
     res_py = test_string.decode(errors=replace_mode)
     assert res_ov == res_py
+
+
+tokenizers_with_charsmap = ["google/flan-t5-xxl"]
+
+
+charsmap_test_strings = ["Henry \u2163  ①②③", ""]
+
+
+@pytest.fixture(scope="session", params=tokenizers_with_charsmap, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def hf_charsmap_tokenizer(request):
+    hf_tokenizer = get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=True)
+    if not hf_tokenizer.is_fast:
+        pytest.skip("Fast tokenizer should use Rust backend.")
+
+    return hf_tokenizer
+
+
+@pytest.fixture(scope="session")
+def precompiled_charsmap_json(request, hf_charsmap_tokenizer):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        hf_charsmap_tokenizer.save_pretrained(tmpdir)
+
+        tmpdir = Path(tmpdir)
+        with open(tmpdir / "tokenizer.json") as tok_json:
+            tj = json.load(tok_json)
+            return tj["normalizer"]["normalizers"][0]
+
+
+@pytest.mark.parametrize("test_string", charsmap_test_strings)
+def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled_charsmap_json):
+    charsmap_normalization_node = CharsmapStep.from_hf_step_json(precompiled_charsmap_json)
+    compiled_model = crate_normalization_model(charsmap_normalization_node)
+    res_ov = compiled_model([test_string])[0][0]
+    res_hf = hf_charsmap_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
+    assert res_ov == res_hf

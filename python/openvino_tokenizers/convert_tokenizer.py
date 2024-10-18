@@ -2,36 +2,37 @@
 # Copyright (C) 2018-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from dataclasses import fields
 import logging
 import sys
-from typing import Any, Optional, Tuple, Union
+from dataclasses import fields
 from functools import wraps
+from typing import Any, Optional, Tuple, Union
+
 from openvino.runtime import Model, Type
 from openvino.runtime.exceptions import OVTypeError
 
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.utils import (
+    TokenzierConversionParams,
     change_inputs_type,
     change_outputs_type,
     update_rt_info_with_params,
     update_rt_info_with_versions,
-    TokenzierConversionParams,
 )
+
 
 logger = logging.getLogger(__name__)
 
 
 def capture_arg(func):
-
     @wraps(func)
     def wrapper(*args, **kwargs):
         params = None
-        if len(args) > 1 and args[1] != None:
+        if len(args) > 1 and args[1] is not None:
             params = args[1]
-        if 'params' in kwargs:
-            params = kwargs['params']
-        
+        if "params" in kwargs:
+            params = kwargs["params"]
+
         if params is not None:
             for key in fields(TokenzierConversionParams):
                 if kwargs.get(key.name) is not None:
@@ -43,15 +44,15 @@ def capture_arg(func):
                         "convert_tokenzier(tokenizer_object, params={'with_detokenizr': True, 'add_special_tokens': True, ...})"
                     )
                     raise ValueError(msg)
-        
+
         if isinstance(params, dict):
             params = TokenzierConversionParams(**params)
         if params is None:
             params = TokenzierConversionParams(**kwargs)
         return func(args[0], params)
-    
+
     # Embed convert_tokenizer docstring with TokenzierConversionParams docstring.
-    wrapper.__doc__ = func.__doc__.replace('Returns:',  'Returns:\n'+ TokenzierConversionParams.__doc__ + '\n')
+    wrapper.__doc__ = func.__doc__.replace("Returns:", "Returns:\n" + TokenzierConversionParams.__doc__ + "\n")
     return wrapper
 
 
@@ -76,7 +77,7 @@ def convert_tokenizer(
     Converts a given tokenizer object into an OpenVINO-compatible model.
 
     If no `params` are provided, the function will construct a `TokenzierConversionParams` instance
-    using the passed keyword arguments to control the behavior of the conversion. Either params, 
+    using the passed keyword arguments to control the behavior of the conversion. Either params,
     or keyword arguments should be passed, if both are specified an Error will be thrown.
 
     Parameters:
@@ -103,6 +104,7 @@ def convert_tokenizer(
         )
 
     from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
+
     from .hf_parser import (
         convert_fast_tokenizer,
         convert_sentencepiece_model_tokenizer,

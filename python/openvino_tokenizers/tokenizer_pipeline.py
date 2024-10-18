@@ -4,12 +4,13 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import weakref
 from copy import copy
 from dataclasses import dataclass, field
 from functools import singledispatchmethod
-from itertools import islice, groupby
+from itertools import groupby, islice
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -205,11 +206,11 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def add_prefix_whitespace_regex(cls) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"^(\S)", replace_term=r" \1")
+        return cls(regex_search_pattern=r"^(\S)", replace_term=r" $1")
 
     @classmethod
     def add_prefix_whitespace_to_not_whitespace_regex(cls) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"^([^ ])", replace_term=r" \1")
+        return cls(regex_search_pattern=r"^([^ ])", replace_term=r" $1")
 
     @classmethod
     def replace_spaces_metaspace(cls, replace_term=r"▁") -> "RegexNormalizationStep":
@@ -217,11 +218,11 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}\2")
+        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}$2")
 
     @classmethod
     def prepend_with_check_regex(cls, string: str, check_string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=rf"(^)([^{check_string}])", replace_term=rf"{string}\2")
+        return cls(regex_search_pattern=rf"(^)([^{check_string}])", replace_term=rf"{string}$2")
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
@@ -234,7 +235,7 @@ class RegexNormalizationStep(NormalizationStep):
     def clean_up_tokenization_spaces(cls) -> "RegexNormalizationStep":
         return cls(
             regex_search_pattern=r" ([\.\?\!\,])| ('[ms])| (') | ('[rv]e)",
-            replace_term="\1",
+            replace_term="$1",
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
@@ -250,17 +251,16 @@ class RegexNormalizationStep(NormalizationStep):
 
 
 @dataclass
-class NMTNormalizationStep(NormalizationStep):
-    """Normaization based on NMT task.
+class CharsmapStep(NormalizationStep):
+    charsmap: bytes
 
-    https://github.com/huggingface/tokenizers/blob/28cd3dce2a75d106572392194ff2564574c33235/tokenizers/src/normalizers/unicode.rs#L44
-    """
+    @classmethod
+    def from_hf_step_json(cls, step_json: Dict[str, Any]) -> "CharsmapStep":
+        return cls(charsmap=base64.b64decode(step_json["precompiled_charsmap"]))
 
-
-@dataclass
-class StripStringStep(NormalizationStep):
-    left: bool
-    right: bool
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        input_nodes += make_constant_node(np.frombuffer(self.charsmap, dtype=np.uint8), dtype=Type.u8).outputs()
+        return _get_factory().create("CharsMapNormalization", input_nodes).outputs()
 
 
 @dataclass
@@ -1077,7 +1077,7 @@ class RegexDecodingStep(DecodingStep):
     def clean_up_tokenization_spaces(cls) -> "RegexDecodingStep":
         return cls(
             regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
-            replace_term=r"\1",
+            replace_term=r"$1",
         )
 
     @classmethod
@@ -1115,7 +1115,7 @@ class RegexDecodingStep(DecodingStep):
     def strip_forward_space_before_not_space(cls) -> "RegexDecodingStep":
         return cls(
             regex_search_pattern=r"(^ )([^ ])",
-            replace_term=r"\2",
+            replace_term=r"$2",
         )
 
     @classmethod
