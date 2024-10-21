@@ -18,7 +18,92 @@
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
 using Merges = std::map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>>;
 using Vocab = std::unordered_map<std::string, unsigned int>;
-using Tokens = std::vector<int32_t>;
+
+template <typename T = int32_t>
+class TokensList {
+public:
+    struct Node {
+        T data;
+        std::shared_ptr<Node> prev;
+        std::shared_ptr<Node> next;
+        Node(const T& data) : data(data), prev(nullptr), next(nullptr) {}
+    };
+
+    size_t m_size;
+
+public:
+    size_t size() const {
+        return m_size;
+    }
+
+    std::shared_ptr<Node> head;
+    std::shared_ptr<Node> tail;
+
+    TokensList() : head(nullptr), tail(nullptr), m_size(0) {}
+
+    ~TokensList() {
+        while (head) {
+            head = head->next;
+        }
+    }
+
+    void insert(const T& data) {
+        std::shared_ptr<Node> new_node = std::make_shared<Node>(data);
+        if (!head) {
+            head = tail = new_node;
+        } else {
+            tail->next = new_node;
+            new_node->prev = tail;
+            tail = new_node;
+        }
+        m_size++;
+    }
+
+    std::shared_ptr<Node> merge_neighbors(std::shared_ptr<Node> first, std::shared_ptr<Node> second, const T& new_data) {
+        // OPENVINO_ASSERT(!first || !second || first->next != second);
+        // OPENVINO_THROW("Nodes must be consecutive and non-null");
+
+        std::shared_ptr<Node> new_node = std::make_shared<Node>(new_data);
+
+        new_node->prev = first->prev;
+        new_node->next = second->next;
+
+        if (first->prev) {
+            first->prev->next = new_node;
+        } else {
+            head = new_node;
+        }
+
+        if (second->next) {
+            second->next->prev = new_node;
+        } else {
+            tail = new_node;
+        }
+
+        // No need to delete first and second as shared_ptr will handle it
+        m_size -= 1;
+        return new_node;
+    }
+};
+
+// Define a custom hash function for std::pair
+struct NodePairHash {
+    std::size_t operator()(const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& pair) const {
+        auto hash1 = std::hash<std::shared_ptr<TokensList<int32_t>::Node>>{}(pair.first);
+        auto hash2 = std::hash<std::shared_ptr<TokensList<int32_t>::Node>>{}(pair.second);
+        return hash1 ^ (hash2 << 1);  // Combine the two hash values
+    }
+};
+
+// Define a custom equality function for std::pair
+struct NodePairEqual {
+    bool operator()(const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& lhs,
+                    const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& rhs) const {
+        return lhs.first == rhs.first && lhs.second == rhs.second;
+    }
+};
+
+using TokenNode = std::shared_ptr<TokensList<int32_t>::Node>;
 
 class BPETokenizerImpl {
 private:
@@ -32,7 +117,6 @@ private:
     bool m_fuse_unk = false;
     size_t m_cache_capacity;
     std::unordered_map<std::string, std::vector<int32_t>> m_cache;
-    std::pair<std::pair<int32_t, int32_t>, size_t> get_min_rank_pair(Tokens tokens);
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
     BPETokenizerImpl(
@@ -44,7 +128,7 @@ public:
         bool fuse_unk = false,
         bool byte_fallback = false
     );
-    Tokens tokenize(std::string& text);
+    std::vector<int32_t> tokenize(std::string& text);
 };
 
 
