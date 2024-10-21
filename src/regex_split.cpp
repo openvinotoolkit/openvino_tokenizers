@@ -17,8 +17,8 @@ const std::map<std::string, RegexSplit::SplitMode> split_modes_map = {
     {"remove", RegexSplit::SplitMode::REMOVED},
     {"isolate", RegexSplit::SplitMode::ISOLATED},
     {"contiguous", RegexSplit::SplitMode::ISOLATED},
-    {"merge_with_previous", RegexSplit::SplitMode::MERGED_WITH_PREVIOUS},
-    {"merge_with_next", RegexSplit::SplitMode::MERGED_WITH_NEXT}
+    {"mergedwithprevious", RegexSplit::SplitMode::MERGED_WITH_PREVIOUS},
+    {"mergedwithnext", RegexSplit::SplitMode::MERGED_WITH_NEXT}
 };
 
 }
@@ -26,7 +26,7 @@ const std::map<std::string, RegexSplit::SplitMode> split_modes_map = {
 void RegexSplit::compile_pattern_if_necessary(std::string split_pattern) const {
     m_split_mode = split_modes_map.at(m_behaviour);
     
-    if (m_search_pattern_re2 || m_search_pattern_pcre2) {
+    if (m_search_pattern_pcre2) {
         return;
     }
     
@@ -35,18 +35,7 @@ void RegexSplit::compile_pattern_if_necessary(std::string split_pattern) const {
         tmp_stream << "(" << split_pattern << ")+";
         split_pattern = tmp_stream.str();
     }
-
-    if (m_search_pattern_re2 == nullptr) {
-        auto options = re2::RE2::Options();
-        options.set_log_errors(false);  
-        m_search_pattern_re2 = std::make_shared<re2::RE2>(split_pattern, options);
-    }
-
-    if (m_search_pattern_re2->NumberOfCapturingGroups() == -1) {
-        // If RE2 was unable to process pattern use PCRE2.
-        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(split_pattern);
-        m_search_pattern_re2 = nullptr;
-    }
+    m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(split_pattern);
 }
 
 
@@ -60,14 +49,12 @@ RegexSplit::RegexSplit(const ov::OutputVector& arguments, const std::string& beh
 
 RegexSplit::RegexSplit(
     const ov::OutputVector& arguments,
-    const std::shared_ptr<re2::RE2>& search_pattern_re2,
     const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2,
     const std::string& behaviour,
     bool invert,
     int max_splits
 ) :
     ov::op::Op(arguments),
-    m_search_pattern_re2(search_pattern_re2),
     m_search_pattern_pcre2(search_pattern_pcre2),
     m_behaviour(behaviour),
     m_invert(invert),
@@ -85,7 +72,6 @@ RegexSplit::RegexSplit(
 
 RegexSplit::RegexSplit(
     const ov::OutputVector& arguments,
-    const std::shared_ptr<re2::RE2>& search_pattern_re2,
     const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2,
     const std::shared_ptr<std::set<std::string>>& skip_tokens,
     const std::string& behaviour,
@@ -93,7 +79,6 @@ RegexSplit::RegexSplit(
     int max_splits
 ) :
     ov::op::Op(arguments),
-    m_search_pattern_re2(search_pattern_re2),
     m_search_pattern_pcre2(search_pattern_pcre2),
     m_skip_tokens(skip_tokens),
     m_behaviour(behaviour),
@@ -140,31 +125,14 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
     compile_pattern_if_necessary(split_pattern);
     
-    // If RE2 didn't compiled successfully fallback to PCRE2 matcher.
-    std::function<std::optional<std::pair<size_t, size_t>>(const std::string&, size_t)> get_next_match;
-    if (m_search_pattern_re2) {
-        get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
-            re2::StringPiece result;
-            bool flag = this->m_search_pattern_re2->Match(str, curr_start, str.length(), RE2::UNANCHORED, &result, 1);
-            if (flag) {
-                size_t start = result.data() - str.data();
-                size_t end = start + result.length();
-                if (start != end) {
-                    return std::pair(start, end);
-                }
-            }
+    auto get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
+        auto match = this->m_search_pattern_pcre2->match(str, curr_start);
+        if (match.first != SIZE_MAX && match.first != match.second) {
+            return match;
+        } else {
             return std::nullopt;
-        };
-    } else {
-        get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
-            auto match = this->m_search_pattern_pcre2->match(str, curr_start);
-            if (match.first != SIZE_MAX && match.first != match.second) {
-                return match;
-            } else {
-                return std::nullopt;
-            }
-        };
-    }
+        }
+    };
 
     auto input_size = get_input_size();
     if (input_size == 9 && m_skip_tokens == nullptr && inputs[6].get_size() > 0) {
@@ -238,7 +206,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                 new_ends[ragged_offset++] = ends[ragged_col];
             } else {
                 size_t start = 0;
-                re2::StringPiece result;
                 uint32_t num_splits = 0;
                
                 size_t last_begin = -1;

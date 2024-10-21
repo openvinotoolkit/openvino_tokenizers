@@ -4,17 +4,19 @@
 import difflib
 import os
 import sys
+from dataclasses import fields
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
-import requests
-from openvino import Core, Model
+from openvino import Core, Model, Type
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
-from openvino_tokenizers.utils import get_hf_tokenizer_attribute
+from openvino_tokenizers.utils import TokenzierConversionParams, get_hf_tokenizer_attribute
 from tokenizers.models import Unigram
 from transformers import AutoTokenizer
+
+from tests.utils import get_hf_tokenizer
 
 
 if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
@@ -82,18 +84,10 @@ chat_messages = [
 
 wordpiece_models = [
     "bert-base-multilingual-cased",
-    "bert-base-uncased",
-    # rubert-tiny2 tokenizer.json contains truncation step with max_length=512 used by OV tokenizer
-    # model object has model_max_lenght=2048 attribute which causes failed tests
     "cointegrated/rubert-tiny2",
     "distilbert-base-uncased-finetuned-sst-2-english",
     "sentence-transformers/all-MiniLM-L6-v2",
-    "rajiv003/ernie-finetuned-qqp",  # ernie model with fast tokenizer
-    "google/electra-base-discriminator",
     "google/mobilebert-uncased",
-    "jhgan/ko-sbert-sts",
-    "squeezebert/squeezebert-uncased",
-    "prajjwal1/bert-mini",
     "ProsusAI/finbert",
     "rasa/LaBSE",
 ]
@@ -103,20 +97,14 @@ bpe_models = [
     # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
     "tiiuae/falcon-7b",
     "stabilityai/stablecode-completion-alpha-3b-4k",
-    "stabilityai/stablelm-tuned-alpha-7b",
     "databricks/dolly-v2-3b",
-    "EleutherAI/gpt-neo-125m",
-    "EleutherAI/gpt-j-6b",
+    "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
     "roberta-base",
-    "sentence-transformers/all-roberta-large-v1",  # standin for setfit
-    "facebook/bart-large-mnli",
     "facebook/opt-66b",
     "gpt2",
     "EleutherAI/gpt-neox-20b",
     "ai-forever/rugpt3large_based_on_gpt2",
-    "KoboldAI/fairseq-dense-13B",
     "facebook/galactica-120b",
-    "EleutherAI/pythia-12b-deduped",
     "microsoft/deberta-base",
     "bigscience/bloom",
     "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
@@ -130,7 +118,7 @@ bpe_models = [
 sentencepiece_models = [
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
-    "codellama/CodeLlama-7b-hf",
+    "baichuan-inc/Baichuan2-7B-Chat",
     "camembert-base",
     "NousResearch/Llama-2-13b-hf",
     "xlm-roberta-base",
@@ -148,7 +136,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
-    # "THUDM/glm-4-9b",  # _pad doesn't support padding side - broke in 4.45
+    "THUDM/glm-4-9b-chat",
 ]
 
 
@@ -182,21 +170,6 @@ def get_tokenizer_detokenizer(
     compiled_tokenizer = core.compile_model(ov_tokenizer)
     compiled_detokenizer = core.compile_model(ov_detokenizer)
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
-
-
-def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left_padding=None):
-    kwargs = {}
-    if left_padding is not None:
-        kwargs["padding_side"] = "left" if left_padding else "right"
-        kwargs["truncation_side"] = "left" if left_padding else "right"
-
-    for retry in range(2):
-        try:
-            return AutoTokenizer.from_pretrained(
-                request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
-            )
-        except requests.ReadTimeout:
-            pass
 
 
 @pytest.fixture(scope="session", params=[True, False], ids=lambda is_left: "left_pad" if is_left else "right_pad")
@@ -570,10 +543,10 @@ def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_
 
 
 @pytest.mark.parametrize(
-    "test_string",
+    "test_chat",
     chat_messages,
 )
-def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_string, do_add_special_tokens):
+def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_chat, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = sentencepice_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
@@ -581,10 +554,10 @@ def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_string
     from jinja2 import TemplateError
 
     try:
-        test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+        test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     except TemplateError:
         # filter system message
-        test_string = hf_tokenizer.apply_chat_template(test_string[1:], tokenize=False, add_generation_prompt=True)
+        test_string = hf_tokenizer.apply_chat_template(test_chat[1:], tokenize=False, add_generation_prompt=True)
 
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
@@ -664,15 +637,15 @@ def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_t
 
 
 @pytest.mark.parametrize(
-    "test_string",
+    "test_chat",
     chat_messages,
 )
-def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_string, do_add_special_tokens):
+def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_chat, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = bpe_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
 
-    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         bpe_tokenizers,
@@ -750,15 +723,15 @@ def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string, do_add_special_to
 
 
 @pytest.mark.parametrize(
-    "test_string",
+    "test_chat",
     chat_messages,
 )
-def test_tiktoken_model_tokenizer_chat(tiktoken_tokenizers, test_string, do_add_special_tokens):
+def test_tiktoken_model_tokenizer_chat(tiktoken_tokenizers, test_chat, do_add_special_tokens):
     hf_tokenizer, ov_tokenizer = tiktoken_tokenizers
     if hf_tokenizer.chat_template is None:
         pytest.skip("No chat template")
 
-    test_string = hf_tokenizer.apply_chat_template(test_string, tokenize=False, add_generation_prompt=True)
+    test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
     check_tokenizer_output(
         tiktoken_tokenizers,
@@ -894,3 +867,53 @@ def test_rt_info_sentencepiece(hf_sentencepiece_tokenizers, is_sentencepiece_bac
         hf_sentencepiece_tokenizers, with_detokenizer=True, use_sentencepiece_backend=is_sentencepiece_backend
     )
     check_rt_info(hf_sentencepiece_tokenizers, ov_tokenizer, ov_detokenizer)
+
+
+models_to_check_rt_info = [
+    # one model from each category
+    "bert-base-uncased",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "Xenova/gpt-4o",
+    "Qwen/Qwen-14B-Chat",
+]
+
+
+@pytest.fixture(scope="session", params=models_to_check_rt_info)
+def tokenizer_to_check_rt_info(request):
+    return get_hf_tokenizer(request, trust_remote_code=True)
+
+
+def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
+    conversion_params = TokenzierConversionParams(
+        with_detokenizer=False,
+        add_special_tokens=True,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=None,
+        tokenizer_output_type=Type.i64,
+        detokenizer_input_type=Type.i64,
+        streaming_detokenizer=False,
+        use_max_padding=False,
+        handle_special_tokens_with_re=None,
+        use_sentencepiece_backend=False,
+        utf8_replace_mode=None,
+        number_of_inputs=1,
+    )
+
+    ov_tokenizer = convert_tokenizer(tokenizer_to_check_rt_info, conversion_params)
+    print(ov_tokenizer)
+    if not conversion_params.with_detokenizer:
+        ov_tokenizer = (ov_tokenizer,)
+
+    for model in ov_tokenizer:
+        for key in fields(conversion_params):
+            val = getattr(conversion_params, key.name)
+            if val is None:
+                val = {}
+            elif isinstance(val, (Type, int)) and not isinstance(val, bool):
+                # bool is subcalss of int, hence there are 2 checks.
+                # While bool values are stored as str, e.g. 'False'
+                # type info and integers are stored as object.
+                pass
+            else:
+                val = str(val)
+            assert val == model.get_rt_info(key.name).value

@@ -4,6 +4,7 @@
 
 import logging
 import re
+from dataclasses import dataclass, fields
 from functools import lru_cache
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
@@ -16,8 +17,63 @@ from .constants import (
     ORIGINAL_TOKENIZER_CLASS_NAME,
     SPACE_SYMBOLS,
     TOKEN_IDS_OUTPUT_NAME,
+    UTF8ReplaceMode,
     rt_info_to_hf_attribute_map,
 )
+
+
+@dataclass
+class TokenzierConversionParams:
+    """
+    with_detokenizer : bool
+        Whether to include a detokenizer in the conversion process. Default is False.
+
+    add_special_tokens : bool
+        Whether to add special tokens during tokenization. Default is True.
+
+    skip_special_tokens : bool
+        Whether to skip special tokens during detokenization. Default is True.
+
+    clean_up_tokenization_spaces : Optional[bool]
+        If True, extra spaces will be cleaned up during the tokenization process. Default is None.
+
+    tokenizer_output_type : Type
+        The output type for the tokenizer model. Default is `Type.i64`.
+
+    detokenizer_input_type : Type
+        The input type for the detokenizer model. Default is `Type.i64`.
+
+    streaming_detokenizer : bool
+        If True, enables streaming mode for the detokenizer. Default is False.
+
+    use_max_padding : bool
+        If True, enables maximum padding for the tokenizer. Default is False.
+
+    handle_special_tokens_with_re : Optional[bool]
+        If True, uses regular expressions to handle special tokens during tokenization. Default is None.
+
+    use_sentencepiece_backend : bool
+        If True, forces the use of the SentencePiece backend during tokenization. Default is False.
+
+    utf8_replace_mode : Optional[UTF8ReplaceMode]
+        Specifies the UTF-8 replacement mode during tokenization.
+        Allowed values are UTF8ReplaceMode.IGNORE and UTF8ReplaceMode.REPLACE. Default is None.
+    """
+
+    with_detokenizer: bool = False
+    add_special_tokens: bool = True
+    skip_special_tokens: bool = True
+    clean_up_tokenization_spaces: Optional[bool] = None
+    tokenizer_output_type: Type = Type.i64
+    detokenizer_input_type: Type = Type.i64
+    streaming_detokenizer: bool = False
+    use_max_padding: bool = False
+    handle_special_tokens_with_re: Optional[bool] = None
+    use_sentencepiece_backend: bool = False
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = None
+    add_attention_mask: bool = True
+    add_prefix_space: Optional[bool] = None
+    number_of_inputs: int = 1
 
 
 logger = logging.getLogger(__name__)
@@ -168,11 +224,48 @@ def get_hf_tokenizer_attribute(
     return next((value for attr in attributes if (value := getattr(hf_tokenizer, attr, None)) is not None), None)
 
 
-def update_rt_info(
+def get_package_version(name: str) -> str:
+    import importlib.metadata as metadata
+
+    try:
+        return metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return None
+
+
+def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
+    """Adds package versions used for conversion to rt_info
+
+    :param ov_tokenizer: Thes OpenVINO tokenizer model to update.
+    :type ov_tokenizer: openvino.Model
+    """
+    packages = ["openvino_tokenizers", "transformers", "tiktoken", "sentencepiece", "openvino", "tokenizers"]
+    for name in packages:
+        version = get_package_version(name)
+        if version is not None:
+            ov_tokenizer.set_rt_info(version, f"{name}_version")
+
+
+def update_rt_info_with_params(
     ov_tokenizer: Model,
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+    params: TokenzierConversionParams,
 ) -> None:
+    """Updates the runtime information of the OpenVINO tokenizer model with the parameters and attributes of the HF.
+
+    :param ov_tokenizer: The OpenVINO tokenizer model to update.
+    :type ov_tokenizer: openvino.Model
+    :param hf_tokenizer: The Huggingface tokenizer object.
+    :type hf_tokenizer: transformers.tokenization_utils_fast.PreTrainedTokenizerBase
+    :param params: The conversion parameters.
+    :type params: TokenzierConversionParams
+    """
     ov_tokenizer.set_rt_info(str(type(hf_tokenizer)), ORIGINAL_TOKENIZER_CLASS_NAME)
+
+    for key in fields(params):
+        v = getattr(params, key.name)
+        v = str(v) if isinstance(v, bool) else v
+        ov_tokenizer.set_rt_info(v, key.name)
 
     for rt_field_name, hf_attributes in rt_info_to_hf_attribute_map.items():
         attribute = get_hf_tokenizer_attribute(hf_tokenizer, hf_attributes)

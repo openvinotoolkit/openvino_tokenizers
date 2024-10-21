@@ -274,23 +274,23 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     PCRE2_SIZE subject_length = orig_str.size();
     
     // Check if the string matches the pattern
-    int match_result = pcre2_match(
+    int num_matches = pcre2_match(
         m_compiled,
         (PCRE2_SPTR) orig_str.c_str(), subject_length,
         0,
-        0,
+        PCRE2_NO_UTF_CHECK,
         match_data,
         NULL
     );
-    if (match_result < 0 || match_result == PCRE2_ERROR_NOMATCH) {
+    if (num_matches < 0 || num_matches == PCRE2_ERROR_NOMATCH) {
         pcre2_match_data_free(match_data);
         return orig_str;
     }
     
-    // Usually found pattern is replaced by shorter string, but set 3 times more space for safety.
-    // Allocate dynamically since lenght depends dynamically on the lenght of input string.
+    // Allocate dynamically since lenght depends dynamically on the lenght of input and replace strings.
     // Allocated memory will be freed at the exit from function.
-    auto buffer = (PCRE2_UCHAR*) std::malloc(sizeof(PCRE2_UCHAR) * subject_length * 3);
+    size_t buffer_length = sizeof(PCRE2_UCHAR) * 4 * (subject_length + num_matches * replace_pattern.size());
+    PCRE2_UCHAR* buffer = (PCRE2_UCHAR*) std::malloc(buffer_length);
     if (buffer == nullptr) {
         std::cerr << "Memory allocation failed" << std::endl;
         pcre2_match_data_free(match_data);
@@ -301,12 +301,12 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         m_compiled,
         (PCRE2_SPTR) orig_str.c_str(), orig_str.size(),
         0,
-        global_replace ? PCRE2_SUBSTITUTE_GLOBAL : 0,
+        (global_replace ? PCRE2_SUBSTITUTE_GLOBAL : 0) | PCRE2_NO_UTF_CHECK,
         match_data,
         NULL,
         (PCRE2_SPTR) replace_pattern.data(), replace_pattern.size(),
         buffer,
-        &subject_length
+        &buffer_length
     );
 
     if (rc < 0) {
@@ -319,7 +319,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         std::free(buffer);
         return orig_str;
     }
-    auto res = std::string(reinterpret_cast<char*>(buffer), subject_length);
+    auto res = std::string(reinterpret_cast<char*>(buffer), buffer_length);
     std::free(buffer);
     pcre2_match_data_free(match_data); 
     return res;
