@@ -179,9 +179,15 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 struct CompareRank {
-    bool operator()(const std::tuple<int32_t, int32_t, TokenNode, TokenNode>& lhs,
-                    const std::tuple<int32_t, int32_t, TokenNode, TokenNode>& rhs) const {
-        return std::get<0>(lhs) > std::get<0>(rhs);  // Compare based on the position in merges.
+    bool operator()(const std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t>& lhs,
+                    const std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t >& rhs) const {
+        // Compare beased on positions in merges, but if they match take into account position in the sequence.
+        if (std::get<0>(lhs) != std::get<0>(rhs)) {
+            return std::get<0>(lhs) > std::get<0>(rhs);
+        } else {
+            // If positions in merges match prefer pairs which are closer to the beginning of the sequence.
+            return std::get<4>(lhs) > std::get<4>(rhs);
+        }
     }
 };
 
@@ -216,7 +222,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
 
     // Prepare priority queue to store pairs with their ranks
     // (position in merges, rank, iterator to first, iterator to second)
-    using QueueEntry = std::tuple<int32_t, int32_t, TokenNode, TokenNode>; 
+    using QueueEntry = std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t>; 
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
 
     // Fill the priority queue with initial pairs from TokensList
@@ -224,22 +230,22 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     OPENVINO_ASSERT(curr_node != nullptr);
     TokenNode next_node = curr_node->next;
     
+    int32_t i = 0;
     while (next_node) {
         auto pair = std::make_pair(curr_node->data, next_node->data);
         if (m_merges.count(pair)) {
             auto [idx, rank] = m_merges.at(pair);
-            pq.emplace(idx, rank, curr_node, next_node);
+            pq.emplace(idx, rank, curr_node, next_node, i);
         }
         curr_node = next_node;
         next_node = curr_node->next;
+        i++;
     }
 
+    // Stored pairs which become invalid after merging neighbors.
     std::unordered_set<std::pair<TokenNode, TokenNode>, NodePairHash, NodePairEqual> invalid_pairs;
-
-
-    // Now process the priority queue to merge pairs
     while (!pq.empty() && res.size() >= 2) {
-        auto [idx, rank, first_it, second_it] = pq.top();
+        auto [idx, rank, first_it, second_it, position] = pq.top();
         pq.pop();
 
         // Check that pair is still valid, if not, then continue.
@@ -264,7 +270,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
             
             if (m_merges.count(prev_pair)) {
                 auto [idx, rank] = m_merges.at(prev_pair);
-                pq.emplace(idx, rank, first_it->prev, new_node);
+                pq.emplace(idx, rank, first_it->prev, new_node, i);
             }
         }
 
@@ -273,11 +279,16 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
             
             if (m_merges.count(next_pair)) {
                 auto [idx, rank] = m_merges.at(next_pair);
-                pq.emplace(idx, rank, new_node, second_it->next);
+                pq.emplace(idx, rank, new_node, second_it->next, i);
             }
         }
+        i++;
     }
 
+    auto last_pair = std::make_pair(256, 260);
+    if (m_merges.count(last_pair)) {
+        auto last_found_rank = m_merges.at(last_pair).second;
+    }
     std::vector<int32_t> res_vec;
     res_vec.reserve(res.size());
     TokenNode node = res.head;
