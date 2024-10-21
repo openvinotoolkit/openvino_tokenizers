@@ -181,13 +181,9 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 struct CompareRank {
     bool operator()(const std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t>& lhs,
                     const std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t >& rhs) const {
-        // Compare beased on positions in merges, but if they match take into account position in the sequence.
-        if (std::get<0>(lhs) != std::get<0>(rhs)) {
-            return std::get<0>(lhs) > std::get<0>(rhs);
-        } else {
-            // If positions in merges match prefer pairs which are closer to the beginning of the sequence.
-            return std::get<4>(lhs) > std::get<4>(rhs);
-        }
+        // Compare beased on positions in merges, but if positions in merges match 
+        // prefer pairs which are closer to the beginning of the sequence.
+        return (std::get<0>(lhs) != std::get<0>(rhs)) ? std::get<0>(lhs) > std::get<0>(rhs) : std::get<4>(lhs) > std::get<4>(rhs);
     }
 };
 
@@ -220,9 +216,9 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     }
     size_t initial_num_tokens = res.size();
 
-    // Prepare priority queue to store pairs with their ranks
-    // (position in merges, rank, iterator to first, iterator to second)
-    using QueueEntry = std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t>; 
+    // Prepare priority queue to store pairs with their ranks.
+    // (position in merges, rank, iterator to first, iterator to second, replacement sequence number).
+    using QueueEntry = std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t>;
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
 
     // Fill the priority queue with initial pairs from TokensList
@@ -230,6 +226,8 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     OPENVINO_ASSERT(curr_node != nullptr);
     TokenNode next_node = curr_node->next;
     
+    // replacement sequence number, is used in CompareRank.
+    // When merges have the same position prefer replaces which occured earlier.
     int32_t i = 0;
     while (next_node) {
         auto pair = std::make_pair(curr_node->data, next_node->data);
