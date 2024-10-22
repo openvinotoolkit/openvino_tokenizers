@@ -1,3 +1,4 @@
 {
-    "tests/tokenizers_test.py::test_": 0.9247631283121889
+    "tests/tokenizers_test.py::test_": 0.9247631283121889,
+    "tests/tokenizers_test.py::test_hf_wordpiece_tokenizers": 0.9837837837837837
 }

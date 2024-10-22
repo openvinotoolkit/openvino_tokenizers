@@ -65,11 +65,12 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
             m_trie_subwords = std::make_unique<Trie>();
             for(size_t id = 0; id < vocab_size; ++id) {
                 auto word = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
-                const auto word_chars_vect = std::vector<unsigned char>(word.begin(), word.end());
                 
                 if (word.substr(0, m_suffix_indicator.size()) == m_suffix_indicator) {
+                    const auto word_chars_vect = std::vector<unsigned char>(word.begin() + m_suffix_indicator.size(), word.end());
                     m_trie_subwords->add(word_chars_vect, int32_t(id));
                 } else {
+                    const auto word_chars_vect = std::vector<unsigned char>(word.begin(), word.end());
                     m_trie_root->add(word_chars_vect, int32_t(id));
                 }
             }
@@ -102,12 +103,9 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
 
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             
-            auto text_orig = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            auto text = text_orig;
-
-            auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
+            auto text_view = std::string_view(reinterpret_cast<const char*>(chars + begins[ragged_col]), ends[ragged_col] - begins[ragged_col]);
             int idx = 0;
-            auto token_id = m_trie_root->find_longest(text_vec, idx);
+            auto token_id = m_trie_root->find_longest(text_view, idx);
             int32_t beginning_offset = ragged_offset;
             if (token_id == -1) {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
@@ -116,11 +114,10 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                 new_elems[ragged_offset++] = token_id;
                 
-                for(; idx < text_vec.size();) {
-                    text = m_suffix_indicator + text.substr(idx);
-                    text_vec = std::vector<unsigned char>(text.begin(), text.end());
+                for(; idx < text_view.size();) {
+                    text_view = std::string_view(text_view.data() + idx, text_view.size() - idx);
                     idx = 0;
-                    token_id = m_trie_subwords->find_longest(text_vec, idx);
+                    token_id = m_trie_subwords->find_longest(text_view, idx);
                     if (token_id == -1) {
                         OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                         new_elems[beginning_offset] = m_unk_token_id;
@@ -130,7 +127,6 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
                     OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                     new_elems[ragged_offset++] = token_id;
                 }
-
             }
         }
         new_ends[seq] = ragged_offset;
