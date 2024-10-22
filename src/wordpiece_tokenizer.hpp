@@ -4,23 +4,16 @@
 
 #pragma once
 
-#ifdef ENABLE_FAST_TOKENIZERS
-
 #ifdef _MSC_VER
 #    pragma warning(disable : 4251)
 #    pragma warning(disable : 4275)
 #endif
 
 #include <openvino/op/op.hpp>
-#include "fast_tokenizer/models/models.h"
 #include "utils.hpp"
 
 using Vocab = std::unordered_map<std::string, unsigned int>;
 using Tokens = std::vector<int32_t>;
-
-using namespace paddlenlp::fast_tokenizer;
-
-#undef tokenizer
 
 class WordpieceTokenizer : public ov::op::Op {
 public:
@@ -34,14 +27,15 @@ public:
     );
     WordpieceTokenizer(
         const ov::OutputVector& arguments,
-        const std::shared_ptr<models::FastWordPiece>& tokenizer,
+        const std::shared_ptr<Trie>& trie_root,
+        const std::shared_ptr<Trie>& trie_subwords,
         const std::string& suffix_indicator = "##",
         int max_bytes_per_word = 100
     );
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<WordpieceTokenizer>(inputs, m_tokenizer, m_suffix_indicator, m_max_bytes_per_word);
+        return std::make_shared<WordpieceTokenizer>(inputs, m_suffix_indicator, m_max_bytes_per_word);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -57,12 +51,12 @@ public:
     }
 
 private:
-    mutable std::shared_ptr<models::FastWordPiece> m_tokenizer;
+    // mutable std::shared_ptr<models::FastWordPiece> m_tokenizer;
     mutable std::shared_ptr<Trie> m_trie_root;
     mutable std::shared_ptr<Trie> m_trie_subwords;
     std::string m_suffix_indicator = "##";
     int m_max_bytes_per_word = 100;   // TODO: Can it be done outside the op as preprocessing of the input?
     mutable int m_unk_token_id;
-};
 
-#endif // ENABLE_FAST_TOKENIZERS
+    mutable std::mutex m_trie_mutex;
+};
