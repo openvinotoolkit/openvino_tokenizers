@@ -51,7 +51,6 @@ public:
     }
 
 private:
-    // mutable std::shared_ptr<models::FastWordPiece> m_tokenizer;
     mutable std::shared_ptr<Trie> m_trie_root;
     mutable std::shared_ptr<Trie> m_trie_subwords;
     std::string m_suffix_indicator = "##";

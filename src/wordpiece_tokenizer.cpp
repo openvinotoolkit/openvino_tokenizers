@@ -47,7 +47,7 @@ void WordpieceTokenizer::validate_and_infer_types() {
 
 
 bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    // Read/Write access to common trie structures should be protected to prevent race conditions.
+    // Read/Write to common trie structures should be protected to prevent race conditions.
     {
         std::lock_guard<std::mutex> lock(m_trie_mutex);
         if (!m_trie_root || !m_trie_subwords) {
