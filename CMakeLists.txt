@@ -94,5 +94,3 @@ install(FILES "${openvino_tokenizers_BINARY_DIR}/python/__version__.py"
         DESTINATION "openvino_tokenizers"
         COMPONENT openvino_tokenizers_python
         EXCLUDE_FROM_ALL)
-
-add_subdirectory(sample)
