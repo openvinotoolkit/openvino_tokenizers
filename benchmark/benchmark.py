@@ -2,14 +2,16 @@ import argparse
 import json
 import random
 from itertools import chain, islice
+from pathlib import Path
 from random import sample, shuffle
 from time import perf_counter
-from typing import Any, Dict, List, Optional, Tuple, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
+import openvino as ov
 import pandas as pd
 import seaborn as sns
-from openvino import AsyncInferQueue, CompiledModel, InferRequest, compile_model
+from openvino import AsyncInferQueue, CompiledModel, InferRequest
 from openvino.runtime import ProfilingInfo, properties
 from openvino_tokenizers import convert_tokenizer
 from tqdm.auto import tqdm
@@ -48,6 +50,7 @@ def benchmark_tokenizer_async(
         end = perf_counter()
         times, start, idx = user_data
         times[idx] = end - start
+        # times[idx] = ir.latency * 1e-3
 
     iterations = len(dataset) * 2 // batch
     async_queue = AsyncInferQueue(ov_tokenizer)
@@ -90,7 +93,7 @@ def benchmark_tokenizers(
     results = []
 
     # warmup
-    for repeat in range(1, 11):
+    for repeat in range(1, 2):
         ov_tokenizer(["test " * repeat])
         hf_tokenizer(["test " * repeat])
 
@@ -196,6 +199,7 @@ def main(
     dump_latency: bool = False,
     per_layer_stats: bool = False,
     tput: bool = False,
+    converted_tokenizer: Optional[str] = None,
 ) -> None:
     hf_tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=trust)
 
@@ -204,8 +208,14 @@ def main(
     if per_layer_stats:
         config[properties.enable_profiling()] = True
 
+    core = ov.Core()
+    if converted_tokenizer:
+        tokenizer_model = core.read_model(Path(converted_tokenizer) / "openvino_tokenizer.xml")
+    else:
+        tokenizer_model = convert_tokenizer(hf_tokenizer)
+
     start_compile = perf_counter()
-    ov_tokenizer = compile_model(convert_tokenizer(hf_tokenizer), "CPU", config)
+    ov_tokenizer = core.compile_model(tokenizer_model, "CPU", config)
     end_compile = perf_counter()
     print(f"Time to compile tokenizer model: {end_compile - start_compile}s")
 
@@ -243,6 +253,9 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument("-d", "--dataset", type=str, default=None, help="Path to the dataset.")
+    parser.add_argument(
+        "--converted_tokenizer", "--converted-tokenizer", type=str, default=None, help="Path to converted tokenizer."
+    )
     parser.add_argument(
         "-n",
         "--num_pairs",
@@ -309,4 +322,5 @@ if __name__ == "__main__":
         dump_latency=args.dump_latency_stats,
         per_layer_stats=args.print_per_layer_stats,
         tput=args.tput,
+        converted_tokenizer=args.converted_tokenizer,
     )
