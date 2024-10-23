@@ -35,7 +35,7 @@ public:
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<WordpieceTokenizer>(inputs, m_suffix_indicator, m_max_bytes_per_word);
+        return std::make_shared<WordpieceTokenizer>(inputs, m_trie_root, m_trie_subwords, m_suffix_indicator, m_max_bytes_per_word);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -55,7 +55,5 @@ private:
     mutable std::shared_ptr<Trie> m_trie_subwords;
     std::string m_suffix_indicator = "##";
     int m_max_bytes_per_word = 100;   // TODO: Can it be done outside the op as preprocessing of the input?
-    mutable int m_unk_token_id;
-
-    mutable std::mutex m_trie_mutex;
+    mutable std::mutex m_mutex;
 };

@@ -47,19 +47,14 @@ void WordpieceTokenizer::validate_and_infer_types() {
 
 
 bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    // Read/Write to common trie structures should be protected to prevent race conditions.
+    // Write to common trie structures should be protected to prevent race conditions.
     {
-        std::lock_guard<std::mutex> lock(m_trie_mutex);
+        std::lock_guard<std::mutex> lock(m_mutex);
         if (!m_trie_root || !m_trie_subwords) {
             auto vocab_begins = inputs[5].data<const int32_t>();
             auto vocab_ends   = inputs[6].data<const int32_t>();
             auto vocab_chars  = inputs[7].data<const uint8_t>();
             auto vocab_size   = inputs[6].get_size();
-
-            auto unk_token_id = *inputs[8].data<const int32_t>();
-            if(unk_token_id < 0)
-                unk_token_id += vocab_size;
-            m_unk_token_id = unk_token_id;
 
             m_trie_root = std::make_unique<Trie>();
             m_trie_subwords = std::make_unique<Trie>();
@@ -76,7 +71,7 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
             }
         }
     }
-
+    const auto unk_token_id = *inputs[8].data<const int32_t>();
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();
@@ -102,25 +97,27 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         new_begins[seq] = ragged_offset;
 
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
-            
+            if (ends[ragged_col] - begins[ragged_col] > m_max_bytes_per_word) {
+                new_elems[ragged_offset++] = unk_token_id;
+                continue;
+            }
+
             auto text_view = std::string_view(reinterpret_cast<const char*>(chars + begins[ragged_col]), ends[ragged_col] - begins[ragged_col]);
             int idx = 0;
             auto token_id = m_trie_root->find_longest(text_view, idx);
             int32_t beginning_offset = ragged_offset;
             if (token_id == -1) {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                new_elems[ragged_offset++] = m_unk_token_id;
+                new_elems[ragged_offset++] = unk_token_id;
             } else {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                 new_elems[ragged_offset++] = token_id;
                 
-                for(; idx < text_view.size();) {
-                    text_view = std::string_view(text_view.data() + idx, text_view.size() - idx);
-                    idx = 0;
+                while (idx < text_view.size()) {
                     token_id = m_trie_subwords->find_longest(text_view, idx);
                     if (token_id == -1) {
                         OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                        new_elems[beginning_offset] = m_unk_token_id;
+                        new_elems[beginning_offset] = unk_token_id;
                         ragged_offset = beginning_offset + 1;
                         break;
                     }
