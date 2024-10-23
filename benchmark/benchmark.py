@@ -26,7 +26,7 @@ def sample_texts(
         dataset = json.load(f)
     # Filter out the conversations with less than 2 turns.
     dataset = [data for data in dataset if len(data["conversations"]) >= 2]
-    # Only keep the first two turns of each conversation.
+    # Keep the first two turns of each conversation
     dataset = [
         (data["conversations"][0]["value"], data["conversations"][1]["value"]) for data in sample(dataset, k=num_texts)
     ]
@@ -50,7 +50,6 @@ def benchmark_tokenizer_async(
         end = perf_counter()
         times, start, idx = user_data
         times[idx] = end - start
-        # times[idx] = ir.latency * 1e-3
 
     iterations = len(dataset) * 2 // batch
     async_queue = AsyncInferQueue(ov_tokenizer)
