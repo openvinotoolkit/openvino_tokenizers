@@ -187,6 +187,8 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     bool * new_skips;
     if (has_skips) {
         new_skips = outputs[5].data<bool>();
+    } else {
+        new_skips = new bool[num_chars];
     };
     int32_t ragged_offset = 0;
 
@@ -281,6 +283,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     };
     if (init_skips) {
         delete[] skips;
+        delete[] new_skips;
     };
     return true;
 }

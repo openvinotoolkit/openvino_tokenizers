@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 from pathlib import Path
 from typing import Union
@@ -9,13 +10,24 @@ from openvino import Model, PartialShape, Type
 from openvino.runtime import op
 from openvino_tokenizers import _get_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
-from openvino_tokenizers.tokenizer_pipeline import CharsmapStep, DecodingStep, NormalizationStep, UTF8ValidateStep
+from openvino_tokenizers.tokenizer_pipeline import (
+    CharsmapStep,
+    DecodingStep,
+    NormalizationStep,
+    PreTokenizatinStep,
+    RegexSplitStep,
+    TokenizerPipeline,
+    UTF8ValidateStep,
+)
 
 from tests.utils import get_hf_tokenizer
 
 
 core = ov.Core()
 
+############################################
+########## Test Normalizer Step ############
+############################################
 
 utf8_validate_strings = [
     # Valid sequences.
@@ -111,3 +123,56 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
     res_ov = compiled_model([test_string])[0][0]
     res_hf = hf_charsmap_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
     assert res_ov == res_hf
+
+
+############################################
+######## Test PreTokenizatin Step ##########
+############################################
+
+
+def create_splitting_model(layer: PreTokenizatinStep) -> ov.CompiledModel:
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    input_node.set_friendly_name("string_input")
+
+    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = TokenizerPipeline.add_ragged_dimension(output)
+    output = layer.get_ov_subgraph(output)
+    output = _get_factory().create("StringTensorPack", output[2:5]).outputs()
+    splitter = Model(output, [input_node], "splitter")
+
+    return core.compile_model(splitter)
+
+
+clip_regex_pattern = (
+    r"<\\|startoftext\\|>|<\\|endoftext\\|>|'s|'t|'re|'ve|'m|'ll|'d|[\\p{L}]+|[\\p{N}]|[^\\s\\p{L}\\p{N}]+"
+)
+re_clip_splitter = re.compile(clip_regex_pattern)
+clip_splitter = RegexSplitStep(clip_regex_pattern, invert=True)
+
+text2image_prompts = [
+    "Cinematic, a vibrant Mid-century modern dining area, colorful chairs and a sideboard, ultra realistic, many detail",
+    "colibri flying near a flower, side view, forest background, natural light, photorealistic, 4k",
+    "Illustration of an astronaut sitting in outer space, moon behind him",
+    "A vintage illustration of a retro computer, vaporwave aesthetic, light pink and light blue",
+    "A view from beautiful alien planet, very beautiful, surealism, retro astronaut on the first plane, 8k photo",
+    "red car in snowy forest, epic vista, beautiful landscape, 4k, 8k",
+    "A raccoon trapped inside a glass jar full of colorful candies, the background is steamy with vivid colors",
+    "cute cat 4k, high-res, masterpiece, best quality, soft lighting, dynamic angle",
+    "A cat holding a sign that says hello OpenVINO",
+    "A small cactus with a happy face in the Sahara desert.",
+]
+
+
+@pytest.mark.parametrize(
+    "test_string, expected, layer",
+    [
+        ("Hello world!", ("Hello", "world", "!"), RegexSplitStep.whitespace_splitter()),
+        ("Hello     world!", ("Hello", "world!"), RegexSplitStep.bert_whitespace_splitter()),
+        ("", ("",), RegexSplitStep.whitespace_splitter()),
+        *[(prompt, tuple(re_clip_splitter.findall(prompt)), clip_splitter) for prompt in text2image_prompts],
+    ],
+)
+def test_regex_split(test_string, expected, layer):
+    compiled_model = create_splitting_model(layer)
+    res_ov = compiled_model([test_string])[0]
+    assert (res_ov == expected).all()
