@@ -26,6 +26,7 @@ jobs:
       status: ${{ steps.openvino_download.outcome }}
       ov_wheel_source: ${{ steps.openvino_download.outputs.ov_wheel_source }}
       ov_version: ${{ steps.openvino_download.outputs.ov_version }}
+      docker_tag: ${{ steps.get_docker_tag.outputs.docker_tag }}
     timeout-minutes: 10
     defaults:
       run:
@@ -43,6 +44,22 @@ jobs:
         commit_packages_to_provide: 'wheels'
         revision: 'latest_available_commit'
 
+    - name: Clone docker tag from OpenVINO repo
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        repository: 'openvinotoolkit/openvino'
+        path: 'openvino'
+        ref: ${{ env.OV_BRANCH }}
+        sparse-checkout: |
+          .github/dockerfiles/docker_tag
+
+    - name: Save docker tag to output
+      id: get_docker_tag
+      run: |
+        docker_tag=$(cat openvino/.github/dockerfiles/docker_tag)
+        echo "docker_tag=$docker_tag" >> $GITHUB_OUTPUT
+
+
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
     strategy:
@@ -57,15 +74,19 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-22.04
-
+    runs-on: aks-linux-8-cores-16gb
+    container:
+      image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
+      volumes:
+        - /mount:/mount
     env:
       CMAKE_GENERATOR: 'Ninja'
-      OPENVINO_REPO: ${{ github.workspace }}/openvino
-      INSTALL_DIR: ${{ github.workspace }}/openvino/install
-      OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
-      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
-      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+      GITHUB_WORKSPACE: /__w/openvino_tokenizers/openvino_tokenizers
+      OPENVINO_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino
+      INSTALL_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino/install
+      OV_TOKENIZERS_INSTALL_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers/install
+      OPENVINO_TOKENIZERS_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers
+      BUILD_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers/build
 
     steps:
       - name: Clone Openvino tokenizers
@@ -73,28 +94,12 @@ jobs:
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
-      - name: Clone Openvino
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: 'openvinotoolkit/openvino'
-          path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
-          sparse-checkout: |
-            install_build_dependencies.sh
-
       - name: Download OpenVINO package
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
-
-      #
-      # Dependencies
-      #
-
-      - name: Install build dependencies
-        run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
 
       #
       # Build
@@ -148,13 +153,17 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-22.04
-
+    runs-on: aks-linux-4-cores-16gb
+    container:
+      image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
+      volumes:
+        - /mount:/mount
     env:
-      OPENVINO_REPO: ${{ github.workspace }}/openvino
-      INSTALL_DIR: ${{ github.workspace }}/openvino/install
-      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
-      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+      GITHUB_WORKSPACE: /__w/openvino_tokenizers/openvino_tokenizers
+      OPENVINO_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino
+      INSTALL_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino/install
+      OPENVINO_TOKENIZERS_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers
+      BUILD_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers/build
 
     steps:
       - name: Clone Openvino tokenizers
@@ -162,34 +171,12 @@ jobs:
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
-      - name: Clone Openvino
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          repository: 'openvinotoolkit/openvino'
-          path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
-          sparse-checkout: |
-            install_build_dependencies.sh
-
-      - name: Setup Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # v5.2.0
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
       - name: Download OpenVINO package
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
-
-      #
-      # Dependencies
-      #
-
-      - name: Install build dependencies
-        run: sudo ${{ env.OPENVINO_REPO }}/install_build_dependencies.sh
 
       #
       # Build
