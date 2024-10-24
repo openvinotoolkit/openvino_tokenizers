@@ -21,23 +21,28 @@ void TrieTokenizer::validate_and_infer_types() {
 
 
 bool TrieTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    if (m_trie == nullptr) {
-        m_trie = std::make_shared<Trie>();
+    // Write to common trie structures should be protected to prevent race conditions.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_trie == nullptr) {
+            m_trie = std::make_shared<Trie>();
 
-        auto vocab_begins = inputs[5].data<const int32_t>();
-        auto vocab_ends   = inputs[6].data<const int32_t>();
-        auto vocab_chars  = inputs[7].data<const uint8_t>();
-        auto vocab_size   = inputs[5].get_size();
+            auto vocab_begins = inputs[5].data<const int32_t>();
+            auto vocab_ends   = inputs[6].data<const int32_t>();
+            auto vocab_chars  = inputs[7].data<const uint8_t>();
+            auto vocab_size   = inputs[5].get_size();
 
-        auto indices = inputs[8].data<const int32_t>();
+            auto indices = inputs[8].data<const int32_t>();
 
-        OPENVINO_ASSERT(inputs[5].get_size() == inputs[8].get_size(), "Vocab size must be equal to Indices size");
+            OPENVINO_ASSERT(inputs[5].get_size() == inputs[8].get_size(), "Vocab size must be equal to Indices size");
 
-        for(size_t idx = 0; idx < vocab_size; ++idx) {
-            const auto token = std::vector<unsigned char>(vocab_chars + vocab_begins[idx], vocab_chars + vocab_ends[idx]);
-            m_trie->add(token, indices[idx]);
+            for(size_t idx = 0; idx < vocab_size; ++idx) {
+                const auto token = std::vector<unsigned char>(vocab_chars + vocab_begins[idx], vocab_chars + vocab_ends[idx]);
+                m_trie->add(token, indices[idx]);
+            }
         }
     }
+    
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();

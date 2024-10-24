@@ -55,4 +55,5 @@ private:
     mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
     mutable std::string m_replace_pattern;
     bool m_global_replace = true;
+    mutable std::mutex m_mutex;
 };

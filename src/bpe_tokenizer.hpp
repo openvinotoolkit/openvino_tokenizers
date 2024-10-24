@@ -209,4 +209,5 @@ private:
     std::string m_end_suffix;
     bool m_byte_fallback = false;
     size_t m_cache_capacity = 20000;
+    mutable std::mutex m_mutex;
 };

@@ -166,43 +166,48 @@ bool SentencepieceTokenizer::visit_attributes(AttributeVisitor& visitor) {
 
 bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector& inputs) const {
     auto input_size = get_input_size();
-    if (m_sp == nullptr) {
-        m_sp = std::make_shared<SentencePieceProcessor>();
-        init_sp_model_in_eval(inputs, m_sp);
-        auto do_reverse = (m_reverse && input_size < 5);  // do not reverse if special_tokens_re is used
-        CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, do_reverse)));
-    };
-    if (input_size > 5 && m_special_tokens_re == nullptr) {
-        auto special_tokens_begins = inputs[input_size - 4].data<const int32_t>();
-        auto special_tokens_ends   = inputs[input_size - 3].data<const int32_t>();
-        auto special_tokens_chars  = inputs[input_size - 2].data<const uint8_t>();
-        auto special_tokens_ids = inputs[input_size - 1].data<const int32_t>();
+    // Write to common trie structures should be protected to prevent race conditions.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);    
+        if (m_sp == nullptr) {
+            m_sp = std::make_shared<SentencePieceProcessor>();
+            init_sp_model_in_eval(inputs, m_sp);
+            auto do_reverse = (m_reverse && input_size < 5);  // do not reverse if special_tokens_re is used
+            CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, do_reverse)));
+        }
 
-        std::string special_tokens;
-        m_special_tokens_map = std::make_shared<absl::flat_hash_map<std::string, int32_t>>();
-        for (size_t i = 0; i < inputs[input_size - 4].get_size(); ++i) {
-            const std::string token = std::string(
-                special_tokens_chars + special_tokens_begins[i],
-                special_tokens_chars + special_tokens_ends[i]
-            );
-            if (!special_tokens.empty()) {
-                special_tokens += "|";
-            };
+        if (input_size > 5 && m_special_tokens_re == nullptr) {
+            auto special_tokens_begins = inputs[input_size - 4].data<const int32_t>();
+            auto special_tokens_ends   = inputs[input_size - 3].data<const int32_t>();
+            auto special_tokens_chars  = inputs[input_size - 2].data<const uint8_t>();
+            auto special_tokens_ids = inputs[input_size - 1].data<const int32_t>();
 
-            if (std::all_of(token.begin(), token.end(), [](char c) { return std::isalpha(c); })) {
-                // have to check if special token is not a part of some word
-                // chatglm2/3 has "sop" and "eop" special tokens that will split words like "people" otherwise
-                special_tokens += ("\\b" + re2::RE2::QuoteMeta(token));
-                special_tokens += "|";
-                special_tokens += (re2::RE2::QuoteMeta(token) + "\\b");
-            } else {
-                special_tokens += re2::RE2::QuoteMeta(token);
-            };
+            std::string special_tokens;
+            m_special_tokens_map = std::make_shared<absl::flat_hash_map<std::string, int32_t>>();
+            for (size_t i = 0; i < inputs[input_size - 4].get_size(); ++i) {
+                const std::string token = std::string(
+                    special_tokens_chars + special_tokens_begins[i],
+                    special_tokens_chars + special_tokens_ends[i]
+                );
+                if (!special_tokens.empty()) {
+                    special_tokens += "|";
+                };
 
-            m_special_tokens_map->insert(std::pair{token, special_tokens_ids[i]});
-        };
-        m_special_tokens_re = std::make_shared<re2::RE2>("(" + special_tokens + ")");
-    };
+                if (std::all_of(token.begin(), token.end(), [](char c) { return std::isalpha(c); })) {
+                    // have to check if special token is not a part of some word
+                    // chatglm2/3 has "sop" and "eop" special tokens that will split words like "people" otherwise
+                    special_tokens += ("\\b" + re2::RE2::QuoteMeta(token));
+                    special_tokens += "|";
+                    special_tokens += (re2::RE2::QuoteMeta(token) + "\\b");
+                } else {
+                    special_tokens += re2::RE2::QuoteMeta(token);
+                };
+
+                m_special_tokens_map->insert(std::pair{token, special_tokens_ids[i]});
+            }
+            m_special_tokens_re = std::make_shared<re2::RE2>("(" + special_tokens + ")");
+        }
+}
 
     std::vector<int64_t> sparse_indices;
     std::vector<int32_t> sparse_values;
