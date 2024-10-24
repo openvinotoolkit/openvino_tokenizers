@@ -123,7 +123,11 @@ void RegexSplit::validate_and_infer_types() {
 
 bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
-    compile_pattern_if_necessary(split_pattern);
+    // Write to common trie structures should be protected to prevent race conditions.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        compile_pattern_if_necessary(split_pattern);
+    }
     
     auto get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
         auto match = this->m_search_pattern_pcre2->match(str, curr_start);
@@ -135,19 +139,23 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     };
 
     auto input_size = get_input_size();
-    if (input_size == 9 && m_skip_tokens == nullptr && inputs[6].get_size() > 0) {
-        // vocab string keys
-        auto skip_tokens_begins = inputs[6].data<const int32_t>();
-        auto skip_tokens_ends   = inputs[7].data<const int32_t>();
-        auto skip_tokens_chars  = inputs[8].data<const uint8_t>();
+    // Write to common trie structures should be protected to prevent race conditions.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (input_size == 9 && m_skip_tokens == nullptr && inputs[6].get_size() > 0) {
+            // vocab string keys
+            auto skip_tokens_begins = inputs[6].data<const int32_t>();
+            auto skip_tokens_ends   = inputs[7].data<const int32_t>();
+            auto skip_tokens_chars  = inputs[8].data<const uint8_t>();
 
-        m_skip_tokens = std::make_shared<std::set<std::string>>();
-        std::string skip_tokens_pattern;
-        for (size_t i = 0; i < inputs[6].get_size(); ++i) {
-            std::string token = std::string(skip_tokens_chars + skip_tokens_begins[i], skip_tokens_chars + skip_tokens_ends[i]);
-            m_skip_tokens->insert(token);
-        };
-    };
+            m_skip_tokens = std::make_shared<std::set<std::string>>();
+            std::string skip_tokens_pattern;
+            for (size_t i = 0; i < inputs[6].get_size(); ++i) {
+                std::string token = std::string(skip_tokens_chars + skip_tokens_begins[i], skip_tokens_chars + skip_tokens_ends[i]);
+                m_skip_tokens->insert(token);
+            }
+        }
+    }
 
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();

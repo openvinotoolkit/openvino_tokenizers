@@ -70,4 +70,5 @@ private:
     int m_max_splits = -1;
 
     void compile_pattern_if_necessary(std::string split_pattern) const;
+    mutable std::mutex m_mutex;
 };
