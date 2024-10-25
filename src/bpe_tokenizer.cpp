@@ -47,11 +47,11 @@ void BPETokenizer::validate_and_infer_types() {
 bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const auto input_size = get_input_size();
     std::cout << "debug output" << std::endl;
-    try {
+    // try {
 
-    // Write to common trie structures should be protected to prevent race conditions.
     {
         std::cout << "Entering synchronized block" << std::endl;
+        // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
 
         if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
@@ -187,11 +187,11 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     }
     outputs[2].set_shape({size_t(ragged_offset)});
     std::cout << "Exiting evaluate" << std::endl;
-    } catch (const std::exception& e) {
-        std::cout << "Caught exception: " << e.what() << std::endl;
-    } catch (...) {
-        std::cout << "Caught unknown exception" << std::endl;
-    }
+    // } catch (const std::exception& e) {
+    //     std::cout << "Caught exception: " << e.what() << std::endl;
+    // } catch (...) {
+    //     std::cout << "Caught unknown exception" << std::endl;
+    // }
     return true;
 }
 
@@ -205,8 +205,12 @@ struct CompareRank {
 };
 
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
-    if (m_cache.count(text)) {
-        return m_cache.at(text);
+    {
+        // Write to common trie structures should be protected to prevent race conditions.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_cache.count(text)) {
+            return m_cache.at(text);
+        }
     }
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
@@ -312,9 +316,12 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         node = node->next;
     }
 
-    // TODO: Check if LRU Cache is more effective.
-    if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-        m_cache.insert({text, res_vec});
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        // TODO: Check if LRU Cache is more effective.
+        if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
+            m_cache.insert({text, res_vec});
+        }
     }
     return res_vec;
 }
