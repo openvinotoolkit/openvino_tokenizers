@@ -47,12 +47,15 @@ void BPETokenizer::validate_and_infer_types() {
 bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const auto input_size = get_input_size();
     std::cout << "debug output" << std::endl;
-    std::cout << "Entering synchronized block" << std::endl;
+    try {
+
     // Write to common trie structures should be protected to prevent race conditions.
     {
+        std::cout << "Entering synchronized block" << std::endl;
         std::lock_guard<std::mutex> lock(m_mutex);
 
         if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
+            std::cout << "filling m_added_tokens " << std::endl;
             const size_t added_token_input = input_size - 4;
             const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
 
@@ -71,6 +74,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         };
 
         if (m_tokenizer == nullptr) {
+            std::cout << "filling m_tokenizer " << std::endl;
             // cache tokenizer
             auto vocab_begins = inputs[5].data<const int32_t>();
             auto vocab_ends   = inputs[6].data<const int32_t>();
@@ -183,6 +187,11 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     }
     outputs[2].set_shape({size_t(ragged_offset)});
     std::cout << "Exiting evaluate" << std::endl;
+    } catch (const std::exception& e) {
+        std::cout << "Caught exception: " << e.what() << std::endl;
+    } catch (...) {
+        std::cout << "Caught unknown exception" << std::endl;
+    }
     return true;
 }
 
