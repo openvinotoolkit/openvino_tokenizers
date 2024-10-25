@@ -166,8 +166,8 @@ bool SentencepieceTokenizer::visit_attributes(AttributeVisitor& visitor) {
 
 bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector& inputs) const {
     auto input_size = get_input_size();
-    // Write to common trie structures should be protected to prevent race conditions.
     {
+        // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);    
         if (m_sp == nullptr) {
             m_sp = std::make_shared<SentencePieceProcessor>();

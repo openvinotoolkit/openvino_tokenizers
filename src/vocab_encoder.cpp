@@ -39,8 +39,8 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto begins = inputs[0].data<const int32_t>();
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
-    // Write to common trie structures should be protected to prevent race conditions.
     {
+        // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_vocab == nullptr) {
             // vocab string keys

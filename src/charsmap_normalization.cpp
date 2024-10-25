@@ -34,8 +34,8 @@ void CharsMapNormalization::validate_and_infer_types() {
 
 bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 5);
-    // Write to common trie structures should be protected to prevent race conditions.
     {            
+        // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
 
         if (m_normalizer == nullptr) {

@@ -21,8 +21,8 @@ void TrieTokenizer::validate_and_infer_types() {
 
 
 bool TrieTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    // Write to common trie structures should be protected to prevent race conditions.
     {
+        // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_trie == nullptr) {
             m_trie = std::make_shared<Trie>();

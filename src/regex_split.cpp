@@ -139,8 +139,8 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     };
 
     auto input_size = get_input_size();
-    // Write to common trie structures should be protected to prevent race conditions.
     {
+        // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
         if (input_size == 9 && m_skip_tokens == nullptr && inputs[6].get_size() > 0) {
             // vocab string keys

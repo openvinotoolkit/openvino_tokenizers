@@ -83,8 +83,8 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     const bool has_skips = (inputs.size() == 6);
     const auto pattern_input = 3 + has_skips;
     
-    // Write to common trie structures should be protected to prevent race conditions.
     {
+        // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_search_pattern_pcre2 == nullptr) {
             std::string search_pattern = std::string(inputs[pattern_input].data<const char>(), inputs[pattern_input].get_size());
