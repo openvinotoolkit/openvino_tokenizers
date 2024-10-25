@@ -46,6 +46,8 @@ void BPETokenizer::validate_and_infer_types() {
 
 bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const auto input_size = get_input_size();
+    std::cout << "debug output" << std::endl;
+    std::cout << "Entering synchronized block" << std::endl;
     // Write to common trie structures should be protected to prevent race conditions.
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -136,6 +138,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             );
         }
     }
+    std::cout << "Exiting synchronized block" << std::endl;
     
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
@@ -179,6 +182,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         new_ends[seq] = ragged_offset;
     }
     outputs[2].set_shape({size_t(ragged_offset)});
+    std::cout << "Exiting evaluate" << std::endl;
     return true;
 }
 
