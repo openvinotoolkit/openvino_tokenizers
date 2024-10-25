@@ -49,95 +49,95 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     std::cout << "debug output" << std::endl;
     std::cout << "Entering synchronized block" << std::endl;
     // Write to common trie structures should be protected to prevent race conditions.
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
+    // {
+    //     std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
-            const size_t added_token_input = input_size - 4;
-            const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
+    //     if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
+    //         const size_t added_token_input = input_size - 4;
+    //         const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
 
-            // vocab string keys
-            auto added_tokens_begins = inputs[added_token_input].data<const int32_t>();
-            auto added_tokens_ends   = inputs[added_token_input + 1].data<const int32_t>();
-            auto added_tokens_chars  = inputs[added_token_input + 2].data<const uint8_t>();
-            // vocab indicies
-            auto added_tokens_values = inputs[added_token_input + 3].data<const int32_t>();
+    //         // vocab string keys
+    //         auto added_tokens_begins = inputs[added_token_input].data<const int32_t>();
+    //         auto added_tokens_ends   = inputs[added_token_input + 1].data<const int32_t>();
+    //         auto added_tokens_chars  = inputs[added_token_input + 2].data<const uint8_t>();
+    //         // vocab indicies
+    //         auto added_tokens_values = inputs[added_token_input + 3].data<const int32_t>();
 
-            m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
-            for (size_t i = 0; i < added_tokens_size; ++i) {
-                std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
-                m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
-            };
-        };
+    //         m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
+    //         for (size_t i = 0; i < added_tokens_size; ++i) {
+    //             std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
+    //             m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
+    //         };
+    //     };
 
-        if (m_tokenizer == nullptr) {
-            // cache tokenizer
-            auto vocab_begins = inputs[5].data<const int32_t>();
-            auto vocab_ends   = inputs[6].data<const int32_t>();
-            auto vocab_chars  = inputs[7].data<const uint8_t>();
-            auto vocab_size   = inputs[6].get_size();
+    //     if (m_tokenizer == nullptr) {
+    //         // cache tokenizer
+    //         auto vocab_begins = inputs[5].data<const int32_t>();
+    //         auto vocab_ends   = inputs[6].data<const int32_t>();
+    //         auto vocab_chars  = inputs[7].data<const uint8_t>();
+    //         auto vocab_size   = inputs[6].get_size();
 
-            Vocab vocab;
-            for(size_t id = 0; id < vocab_size; ++id) {
-                auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
-                vocab[token] = int32_t(id); // TODO: Check range
-            }
+    //         Vocab vocab;
+    //         for(size_t id = 0; id < vocab_size; ++id) {
+    //             auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
+    //             vocab[token] = int32_t(id); // TODO: Check range
+    //         }
 
-            auto merges_begins = inputs[8].data<const int32_t>();
-            auto merges_ends   = inputs[9].data<const int32_t>();
-            auto merges_chars  = inputs[10].data<const uint8_t>();
-            auto merges_size   = inputs[8].get_size();
+    //         auto merges_begins = inputs[8].data<const int32_t>();
+    //         auto merges_ends   = inputs[9].data<const int32_t>();
+    //         auto merges_chars  = inputs[10].data<const uint8_t>();
+    //         auto merges_size   = inputs[8].get_size();
 
-            TextMerges merges;
-            if (input_size == 11 || input_size == 15){
-                std::string delim = " ";
-                for(size_t id = 0; id < merges_size; ++id) {
-                    auto merge = std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]);
-                    const int delim_pos = merge.find(delim);
+    //         TextMerges merges;
+    //         if (input_size == 11 || input_size == 15){
+    //             std::string delim = " ";
+    //             for(size_t id = 0; id < merges_size; ++id) {
+    //                 auto merge = std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]);
+    //                 const int delim_pos = merge.find(delim);
 
-                    std::pair<std::string, std::string> merge_pair = {
-                        merge.substr(0, delim_pos), merge.substr(delim_pos + 1)
-                    };
-                    merges.emplace_back(merge_pair);
-                }
-            } else {
-                auto right_merges_begins = inputs[11].data<const int32_t>();
-                auto right_merges_ends   = inputs[12].data<const int32_t>();
-                auto right_merges_chars  = inputs[13].data<const uint8_t>();
+    //                 std::pair<std::string, std::string> merge_pair = {
+    //                     merge.substr(0, delim_pos), merge.substr(delim_pos + 1)
+    //                 };
+    //                 merges.emplace_back(merge_pair);
+    //             }
+    //         } else {
+    //             auto right_merges_begins = inputs[11].data<const int32_t>();
+    //             auto right_merges_ends   = inputs[12].data<const int32_t>();
+    //             auto right_merges_chars  = inputs[13].data<const uint8_t>();
 
-                for(size_t id = 0; id < merges_size; ++id) {
-                    std::pair<const std::string, const std::string> merge_pair = {
-                        std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]),
-                        std::string(right_merges_chars + right_merges_begins[id], right_merges_chars + right_merges_ends[id])
-                    };
-                    merges.emplace_back(merge_pair);
-                };
-            };
+    //             for(size_t id = 0; id < merges_size; ++id) {
+    //                 std::pair<const std::string, const std::string> merge_pair = {
+    //                     std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]),
+    //                     std::string(right_merges_chars + right_merges_begins[id], right_merges_chars + right_merges_ends[id])
+    //                 };
+    //                 merges.emplace_back(merge_pair);
+    //             };
+    //         };
 
-            std::vector<std::string> unk_token = {};
-            if (m_unk_token.size() > 0) {
-                unk_token.push_back(m_unk_token);
-            };
-            std::vector<std::string> suffix_indicator = {};
-            if (m_suffix_indicator.size() > 0) {
-                suffix_indicator.push_back(m_suffix_indicator);
-            };
-            std::vector<std::string> end_suffix = {};
-            if (m_end_suffix.size() > 0) {
-                end_suffix.push_back(m_end_suffix);
-            };
+    //         std::vector<std::string> unk_token = {};
+    //         if (m_unk_token.size() > 0) {
+    //             unk_token.push_back(m_unk_token);
+    //         };
+    //         std::vector<std::string> suffix_indicator = {};
+    //         if (m_suffix_indicator.size() > 0) {
+    //             suffix_indicator.push_back(m_suffix_indicator);
+    //         };
+    //         std::vector<std::string> end_suffix = {};
+    //         if (m_end_suffix.size() > 0) {
+    //             end_suffix.push_back(m_end_suffix);
+    //         };
 
-            if (m_added_tokens){
-                for (const auto& added_token: *m_added_tokens) {
-                    vocab.insert(added_token);
-                }
-            }
+    //         if (m_added_tokens){
+    //             for (const auto& added_token: *m_added_tokens) {
+    //                 vocab.insert(added_token);
+    //             }
+    //         }
 
-            m_tokenizer = std::make_shared<BPETokenizerImpl>(
-                vocab, merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
-            );
-        }
-    }
+    //         m_tokenizer = std::make_shared<BPETokenizerImpl>(
+    //             vocab, merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
+    //         );
+    //     }
+    // }
     std::cout << "Exiting synchronized block" << std::endl;
     
     auto ragged_begins = inputs[0].data<const int32_t>();
@@ -165,14 +165,19 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
+            if (str.empty()) {
+                continue;
+            }
             if (input_size == 15) {
-                auto results = m_tokenizer->tokenize(str);
+                // auto results = m_tokenizer->tokenize(str);
+                std::vector<int32_t> results = {42};
                 for (const auto& token : results) {
                     OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                     new_elems[ragged_offset++] = token;
                 }
             } else {
-                auto results = m_tokenizer->tokenize(str);
+                // auto results = m_tokenizer->tokenize(str);
+                std::vector<int32_t> results = {42};
                 for (const auto& token : results) {
                     OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                     new_elems[ragged_offset++] = token;
