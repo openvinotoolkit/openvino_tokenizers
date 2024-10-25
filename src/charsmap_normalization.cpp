@@ -34,14 +34,18 @@ void CharsMapNormalization::validate_and_infer_types() {
 
 bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 5);
+    {            
+        // Write to common trie structures should be protected to prevent race conditions.
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-    if (m_normalizer == nullptr) {
-        const std::string precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
-        m_spec = make_identity_spec();
-        m_spec->set_add_dummy_prefix(m_add_dummy_prefix);
-        m_spec->set_escape_whitespaces(m_escape_whitespaces);
-        m_spec->set_precompiled_charsmap(precompiled_charsmap);
-        m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
+        if (m_normalizer == nullptr) {
+            const std::string precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
+            m_spec = make_identity_spec();
+            m_spec->set_add_dummy_prefix(m_add_dummy_prefix);
+            m_spec->set_escape_whitespaces(m_escape_whitespaces);
+            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+            m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
+        }
     }
 
     return evaluate_normalization_helper(

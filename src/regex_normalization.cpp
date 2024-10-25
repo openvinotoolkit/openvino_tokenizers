@@ -82,11 +82,15 @@ void RegexNormalization::validate_and_infer_types() {
 bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 6);
     const auto pattern_input = 3 + has_skips;
-
-    if (m_search_pattern_pcre2 == nullptr) {
-        std::string search_pattern = std::string(inputs[pattern_input].data<const char>(), inputs[pattern_input].get_size());
-        m_replace_pattern = std::string(inputs[pattern_input + 1].data<const char>(), inputs[pattern_input + 1].get_size());
-        m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
+    
+    {
+        // Write to common trie structures should be protected to prevent race conditions.
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_search_pattern_pcre2 == nullptr) {
+            std::string search_pattern = std::string(inputs[pattern_input].data<const char>(), inputs[pattern_input].get_size());
+            m_replace_pattern = std::string(inputs[pattern_input + 1].data<const char>(), inputs[pattern_input + 1].get_size());
+            m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
+        }
     }
     
     return evaluate_normalization_helper(
