@@ -47,6 +47,7 @@ namespace TemplateExtension {
         mutable std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
         mutable std::shared_ptr<re2::RE2> m_special_tokens_re;
         mutable std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> m_special_tokens_map;
+        mutable std::mutex m_mutex;
         int32_t m_nbest_size;
         float m_alpha;
         bool m_add_bos;

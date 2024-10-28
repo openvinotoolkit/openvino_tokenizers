@@ -39,4 +39,5 @@ public:
 
 private:
     mutable std::shared_ptr<Trie> m_trie;
+    mutable std::mutex m_mutex;
 };

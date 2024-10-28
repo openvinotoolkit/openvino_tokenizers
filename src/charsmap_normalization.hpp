@@ -55,4 +55,5 @@ private:
 
     // spec should be preserved for the lifetime of the normalizer
     mutable std::shared_ptr<sentencepiece::NormalizerSpec> m_spec;
+    mutable std::mutex m_mutex;
 };
