@@ -56,7 +56,7 @@ jobs:
 
       - name: Dependency Review
         if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/dependency-review-action@a6993e2c61fd5dc440b409aa1d6904921c5e1894 # v4.3.5
+        uses: actions/dependency-review-action@4081bf99e2866ebe428fc0477b69eb4fcda7220a # v4.4.0
         with:
           config-file: './.github/dependency_review.yml'
 
