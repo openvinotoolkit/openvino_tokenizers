@@ -15,7 +15,6 @@
 #include "utils.hpp"
 
 using sentencepiece::SentencePieceProcessor;
-using namespace TemplateExtension;
 using namespace ov;
 using namespace ov::frontend;
 using namespace ov::opset13;
@@ -55,6 +54,8 @@ int PieceToByte(absl::string_view piece) {
 }  // namespace
 }  // sentencepiece
 
+namespace {
+
 std::string form_extra_options(bool add_bos, bool add_eos, bool reverse) {
     std::string extra_options = "";
     if (add_bos) {
@@ -87,6 +88,8 @@ void init_sp_model_in_eval(const TensorVector& inputs, std::shared_ptr<SentenceP
     std::string model_proto(spm_model, spm_model_size);
     CHECK_OK(sp->LoadFromSerializedProto(model_proto));
 }
+
+} // namespace
 
 SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, int32_t nbest_size, float alpha,
     bool add_bos, bool add_eos, bool reverse) : m_sp(std::make_shared<SentencePieceProcessor>()),

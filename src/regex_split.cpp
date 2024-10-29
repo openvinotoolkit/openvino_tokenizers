@@ -21,7 +21,7 @@ const std::map<std::string, RegexSplit::SplitMode> split_modes_map = {
     {"mergedwithnext", RegexSplit::SplitMode::MERGED_WITH_NEXT}
 };
 
-}
+} // namespace
 
 void RegexSplit::compile_pattern_if_necessary(std::string split_pattern) const {
     m_split_mode = split_modes_map.at(m_behaviour);

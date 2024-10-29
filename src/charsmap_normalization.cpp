@@ -10,10 +10,12 @@
 using namespace ov;
 
 namespace {
-    std::shared_ptr<sentencepiece::NormalizerSpec> make_identity_spec() {
-        auto spec = sentencepiece::SentencePieceTrainer::GetNormalizerSpec("identity");
-        return std::make_shared<sentencepiece::NormalizerSpec>(spec);
-    }
+
+std::shared_ptr<sentencepiece::NormalizerSpec> make_identity_spec() {
+    auto spec = sentencepiece::SentencePieceTrainer::GetNormalizerSpec("identity");
+    return std::make_shared<sentencepiece::NormalizerSpec>(spec);
+}
+
 }  // namespace
 
 
