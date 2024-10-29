@@ -67,9 +67,9 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<ByteFallback>>(),
             std::make_shared<ov::OpExtension<SpecialTokensSplit>>(),
             std::make_shared<ov::OpExtension<CharsMapNormalization>>(),
-            std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceTokenizer>>(),
-            std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceDetokenizer>>(),
-            std::make_shared<ov::OpExtension<TemplateExtension::SentencepieceStreamDetokenizer>>(),
+            std::make_shared<ov::OpExtension<SentencepieceTokenizer>>(),
+            std::make_shared<ov::OpExtension<SentencepieceDetokenizer>>(),
+            std::make_shared<ov::OpExtension<SentencepieceStreamDetokenizer>>(),
             OPENVINO_TOKENIZERS_FAST_TOKENIZER_BASED_EXTENSIONS
             OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
             OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_FAST_TOKENIZER_BASED

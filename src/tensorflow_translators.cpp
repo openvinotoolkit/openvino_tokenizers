@@ -22,39 +22,40 @@
 #include "regex_split.hpp"
 #include "string_to_hash_bucket.hpp"
 #include "vocab_encoder.hpp"
+#include "wordpiece_tokenizer.hpp"
 
 #ifdef ENABLE_FAST_TOKENIZERS
 #include "case_fold.hpp"
 #include "normalize_unicode.hpp"
-#include "wordpiece_tokenizer.hpp"
 #endif // ENABLE_FAST_TOKENIZERS
 
-using namespace TemplateExtension;
 using namespace ov;
 using namespace ov::op;
 using namespace ov::frontend;
 using namespace ov::opset13;
 
 namespace {
-    template<typename T>
-    T extract_scalar_const_value(const std::shared_ptr<Node>& node, const std::string& const_name) {
-        auto const_node = as_type_ptr<Constant>(node);
-        FRONT_END_GENERAL_CHECK(const_node, "Conversion expects " + const_name + " to be constant.");
-        std::vector<T> const_value = const_node->cast_vector<T>();
-        FRONT_END_GENERAL_CHECK(const_value.size() == 1, "Conversion expects " + const_name + " to be a scalar.");
-        return const_value[0];
-    }
 
-    Output<Node> compute_subgraph_scalar_rank(const Output<Node>& output, element::Type output_type, bool as_scalar) {
-        auto shape_of = std::make_shared<ShapeOf>(output, output_type);
-        auto rank_of = std::make_shared<ShapeOf>(shape_of, output_type);
+template<typename T>
+T extract_scalar_const_value(const std::shared_ptr<Node>& node, const std::string& const_name) {
+    auto const_node = as_type_ptr<Constant>(node);
+    FRONT_END_GENERAL_CHECK(const_node, "Conversion expects " + const_name + " to be constant.");
+    std::vector<T> const_value = const_node->cast_vector<T>();
+    FRONT_END_GENERAL_CHECK(const_value.size() == 1, "Conversion expects " + const_name + " to be a scalar.");
+    return const_value[0];
+}
 
-        if (as_scalar) {
-            auto const_zero = std::make_shared<Constant>(element::i32, Shape{}, 0);
-            return std::make_shared<Squeeze>(rank_of, const_zero);
-        }
-        return rank_of;
+Output<Node> compute_subgraph_scalar_rank(const Output<Node>& output, element::Type output_type, bool as_scalar) {
+    auto shape_of = std::make_shared<ShapeOf>(output, output_type);
+    auto rank_of = std::make_shared<ShapeOf>(shape_of, output_type);
+
+    if (as_scalar) {
+        auto const_zero = std::make_shared<Constant>(element::i32, Shape{}, 0);
+        return std::make_shared<Squeeze>(rank_of, const_zero);
     }
+    return rank_of;
+}
+
 }  // namespace
 
 OutputVector translate_sentencepiece_op(const NodeContext& node) {
@@ -195,8 +196,6 @@ ov::OutputVector translate_regex_split_with_offsets(const ov::frontend::NodeCont
     return { post_translate_ragged_tensor_output({outputs[0], outputs[1], flatten_string_tensor}) };
 }
 
-#ifdef ENABLE_FAST_TOKENIZERS
-
 ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 2, "WordpieceTokenizeWithOffsets expects 2 inputs");
     ov::OutputVector inputs = pre_translate_ragged_string_tensor_input(node.get_input(0));
@@ -221,6 +220,8 @@ ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::N
     );
     return { post_translate_ragged_tensor_output(wp_tokenizer->outputs()) };
 }
+
+#ifdef ENABLE_FAST_TOKENIZERS
 
 ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
