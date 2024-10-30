@@ -4,9 +4,26 @@
 
 #include "regex_normalization.hpp"
 #include "utils.hpp"
+#include <regex>
 
 
 using namespace ov;
+
+namespace {
+
+/**
+ * @brief Reformat replace pattern to be compatible with PCRE2
+ *
+ * @param replace_pattern Replace pattern to reformat
+ * @return std::string Reformatted replace pattern
+ */
+std::string reformat_replace_pattern(std::string replace_pattern) {
+//    return replace_pattern;
+    return std::regex_replace(replace_pattern, std::regex(R"((\\)([0-9]+))"), R"($$2)");
+
+}
+
+} // namespace
 
 
 RegexNormalization::RegexNormalization(
@@ -52,6 +69,7 @@ RegexNormalization::RegexNormalization(
             replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
             search_pattern = std::string(search_pattern_buf, search_pattern_const->get_byte_size());
             m_replace_pattern = std::string(replace_pattern_buf, replace_pattern_const->get_byte_size());
+            m_replace_pattern = reformat_replace_pattern(m_replace_pattern);
             m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
         }
 
@@ -67,10 +85,6 @@ void RegexNormalization::validate_and_infer_types() {
 
     check_string_scalar_input(this, 3 + (input_size == 6));
     check_string_scalar_input(this, 4 + (input_size == 6));
-
-    auto search_pattern_const = dynamic_cast<Constant*>(get_input_node_ptr(3 + (input_size == 6)));
-    auto search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
-    auto search_pattern = absl::string_view(search_pattern_buf, search_pattern_const->get_byte_size());
 
     set_string_output(this, 0, get_input_partial_shape(0));
     if (input_size == 6) {
@@ -89,6 +103,7 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         if (m_search_pattern_pcre2 == nullptr) {
             std::string search_pattern = std::string(inputs[pattern_input].data<const char>(), inputs[pattern_input].get_size());
             m_replace_pattern = std::string(inputs[pattern_input + 1].data<const char>(), inputs[pattern_input + 1].get_size());
+            m_replace_pattern = reformat_replace_pattern(m_replace_pattern);
             m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
         }
     }
