@@ -2,7 +2,7 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from argparse import Action, ArgumentParser, ArgumentError
+from argparse import Action, ArgumentError, ArgumentParser
 from pathlib import Path
 
 from openvino import Type, save_model
@@ -26,6 +26,7 @@ def check_max_length_positive_int(value: str) -> int:
     if int_value <= 0:
         raise ArgumentError(f"Max length must be positive integer, got: {value}")
     return int_value
+
 
 class TrueOrPositiveIntAction(Action):
     def __call__(self, parser, namespace, values, option_string=None) -> None:
