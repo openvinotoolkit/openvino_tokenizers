@@ -2,7 +2,7 @@
 # Copyright (C) 2023-2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-from argparse import Action, ArgumentParser
+from argparse import Action, ArgumentParser, ArgumentError
 from pathlib import Path
 
 from openvino import Type, save_model
@@ -20,6 +20,12 @@ class StringToTypeAction(Action):
     def __call__(self, parser, namespace, values, option_string=None) -> None:
         setattr(namespace, self.dest, self.string_to_type_dict[values])
 
+
+def check_positive_int(value: str) -> int:
+    int_value = int(value)
+    if int_value <= 0:
+        raise ArgumentError(f"Value must be positive integer, got: {value}")
+    return int_value
 
 class TrueOrPositiveIntAction(Action):
     def __call__(self, parser, namespace, values, option_string=None) -> None:
@@ -102,6 +108,17 @@ def get_parser() -> ArgumentParser:
             "You can pass a positive integer that can be used as max length parameter "
             'or "True" to use `huggingface_tokenizer.model_max_length` value (if set). '
             "Not supported for Sentencepiece-based tokenizers."
+        ),
+    )
+    parser.add_argument(
+        "--max_length",
+        "--max-length",
+        required=False,
+        type=check_positive_int,
+        help=(
+            "Set max_length to the tokenizer for truncation operation. "
+            "Tokenizer won't produce output longer than max_length. "
+            "The value will be replaced by the max_padding option if set."
         ),
     )
     skip_special_group = parser.add_mutually_exclusive_group()
@@ -250,9 +267,13 @@ def convert_hf_tokenizer() -> None:
 
     print("Loading Huggingface Tokenizer...")
     hf_tokenizer = AutoTokenizer.from_pretrained(args.name, **tokenizer_init_kwargs)
+
     if isinstance(args.max_padding, int) and args.max_padding is not True:
         print(f"Set max_length to: {args.max_padding}")
         hf_tokenizer.model_max_length = args.max_padding
+    elif args.max_length:
+        print(f"Set max_length to: {args.max_length}")
+        hf_tokenizer.model_max_length = args.max_length
 
     print("Converting Huggingface Tokenizer to OpenVINO...")
     converted = convert_tokenizer(
