@@ -170,10 +170,20 @@ text2image_prompts = [
         ("Hello     world!", ("Hello", "world!"), RegexSplitStep.bert_whitespace_splitter()),
         ("", ("",), RegexSplitStep.whitespace_splitter()),
         *[(prompt, tuple(re_clip_splitter.findall(prompt)), clip_splitter) for prompt in text2image_prompts],
-        ("▁one▁two▁three▁", ("▁one", "▁two", "▁three", "▁"), RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext")),
-        ("▁", ("▁", ), RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext")),
-        ("▁one▁two▁three▁", ("▁", "one▁", "two▁", "three▁"), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
-        ("▁", ("▁", ), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
+        (
+            "▁one▁two▁three▁",
+            ("▁one", "▁two", "▁three", "▁"),
+            RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext"),
+        ),
+        ("▁", ("▁",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext")),
+        ("No split pattern", ("No split pattern",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext")),
+        (
+            "▁one▁two▁three▁",
+            ("▁", "one▁", "two▁", "three▁"),
+            RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious"),
+        ),
+        ("▁", ("▁",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
+        ("No split pattern", ("No split pattern",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
     ],
 )
 def test_regex_split(test_string, expected, layer):
