@@ -21,10 +21,10 @@ class StringToTypeAction(Action):
         setattr(namespace, self.dest, self.string_to_type_dict[values])
 
 
-def check_positive_int(value: str) -> int:
+def check_max_length_positive_int(value: str) -> int:
     int_value = int(value)
     if int_value <= 0:
-        raise ArgumentError(f"Value must be positive integer, got: {value}")
+        raise ArgumentError(f"Max length must be positive integer, got: {value}")
     return int_value
 
 class TrueOrPositiveIntAction(Action):
@@ -114,7 +114,7 @@ def get_parser() -> ArgumentParser:
         "--max_length",
         "--max-length",
         required=False,
-        type=check_positive_int,
+        type=check_max_length_positive_int,
         help=(
             "Set max_length to the tokenizer for truncation operation. "
             "Tokenizer won't produce output longer than max_length. "
