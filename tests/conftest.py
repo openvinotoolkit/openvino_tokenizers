@@ -56,14 +56,13 @@ def build_coverege_report(session: pytest.Session) -> None:
     results_df.hf_wordpiece_tokenizers_param.fillna(
         results_df.hf_tiktoken_tokenizers_with_padding_sides_param, inplace=True
     )
-    results_df.is_fast_tokenizer_param.fillna(True, inplace=True)
     results_df.status = (results_df.status == "passed").astype(int)
+    results_df = results_df.dropna(subset=['hf_wordpiece_tokenizers_param'])
     results_df["Model"] = (
         results_df.hf_wordpiece_tokenizers_param
-        + results_df.is_fast_tokenizer_param.apply(lambda x: "" if x else "_legacy")
-        + results_df.is_sentencepiece_backend_param.apply(lambda x: "" if x else "_sp_backend")
+        + ["_legacy" * value for value in results_df.index.str.contains("Slow")]
+        + ["_sp_backend" * value for value in results_df.index.str.contains("sp_backend")]
     )
-
     results_df = results_df[["Tokenizer Type", "Model", "test_string", "status"]]
     grouped_by_model = results_df.groupby(["Tokenizer Type", "Model"]).agg({"status": ["mean", "count"]}).reset_index()
     grouped_by_model.columns = ["Tokenizer Type", "Model", "Output Matched, %", "Number of Tests"]
