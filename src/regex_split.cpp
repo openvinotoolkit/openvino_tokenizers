@@ -204,7 +204,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         new_ragged_begins[seq] = ragged_offset;
 
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
-            auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
+            const auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
 
             if (skips[ragged_col]) {
                 new_begins[ragged_offset] = begins[ragged_col];
@@ -230,7 +230,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                         case (SplitMode::CONTIGUOUS):
                             OPENVINO_THROW("Prior to evaluate 'contiguous' mode should've been replaced with 'isolated'.");
                             break;
-                        case (SplitMode::MERGED_WITH_NEXT):
+                        case (SplitMode::MERGED_WITH_PREVIOUS):
                             if (invert == false && end != str.length()) {
                                 last_begin = begin;
                                 return;
@@ -238,7 +238,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                                 begin = last_begin;
                             }
                             break;
-                        case (SplitMode::MERGED_WITH_PREVIOUS):
+                        case (SplitMode::MERGED_WITH_NEXT):
                             if (invert == false) {
                                 if (last_begin != -1) { begin = last_begin; }
                             } else {
@@ -247,6 +247,10 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                             }
                             break;
                     }
+
+                    // Clamp begin and end to the string length
+                    begin = std::max(0, begin);
+                    end = std::min(static_cast<int>(str.length()), end);
 
                     new_begins[ragged_offset] = begins[ragged_col] + begin;
                     if (num_splits == m_max_splits) {
@@ -276,6 +280,10 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                 if (start < str.length()) {
                     if (has_skips) { new_skips[ragged_offset] = false; }
                     add_split(start, str.length(), m_invert);
+                } else if (m_split_mode == SplitMode::MERGED_WITH_NEXT && last_begin != str.length()) {
+                    // Add last split if the match was at the end of the string
+                    if (has_skips) { new_skips[ragged_offset] = false; }
+                    add_split(last_begin, str.length(), m_invert);
                 }
             }
         }
