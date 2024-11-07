@@ -218,7 +218,7 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}$2")
+        return cls(regex_search_pattern=r"(^)(.)", replace_term=rf"{string}$2")
 
     @classmethod
     def prepend_with_check_regex(cls, string: str, check_string: str) -> "RegexNormalizationStep":

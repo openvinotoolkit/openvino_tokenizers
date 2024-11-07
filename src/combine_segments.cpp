@@ -11,7 +11,7 @@ void CombineSegments::validate_and_infer_types() {
     OPENVINO_ASSERT(get_input_size() > 0);
     OPENVINO_ASSERT((get_input_size() - 1)%3 == 0);
 
-    // First come several ragged tensors each represented as 3 regular tesors
+    // First come several ragged tensors each represented as 3 regular tensors
     size_t num_inputs = (get_input_size() - 1)/3;
     PartialShape ps = PartialShape::dynamic();
     element::Type et = element::dynamic;
