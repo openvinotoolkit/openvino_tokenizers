@@ -40,6 +40,7 @@ def build_coverege_report(session: pytest.Session) -> None:
 
     results_df = get_session_results_df(session)
     results_df["Tokenizer Type"] = results_df.apply(add_tokenizer_type, axis=1)
+    results_df = results_df[results_df.status != "skipped"]  # filter skipped tests
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_bpe_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_sentencepiece_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_tiktoken_tokenizers_param, inplace=True)
@@ -56,7 +57,6 @@ def build_coverege_report(session: pytest.Session) -> None:
         results_df.hf_tiktoken_tokenizers_with_padding_sides_param, inplace=True
     )
     results_df.is_fast_tokenizer_param.fillna(True, inplace=True)
-    results_df = results_df[results_df.status != "skipped"]  # filter skipped tests
     results_df.status = (results_df.status == "passed").astype(int)
     results_df["Model"] = (
         results_df.hf_wordpiece_tokenizers_param
