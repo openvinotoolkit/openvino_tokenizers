@@ -18,7 +18,7 @@ namespace {
  * @return std::string Reformatted replace pattern
  */
 std::string reformat_replace_pattern(std::string replace_pattern) {
-    return std::regex_replace(replace_pattern, std::regex(R"((\\)([0-9]+))"), R"($$2)");
+    return std::regex_replace(replace_pattern, std::regex(R"((?:\\)([0-9]+))"), R"($$1)");
 }
 
 /**
