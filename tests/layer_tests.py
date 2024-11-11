@@ -136,6 +136,14 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
         (" Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
         ("\tHello world!", " \tHello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
         ("\tHello", "▁\tHello", RegexNormalizationStep.prepend_regex("▁")),
+        (  # test backward compatibility with old regex
+            " ' declare",
+            "'declare",
+            RegexNormalizationStep(
+                regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
+                replace_term=r"\1",
+            )
+        ),
     ]
 )
 def test_regex_normalization(test_string, expected, layer):
