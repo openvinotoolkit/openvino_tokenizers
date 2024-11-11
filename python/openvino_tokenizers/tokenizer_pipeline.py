@@ -234,7 +234,7 @@ class RegexNormalizationStep(NormalizationStep):
     @classmethod
     def clean_up_tokenization_spaces(cls) -> "RegexNormalizationStep":
         return cls(
-            regex_search_pattern=r" ([\.\?\!\,])| ('[ms])| (') | ('[rv]e)",
+            regex_search_pattern=r"(?| ([\.\?\!\,])| ('[ms])| (') | ('[rv]e))",
             replace_term="$1",
         )
 
@@ -1076,7 +1076,7 @@ class RegexDecodingStep(DecodingStep):
     @classmethod
     def clean_up_tokenization_spaces(cls) -> "RegexDecodingStep":
         return cls(
-            regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
+            regex_search_pattern=r"(?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))",
             replace_term=r"$1",
         )
 
