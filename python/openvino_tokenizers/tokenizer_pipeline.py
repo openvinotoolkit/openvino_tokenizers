@@ -231,13 +231,6 @@ class RegexNormalizationStep(NormalizationStep):
             replace_term="",
         )
 
-    @classmethod
-    def clean_up_tokenization_spaces(cls) -> "RegexNormalizationStep":
-        return cls(
-            regex_search_pattern=r" ([\.\?\!\,])| ('[ms])| (') | ('[rv]e)",
-            replace_term="$1",
-        )
-
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
@@ -1076,7 +1069,7 @@ class RegexDecodingStep(DecodingStep):
     @classmethod
     def clean_up_tokenization_spaces(cls) -> "RegexDecodingStep":
         return cls(
-            regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
+            regex_search_pattern=r"(?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))",
             replace_term=r"$1",
         )
 
