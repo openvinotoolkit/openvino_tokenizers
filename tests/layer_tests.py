@@ -15,6 +15,7 @@ from openvino_tokenizers.tokenizer_pipeline import (
     DecodingStep,
     NormalizationStep,
     PreTokenizatinStep,
+    RegexNormalizationStep,
     RegexSplitStep,
     TokenizerPipeline,
     UTF8ValidateStep,
@@ -66,7 +67,7 @@ utf8_validate_strings = [
 ]
 
 
-def crate_normalization_model(layer: Union[NormalizationStep, DecodingStep]) -> ov.CompiledModel:
+def create_normalization_model(layer: Union[NormalizationStep, DecodingStep]) -> ov.CompiledModel:
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
 
@@ -84,7 +85,7 @@ def test_utf8_validate(test_string, replace_mode):
     utf_validation_node = UTF8ValidateStep(
         UTF8ReplaceMode.REPLACE if replace_mode == "replace" else UTF8ReplaceMode.IGNORE
     )
-    compiled_model = crate_normalization_model(utf_validation_node)
+    compiled_model = create_normalization_model(utf_validation_node)
     res_ov = compiled_model([test_string])[0]
     res_py = test_string.decode(errors=replace_mode)
     assert res_ov == res_py
@@ -119,10 +120,36 @@ def precompiled_charsmap_json(request, hf_charsmap_tokenizer):
 @pytest.mark.parametrize("test_string", charsmap_test_strings)
 def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled_charsmap_json):
     charsmap_normalization_node = CharsmapStep.from_hf_step_json(precompiled_charsmap_json)
-    compiled_model = crate_normalization_model(charsmap_normalization_node)
+    compiled_model = create_normalization_model(charsmap_normalization_node)
     res_ov = compiled_model([test_string])[0][0]
     res_hf = hf_charsmap_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
     assert res_ov == res_hf
+
+
+@pytest.mark.parametrize(
+    "test_string, expected, layer",
+    [
+        ("Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_regex()),
+        (" Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_regex()),
+        ("\tHello world!", "\tHello world!", RegexNormalizationStep.add_prefix_whitespace_regex()),
+        ("Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
+        (" Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
+        ("\tHello world!", " \tHello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
+        ("\tHello", "▁\tHello", RegexNormalizationStep.prepend_regex("▁")),
+        (  # test backward compatibility with old regex
+            " ' declare",
+            "'declare",
+            RegexNormalizationStep(
+                regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
+                replace_term=r"\1",
+            )
+        ),
+    ]
+)
+def test_regex_normalization(test_string, expected, layer):
+    compiled_model = create_normalization_model(layer)
+    res_ov = compiled_model([test_string])[0]
+    assert res_ov == expected
 
 
 ############################################
@@ -170,6 +197,20 @@ text2image_prompts = [
         ("Hello     world!", ("Hello", "world!"), RegexSplitStep.bert_whitespace_splitter()),
         ("", ("",), RegexSplitStep.whitespace_splitter()),
         *[(prompt, tuple(re_clip_splitter.findall(prompt)), clip_splitter) for prompt in text2image_prompts],
+        (
+            "▁one▁two▁three▁",
+            ("▁one", "▁two", "▁three", "▁"),
+            RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext"),
+        ),
+        ("▁", ("▁",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext")),
+        ("No split pattern", ("No split pattern",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithnext")),
+        (
+            "▁one▁two▁three▁",
+            ("▁", "one▁", "two▁", "three▁"),
+            RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious"),
+        ),
+        ("▁", ("▁",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
+        ("No split pattern", ("No split pattern",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
     ],
 )
 def test_regex_split(test_string, expected, layer):

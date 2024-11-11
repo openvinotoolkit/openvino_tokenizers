@@ -16,8 +16,8 @@ from openvino_tokenizers.utils import (
     TokenzierConversionParams,
     change_inputs_type,
     change_outputs_type,
-    update_rt_info_with_params,
     update_rt_info_with_environment,
+    update_rt_info_with_params,
 )
 
 

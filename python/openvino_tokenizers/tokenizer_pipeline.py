@@ -218,7 +218,7 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def prepend_regex(cls, string: str) -> "RegexNormalizationStep":
-        return cls(regex_search_pattern=r"(^)(.+)", replace_term=rf"{string}$2")
+        return cls(regex_search_pattern=r"(^)(.)", replace_term=rf"{string}$2")
 
     @classmethod
     def prepend_with_check_regex(cls, string: str, check_string: str) -> "RegexNormalizationStep":
@@ -229,13 +229,6 @@ class RegexNormalizationStep(NormalizationStep):
         return cls(
             regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F])",  # exclude \n\t\r
             replace_term="",
-        )
-
-    @classmethod
-    def clean_up_tokenization_spaces(cls) -> "RegexNormalizationStep":
-        return cls(
-            regex_search_pattern=r" ([\.\?\!\,])| ('[ms])| (') | ('[rv]e)",
-            replace_term="$1",
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
@@ -1076,7 +1069,7 @@ class RegexDecodingStep(DecodingStep):
     @classmethod
     def clean_up_tokenization_spaces(cls) -> "RegexDecodingStep":
         return cls(
-            regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
+            regex_search_pattern=r"(?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))",
             replace_term=r"$1",
         )
 

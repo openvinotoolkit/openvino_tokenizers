@@ -18,8 +18,20 @@ namespace {
  * @return std::string Reformatted replace pattern
  */
 std::string reformat_replace_pattern(std::string replace_pattern) {
-    return std::regex_replace(replace_pattern, std::regex(R"((\\)([0-9]+))"), R"($$2)");
+    return std::regex_replace(replace_pattern, std::regex(R"((?:\\)([0-9]+))"), R"($$1)");
+}
 
+/**
+ * @brief Fix old search pattern for backward compatibility
+ *
+ * @param search_pattern Search pattern to replace
+ * @return std::string Replaced search pattern
+ */
+std::string fix_search_pattern(std::string search_pattern) {
+    if (search_pattern == R"( ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))") {
+        return R"((?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)))";
+    }
+    return search_pattern;
 }
 
 } // namespace
@@ -36,8 +48,10 @@ m_global_replace(global_replace) {
     auto replace_pattern_const = as_type_ptr<Constant>(arguments[pattern_input + 1].get_node_shared_ptr());
     auto search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
     auto replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
-    auto search_pattern = std::string(search_pattern_buf, search_pattern_const->get_byte_size());
-    m_replace_pattern = std::string(replace_pattern_buf, replace_pattern_const->get_byte_size());
+    auto search_pattern = fix_search_pattern(std::string(search_pattern_buf, search_pattern_const->get_byte_size()));
+    m_replace_pattern = reformat_replace_pattern(
+        std::string(replace_pattern_buf, replace_pattern_const->get_byte_size())
+    );
 
     m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
     
@@ -66,7 +80,7 @@ RegexNormalization::RegexNormalization(
         if (m_search_pattern_pcre2 == nullptr) {
             search_pattern_buf = static_cast<const char*>(search_pattern_const->get_data_ptr());
             replace_pattern_buf = static_cast<const char*>(replace_pattern_const->get_data_ptr());
-            search_pattern = std::string(search_pattern_buf, search_pattern_const->get_byte_size());
+            search_pattern = fix_search_pattern(std::string(search_pattern_buf, search_pattern_const->get_byte_size()));
             m_replace_pattern = std::string(replace_pattern_buf, replace_pattern_const->get_byte_size());
             m_replace_pattern = reformat_replace_pattern(m_replace_pattern);
             m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
@@ -100,7 +114,9 @@ bool RegexNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_search_pattern_pcre2 == nullptr) {
-            std::string search_pattern = std::string(inputs[pattern_input].data<const char>(), inputs[pattern_input].get_size());
+            std::string search_pattern = fix_search_pattern(
+                std::string(inputs[pattern_input].data<const char>(), inputs[pattern_input].get_size())
+            );
             m_replace_pattern = std::string(inputs[pattern_input + 1].data<const char>(), inputs[pattern_input + 1].get_size());
             m_replace_pattern = reformat_replace_pattern(m_replace_pattern);
             m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(search_pattern);
