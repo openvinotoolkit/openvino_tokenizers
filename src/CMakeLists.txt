@@ -191,7 +191,7 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     endforeach()
     target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
   else()
-    target_include_directories(${TARGET_NAME} PRIVATE
+    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
       "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
       "${sentencepiece_SOURCE_DIR}/src"
       "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
@@ -335,7 +335,7 @@ endif()
 
 function(ov_tokenizers_link_fast_tokenizer TARGET_NAME)
   if(ENABLE_FAST_TOKENIZERS)
-    target_include_directories(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_INCS})
+    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${FAST_TOKENIZER_INCS})
     target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS})
     target_compile_definitions(${TARGET_NAME} PRIVATE ENABLE_FAST_TOKENIZERS)
   else()
@@ -362,7 +362,7 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
-  target_include_directories(${TARGET_NAME} PRIVATE ${pcre2_BINARY_DIR})
+  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${pcre2_BINARY_DIR})
   target_link_libraries(${TARGET_NAME} PRIVATE pcre2-8)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
