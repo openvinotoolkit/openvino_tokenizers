@@ -4,7 +4,6 @@
 
 #include "regex_normalization.hpp"
 #include "utils.hpp"
-#include <regex>
 
 
 using namespace ov;
@@ -18,8 +17,22 @@ namespace {
  * @return std::string Reformatted replace pattern
  */
 std::string reformat_replace_pattern(std::string replace_pattern) {
-    return std::regex_replace(replace_pattern, std::regex(R"((?:\\)([0-9]+))"), R"($$1)");
+    for (char i = '1'; i <= '9'; ++i) {
+        std::string from = "\\" + std::string(1, i);
+        std::string to = "$" + std::string(1, i);
+        size_t pos = 0;
+        while ((pos = replace_pattern.find(from, pos)) != std::string::npos) {
+            replace_pattern.replace(pos, from.length(), to);
+            pos += to.length();
+        }
+    }
+    return replace_pattern;
 }
+
+const std::map<std::string, std::string> search_pattern_rewrites = {
+    {R"( ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))", R"((?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)))"},
+    {R"((^)(.))", R"((^)([\s\S]))"}
+};
 
 /**
  * @brief Fix old search pattern for backward compatibility
@@ -27,11 +40,13 @@ std::string reformat_replace_pattern(std::string replace_pattern) {
  * @param search_pattern Search pattern to replace
  * @return std::string Replaced search pattern
  */
-std::string fix_search_pattern(std::string search_pattern) {
-    if (search_pattern == R"( ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))") {
-        return R"((?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)))";
+std::string fix_search_pattern(const std::string search_pattern) {
+    const auto it = search_pattern_rewrites.find(search_pattern);
+    if (it == search_pattern_rewrites.end()) {
+        return search_pattern;
     }
-    return search_pattern;
+    std::cerr << "Replace search pattern: `" << search_pattern << "` -> `" << it->second << "`" << std::endl;
+    return it->second;
 }
 
 } // namespace
