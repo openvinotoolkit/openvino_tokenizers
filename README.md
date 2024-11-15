@@ -431,6 +431,59 @@ print(tokenized := tokenizer(["Test string"])["input_ids"])  # [[24235 47429]]
 print(detokenizer(tokenized)["string_output"])  # ['Test string']
 ```
 
+### C++ Usage example
+
+This example shows how to run inference with C++ on a text-classification model from Hugging Face. It
+expects the path to a model directory as parameter, and prints the logits returned by the model inference.
+
+Export an example model by running the following command after `pip install optimum[openvino]`:
+
+```sh
+optimum-cli export openvino microsoft/deberta-base-mnli deberta-base-mnli-ov
+```
+
+```cpp
+#include <openvino/openvino.hpp>
+#include <iostream>
+#include <filesystem>
+
+int main(int argc, char* argv[]) {
+   std::string dirname = argv[1];
+   std::filesystem::path dir_path(dirname);
+   std::filesystem::path model_xml = dir_path / "openvino_model.xml";
+   std::filesystem::path tokenizer_xml = dir_path / "openvino_tokenizer.xml";
+
+   ov::Core core;
+   // use "openvino_tokenizers.dll" on Windows, "libopenvino_tokenizers.dylib" on macOS
+   core.add_extension("libopenvino_tokenizers.so");
+
+   ov::InferRequest tokenizer_request = core.compile_model(tokenizer_xml, "CPU").create_infer_request();
+
+   std::string prompt="Hello world!";
+   tokenizer_request.set_input_tensor(ov::Tensor{ov::element::string, {1}, &prompt});
+   tokenizer_request.infer();
+   ov::Tensor input_ids = tokenizer_request.get_tensor("input_ids");
+   ov::Tensor attention_mask = tokenizer_request.get_tensor("attention_mask");
+
+   ov::InferRequest infer_request = core.compile_model(model_xml, "CPU").create_infer_request();
+   infer_request.set_tensor("input_ids", input_ids);
+   infer_request.set_tensor("attention_mask", attention_mask);
+   infer_request.infer();
+
+   auto output = infer_request.get_tensor("logits");
+   const float *output_buffer = output.data<const float>();
+
+   size_t num_elements = output.get_size();
+
+   for (size_t i = 0; i < num_elements; i++) {
+       std::cout << output_buffer[i] << " ";
+   }
+
+   std::cout << std::endl;
+   return 0;
+}
+```
+
 ## Supported Tokenizer Types
 
 | Huggingface <br/>Tokenizer Type | Tokenizer Model Type | Tokenizer | Detokenizer |
