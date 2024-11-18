@@ -457,7 +457,7 @@ endif()
 if(CPACK_GENERATOR STREQUAL "NPM")
   set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR .)
   set(OPENVINO_TOKENIZERS_INSTALL_BINDIR .)
-elseif()
+else()
   # - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
   # - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
   # - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
