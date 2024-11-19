@@ -237,7 +237,7 @@ def get_parser() -> ArgumentParser:
         "--utf8_replace_mode",
         choices=list(UTF8ReplaceMode),
         type=UTF8ReplaceMode,  # enum with 'ignore', 'replace' values.
-        default=None,
+        default=UTF8ReplaceMode.REPLACE,
         required=False,
         help=(
             "If specified then resulting strings during decoding are checked if sequence of bytes is a valid UTF-8 sequence. "

@@ -57,7 +57,7 @@ class TokenzierConversionParams:
 
     utf8_replace_mode : Optional[UTF8ReplaceMode]
         Specifies the UTF-8 replacement mode during tokenization.
-        Allowed values are UTF8ReplaceMode.IGNORE and UTF8ReplaceMode.REPLACE. Default is None.
+        Allowed values are UTF8ReplaceMode.IGNORE and UTF8ReplaceMode.REPLACE. Default is UTF8ReplaceMode.REPLACE.
     """
 
     with_detokenizer: bool = False
@@ -70,7 +70,7 @@ class TokenzierConversionParams:
     use_max_padding: bool = False
     handle_special_tokens_with_re: Optional[bool] = None
     use_sentencepiece_backend: bool = False
-    utf8_replace_mode: Optional[UTF8ReplaceMode] = None
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = UTF8ReplaceMode.REPLACE
     add_attention_mask: bool = True
     add_prefix_space: Optional[bool] = None
     number_of_inputs: int = 1

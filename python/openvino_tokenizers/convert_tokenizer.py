@@ -71,7 +71,7 @@ def convert_tokenizer(
     use_max_padding: bool = False,
     handle_special_tokens_with_re: Optional[bool] = None,
     use_sentencepiece_backend: bool = False,
-    utf8_replace_mode: Optional[UTF8ReplaceMode] = None,
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = UTF8ReplaceMode.REPLACE,
 ) -> Union[Model, Tuple[Model, Model]]:
     """
     Converts a given tokenizer object into an OpenVINO-compatible model.
