@@ -1043,7 +1043,7 @@ class FuseStep(DecodingStep):
 
 @dataclass
 class UTF8ValidateStep(DecodingStep):
-    mode: UTF8ReplaceMode = UTF8ReplaceMode.IGNORE
+    mode: UTF8ReplaceMode = field(default_factory=lambda: UTF8ReplaceMode.IGNORE)
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         replace_mode = True if self.mode == UTF8ReplaceMode.REPLACE else False

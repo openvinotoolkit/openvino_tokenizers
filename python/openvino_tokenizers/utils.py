@@ -4,7 +4,7 @@
 
 import logging
 import re
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 from functools import lru_cache
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
@@ -70,7 +70,7 @@ class TokenzierConversionParams:
     use_max_padding: bool = False
     handle_special_tokens_with_re: Optional[bool] = None
     use_sentencepiece_backend: bool = False
-    utf8_replace_mode: Optional[UTF8ReplaceMode] = UTF8ReplaceMode.REPLACE
+    utf8_replace_mode: Optional[UTF8ReplaceMode] = field(default_factory=lambda: UTF8ReplaceMode.REPLACE)
     add_attention_mask: bool = True
     add_prefix_space: Optional[bool] = None
     number_of_inputs: int = 1
