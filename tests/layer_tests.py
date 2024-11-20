@@ -82,9 +82,7 @@ def create_normalization_model(layer: Union[NormalizationStep, DecodingStep]) ->
 @pytest.mark.parametrize("test_string", utf8_validate_strings)
 @pytest.mark.parametrize("replace_mode", ["ignore", "replace"])
 def test_utf8_validate(test_string, replace_mode):
-    utf_validation_node = UTF8ValidateStep(
-        UTF8ReplaceMode.REPLACE if replace_mode == "replace" else UTF8ReplaceMode.IGNORE
-    )
+    utf_validation_node = UTF8ValidateStep(UTF8ReplaceMode(replace_mode))
     compiled_model = create_normalization_model(utf_validation_node)
     res_ov = compiled_model([test_string])[0]
     res_py = test_string.decode(errors=replace_mode)

@@ -39,6 +39,16 @@ VOCAB_SIZE_CACHE_PROPORTION = 0.2
 class UTF8ReplaceMode(Enum):
     IGNORE: str = "ignore"
     REPLACE: str = "replace"
+    DISABLE: str = "disable"
 
     def __str__(self):
         return self.value
+    
+    def __eq__(self, other):
+        if isinstance(other, (UTF8ReplaceMode)):
+            # UTF8ReplaceMode is a singleton, so we can compare them by reference
+            return self is other
+        elif isinstance(other, str):
+            return self.value == other
+        else:
+            return False
