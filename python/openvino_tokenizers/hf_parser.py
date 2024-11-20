@@ -982,7 +982,7 @@ def get_sp_detokenizer(
     if params.clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
 
-    if params.utf8_replace_mode is not None:
+    if params.utf8_replace_mode is not None and params.utf8_replace_mode is not UTF8ReplaceMode.DISABLE:
         replace_mode = True if params.utf8_replace_mode is UTF8ReplaceMode.REPLACE else False
         UTF8ValidateStep(mode=replace_mode).get_ov_subgraph(detokenizer)
 
