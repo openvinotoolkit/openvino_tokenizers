@@ -30,8 +30,7 @@ class TokenizersBinaryManager extends BinaryManager {
       case 'win32':
         return 'windows';
       case 'linux':
-        // FIXME: Replace to centos7 (manylinux) after archive publishing
-        return 'ubuntu20';
+        return 'centos7';
       case 'darwin':
         return 'macos_12_6';
     }
