@@ -39,6 +39,7 @@ VOCAB_SIZE_CACHE_PROPORTION = 0.2
 class UTF8ReplaceMode(Enum):
     IGNORE: str = "ignore"
     REPLACE: str = "replace"
+    DISABLE: str = "disable"
 
     def __str__(self):
         return self.value
