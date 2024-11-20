@@ -2,10 +2,8 @@
 const os = require('node:os');
 const AdmZip = require('adm-zip');
 const { join } = require('node:path');
+const BinaryManager = require('openvino-node/scripts/lib/binary-manager');
 
-// TODO: Remove this file, use this class from openvino-node package after
-// merging PR: https://github.com/openvinotoolkit/openvino/pull/27465
-const BinaryManager = require('./utils/binary-manager');
 const packageJson = require('../package.json');
 
 class TokenizersBinaryManager extends BinaryManager {
