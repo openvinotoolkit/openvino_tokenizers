@@ -313,7 +313,10 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         if (rc == PCRE2_ERROR_NOMEMORY) {
             std::cerr << "Buffer overflow" << std::endl;
         } else {
-            std::cerr << "PCRE2 substitution failed with error code " << rc << std::endl;
+            size_t error_length = sizeof(PCRE2_UCHAR) * 400;
+            PCRE2_UCHAR* error_buffer = (PCRE2_UCHAR*) std::malloc(error_length);
+            pcre2_get_error_message(rc, error_buffer, error_length);
+            std::cerr << "PCRE2 substitution failed with error code " << rc  << ": " << error_buffer << std::endl;
         }
         pcre2_match_data_free(match_data);
         std::free(buffer);

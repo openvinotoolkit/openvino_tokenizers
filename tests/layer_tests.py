@@ -15,6 +15,7 @@ from openvino_tokenizers.tokenizer_pipeline import (
     DecodingStep,
     NormalizationStep,
     PreTokenizatinStep,
+    RegexNormalizationStep,
     RegexSplitStep,
     TokenizerPipeline,
     UTF8ValidateStep,
@@ -66,7 +67,7 @@ utf8_validate_strings = [
 ]
 
 
-def crate_normalization_model(layer: Union[NormalizationStep, DecodingStep]) -> ov.CompiledModel:
+def create_normalization_model(layer: Union[NormalizationStep, DecodingStep]) -> ov.CompiledModel:
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
 
@@ -81,10 +82,8 @@ def crate_normalization_model(layer: Union[NormalizationStep, DecodingStep]) -> 
 @pytest.mark.parametrize("test_string", utf8_validate_strings)
 @pytest.mark.parametrize("replace_mode", ["ignore", "replace"])
 def test_utf8_validate(test_string, replace_mode):
-    utf_validation_node = UTF8ValidateStep(
-        UTF8ReplaceMode.REPLACE if replace_mode == "replace" else UTF8ReplaceMode.IGNORE
-    )
-    compiled_model = crate_normalization_model(utf_validation_node)
+    utf_validation_node = UTF8ValidateStep(UTF8ReplaceMode(replace_mode))
+    compiled_model = create_normalization_model(utf_validation_node)
     res_ov = compiled_model([test_string])[0]
     res_py = test_string.decode(errors=replace_mode)
     assert res_ov == res_py
@@ -119,10 +118,48 @@ def precompiled_charsmap_json(request, hf_charsmap_tokenizer):
 @pytest.mark.parametrize("test_string", charsmap_test_strings)
 def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled_charsmap_json):
     charsmap_normalization_node = CharsmapStep.from_hf_step_json(precompiled_charsmap_json)
-    compiled_model = crate_normalization_model(charsmap_normalization_node)
+    compiled_model = create_normalization_model(charsmap_normalization_node)
     res_ov = compiled_model([test_string])[0][0]
     res_hf = hf_charsmap_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
     assert res_ov == res_hf
+
+
+@pytest.mark.parametrize(
+    "test_string, expected, layer",
+    [
+        ("Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_regex()),
+        (" Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_regex()),
+        ("\tHello world!", "\tHello world!", RegexNormalizationStep.add_prefix_whitespace_regex()),
+        ("Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
+        (" Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
+        ("\tHello world!", " \tHello world!", RegexNormalizationStep.add_prefix_whitespace_to_not_whitespace_regex()),
+        ("\tHello", "▁\tHello", RegexNormalizationStep.prepend_regex("▁")),
+        (  # test backward compatibility with old regex
+            " ' declare",
+            "'declare",
+            RegexNormalizationStep(
+                regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
+                replace_term=r"\1",
+            )
+        ),
+        ("", "", RegexNormalizationStep.prepend_regex("▁")),
+        ("\n", "▁\n", RegexNormalizationStep.prepend_regex("▁")),
+        ("n", "▁n", RegexNormalizationStep.prepend_regex("▁")),
+        (" ", "▁ ", RegexNormalizationStep.prepend_regex("▁")),
+        (  # test backward compatibility with old regex
+            "\n",
+            "▁\n",
+            RegexNormalizationStep(
+                regex_search_pattern=r"(^)(.)",
+                replace_term=r"▁\2",
+            )
+        ),
+    ]
+)
+def test_regex_normalization(test_string, expected, layer):
+    compiled_model = create_normalization_model(layer)
+    res_ov = compiled_model([test_string])[0]
+    assert res_ov[0] == expected
 
 
 ############################################

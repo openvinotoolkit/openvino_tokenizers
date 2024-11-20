@@ -237,11 +237,14 @@ def get_parser() -> ArgumentParser:
         "--utf8_replace_mode",
         choices=list(UTF8ReplaceMode),
         type=UTF8ReplaceMode,  # enum with 'ignore', 'replace' values.
-        default=None,
+        default=UTF8ReplaceMode.REPLACE,
         required=False,
         help=(
             "If specified then resulting strings during decoding are checked if sequence of bytes is a valid UTF-8 sequence. "
-            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �, if mode is '{UTF8ReplaceMode.IGNORE}' then invalid character are skipped."
+            f"If mode is '{UTF8ReplaceMode.DISABLE}' then UTF8 validation is not performed at all. "
+            f"Two other regimes are identical to python decode method error handling parameter. "
+            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �. "
+            f"if mode is '{UTF8ReplaceMode.IGNORE}' then invalid character are skipped and instead of them empty substring is added."
         ),
     )
     return parser

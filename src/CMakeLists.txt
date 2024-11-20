@@ -191,7 +191,7 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     endforeach()
     target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
   else()
-    target_include_directories(${TARGET_NAME} PRIVATE
+    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
       "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
       "${sentencepiece_SOURCE_DIR}/src"
       "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
@@ -205,9 +205,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       endif()
       # to propogate _GLIBCXX_USE_CXX11_ABI value
       target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-      target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})      
+      target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
     endforeach(sp_target sentencepiece sentencepiece_train)
-    
+
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
       target_link_libraries(${TARGET_NAME} PRIVATE log)
@@ -335,7 +335,7 @@ endif()
 
 function(ov_tokenizers_link_fast_tokenizer TARGET_NAME)
   if(ENABLE_FAST_TOKENIZERS)
-    target_include_directories(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_INCS})
+    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${FAST_TOKENIZER_INCS})
     target_link_libraries(${TARGET_NAME} PRIVATE ${FAST_TOKENIZER_LIBS})
     target_compile_definitions(${TARGET_NAME} PRIVATE ENABLE_FAST_TOKENIZERS)
   else()
@@ -362,7 +362,7 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
-  target_include_directories(${TARGET_NAME} PRIVATE ${pcre2_BINARY_DIR})
+  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${pcre2_BINARY_DIR})
   target_link_libraries(${TARGET_NAME} PRIVATE pcre2-8)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
@@ -453,30 +453,37 @@ endif()
 # Installation
 #
 
-# - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
-# - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
-# - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
-# - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
-# - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
-string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
-if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
-elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
-  if(APPLE)
-    set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
-  else()
-    set(OPENVINO_TOKENIZERS_INSTALL_DIR "aarch64")
+# Put binaries at the top level for NPM package
+if(CPACK_GENERATOR STREQUAL "NPM")
+  set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR .)
+  set(OPENVINO_TOKENIZERS_INSTALL_BINDIR .)
+else()
+  # - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
+  # - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
+  # - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
+  # - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
+  # - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
+  string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
+  if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
+  elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
+    if(APPLE)
+      set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
+    else()
+      set(OPENVINO_TOKENIZERS_INSTALL_DIR "aarch64")
+    endif()
+  elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
+      OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
   endif()
-elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
-    OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
-endif()
 
-if(WIN32 OR APPLE)
-  set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${BUILD_TYPE})
+  if(WIN32 OR APPLE)
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${BUILD_TYPE})
+  endif()
+  set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
+  set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
+
 endif()
-set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
-set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
 
 # Installing the extension module
 install(TARGETS ${TARGET_NAME}
