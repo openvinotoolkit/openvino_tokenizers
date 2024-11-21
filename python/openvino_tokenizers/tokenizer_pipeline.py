@@ -14,7 +14,7 @@ from itertools import groupby, islice
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
-from openvino.runtime import Model, Output, PartialShape, Type, op
+from openvino.runtime import Model, Output, PartialShape, Type, op, Shape
 from openvino.runtime import opset12 as opset
 from openvino.runtime.exceptions import OVTypeError, UserInputError
 from openvino.runtime.utils.types import as_node, make_constant_node
@@ -1025,7 +1025,8 @@ class VocabDecoderStep(DecodingStep):
         else:
             vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
         input_nodes.extend(vocab_outputs)
-        return _get_factory().create("VocabDecoder", input_nodes, {"skip_tokens": self.skip_tokens}).outputs()
+        input_nodes.extend(op.Constant(Type.i32, Shape([len(self.skip_tokens)]), self.skip_tokens).outputs())
+        return _get_factory().create("VocabDecoder", input_nodes).outputs()
 
 
 @dataclass
