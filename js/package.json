@@ -1,6 +1,6 @@
 {
   "name": "openvino-tokenizers-node",
-  "version": "2025.0.0-preview",
+  "version": "2024.5.0-preview",
   "description": "OpenVINO™ Tokenizers adds text processing operations to openvino-node package",
   "repository": {
     "url": "https://github.com/openvinotoolkit/openvino.git",
