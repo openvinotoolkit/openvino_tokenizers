@@ -33,6 +33,6 @@
   ],
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "openvino-node": "2025.0.0"
+    "openvino-node": "2024.5.0-0"
   }
 }
