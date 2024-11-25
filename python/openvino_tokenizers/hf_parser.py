@@ -375,8 +375,8 @@ class TransformersTokenizerPipelineParser:
         if self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
 
-        skip_tokens = parse_special_tokens(self.original_tokenizer) if self.skip_special_tokens else {}
-        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens)))
+        skip_tokens = parse_special_tokens(self.original_tokenizer)
+        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens))
 
         if self.tokenizer_json["decoder"]["type"] == "Sequence":
             for decoder_dict in self.tokenizer_json["decoder"]["decoders"]:
@@ -1013,9 +1013,7 @@ def convert_tiktoken_model_tokenizer(
     split_pattern = encoding._pat_str
 
     pipeline = TokenizerPipeline()
-    skip_tokens = []
-    if params.skip_special_tokens:
-        skip_tokens = list(parse_special_tokens(hf_tokenizer))
+    skip_tokens = list(parse_special_tokens(hf_tokenizer))
 
     add_prefix_steps = []
     if hasattr(hf_tokenizer, "get_prefix_tokens") and params.add_special_tokens:
@@ -1048,7 +1046,7 @@ def convert_tiktoken_model_tokenizer(
 
     pipeline.add_steps(
         [
-            VocabDecoderStep(vocab=decoder_vocab, skip_tokens=skip_tokens),
+            VocabDecoderStep(vocab=decoder_vocab, skip_tokens=skip_tokens, do_skip_tokens=params.skip_special_tokens),
             FuseStep(),
         ]
     )

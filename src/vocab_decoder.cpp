@@ -25,12 +25,20 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto seq_len    = inputs[0].get_shape()[1];
     auto input_data = inputs[0].data<const int32_t>();
 
+    auto vocab_size   = inputs[1].get_size();
     auto vocab_begins = inputs[1].data<const int32_t>();
     auto vocab_ends   = inputs[2].data<const int32_t>();
     auto vocab_chars  = inputs[3].data<const uint8_t>();
-    auto vocab_size   = inputs[1].get_size();
 
-    OPENVINO_ASSERT(inputs.size() == 4, "Too few inputs passed to VocabDecoder, it means it is not converted properly or it is not used in the supported pattern");
+    OPENVINO_ASSERT(inputs.size() == 4 || inputs.size() == 5, "Too few inputs passed to VocabDecoder, it means it is not converted properly or it is not used in the supported pattern");
+    
+    // Use skip tokens from input if specified, otherwise use the attribute.
+    std::vector<int> skip_tokens;
+    if (inputs.size() == 5) {
+        skip_tokens = std::vector<int>(inputs[4].data<int32_t>(), inputs[4].data<int32_t>() + inputs[4].get_shape()[0]);
+    } else {
+        skip_tokens = m_skip_tokens;
+    }
 
     // Set output shapes
     outputs[0].set_shape({batch_size});
@@ -61,7 +69,7 @@ bool VocabDecoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             new_begins[seq] = buffer.size();
             if (
                 token_id < vocab_size
-                && std::find(m_skip_tokens.begin(), m_skip_tokens.end(), token_id) == m_skip_tokens.end()
+                && std::find(skip_tokens.begin(), skip_tokens.end(), token_id) == skip_tokens.end()
             ) {
                 buffer.insert(
                     buffer.end(),
