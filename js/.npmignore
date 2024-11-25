@@ -1,0 +1,5 @@
+bin
+tests
+thirdparty
+
+*.tgz
