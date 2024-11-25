@@ -390,8 +390,8 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
-
-        if self.utf8_replace_mode is not None:
+        
+        if self.utf8_replace_mode is not None and (self.utf8_replace_mode != UTF8ReplaceMode.DISABLE):
             self.pipeline.add_steps(UTF8ValidateStep(mode=self.utf8_replace_mode))
 
         if self.clean_up_tokenization_spaces is None:
@@ -981,12 +981,12 @@ def get_sp_detokenizer(
 
     if params.clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
+    
+    last_sinks = detokenizer
+    if params.utf8_replace_mode is not None and params.utf8_replace_mode != UTF8ReplaceMode.DISABLE:
+        last_sinks = UTF8ValidateStep(params.utf8_replace_mode).get_ov_subgraph(detokenizer)
 
-    if params.utf8_replace_mode is not None:
-        replace_mode = True if params.utf8_replace_mode is UTF8ReplaceMode.REPLACE else False
-        UTF8ValidateStep(mode=replace_mode).get_ov_subgraph(detokenizer)
-
-    string_output = _get_factory().create("StringTensorPack", detokenizer).outputs()
+    string_output = _get_factory().create("StringTensorPack", last_sinks).outputs()
     string_output[0].tensor.add_names({STRING_OUTPUT_NAME})
     tokenizer_detokenizer = Model(string_output, [model_input], DETOKENIZER_NAME)
     tokenizer_detokenizer.validate_nodes_and_infer_types()
