@@ -1008,6 +1008,7 @@ class DecodingStep(BasePipelineStep):
 class VocabDecoderStep(DecodingStep):
     vocab: Optional[List[str]] = None
     skip_tokens: Optional[List[int]] = None
+    do_skip_tokens: Optional[bool] = True
 
     def finalize(self) -> None:
         pipeline = self.get_pipeline()
@@ -1025,7 +1026,17 @@ class VocabDecoderStep(DecodingStep):
         else:
             vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
         input_nodes.extend(vocab_outputs)
-        input_nodes.extend(op.Constant(Type.i32, Shape([len(self.skip_tokens)]), self.skip_tokens).outputs())
+        
+        # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
+        # Slice through all skip tokens if flag is true, else slice to get an empty tensor.
+        stop_const = op.Constant(Type.i32, Shape([1]), [np.iinfo(np.int32).max if self.do_skip_tokens else 0])
+
+        zero_const = op.Constant(Type.i32, Shape([1]), [0])
+        one_const = op.Constant(Type.i32, Shape([1]), [1])
+        skip_tokens_const = op.Constant(Type.i32, Shape([len(self.skip_tokens)]), self.skip_tokens)
+        sliced_skips = opset.slice(skip_tokens_const, zero_const, stop_const, one_const).outputs()
+        input_nodes.extend(sliced_skips)
+
         return _get_factory().create("VocabDecoder", input_nodes).outputs()
 
 
