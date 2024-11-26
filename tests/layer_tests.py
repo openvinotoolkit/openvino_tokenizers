@@ -265,7 +265,7 @@ def test_casefold_normalization(test_string, expected):
                 replace_term=r"▁$2",
             )
         ),
-    ]
+    ],
 )
 def test_regex_normalization(test_string, expected, layer):
     compiled_model = create_normalization_model(layer)
