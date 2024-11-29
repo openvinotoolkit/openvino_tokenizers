@@ -155,7 +155,7 @@ class NormalizationStep(BasePipelineStep):
 
 
 @dataclass
-class NormalizeUnicode(NormalizationStep):
+class _NormalizeUnicode(NormalizationStep):
     normalization_form: str = "NFD"
 
     def __post_init__(self):
@@ -175,6 +175,23 @@ class NormalizeUnicode(NormalizationStep):
                     "normalization_form": self.normalization_form.lower(),
                     "remove_extra_whitespaces": False,
                 },
+            )
+            .outputs()
+        )
+    pass
+
+
+@dataclass
+class NormalizeUnicode(NormalizationStep):
+    normalization_form: str = "NFD"
+
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        return (
+            _get_factory()
+            .create(
+                "CharsMapNormalization",
+                input_nodes,
+                {"normalization_form": self.normalization_form.lower()},
             )
             .outputs()
         )
