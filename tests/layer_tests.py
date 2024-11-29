@@ -74,7 +74,6 @@ def unicode_normalization_test_data(request):
 utf8_validate_strings = [
     # Valid sequences.
     b"Eng... test, string?!",
-    b"Eng... test, string?!",
     b"\xe2\x82\xac",  # Euro sign €ß
     "Проверка, как работает кириллица Љ љ Ђ ђ".encode(),
     "測試字符串".encode(),
@@ -156,6 +155,15 @@ def precompiled_charsmap_json(request, hf_charsmap_tokenizer):
             return tj["normalizer"]["normalizers"][0]
 
 
+@pytest.mark.parametrize("test_string", charsmap_test_strings)
+def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled_charsmap_json):
+    charsmap_normalization_node = CharsmapStep.from_hf_step_json(precompiled_charsmap_json)
+    compiled_model = create_normalization_model(charsmap_normalization_node)
+    res_ov = compiled_model([test_string])[0][0]
+    res_hf = hf_charsmap_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
+    assert res_ov == res_hf
+
+
 @pytest.mark.parametrize(
     "test_parameters",
     [
@@ -179,15 +187,6 @@ def test_unicode_normalization_model(test_parameters, unicode_normalization_test
 
     assert positive == positive_threshold
     assert negative == negative_threshold
-
-
-@pytest.mark.parametrize("test_string", charsmap_test_strings)
-def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled_charsmap_json):
-    charsmap_normalization_node = CharsmapStep.from_hf_step_json(precompiled_charsmap_json)
-    compiled_model = create_normalization_model(charsmap_normalization_node)
-    res_ov = compiled_model([test_string])[0][0]
-    res_hf = hf_charsmap_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
-    assert res_ov == res_hf
 
 
 @pytest.mark.parametrize(

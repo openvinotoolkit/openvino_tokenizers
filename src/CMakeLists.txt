@@ -150,8 +150,8 @@ if(sentencepiece_FOUND)
 else()
   FetchContent_Declare(
     sentencepiece
-    URL      https://github.com/google/sentencepiece/archive/refs/tags/v0.2.0.tar.gz
-    URL_HASH SHA256=9970f0a0afee1648890293321665e5b2efa04eaec9f1671fcf8048f456f5bb86
+    URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
+    URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
   )
   FetchContent_GetProperties(sentencepiece)
   if(NOT sentencepiece_POPULATED)
