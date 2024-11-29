@@ -142,12 +142,24 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
                 replace_term=r"\1",
             )
         ),
+        ("", "", RegexNormalizationStep.prepend_regex("▁")),
+        ("\n", "▁\n", RegexNormalizationStep.prepend_regex("▁")),
+        ("n", "▁n", RegexNormalizationStep.prepend_regex("▁")),
+        (" ", "▁ ", RegexNormalizationStep.prepend_regex("▁")),
+        (  # test backward compatibility with old regex
+            "\n",
+            "▁\n",
+            RegexNormalizationStep(
+                regex_search_pattern=r"(^)(.)",
+                replace_term=r"▁\2",
+            )
+        ),
     ]
 )
 def test_regex_normalization(test_string, expected, layer):
     compiled_model = create_normalization_model(layer)
     res_ov = compiled_model([test_string])[0]
-    assert res_ov == expected
+    assert res_ov[0] == expected
 
 
 ############################################
