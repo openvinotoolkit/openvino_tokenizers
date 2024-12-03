@@ -31,7 +31,8 @@ std::string reformat_replace_pattern(std::string replace_pattern) {
 
 const std::map<std::string, std::string> search_pattern_rewrites = {
     {R"( ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))", R"((?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)))"},
-    {R"((^)(.))", R"((^)([\s\S]))"}
+    {R"((^)(.))", R"((^)([\s\S]))"},
+    {R"((^)(.+))", R"((^)([\s\S]))"}
 };
 
 /**
