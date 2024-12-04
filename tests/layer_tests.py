@@ -154,6 +154,14 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
                 replace_term=r"▁\2",
             )
         ),
+        (  # test backward compatibility with old regex
+            "\n",
+            "▁\n",
+            RegexNormalizationStep(
+                regex_search_pattern=r"(^)(.+)",
+                replace_term=r"▁$2",
+            )
+        ),
     ]
 )
 def test_regex_normalization(test_string, expected, layer):
