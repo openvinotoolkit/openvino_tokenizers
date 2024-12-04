@@ -9,6 +9,9 @@
 #include "string_tensor_pack.hpp"
 #include "string_tensor_unpack.hpp"
 #include "ragged_tensor_pack.hpp"
+#include <cstdlib>
+#include <cctype>
+#include <algorithm>
 
 using namespace ov;
 using namespace ov::frontend;
@@ -117,9 +120,11 @@ void unpack_strings_to_tensors (const std::string* strings, const Shape shape, o
 }
 
 void override_parameter (std::shared_ptr<ov::Node> node, element::Type type, const PartialShape& shape) {
-    if (auto parameter = std::dynamic_pointer_cast<Parameter>(node)) {
+    if (auto parameter = std::dynamic_pointer_cast<Parameter>(node)) { 
         // TODO: Apply this change conditionally based on real Parameter value
-        std::cerr << "Overriding Parameter element_type to " << type << " and shape " << shape << "\n";
+        if (getenv_bool("OPENVINO_TOKENIZERS_PRINT_DEBUG_INFO", false)) {
+            std::cerr << "Overriding Parameter element_type to " << type << " and shape " << shape << "\n";
+        }
         parameter->set_partial_shape(shape);
         parameter->set_element_type(type);
         parameter->validate_and_infer_types();
@@ -252,7 +257,9 @@ PCRE2Wrapper::PCRE2Wrapper(const absl::string_view& pattern) {
     if (m_compiled == NULL) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
-        std::cerr << "PCRE2 compilation failed at offset " << erroroffset << ": " << buffer << std::endl;
+        if (getenv_bool("OPENVINO_TOKENIZERS_PRINT_DEBUG_INFO", false)) {
+            std::cerr << "PCRE2 compilation failed at offset " << erroroffset << ": " << buffer << std::endl;
+        }
         return;
     }
 }
@@ -292,7 +299,9 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     size_t buffer_length = sizeof(PCRE2_UCHAR) * 4 * (subject_length + num_matches * replace_pattern.size());
     PCRE2_UCHAR* buffer = (PCRE2_UCHAR*) std::malloc(buffer_length);
     if (buffer == nullptr) {
-        std::cerr << "Memory allocation failed" << std::endl;
+        if (getenv_bool("OPENVINO_TOKENIZERS_PRINT_DEBUG_INFO", false)) {
+            std::cerr << "Memory allocation failed" << std::endl;
+        }
         pcre2_match_data_free(match_data);
         return orig_str;
     }
@@ -310,13 +319,15 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     );
 
     if (rc < 0) {
-        if (rc == PCRE2_ERROR_NOMEMORY) {
-            std::cerr << "Buffer overflow" << std::endl;
-        } else {
-            size_t error_length = sizeof(PCRE2_UCHAR) * 400;
-            PCRE2_UCHAR* error_buffer = (PCRE2_UCHAR*) std::malloc(error_length);
-            pcre2_get_error_message(rc, error_buffer, error_length);
-            std::cerr << "PCRE2 substitution failed with error code " << rc  << ": " << error_buffer << std::endl;
+        if (getenv_bool("OPENVINO_TOKENIZERS_PRINT_DEBUG_INFO", false)) {
+            if (rc == PCRE2_ERROR_NOMEMORY) {
+                std::cerr << "Buffer overflow" << std::endl;
+            } else {
+                size_t error_length = sizeof(PCRE2_UCHAR) * 400;
+                PCRE2_UCHAR* error_buffer = (PCRE2_UCHAR*) std::malloc(error_length);
+                pcre2_get_error_message(rc, error_buffer, error_length);
+                std::cerr << "PCRE2 substitution failed with error code " << rc  << ": " << error_buffer << std::endl;
+            }
         }
         pcre2_match_data_free(match_data);
         std::free(buffer);
@@ -417,4 +428,27 @@ int Trie::find_longest(const std::string_view& str, int& idx) {
     }
     idx = end_idx;
     return token_id;
+}
+
+bool getenv_bool(const char* env_var, bool default_value) {
+    const char* env_p = std::getenv(env_var);
+    std::string value = env_p != nullptr ? std::string(env_p) : "";
+
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c){ return std::tolower(c); });
+
+    std::set<std::string> off = {"0", "false", "off"};
+    std::set<std::string> on = {"1", "true", "on"};
+    bool rc;
+    if (value == "") {
+        rc = default_value;
+    } else if (off.find(value) != off.end()) {
+        rc = false;
+    } else if (on.find(value) != on.end()) {
+        rc = true;
+    } else {
+        std::stringstream ss;
+        ss << "environment variable '" << env_var << "' value '" << value << "' invalid. Must be boolean.";
+        throw std::runtime_error(ss.str());
+    }
+    return rc;
 }

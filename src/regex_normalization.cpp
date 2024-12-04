@@ -46,7 +46,9 @@ std::string fix_search_pattern(const std::string search_pattern) {
     if (it == search_pattern_rewrites.end()) {
         return search_pattern;
     }
-    std::cerr << "Replace search pattern: `" << search_pattern << "` -> `" << it->second << "`" << std::endl;
+    if (getenv_bool("OPENVINO_TOKENIZERS_PRINT_DEBUG_INFO", false)) {
+        std::cerr << "Replace search pattern: `" << search_pattern << "` -> `" << it->second << "`" << std::endl;
+    }
     return it->second;
 }
 
