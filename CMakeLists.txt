@@ -38,7 +38,7 @@ else()
 endif()
 
 project(openvino_tokenizers
-        VERSION 2024.5.0.0
+        VERSION 2024.6.0.0
         DESCRIPTION "OpenVINO Tokenizers"
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
         LANGUAGES CXX)
