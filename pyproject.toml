@@ -20,7 +20,7 @@ classifiers = [
 
 dependencies = [
     # support of nightly openvino packages with dev suffix
-    "openvino~=2024.6.0.0.dev"
+    "openvino~=2024.6.0.dev"
 ]
 
 [project.optional-dependencies]
@@ -106,6 +106,6 @@ python_abi = "none"
 requires = [
     "py-build-cmake@git+https://github.com/tttapa/py-build-cmake@7ab73da351c7140f06d727a8705bece4cf544cd9",
     "cmake~=3.14",
-    "openvino~=2024.6.0.0.dev"
+    "openvino~=2024.6.0.dev"
 ]
 build-backend = "py_build_cmake.build"
