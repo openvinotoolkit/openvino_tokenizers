@@ -79,7 +79,6 @@ jobs:
       image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
       volumes:
         - /mount:/mount
-      options: -e SCCACHE_AZURE_BLOB_CONTAINER -e SCCACHE_AZURE_CONNECTION_STRING -v ${{ github.workspace }}:${{ github.workspace }}
     env:
       CMAKE_GENERATOR: 'Ninja'
       GITHUB_WORKSPACE: /__w/openvino_tokenizers/openvino_tokenizers
