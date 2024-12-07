@@ -42,7 +42,7 @@ jobs:
     - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@releases/2024/6
       id: openvino_download
       with:
-        platform: 'ubuntu22'
+        platform: 'centos7'
         commit_packages_to_provide: 'wheels'
         revision: '2024.6.0rc1'
 
