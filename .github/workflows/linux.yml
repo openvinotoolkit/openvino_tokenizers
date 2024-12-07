@@ -252,7 +252,6 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
 
-
       - name: Install OpenVINO Python wheel from pre-built artifacts
         run: |
           python3 -m pip install openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
@@ -270,7 +269,6 @@ jobs:
 
       - name: Tokenizers regression tests (using openvino python modules)
         run: |
-          source ${INSTALL_DIR}/setupvars.sh
           python3 -m pytest layer_tests.py
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
