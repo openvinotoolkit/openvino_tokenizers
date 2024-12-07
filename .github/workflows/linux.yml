@@ -39,12 +39,12 @@ jobs:
         - ${{ github.workspace }}:${{ github.workspace }}
 
     steps:
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@releases/2024/6
       id: openvino_download
       with:
-        platform: 'ubuntu22'
+        platform: 'centos7'
         commit_packages_to_provide: 'wheels'
-        revision: latest_available_commit
+        revision: '2024.6.0rc1'
 
     - name: Clone docker tag from OpenVINO repo
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
