@@ -94,3 +94,5 @@ class Trie {
         std::unordered_map<unsigned char, std::unique_ptr<Trie>> m_to;
         int m_value = -1;  // -1 for unset value
 };
+
+bool getenv_bool(const char* env_var, bool default_value);
