@@ -7,7 +7,7 @@ import site
 import sys
 from itertools import chain
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 import openvino
 from openvino.runtime.utils.node_factory import NodeFactory
@@ -71,14 +71,14 @@ openvino.frontend.frontend.FrontEnd.__init__ = new_fe_init
 
 
 def _get_factory_callable() -> Callable[[], NodeFactory]:
-    factory = None
+    factory = {}
 
-    def inner() -> NodeFactory:
+    def inner(opset_version: Optional[str] = None) -> NodeFactory:
         nonlocal factory
-        if factory is None:
-            factory = NodeFactory()
+        if factory.get(opset_version, False) == False:
+            factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
 
-        return factory
+        return factory[opset_version]
 
     return inner
 

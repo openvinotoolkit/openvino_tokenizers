@@ -16,7 +16,6 @@ import openvino.runtime.opset14 as opset
 from openvino import Model, PartialShape, Type
 from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
-from openvino.runtime.opset1.ops import _get_node_factory_opset1
 from openvino.runtime.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
@@ -835,10 +834,10 @@ def convert_sentencepiece_model_tokenizer(
     )
 
     if do_left_padding:
-        attention_mask = _get_node_factory_opset1().create(
+        attention_mask = _get_factory("opset1").create(
             "Reverse", [attention_mask, make_constant_node(np.array([-1]))], {"mode": "index"}
         )
-        scattered_input_ids = _get_node_factory_opset1().create(
+        scattered_input_ids = _get_factory("opset1").create(
             "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
         )
 
