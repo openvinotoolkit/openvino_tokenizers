@@ -113,6 +113,7 @@ OPENVINO_TOKENIZERS_INSTALL_BINDIR = "openvino_tokenizers/lib"
 OPENVINO_TOKENIZERS_INSTALL_LIBDIR = "openvino_tokenizers/lib"
 
 [tool.py-build-cmake.wheel]
+python_tag = ['py3']
 python_abi = "none"
 
 [build-system]
