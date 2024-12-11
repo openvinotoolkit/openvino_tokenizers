@@ -1,0 +1,38 @@
+{
+  "name": "openvino-tokenizers-node",
+  "version": "2024.5.0-preview",
+  "description": "OpenVINO™ Tokenizers adds text processing operations to openvino-node package",
+  "repository": {
+    "url": "https://github.com/openvinotoolkit/openvino.git",
+    "type": "git"
+  },
+  "license": "Apache-2.0",
+  "main": "openvino-tokenizers.js",
+  "os": [
+    "win32",
+    "darwin",
+    "linux"
+  ],
+  "scripts": {
+    "postinstall": "npm run install_runtime",
+    "download_runtime": "node ./scripts/download-runtime.js",
+    "install_runtime": "npm run download_runtime -- --ignore-if-exists",
+    "test": "node --test ./tests/*.test.js"
+  },
+  "binary": {
+    "version": "2024.5.0.0",
+    "module_path": "./bin/",
+    "remote_path": "./repositories/openvino_tokenizers/packages/{version}/",
+    "package_name": "openvino_tokenizers_{platform}_{version}_{arch}.{extension}",
+    "host": "https://storage.openvinotoolkit.org"
+  },
+  "keywords": [
+    "OpenVINO",
+    "tokenizers",
+    "OpenVINO tokenizers"
+  ],
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "openvino-node": "2024.5.0-0"
+  }
+}

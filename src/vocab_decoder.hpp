@@ -6,11 +6,24 @@
 #include <vector>
 #include <openvino/op/op.hpp>
 
+/**
+ * @class VocabDecoder
+ * @brief The VocabDecoder class is an OpenVINO operation that decodes vocabulary tokens.
+ *
+ * This class inherits from the ov::op::Op base class and provides functionality to decode
+ * vocabulary tokens while skipping specified tokens.
+ * @param input_data
+ * @param vocab_begins
+ * @param vocab_ends
+ * @param vocab_chars
+ * @param skip_tokens input has priority over the attribute.
+ * @param skip_tokens attribute is used only when skip_tokens input is not provided.
+ */
 class VocabDecoder : public ov::op::Op {
 public:
     OPENVINO_OP("VocabDecoder");
 
-    VocabDecoder () = default;
+    VocabDecoder () = default;    
     VocabDecoder(
         const ov::OutputVector& arguments,
         std::vector<int> skip_tokens

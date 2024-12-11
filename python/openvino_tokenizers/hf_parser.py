@@ -16,7 +16,6 @@ import openvino.runtime.opset14 as opset
 from openvino import Model, PartialShape, Type
 from openvino.runtime import Node, op
 from openvino.runtime.exceptions import OVTypeError
-from openvino.runtime.opset1.ops import _get_node_factory_opset1
 from openvino.runtime.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
@@ -375,8 +374,8 @@ class TransformersTokenizerPipelineParser:
         if self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
 
-        skip_tokens = parse_special_tokens(self.original_tokenizer) if self.skip_special_tokens else {}
-        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens)))
+        skip_tokens = parse_special_tokens(self.original_tokenizer)
+        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens))
 
         if self.tokenizer_json["decoder"]["type"] == "Sequence":
             for decoder_dict in self.tokenizer_json["decoder"]["decoders"]:
@@ -835,10 +834,10 @@ def convert_sentencepiece_model_tokenizer(
     )
 
     if do_left_padding:
-        attention_mask = _get_node_factory_opset1().create(
+        attention_mask = _get_factory("opset1").create(
             "Reverse", [attention_mask, make_constant_node(np.array([-1]))], {"mode": "index"}
         )
-        scattered_input_ids = _get_node_factory_opset1().create(
+        scattered_input_ids = _get_factory("opset1").create(
             "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
         )
 
@@ -1013,9 +1012,7 @@ def convert_tiktoken_model_tokenizer(
     split_pattern = encoding._pat_str
 
     pipeline = TokenizerPipeline()
-    skip_tokens = []
-    if params.skip_special_tokens:
-        skip_tokens = list(parse_special_tokens(hf_tokenizer))
+    skip_tokens = list(parse_special_tokens(hf_tokenizer))
 
     add_prefix_steps = []
     if hasattr(hf_tokenizer, "get_prefix_tokens") and params.add_special_tokens:
@@ -1048,7 +1045,7 @@ def convert_tiktoken_model_tokenizer(
 
     pipeline.add_steps(
         [
-            VocabDecoderStep(vocab=decoder_vocab, skip_tokens=skip_tokens),
+            VocabDecoderStep(vocab=decoder_vocab, skip_tokens=skip_tokens, do_skip_tokens=params.skip_special_tokens),
             FuseStep(),
         ]
     )

@@ -31,7 +31,8 @@ std::string reformat_replace_pattern(std::string replace_pattern) {
 
 const std::map<std::string, std::string> search_pattern_rewrites = {
     {R"( ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't))", R"((?| ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)))"},
-    {R"((^)(.))", R"((^)([\s\S]))"}
+    {R"((^)(.))", R"((^)([\s\S]))"},
+    {R"((^)(.+))", R"((^)([\s\S]))"}
 };
 
 /**
@@ -45,7 +46,9 @@ std::string fix_search_pattern(const std::string search_pattern) {
     if (it == search_pattern_rewrites.end()) {
         return search_pattern;
     }
-    std::cerr << "Replace search pattern: `" << search_pattern << "` -> `" << it->second << "`" << std::endl;
+    if (getenv_bool("OPENVINO_TOKENIZERS_PRINT_DEBUG_INFO", false)) {
+        std::cerr << "Replace search pattern: `" << search_pattern << "` -> `" << it->second << "`" << std::endl;
+    }
     return it->second;
 }
 

@@ -34,7 +34,9 @@ jobs:
     runs-on: aks-linux-2-cores-8gb
     container:
       image: 'openvinogithubactions.azurecr.io/openvino_provider:0.1.0'
-      volumes: [ "/mount:/mount" ]
+      volumes: 
+        - /mount:/mount
+        - ${{ github.workspace }}:${{ github.workspace }}
 
     steps:
     - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
@@ -42,7 +44,7 @@ jobs:
       with:
         platform: 'ubuntu22'
         commit_packages_to_provide: 'wheels'
-        revision: 'latest_available_commit'
+        revision: latest_available_commit
 
     - name: Clone docker tag from OpenVINO repo
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -77,16 +79,16 @@ jobs:
     runs-on: aks-linux-8-cores-16gb
     container:
       image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
-      volumes:
+      volumes: 
         - /mount:/mount
+        - ${{ github.workspace }}:${{ github.workspace }}
     env:
       CMAKE_GENERATOR: 'Ninja'
-      GITHUB_WORKSPACE: /__w/openvino_tokenizers/openvino_tokenizers
-      OPENVINO_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino
-      INSTALL_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino/install
-      OV_TOKENIZERS_INSTALL_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers/install
-      OPENVINO_TOKENIZERS_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers
-      BUILD_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers/build
+      OPENVINO_REPO: ${{ github.workspace }}/openvino
+      INSTALL_DIR: ${{ github.workspace }}/openvino/install
+      OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
+      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
     steps:
       - name: Clone Openvino tokenizers
@@ -156,14 +158,14 @@ jobs:
     runs-on: aks-linux-4-cores-16gb
     container:
       image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
-      volumes:
+      volumes: 
         - /mount:/mount
+        - ${{ github.workspace }}:${{ github.workspace }}
     env:
-      GITHUB_WORKSPACE: /__w/openvino_tokenizers/openvino_tokenizers
-      OPENVINO_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino
-      INSTALL_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino/install
-      OPENVINO_TOKENIZERS_REPO: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers
-      BUILD_DIR: /__w/openvino_tokenizers/openvino_tokenizers/openvino_tokenizers/build
+      OPENVINO_REPO: ${{ github.workspace }}/openvino
+      INSTALL_DIR: ${{ github.workspace }}/openvino/install
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
+      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
     steps:
       - name: Clone Openvino tokenizers
@@ -266,9 +268,8 @@ jobs:
         env:
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
 
-      - name: Tokenizers regression tests (using openvino python modules)
+      - name: Tokenizers regression tests (using openvino python wheels)
         run: |
-          source ${INSTALL_DIR}/setupvars.sh
           python3 -m pytest layer_tests.py
           python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
