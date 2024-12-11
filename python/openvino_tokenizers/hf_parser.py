@@ -834,10 +834,10 @@ def convert_sentencepiece_model_tokenizer(
     )
 
     if do_left_padding:
-        attention_mask = _get_factory().create(
+        attention_mask = _get_factory("opset1").create(
             "Reverse", [attention_mask, make_constant_node(np.array([-1]))], {"mode": "index"}
         )
-        scattered_input_ids = _get_factory().create(
+        scattered_input_ids = _get_factory("opset1").create(
             "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
         )
 
