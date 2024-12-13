@@ -21,12 +21,12 @@ def build_rwkv_tokenizer(
     tokenizer_output_type: Type = Type.i64,
     detokenizer_input_type: Type = Type.i64,
 ) -> Tuple[Model, Model]:
-    from openvino_tokenizers import _get_factory
+    from openvino_tokenizers import _get_factory, _get_opset_factory
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
 
-    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
     trie_node = TrieTokenizerStep.from_rwkv_vocab(rwkv_vocab)
     output = trie_node.get_ov_subgraph(TokenizerPipeline.add_ragged_dimension(output))
 
@@ -65,7 +65,7 @@ def build_rwkv_tokenizer(
     if clean_up_tokenization_spaces:
         RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer_output)
 
-    detokenizer_output = _get_factory().create("StringTensorPack", detokenizer_output).outputs()
+    detokenizer_output = _get_opset_factory("opset15").create("StringTensorPack", detokenizer_output).outputs()
     detokenizer_output[0].tensor.add_names({STRING_OUTPUT_NAME})
 
     detokenizer = Model(detokenizer_output, [detokenizer_input], DETOKENIZER_NAME)

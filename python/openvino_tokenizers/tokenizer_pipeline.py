@@ -14,12 +14,12 @@ from itertools import groupby, islice
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
-from openvino.runtime import Model, Output, PartialShape, Type, op, Shape
+from openvino.runtime import Model, Output, PartialShape, Type, op, Shape, Tensor
 from openvino.runtime import opset12 as opset
 from openvino.runtime.exceptions import OVTypeError, UserInputError
 from openvino.runtime.utils.types import as_node, make_constant_node
 
-from . import _get_factory
+from . import _get_factory, _get_opset_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
@@ -31,7 +31,6 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .str_pack import pack_string, pack_strings
 from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta
 
 
@@ -69,12 +68,12 @@ class BasePipelineStep:
     def create_string_constant_node(value: Union[str, Iterable[str]]) -> op.Constant:
         if isinstance(value, str):
             # string scalar
-            ps = pack_string(value)
-            return op.Constant(ps)
+            return op.Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8))
+            return op.Constant(Tensor(np.array(value)))
         else:
             # support only 1D strings for now
-            ps = pack_strings(value)
-            return _get_factory().create("StringTensorUnpack", op.Constant(ps).outputs())
+            ps = op.Constant(Tensor(list(value))).outputs()
+            return _get_opset_factory("opset15").create("StringTensorUnpack", ps)
 
     def finalize(self) -> None:
         """Called after the entire pipeline has been built"""
@@ -1201,7 +1200,7 @@ class TokenizerPipeline:
 
         processing_outputs = []
         for input_node in string_inputs:
-            input_node = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+            input_node = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
 
             ragged = []
             if isinstance(self.steps[0], SpecialTokensSplit):
@@ -1274,7 +1273,7 @@ class TokenizerPipeline:
             pipeline_step = step.get_ov_subgraph(input_nodes)
             input_nodes = pipeline_step
 
-        return _get_factory().create("StringTensorPack", input_nodes).outputs()
+        return _get_opset_factory("opset15").create("StringTensorPack", input_nodes).outputs()
 
     def get_detokenizer_ov_subgraph(self) -> Model:
         self.finalize()

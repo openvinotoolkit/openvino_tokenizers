@@ -40,22 +40,21 @@ void check_string_scalar_input(const Node* node, size_t input_index) {
     auto shape = node->get_input_partial_shape(input_index);
     auto element_type = node->get_input_element_type(input_index);
 
-    #if false && USE_STRING_TENSORS
     // This block is not used when we convert ops to decomposed representation (and we really do)
+    if (element_type == element::string) {
+        OPENVINO_ASSERT(
+            (element_type == element::dynamic || element_type == element::string) &&
+            (shape.rank().is_dynamic() || shape.rank().get_length() == 0),
+            "string/0D tensor is expected, but observed: ", element_type.get_type_name(), ", ", shape.to_string());
+    } else if (element_type == element::u8) {
+        OPENVINO_ASSERT(
+            (element_type == element::dynamic || element_type == element::u8) &&
+            (shape.rank().is_dynamic() || shape.rank().get_length() == 1),
+            "u8/1D tensor is expected, got element type ", element_type.to_string(), ", shape ", shape.to_string());
+    } else {
+        OPENVINO_THROW("Unsupported split pattern type: " + node->get_input_element_type(5).get_type_name());
+    }
 
-    OPENVINO_ASSERT(
-        (element_type == element::dynamic || element_type == element::string) &&
-        (shape.rank().is_dynamic() || shape.rank().get_length() == 0),
-        "string/0D tensor is expected, but observed: ", element_type.get_type_name(), ", ", shape.to_string());
-
-    #else
-
-    OPENVINO_ASSERT(
-        (element_type == element::dynamic || element_type == element::u8) &&
-        (shape.rank().is_dynamic() || shape.rank().get_length() == 1),
-        "u8/1D tensor is expected, got element type ", element_type.to_string(), ", shape ", shape.to_string());
-
-    #endif
 }
 
 void check_ragged_input(const Node* node, size_t input_index) {

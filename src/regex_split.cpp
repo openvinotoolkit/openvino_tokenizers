@@ -122,7 +122,21 @@ void RegexSplit::validate_and_infer_types() {
 }
 
 bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
+    auto input_size = get_input_size();
+    const bool has_skips = (input_size == 7);
+
+    auto r = inputs[5 + has_skips].get_element_type();
+    std::string split_pattern;
+    if (inputs[5 + has_skips].get_element_type() == element::u8) {
+        split_pattern = std::string(inputs[5 + has_skips].data<const char>(), inputs[5 + has_skips].get_size());
+    } else if (inputs[5 + has_skips].get_element_type() == element::string) {
+        split_pattern = *inputs[5 + has_skips].data<std::string>();
+    } else {
+        OPENVINO_THROW("Unsupported split pattern type: " + inputs[5 + has_skips].get_element_type().get_type_name());
+    }
+    auto pattern_size = inputs[5 + has_skips].get_size();
+    std::cout << "";
+    
     // Write to common trie structures should be protected to prevent race conditions.
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -138,7 +152,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         }
     };
 
-    auto input_size = get_input_size();
     {
         // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -169,7 +182,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
     bool * skips;
     bool init_skips = false;
-    const bool has_skips = (input_size == 7);
     if (has_skips) {
         skips = inputs[5].data<bool>();
         outputs[5].set_shape(Shape{num_chars});
