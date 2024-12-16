@@ -389,7 +389,7 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
-        
+
         if self.utf8_replace_mode is not None and (self.utf8_replace_mode != UTF8ReplaceMode.DISABLE):
             self.pipeline.add_steps(UTF8ValidateStep(mode=self.utf8_replace_mode))
 
@@ -444,16 +444,17 @@ def convert_fast_tokenizer(
     filtered_outputs = []
     for i, output_name in enumerate(ov_tokenizer_output_names):
         current_output = next(
-            (output for output in ov_tokenizer.outputs if output.any_name == output_name),
+            (output for output in ov_tokenizer.outputs if output_name in output.names),
             False,
         )
         if current_output:
             filtered_outputs.append(current_output)
+            filtered_outputs[-1].add_names({output_name})
             continue
 
         if output_name in output_names:
-            ov_tokenizer.output(i).tensor.add_names({output_name})
             filtered_outputs.append(ov_tokenizer.output(i))
+            filtered_outputs[-1].add_names({output_name})
 
     tokenizer_model = Model(filtered_outputs, ov_tokenizer.get_parameters(), TOKENIZER_NAME)
 
@@ -861,8 +862,8 @@ def convert_sentencepiece_model_tokenizer(
     outputs = scattered_input_ids.outputs()
 
     if add_attention_mask:
-        attention_mask.output(0).tensor.add_names({ATTENTION_MASK_INPUT_NAME})
         outputs.append(attention_mask.output(0))
+        outputs[-1].add_names({ATTENTION_MASK_INPUT_NAME})
 
     tokenizer = Model(outputs, [input_node], TOKENIZER_NAME)
     tokenizer.validate_nodes_and_infer_types()
@@ -980,7 +981,7 @@ def get_sp_detokenizer(
 
     if params.clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
-    
+
     last_sinks = detokenizer
     if params.utf8_replace_mode is not None and params.utf8_replace_mode != UTF8ReplaceMode.DISABLE:
         last_sinks = UTF8ValidateStep(params.utf8_replace_mode).get_ov_subgraph(detokenizer)

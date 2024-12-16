@@ -993,8 +993,8 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
                     0
                 )  # TODO: Change RaggedToDense to generate mask of any type
 
-        mask.tensor.add_names({ATTENTION_MASK_INPUT_NAME})
         outputs.append(mask)
+        outputs[-1].add_names({ATTENTION_MASK_INPUT_NAME})
 
         return outputs
 
@@ -1026,7 +1026,7 @@ class VocabDecoderStep(DecodingStep):
         else:
             vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
         input_nodes.extend(vocab_outputs)
-        
+
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
         # Slice through all skip tokens if flag is true, else slice to get an empty tensor.
         stop_const = op.Constant(Type.i32, Shape([1]), [np.iinfo(np.int32).max if self.do_skip_tokens else 0])
