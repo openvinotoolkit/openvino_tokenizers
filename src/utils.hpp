@@ -10,10 +10,6 @@
 #include <pcre2.h>
 #include "absl/strings/string_view.h"
 
-// #ifndef OPENVINO_ELEMENT_STRING_SUPPORTED
-//     #define OPENVINO_ELEMENT_STRING_SUPPORTED 0
-// #endif
-
 #define OPENVINO_ELEMENT_STRING_SUPPORTED 1
 
 #ifndef OPENVINO_USE_INPUT_OUTPUT_STRING_TENSOR_HACK

@@ -20,6 +20,7 @@ from openvino.runtime.exceptions import OVTypeError, UserInputError
 from openvino.runtime.utils.types import as_node, make_constant_node
 
 from . import _get_factory, _get_opset_factory
+
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
@@ -31,7 +32,7 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta, create_unpacked_string
 
 
 logger = logging.getLogger(__name__)
@@ -69,11 +70,14 @@ class BasePipelineStep:
         if isinstance(value, str):
             # string scalar
             return op.Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8))
-            return op.Constant(Tensor(np.array(value)))
-        else:
+            # return op.Constant(Tensor(np.array(value)))
+        elif isinstance(value, Iterable):
             # support only 1D strings for now
-            ps = op.Constant(Tensor(list(value))).outputs()
-            return _get_opset_factory("opset15").create("StringTensorUnpack", ps)
+            return create_unpacked_string(value)
+            # TODO: use direct creation of string constants when CVS- will be fixed.
+            # return _get_opset_factory("opset15").create("StringTensorUnpack", create_str_constant(value).outputs())
+        else:
+            raise ValueError(f"Unsupported value type {type(value)}")
 
     def finalize(self) -> None:
         """Called after the entire pipeline has been built"""

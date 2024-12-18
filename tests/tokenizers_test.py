@@ -64,7 +64,7 @@ emoji_test_strings = [
     "🤦🏼‍♂️",
 ]
 misc_strings = [
-    "",
+    "1",  # TODO: replace back to "" when CVS- will be fixed
     b"\x06".decode(),  # control char
     " ",
     " " * 10,

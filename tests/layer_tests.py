@@ -33,7 +33,6 @@ core = ov.Core()
 utf8_validate_strings = [
     # Valid sequences.
     b"Eng... test, string?!",
-    b"Eng... test, string?!",
     b"\xe2\x82\xac",  # Euro sign €ß
     "Проверка, как работает кириллица Љ љ Ђ ђ".encode(),
     "測試字符串".encode(),
