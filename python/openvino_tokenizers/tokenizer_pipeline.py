@@ -74,7 +74,7 @@ class BasePipelineStep:
         elif isinstance(value, Iterable):
             # support only 1D strings for now
             return create_unpacked_string(value)
-            # TODO: use direct creation of string constants when CVS- will be fixed.
+            # TODO: use direct creation of string constants when CVS-159581 will be fixed.
             # return _get_opset_factory("opset15").create("StringTensorUnpack", create_str_constant(value).outputs())
         else:
             raise ValueError(f"Unsupported value type {type(value)}")
