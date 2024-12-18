@@ -73,12 +73,6 @@ class BasePipelineStep:
         elif isinstance(value, Iterable):
             # support only 1D strings for now
             return create_unpacked_string(value)
-            
-            # TODO: use direct creation of string constants when CVS-159581 will be fixed.
-            values = [bytes(string, "utf-8") if isinstance(string, str) else string for string in value]
-            str_constant = op.Constant(Type.string, [len(values), values])
-            return _get_opset_factory("opset15").create("StringTensorUnpack", str_constant.outputs())
-
         else:
             raise ValueError(f"Unsupported value type {type(value)}")
 

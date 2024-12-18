@@ -10,13 +10,15 @@
 #include <pcre2.h>
 #include "absl/strings/string_view.h"
 
-#define OPENVINO_ELEMENT_STRING_SUPPORTED 1
+#ifndef OPENVINO_ELEMENT_STRING_SUPPORTED
+    #define OPENVINO_ELEMENT_STRING_SUPPORTED 0
+#endif
 
 #ifndef OPENVINO_USE_INPUT_OUTPUT_STRING_TENSOR_HACK
     #define OPENVINO_USE_INPUT_OUTPUT_STRING_TENSOR_HACK 0
 #endif
 
-#define USE_STRING_TENSORS 1    // modify this depending on willingness to use explicit string tensors
+#define USE_STRING_TENSORS 0    // modify this depending on willingness to use explicit string tensors
 
 #if USE_STRING_TENSORS && !OPENVINO_ELEMENT_STRING_SUPPORTED
     #error "USE_STRING_TENSORS = 1 can be used only when OpenVINO supports element::string that is determined by OPENVINO_ELEMENT_STRING_SUPPORTED == 1"

@@ -305,26 +305,24 @@ def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
     """
     Convert any list of strings to U8/1D numpy array with begins, ends, and chars
     """
-    strings = list(strings)
-    if len(strings) == 0:
-        return [Constant(Tensor(np.array([], dtype=np.uint8))).output(0)]
-
-    begins = []
-    ends = []
-    chars = bytearray()
+    buffer = BytesIO()
+    buffer.write(to_bytes(len(strings)))
+    begins = BytesIO()
+    ends = BytesIO()
+    chars = BytesIO()
     offset = 0
 
     for string in strings:
         byte_string = string.encode("utf-8") if isinstance(string, str) else string
         length = len(byte_string)
 
-        begins.append(offset)
+        begins.write(to_bytes(offset))
         offset += length
-        ends.append(offset)
-        chars.extend(byte_string)
+        ends.write(to_bytes(offset))
+        chars.write(byte_string)
 
-    begins = np.array(begins, dtype=np.int32)
-    ends = np.array(ends, dtype=np.int32)
-    chars = np.frombuffer(chars, dtype=np.uint8)
+    begins = np.frombuffer(begins.getvalue(), np.int32)
+    ends = np.frombuffer(ends.getvalue(), np.int32)
+    chars = np.frombuffer(chars.getvalue(), np.uint8)
     
     return [Constant(Tensor(x)).output(0) for x in [begins, ends, chars]]
