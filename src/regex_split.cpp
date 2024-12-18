@@ -135,7 +135,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         OPENVINO_THROW("Unsupported split pattern type: " + inputs[5 + has_skips].get_element_type().get_type_name());
     }
     auto pattern_size = inputs[5 + has_skips].get_size();
-    std::cout << "";
     
     // Write to common trie structures should be protected to prevent race conditions.
     {

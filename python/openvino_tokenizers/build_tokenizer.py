@@ -56,7 +56,7 @@ def build_rwkv_tokenizer(
         _get_factory()
         .create(
             "VocabDecoder",
-            [*detokenizer_input.outputs(), *BasePipelineStep.create_string_constant_node(trie_node.vocab).outputs()],
+            [*detokenizer_input.outputs(), *BasePipelineStep.create_string_constant_node(trie_node.vocab)],
         )
         .outputs()
     )

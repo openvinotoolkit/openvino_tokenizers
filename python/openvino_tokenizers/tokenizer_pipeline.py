@@ -66,16 +66,19 @@ class BasePipelineStep:
         raise NotImplementedError
 
     @staticmethod
-    def create_string_constant_node(value: Union[str, Iterable[str]]) -> op.Constant:
+    def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
         if isinstance(value, str):
             # string scalar
-            return op.Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8))
-            # return op.Constant(Tensor(np.array(value)))
+            return op.Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8)).outputs()
         elif isinstance(value, Iterable):
             # support only 1D strings for now
             return create_unpacked_string(value)
+            
             # TODO: use direct creation of string constants when CVS-159581 will be fixed.
-            # return _get_opset_factory("opset15").create("StringTensorUnpack", create_str_constant(value).outputs())
+            values = [bytes(string, "utf-8") if isinstance(string, str) else string for string in value]
+            str_constant = op.Constant(Type.string, [len(values), values])
+            return _get_opset_factory("opset15").create("StringTensorUnpack", str_constant.outputs())
+
         else:
             raise ValueError(f"Unsupported value type {type(value)}")
 
@@ -147,7 +150,7 @@ class SpecialTokensSplit(BasePipelineStep):
             return list(input_nodes)
 
         split_pattern = "|".join(token.regex_repr() for token in self.special_tokens)
-        input_nodes.extend(self.create_string_constant_node(split_pattern).outputs())
+        input_nodes.extend(self.create_string_constant_node(split_pattern))
 
         return _get_factory().create("SpecialTokensSplit", input_nodes).outputs()
 
@@ -236,10 +239,10 @@ class RegexNormalizationStep(NormalizationStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
-            (
-                self.create_string_constant_node(self.regex_search_pattern),
-                self.create_string_constant_node(self.replace_term),
-            )
+            [
+                *self.create_string_constant_node(self.regex_search_pattern),
+                *self.create_string_constant_node(self.replace_term),
+            ]
         )
         return (
             _get_factory().create("RegexNormalization", input_nodes, {"global_replace": self.global_replace}).outputs()
@@ -356,7 +359,7 @@ class RegexSplitStep(PreTokenizatinStep):
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(self.create_string_constant_node(self.split_pattern).outputs())
+        input_nodes.extend(self.create_string_constant_node(self.split_pattern))
         return (
             _get_factory()
             .create(
@@ -416,7 +419,7 @@ class VocabEncoderStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *self.create_string_constant_node(self.vocab),
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
                 make_constant_node(self.default_value, Type.i32),  # default_value
             )
@@ -461,7 +464,7 @@ class TrieTokenizerStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *self.create_string_constant_node(self.vocab),
                 make_constant_node(np.array(self.indices, dtype=np.int32), Type.i32),
             )
         )
@@ -497,7 +500,7 @@ class WordPieceTokenizationStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *self.create_string_constant_node(self.vocab),
                 *as_node(self.unk_token_id).outputs(),
             )
         )
@@ -629,10 +632,10 @@ class BPETokenizationStep(TokenizationModelStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
-        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
+        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
 
         if self.added_tokens:
-            special_tokens_outputs = self.create_string_constant_node(self.added_tokens).outputs()
+            special_tokens_outputs = self.create_string_constant_node(self.added_tokens)
         else:
             special_tokens_outputs = []
 
@@ -645,12 +648,12 @@ class BPETokenizationStep(TokenizationModelStep):
             left_merges, right_merges = zip(*self.merges)
             input_nodes.extend(
                 (
-                    *self.create_string_constant_node(left_merges).outputs(),
-                    *self.create_string_constant_node(right_merges).outputs(),
+                    *self.create_string_constant_node(left_merges),
+                    *self.create_string_constant_node(right_merges),
                 )
             )
         else:
-            input_nodes.extend(self.create_string_constant_node(self.merges).outputs())
+            input_nodes.extend(self.create_string_constant_node(self.merges))
 
         if special_tokens_outputs:
             input_nodes.extend(
@@ -1027,7 +1030,7 @@ class VocabDecoderStep(DecodingStep):
         if self.vocab is None:
             vocab_outputs = self.get_vocab_node_outputs()
         else:
-            vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
+            vocab_outputs = self.create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
         
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
@@ -1148,8 +1151,8 @@ class RegexDecodingStep(DecodingStep):
 
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.regex_search_pattern).outputs(),
-                *self.create_string_constant_node(self.replace_term).outputs(),
+                *self.create_string_constant_node(self.regex_search_pattern),
+                *self.create_string_constant_node(self.replace_term),
             )
         )
         return ragged_dims + _get_factory().create("RegexNormalization", input_nodes).outputs()
