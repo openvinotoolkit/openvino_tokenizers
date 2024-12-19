@@ -305,8 +305,6 @@ def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
     """
     Convert any list of strings to U8/1D numpy array with begins, ends, and chars
     """
-    buffer = BytesIO()
-    buffer.write(to_bytes(len(strings)))
     begins = BytesIO()
     ends = BytesIO()
     chars = BytesIO()
