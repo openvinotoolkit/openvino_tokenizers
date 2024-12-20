@@ -174,6 +174,7 @@ else()
 
     set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
     set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
+    set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
     FetchContent_Populate(sentencepiece)
     add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()

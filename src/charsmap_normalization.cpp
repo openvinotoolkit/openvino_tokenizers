@@ -4,19 +4,10 @@
 
 #include "charsmap_normalization.hpp"
 #include "utils.hpp"
-#include "sentencepiece_trainer.h"  // for making normalizer spec
+#include "builder.h"  // for making normalizer spec
 #include "absl/strings/str_format.h"
 
 using namespace ov;
-
-namespace {
-
-std::shared_ptr<sentencepiece::NormalizerSpec> make_normalization_spec(const std::string& normalization_form) {
-    auto spec = sentencepiece::SentencePieceTrainer::GetNormalizerSpec(normalization_form);
-    return std::make_shared<sentencepiece::NormalizerSpec>(spec);
-}
-
-}  // namespace
 
 
 void CharsMapNormalization::validate_and_infer_types() {
@@ -37,37 +28,50 @@ void CharsMapNormalization::validate_and_infer_types() {
     if (has_skips) {
         this->set_output_type(3, get_input_element_type(3),  get_input_partial_shape(3));
     };
-    std::cerr << "CharsMapNormalization validation done" << std::endl;
 }
 
 bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    std::cerr << "CharsMapNormalization evaluate" << std::endl;
     const bool has_skips = (inputs.size() == 5) || (m_normalization_form != "" && inputs.size() == 4);
-    std::cerr << "has_skips: " << has_skips << std::endl;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         if (m_normalizer == nullptr) {
-            std::cerr << "CharsMapNormalization creating normalizer" << std::endl;
-            auto normalization_form = m_normalization_form == "" ? "identity" : m_normalization_form;
-
-            std::cerr << "normalization_form: " << normalization_form << std::endl;
-
-            m_spec = make_normalization_spec(normalization_form);
+            m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(m_add_dummy_prefix);
             m_spec->set_escape_whitespaces(m_escape_whitespaces);
 
+            std::string precompiled_charsmap;
             if (m_normalization_form == "") {
-                std::cerr << "CharsMapNormalization setting precompiled_charsmap" << std::endl;
-                const std::string precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
-                m_spec->set_precompiled_charsmap(precompiled_charsmap);
+                precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
+            } else if (m_normalization_form == "nfc") {
+                sentencepiece::normalizer::Builder::CharsMap chars_map;
+                sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map);
+                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+            } else if (m_normalization_form == "nfd") {
+                sentencepiece::normalizer::Builder::CharsMap chars_map;
+                sentencepiece::normalizer::Builder::BuildNFDMap(&chars_map);
+                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+            } else if (m_normalization_form == "nfkc") {
+                sentencepiece::normalizer::Builder::CharsMap chars_map;
+                sentencepiece::normalizer::Builder::BuildNFKCMap(&chars_map);
+                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+            } else if (m_normalization_form == "nfkd") {
+                sentencepiece::normalizer::Builder::CharsMap chars_map;
+                sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
+                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+            } else {
+                OPENVINO_ASSERT(false, "Unsupported normalization form: " + m_normalization_form);
             };
+
+            std::cerr << "CharsMapNormalization: precompiled_charsmap.size() = " << precompiled_charsmap.size() << std::endl;
+            std::cerr << "CharsMapNormalization: precompiled_charsmap first 100 chars = " << precompiled_charsmap.substr(0, 100) << std::endl;
+
+            m_spec->set_precompiled_charsmap(precompiled_charsmap);
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
         }
     }
 
-    std::cerr << "CharsMapNormalization evaluating normalization" << std::endl;
     return evaluate_normalization_helper(
         outputs,
         inputs,
