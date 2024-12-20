@@ -57,12 +57,16 @@ def parse_normalization_test_line(line):
 
 
 @pytest.fixture(scope="session")
-def unicode_normalization_test_data(request):
+def icu_test_data(request):
+    return requests.get(UNICODE_TEST_FILE_URL).text
+
+
+@pytest.fixture(scope="session")
+def unicode_normalization_test_data(request, icu_test_data):
     # check https://www.unicode.org/Public/UCD/latest/ucd/NormalizationTest.txt for details
-    test_file = requests.get(UNICODE_TEST_FILE_URL).text
     return [
         parse_normalization_test_line(line)
-        for line in test_file.split("\n")
+        for line in icu_test_data.split("\n")
         if line and not line.startswith("#") and not line.startswith("@")
     ]
 
@@ -167,26 +171,41 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
 @pytest.mark.parametrize(
     "test_parameters",
     [
-        ("NFC", 19875, 90),
-        ("NFD", 19851, 114),
-        ("NFKC", 19777, 188),
-        ("NFKD", 19753, 212),
+        # results for sentencepiece charsmap:
+        ("NFC", 17325),  # failed examples: 2640
+        ("NFD", 17736),  # failed examples: 2229
+        ("NFKC", 17159),  # failed examples: 2806
+        ("NFKD", 17554),  # failed examples: 2411
+        # results for icu70:
+        # ("NFC", 19875),  # failed examples: 90
+        # ("NFD", 19851),  # failed examples: 114
+        # ("NFKC", 19777),  # failed examples: 188
+        # ("NFKD", 19753),  # failed examples: 212
+        # results for huggingface tokenizers:
+        # ("NFC", 19247),  # failed examples: 718
+        # ("NFD", 19220),  # failed examples: 745
+        # ("NFKC", 19077),  # failed examples: 888
+        # ("NFKD", 19050),  # failed examples: 915
     ]
 )
 def test_unicode_normalization_model(test_parameters, unicode_normalization_test_data):
-    normalization_type, positive_threshold, negative_threshold = test_parameters
-    nfc_normalizer_layer = NormalizeUnicode(normalization_type)
-    compiled_model = create_normalization_model(nfc_normalizer_layer)
-    negative = 0
-    positive = 0
+    normalization_type, positive_threshold = test_parameters
+    normalizer_layer = NormalizeUnicode(normalization_type)
+    compiled_model = create_normalization_model(normalizer_layer)
+    positive, negative, no_transformation = 0, 0, 0
     for test_input in unicode_normalization_test_data:
         res_ov = compiled_model([test_input.source])[0][0].encode()
         expected = getattr(test_input, normalization_type.lower()).encode()
         positive += res_ov == expected
         negative += res_ov != expected
+        no_transformation += test_input.source.encode() == expected
 
-    assert positive == positive_threshold
-    assert negative == negative_threshold
+    assert positive == positive_threshold, (
+        f"{normalization_type}\n"
+        f"Positive: {positive}, expected: {positive_threshold}\n"
+        f"Negative: {negative}, expected: {len(unicode_normalization_test_data) - positive_threshold}\n"
+        f"No transformation: {no_transformation}, positive delta: {positive - no_transformation}"
+    )
 
 
 @pytest.mark.parametrize(
