@@ -277,6 +277,7 @@ class TransformersTokenizerPipelineParser:
         "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
         "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
         "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
+        "ByteLevel": lambda *args: [],  # return no handle for ByteLevel
     }
 
     def post_tokenization(self) -> None:
@@ -316,7 +317,7 @@ class TransformersTokenizerPipelineParser:
                 post_processor_json, self.number_of_inputs, self.add_special_tokens
             )
 
-        self.num_of_added_tokens += combine_segments_step.number_of_added_tokens
+        self.num_of_added_tokens += getattr(combine_segments_step, "number_of_added_tokens", 0)
 
         self.add_truncation()
         self.pipeline.add_steps(combine_segments_step)
