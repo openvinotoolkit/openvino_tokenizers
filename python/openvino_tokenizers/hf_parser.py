@@ -277,7 +277,7 @@ class TransformersTokenizerPipelineParser:
         "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
         "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
         "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
-        "ByteLevel": lambda *args: [],  # return no handle for ByteLevel
+        "ByteLevel": lambda *args: [],  # return no handle for ByteLevel so add_steps skips it
     }
 
     def post_tokenization(self) -> None:
