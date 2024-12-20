@@ -214,7 +214,12 @@ def unicode_to_bytes() -> Dict[str, int]:
 
 def apply_unicode_to_bytes(token: str) -> str:
     bytes_encoder = unicode_to_bytes()
-    return bytes(bytes_encoder[char] for char in token)
+    try:
+        return bytes(bytes_encoder[char] for char in token)
+    except KeyError:
+        # tokens that was not bytes-to-chars encoded
+        # ModernBERT adds such tokens to the vocab directly, which is wrong, but we need to handle it
+        return token
 
 
 def get_hf_tokenizer_attribute(
