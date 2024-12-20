@@ -8,10 +8,7 @@ on:
       - master
       - 'releases/**'
 
-permissions:
-  actions: read
-  contents: read
-  security-events: write
+permissions: read-all
 
 concurrency:
   # github.ref is not unique in post-commit
@@ -29,6 +26,10 @@ jobs:
       run:
         shell: bash
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
