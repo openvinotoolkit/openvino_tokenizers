@@ -43,7 +43,7 @@ class UTF8ReplaceMode(Enum):
 
     def __str__(self):
         return self.value
-    
+
     def __eq__(self, other):
         if isinstance(other, (UTF8ReplaceMode)):
             # UTF8ReplaceMode is a singleton, so we can compare them by reference

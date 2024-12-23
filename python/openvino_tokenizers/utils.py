@@ -4,7 +4,7 @@
 
 import logging
 import re
-from dataclasses import dataclass, fields, field
+from dataclasses import dataclass, field, fields
 from functools import lru_cache
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
