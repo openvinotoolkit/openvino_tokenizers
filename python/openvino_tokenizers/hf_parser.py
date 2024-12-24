@@ -276,7 +276,6 @@ class TransformersTokenizerPipelineParser:
         "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
         "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
         "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
-        "ByteLevel": lambda *args: list(),  # return no handle for ByteLevel so add_steps skips it
     }
 
     def post_tokenization(self) -> None:
@@ -297,17 +296,22 @@ class TransformersTokenizerPipelineParser:
 
         if pt_type == "Sequence":
             processors = post_processor_json["processors"]
+            byte_level = next(
+                ([] for step in processors if (step["type"] == "ByteLevel")),
+                None,
+            )
             combine_segments_step = next(
                 (
-                    self.post_tokenization_map[step["type"]](step, self.number_of_inputs, self.add_special_tokens)
+                    step_class(step, self.number_of_inputs, self.add_special_tokens)
                     for step in processors
-                    if step["type"] in self.post_tokenization_map
+                    if (step_class := self.post_tokenization_map.get(step["type"]))
                 ),
                 None,
             )
+            combine_segments_step = combine_segments_step or byte_level
             if combine_segments_step is None:
                 raise OVTypeError(
-                    "Expected that Sequence post-tokenizer type contains one of supported post-tokenizers type:"
+                    "Expected that Sequence post-tokenizer type contains one of supported post-tokenizers type: "
                     f"{list(self.post_tokenization_map)}"
                 )
         else:
@@ -376,7 +380,9 @@ class TransformersTokenizerPipelineParser:
             return
 
         skip_tokens = parse_special_tokens(self.original_tokenizer)
-        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens))
+        self.pipeline.add_steps(
+            VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens)
+        )
 
         if self.tokenizer_json["decoder"]["type"] == "Sequence":
             for decoder_dict in self.tokenizer_json["decoder"]["decoders"]:
