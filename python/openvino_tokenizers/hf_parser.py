@@ -393,9 +393,7 @@ class TransformersTokenizerPipelineParser:
         if self.tokenizer_json["model"]["type"] == "WordLevel":
             self.pipeline.add_steps(
                 [
-                    VocabDecoderStep(
-                        vocab=[f" {token}" for token in self.pipeline.vocab]
-                    ),
+                    VocabDecoderStep(vocab=[f" {token}" for token in self.pipeline.vocab]),
                     FuseStep(),
                     RegexDecodingStep.strip_forward_space(),
                 ]
