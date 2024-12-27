@@ -274,15 +274,14 @@ class TransformersTokenizerPipelineParser:
     def tokenization_model(self) -> None:
         if self.tokenizer_json["model"]["type"] == "WordPiece":
             self.pipeline.add_steps(WordPieceTokenizationStep.from_hf_json(self.tokenizer_json))
-            self.pipeline.vocab = self.pipeline[-1].vocab
         elif self.tokenizer_json["model"]["type"] == "BPE":
             self.pipeline.add_steps(BPETokenizationStep.from_hf_json(self.tokenizer_json))
-            self.pipeline.vocab = self.pipeline[-1].vocab
         elif self.tokenizer_json["model"]["type"] == "WordLevel":
-            step = VocabEncoderStep.from_hf_json(self.tokenizer_json)
-            self.pipeline.add_steps(step)
+            self.pipeline.add_steps(VocabEncoderStep.from_hf_json(self.tokenizer_json))
         else:
             raise OVTypeError(f"Tokenizer type '{self.tokenizer_json['model']['type']}' is not supported")
+
+        self.pipeline.vocab = self.pipeline[-1].vocab
 
     post_tokenization_map: Dict[
         str,
@@ -391,7 +390,18 @@ class TransformersTokenizerPipelineParser:
     }
 
     def decoding(self) -> None:
-        if self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
+        if self.tokenizer_json["model"]["type"] == "WordLevel":
+            self.pipeline.add_steps(
+                [
+                    VocabDecoderStep(
+                        vocab=[f" {token}" for token in self.pipeline.vocab]
+                    ),
+                    FuseStep(),
+                    RegexDecodingStep.strip_forward_space(),
+                ]
+            )
+            return
+        elif self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
 
         skip_tokens = parse_special_tokens(self.original_tokenizer)

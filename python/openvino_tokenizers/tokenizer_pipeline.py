@@ -418,12 +418,15 @@ class VocabEncoderStep(TokenizationModelStep):
         return self.get_pipeline().vocab_node_outputs
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        pipeline = self.get_pipeline()
+        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
+
         ragged_dims, other_dims = [], input_nodes
         if len(input_nodes) > 4:
             ragged_dims, other_dims = input_nodes[:2], input_nodes[2:]
         other_dims.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *pipeline.vocab_node_outputs,
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
                 make_constant_node(self.default_value, Type.i32),  # default_value
             )
@@ -1025,7 +1028,7 @@ class VocabDecoderStep(DecodingStep):
         if pipeline is None and self.skip_tokens is None:
             self.skip_tokens = []
         elif self.skip_tokens is None:
-            self.skip_tokens = pipeline.skip_tokens
+            self.skip_tokens = pipeline.skip_tokens or []
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
         return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
