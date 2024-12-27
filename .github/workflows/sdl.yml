@@ -48,7 +48,16 @@ jobs:
       - name: Tokenizers Bandit tests
         run: |
           bandit -c pyproject.toml -r python
-
+          
+      - name: Setup trivy cache
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        with:
+          save-always: true
+          path: .cache/trivy/db
+          key: tivy-cache-${{ github.sha }}
+          restore-keys: |
+            tivy-cache
+  
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
         with:
