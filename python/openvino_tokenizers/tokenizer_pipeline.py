@@ -407,18 +407,28 @@ class VocabEncoderStep(TokenizationModelStep):
         if self.vocab_values is None:
             self.vocab_values = list(range(len(self.vocab)))
 
+    @classmethod
+    def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "VocabEncoderStep":
+        vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        unk_token = tokenizer_json["model"].get("unk_token")
+        unk_token_id = next((index for index, token in enumerate(vocab) if token == unk_token), -1)
+        return cls(vocab, default_value=unk_token_id)
+
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
         return self.get_pipeline().vocab_node_outputs
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(
+        ragged_dims, other_dims = [], input_nodes
+        if len(input_nodes) > 4:
+            ragged_dims, other_dims = input_nodes[:2], input_nodes[2:]
+        other_dims.extend(
             (
                 *self.create_string_constant_node(self.vocab).outputs(),
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
                 make_constant_node(self.default_value, Type.i32),  # default_value
             )
         )
-        return _get_factory().create("VocabEncoder", input_nodes).outputs()
+        return ragged_dims + _get_factory().create("VocabEncoder", other_dims).outputs()
 
 
 @dataclass
