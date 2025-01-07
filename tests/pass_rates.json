@@ -1,3 +1,5 @@
 {
-    "tests/tokenizers_test.py::test_": 0.9297414485305926
+    "tests/tokenizers_test.py::test_": 0.9297414485305926,
+    "tokenizers_test.py::test_": 0.9306500079076387,
+    "tokenizers_test.py::test_wordlevel_detokenizer": 0.984375
 }

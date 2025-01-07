@@ -229,6 +229,8 @@ text2image_prompts = [
         ),
         ("▁", ("▁",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
         ("No split pattern", ("No split pattern",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
+        ("split", tuple("split"), RegexSplitStep.split_by_chars()),
+        ("split by chars", tuple("split by chars"), RegexSplitStep.split_by_chars()),
     ],
 )
 def test_regex_split(test_string, expected, layer):
