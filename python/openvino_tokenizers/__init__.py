@@ -75,7 +75,7 @@ def _get_factory_callable() -> Callable[[], NodeFactory]:
 
     def inner(opset_version: Optional[str] = None) -> NodeFactory:
         nonlocal factory
-        if factory.get(opset_version, False) == False:
+        if opset_version not in factory:
             factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
 
         return factory[opset_version]

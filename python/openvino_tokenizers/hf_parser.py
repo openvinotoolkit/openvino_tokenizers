@@ -404,7 +404,7 @@ class TransformersTokenizerPipelineParser:
                     RegexDecodingStep.strip_forward_space(),
                 ]
             )
-            if self.clean_up_tokenization_spaces and self.pipeline.decoding_steps:
+            if self.clean_up_tokenization_spaces:
                 self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
             return
         elif self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
