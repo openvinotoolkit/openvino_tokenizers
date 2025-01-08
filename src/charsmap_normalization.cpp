@@ -38,34 +38,34 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
         if (m_normalizer == nullptr) {
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(m_add_dummy_prefix);
+            m_spec->set_remove_extra_whitespaces(m_remove_extra_whitespaces);
             m_spec->set_escape_whitespaces(m_escape_whitespaces);
 
-            std::string precompiled_charsmap;
-            if (m_normalization_form == "") {
-                precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
+            sentencepiece::normalizer::Builder::CharsMap chars_map;
+            if (m_normalization_form == "identity") {
+                // no need to modify chars_map
             } else if (m_normalization_form == "nfc") {
-                sentencepiece::normalizer::Builder::CharsMap chars_map;
                 sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map);
-                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
             } else if (m_normalization_form == "nfd") {
-                sentencepiece::normalizer::Builder::CharsMap chars_map;
                 sentencepiece::normalizer::Builder::BuildNFDMap(&chars_map);
-                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
             } else if (m_normalization_form == "nfkc") {
-                sentencepiece::normalizer::Builder::CharsMap chars_map;
                 sentencepiece::normalizer::Builder::BuildNFKCMap(&chars_map);
-                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
             } else if (m_normalization_form == "nfkd") {
-                sentencepiece::normalizer::Builder::CharsMap chars_map;
                 sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
-                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
             } else {
                 OPENVINO_ASSERT(false, "Unsupported normalization form: " + m_normalization_form);
             };
 
-            std::cerr << "CharsMapNormalization: precompiled_charsmap.size() = " << precompiled_charsmap.size() << std::endl;
-            std::cerr << "CharsMapNormalization: precompiled_charsmap first 100 chars = " << precompiled_charsmap.substr(0, 100) << std::endl;
+            if (m_case_fold) {
+                sentencepiece::normalizer::Builder::MergeUnicodeCaseFoldMap(&chars_map);
+            };
 
+            std::string precompiled_charsmap;
+            if (m_normalization_form == "") {
+                precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
+            } else {
+                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+            }
             m_spec->set_precompiled_charsmap(precompiled_charsmap);
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
