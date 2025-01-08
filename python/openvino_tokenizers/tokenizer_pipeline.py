@@ -155,25 +155,15 @@ class NormalizationStep(BasePipelineStep):
 
 
 @dataclass
-class _NormalizeUnicode(NormalizationStep):
-    normalization_form: str = "NFD"
-
-    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return (
-            _get_factory()
-            .create(
-                "NormalizeUnicode",
-                input_nodes,
-                {"normalization_form": self.normalization_form},
-            )
-            .outputs()
-        )
-    pass
-
-
-@dataclass
 class NormalizeUnicode(NormalizationStep):
     normalization_form: str = "NFD"
+
+    def __post_init__(self):
+        if self.normalization_form not in ["NFD", "NFC", "NFKD", "NFKC"]:
+            raise ValueError(
+                'NormalizeUnicode`normalization_form` attribute must be one of ["NFD", "NFC", "NFKD", "NFKC"], '
+                f'got {self.normalization_form}.'
+            )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         return (
@@ -181,7 +171,10 @@ class NormalizeUnicode(NormalizationStep):
             .create(
                 "CharsMapNormalization",
                 input_nodes,
-                {"normalization_form": self.normalization_form.lower()},
+                {
+                    "normalization_form": self.normalization_form.lower(),
+                    "remove_extra_whitespaces": False,
+                },
             )
             .outputs()
         )
@@ -199,7 +192,19 @@ class CaseFoldStep(NormalizationStep):
             )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return _get_factory().create("CaseFold", input_nodes, {"encoding": self.encoding}).outputs()
+        return (
+            _get_factory()
+            .create(
+                "CharsMapNormalization",
+                input_nodes,
+                {
+                    "normalization_form": "identity",
+                    "case_fold": True,
+                    "remove_extra_whitespaces": False,
+                },
+            )
+            .outputs()
+        )
 
 
 @dataclass
@@ -262,7 +267,17 @@ class RegexNormalizationStep(NormalizationStep):
 
 @dataclass
 class CharsmapStep(NormalizationStep):
-    charsmap: bytes
+    charsmap: Optional[bytes] = None
+    normalization_form: Optional[str] = None
+    add_dummy_prefix: bool = False
+    remove_extra_whitespaces: bool = True
+    escape_whitespaces: bool = False
+    case_fold: bool = False
+    nmt: bool = False
+
+    def __post_init__(self):
+        if self.charsmap is None and self.normalization_form is None:
+            raise ValueError("[ CharsmapStep ] `charsmap` or `normalization_form` attribute must be set")
 
     @classmethod
     def from_hf_step_json(cls, step_json: Dict[str, Any]) -> "CharsmapStep":
@@ -270,7 +285,18 @@ class CharsmapStep(NormalizationStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes += make_constant_node(np.frombuffer(self.charsmap, dtype=np.uint8), dtype=Type.u8).outputs()
-        return _get_factory().create("CharsMapNormalization", input_nodes).outputs()
+        return _get_factory().create(
+            "CharsMapNormalization",
+            input_nodes,
+            {
+                "normalization_form": self.normalization_form or "",
+                "add_dummy_prefix": self.add_dummy_prefix,
+                "remove_extra_whitespaces": self.remove_extra_whitespaces,
+                "escape_whitespaces": self.escape_whitespaces,
+                "case_fold": self.case_fold,
+                "nmt": self.nmt,
+            }
+        ).outputs()
 
 
 @dataclass

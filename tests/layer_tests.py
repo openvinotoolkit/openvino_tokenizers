@@ -12,6 +12,7 @@ from openvino.runtime import op
 from openvino_tokenizers import _get_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.tokenizer_pipeline import (
+    CaseFoldStep,
     CharsmapStep,
     DecodingStep,
     NormalizationStep,
@@ -206,6 +207,24 @@ def test_unicode_normalization_model(test_parameters, unicode_normalization_test
         f"Negative: {negative}, expected: {len(unicode_normalization_test_data) - positive_threshold}\n"
         f"No transformation: {no_transformation}, positive delta: {positive - no_transformation}"
     )
+
+
+
+@pytest.mark.parametrize(
+    "test_string, expected",
+    [
+        ("a", "a"),
+        ("A", "a"),
+        ("Ю", "ю"),
+        ("Σ", "σ"),
+        ("Hello World!", "hello world!"),
+    ]
+)
+def test_casefold_normalization(test_string, expected):
+    casefold = CaseFoldStep()
+    compiled_model = create_normalization_model(casefold)
+    res_ov = compiled_model([test_string])[0]
+    assert res_ov == expected
 
 
 @pytest.mark.parametrize(
