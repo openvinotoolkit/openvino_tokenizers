@@ -390,19 +390,26 @@ class TransformersTokenizerPipelineParser:
     }
 
     def decoding(self) -> None:
+        skip_tokens = parse_special_tokens(self.original_tokenizer)
+
         if self.tokenizer_json["model"]["type"] == "WordLevel":
             self.pipeline.add_steps(
                 [
-                    VocabDecoderStep(vocab=[f" {token}" for token in self.pipeline.vocab]),
+                    VocabDecoderStep(
+                        vocab=[f" {token}" for token in self.pipeline.vocab],
+                        skip_tokens=list(skip_tokens),
+                        do_skip_tokens=self.skip_special_tokens,
+                    ),
                     FuseStep(),
                     RegexDecodingStep.strip_forward_space(),
                 ]
             )
+            if self.clean_up_tokenization_spaces:
+                self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
             return
         elif self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
 
-        skip_tokens = parse_special_tokens(self.original_tokenizer)
         self.pipeline.add_steps(
             VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens)
         )

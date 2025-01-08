@@ -276,6 +276,10 @@ class RegexSplitStep(PreTokenizatinStep):
             )
 
     @classmethod
+    def split_by_chars(cls) -> "RegexSplitStep":
+        return cls(split_pattern=".", invert=False, behaviour="isolate")
+
+    @classmethod
     def bert_whitespace_splitter(cls) -> "RegexSplitStep":
         return cls(split_pattern=r"\s+", invert=False)
 
