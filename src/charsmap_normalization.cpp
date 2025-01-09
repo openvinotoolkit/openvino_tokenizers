@@ -42,7 +42,7 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
             m_spec->set_escape_whitespaces(m_escape_whitespaces);
 
             sentencepiece::normalizer::Builder::CharsMap chars_map;
-            if (m_normalization_form == "identity") {
+            if (m_normalization_form == "identity" || m_normalization_form == "") {
                 // no need to modify chars_map
             } else if (m_normalization_form == "nfc") {
                 sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map);
@@ -53,7 +53,7 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
             } else if (m_normalization_form == "nfkd") {
                 sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
             } else {
-                OPENVINO_ASSERT(false, "Unsupported normalization form: " + m_normalization_form);
+                OPENVINO_ASSERT(false, "Unsupported normalization form: `" + m_normalization_form + "`");
             };
 
             if (m_case_fold) {
