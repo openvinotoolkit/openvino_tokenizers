@@ -37,6 +37,8 @@ def build_coverege_report(session: pytest.Session) -> None:
             return "Tiktoken"
         if not pd.isnull(row["hf_tiktoken_tokenizers_with_padding_sides_param"]):
             return "Tiktoken"
+        if not pd.isnull(row["hf_wordlevel_tokenizers_param"]):
+            return "WordLevel"
 
     results_df = get_session_results_df(session)
     results_df["Tokenizer Type"] = results_df.apply(add_tokenizer_type, axis=1)
@@ -44,6 +46,7 @@ def build_coverege_report(session: pytest.Session) -> None:
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_bpe_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_sentencepiece_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_tiktoken_tokenizers_param, inplace=True)
+    results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_wordlevel_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(
         results_df.hf_wordpiece_tokenizers_with_padding_sides_param, inplace=True
     )
@@ -99,8 +102,6 @@ def build_coverege_report(session: pytest.Session) -> None:
         "\n### Recreating Tokenizers From Tests\n\n"
         "In some tokenizers, you need to select certain settings so that their output is closer "
         "to the Huggingface tokenizers:\n"
-        "- `THUDM/chatglm2-6b` detokenizer always skips special tokens. Use `skip_special_tokens=True` "
-        "during conversion\n"
         "- `THUDM/chatglm3-6b` detokenizer don't skips special tokens. Use `skip_special_tokens=False` "
         "during conversion\n"
         "- All tested tiktoken based detokenizers leave extra spaces. Use `clean_up_tokenization_spaces=False` "

@@ -138,6 +138,9 @@ tiktiken_models = [
     # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
     "THUDM/glm-4-9b-chat",
 ]
+wordlevel_models =[
+    "cisco-ai/mini-bart-g2p"
+]
 
 
 def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, use_sentencepiece_backend=False):
@@ -256,10 +259,6 @@ def hf_sentencepiece_tokenizers_with_padding_sides(
     ):
         pytest.skip("Unigram model supports only sentencepiece backend.")
 
-    if hf_tokenizer.pad_token is None:
-        hf_tokenizer.pad_token = hf_tokenizer.eos_token
-        hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or 0
-
     return hf_tokenizer
 
 
@@ -271,9 +270,6 @@ def hf_bpe_tokenizers(request):
 @pytest.fixture(scope="session", params=bpe_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_bpe_tokenizers_with_padding_sides(request, use_left_padding):
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding)
-    if hf_tokenizer.pad_token is None:
-        hf_tokenizer.pad_token = hf_tokenizer.eos_token
-        hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or 0
     return hf_tokenizer
 
 
@@ -285,10 +281,12 @@ def hf_tiktoken_tokenizers(request):
 @pytest.fixture(scope="session", params=tiktiken_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_tiktoken_tokenizers_with_padding_sides(request, use_left_padding):
     hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True, left_padding=use_left_padding)
-    if hf_tokenizer.pad_token is None:
-        hf_tokenizer.pad_token = hf_tokenizer.eos_token
-        hf_tokenizer.pad_token_id = hf_tokenizer.eos_token_id or getattr(hf_tokenizer, "eod_id") or 0
     return hf_tokenizer
+
+
+@pytest.fixture(scope="session", params=wordlevel_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def hf_wordlevel_tokenizers(request):
+    return get_hf_tokenizer(request)
 
 
 @pytest.fixture(scope="session")
@@ -413,6 +411,18 @@ def tiktoken_tokenizers_detokenizers(hf_tiktoken_tokenizers, do_skip_special_tok
     )
 
 
+@pytest.fixture(scope="session")
+def wordlevel_tokenizers(hf_wordlevel_tokenizers, do_add_special_tokens):
+    return get_tokenizer(hf_wordlevel_tokenizers, add_special_tokens=do_add_special_tokens)
+
+
+@pytest.fixture(scope="session")
+def wordlevel_tokenizers_detokenizers(hf_wordlevel_tokenizers, do_skip_special_tokens, do_clean_up_tokenization_spaces):
+    return get_tokenizer_detokenizer(
+        hf_wordlevel_tokenizers, skip_special_tokens=do_skip_special_tokens, clean_up_tokenization_spaces=do_clean_up_tokenization_spaces
+    )
+
+
 @pytest.fixture(
     scope="session", params=["openlm-research/open_llama_3b_v2"], ids=lambda checkpoint: checkpoint.split("/")[-1]
 )
@@ -472,7 +482,7 @@ def check_detokenizer_output(
     hf_tokenizer, _, ov_detokenizer = detokenizers
     hf_detokenizer_kwargs = {} if hf_detokenizer_kwargs is None else hf_detokenizer_kwargs
 
-    token_ids = hf_tokenizer(test_string, return_tensors="np").input_ids
+    token_ids = hf_tokenizer(test_string, return_tensors="np", padding=True).input_ids
     hf_output = hf_tokenizer.batch_decode(token_ids, **hf_detokenizer_kwargs)
     ov_output = ov_detokenizer(token_ids.astype("int32"))["string_output"].tolist()
 
@@ -783,6 +793,48 @@ def test_tiktoken_detokenizer(
     }
     check_detokenizer_output(
         tiktoken_tokenizers_detokenizers,
+        test_string=test_string,
+        hf_detokenizer_kwargs=hf_detokenizer_kwargs,
+    )
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [string.split() for string in (
+        *eng_test_strings,
+        *multilingual_test_strings,
+        *emoji_test_strings,
+        *misc_strings,
+    ) if string.split()],
+)
+def test_wordlevel_tokenizers(wordlevel_tokenizers, test_string, do_add_special_tokens):
+    hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens, "padding": True}
+    check_tokenizer_output(
+        wordlevel_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=True,
+        hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+        calculate_diff=True,
+    )
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [string.split() for string in (
+        *eng_test_strings,
+        *multilingual_test_strings,
+        *emoji_test_strings,
+        *misc_strings,
+    ) if string.split()],
+)
+def test_wordlevel_detokenizer(
+    wordlevel_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
+):
+    hf_detokenizer_kwargs = {
+        "skip_special_tokens": do_skip_special_tokens, "padding": True, "clean_up_tokenization_spaces": do_clean_up_tokenization_spaces
+    }
+    check_detokenizer_output(
+        wordlevel_tokenizers_detokenizers,
         test_string=test_string,
         hf_detokenizer_kwargs=hf_detokenizer_kwargs,
     )
