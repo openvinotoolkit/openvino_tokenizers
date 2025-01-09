@@ -293,6 +293,7 @@ def convert_hf_tokenizer() -> None:
         handle_special_tokens_with_re=args.handle_special_tokens_with_re,
         use_sentencepiece_backend=args.use_sentencepiece_backend,
         utf8_replace_mode=args.utf8_replace_mode,
+        max_length=args.max_length,
     )
     if not isinstance(converted, tuple):
         converted = (converted,)
