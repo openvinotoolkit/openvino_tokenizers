@@ -2,7 +2,7 @@ import json
 import re
 import tempfile
 from pathlib import Path
-from typing import Union, NamedTuple
+from typing import NamedTuple, Union
 
 import openvino as ov
 import pytest
@@ -16,12 +16,12 @@ from openvino_tokenizers.tokenizer_pipeline import (
     CharsmapStep,
     DecodingStep,
     NormalizationStep,
+    NormalizeUnicode,
     PreTokenizatinStep,
     RegexNormalizationStep,
     RegexSplitStep,
     TokenizerPipeline,
     UTF8ValidateStep,
-    NormalizeUnicode,
 )
 
 from tests.utils import get_hf_tokenizer
@@ -38,6 +38,7 @@ class NormalizationTestLine(NamedTuple):
     nfkc: str
     nfkd: str
     comment: str
+
 
 def parse_normalization_test_line(line):
     parts, comment = line.split("#", 1)
@@ -187,7 +188,7 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
         # ("NFD", 19220),  # failed examples: 745
         # ("NFKC", 19077),  # failed examples: 888
         # ("NFKD", 19050),  # failed examples: 915
-    ]
+    ],
 )
 def test_unicode_normalization_model(test_parameters, unicode_normalization_test_data):
     normalization_type, positive_threshold = test_parameters
@@ -209,7 +210,6 @@ def test_unicode_normalization_model(test_parameters, unicode_normalization_test
     )
 
 
-
 @pytest.mark.parametrize(
     "test_string, expected",
     [
@@ -218,7 +218,7 @@ def test_unicode_normalization_model(test_parameters, unicode_normalization_test
         ("Ю", "ю"),
         ("Σ", "σ"),
         ("Hello World!", "hello world!"),
-    ]
+    ],
 )
 def test_casefold_normalization(test_string, expected):
     casefold = CaseFoldStep()
@@ -263,9 +263,9 @@ def test_casefold_normalization(test_string, expected):
             RegexNormalizationStep(
                 regex_search_pattern=r"(^)(.+)",
                 replace_term=r"▁$2",
-            )
+            ),
         ),
-    ]
+    ],
 )
 def test_regex_normalization(test_string, expected, layer):
     compiled_model = create_normalization_model(layer)

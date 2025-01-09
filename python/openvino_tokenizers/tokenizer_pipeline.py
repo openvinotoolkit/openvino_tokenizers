@@ -161,8 +161,8 @@ class NormalizeUnicode(NormalizationStep):
     def __post_init__(self):
         if self.normalization_form not in ["NFD", "NFC", "NFKD", "NFKC"]:
             raise ValueError(
-                'NormalizeUnicode`normalization_form` attribute must be one of ["NFD", "NFC", "NFKD", "NFKC"], '
-                f'got {self.normalization_form}.'
+                '[ NormalizeUnicode ] `normalization_form` attribute must be one of ["NFD", "NFC", "NFKD", "NFKC"], '
+                f"got {self.normalization_form}."
             )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
@@ -285,18 +285,22 @@ class CharsmapStep(NormalizationStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes += make_constant_node(np.frombuffer(self.charsmap, dtype=np.uint8), dtype=Type.u8).outputs()
-        return _get_factory().create(
-            "CharsMapNormalization",
-            input_nodes,
-            {
-                "normalization_form": self.normalization_form or "",
-                "add_dummy_prefix": self.add_dummy_prefix,
-                "remove_extra_whitespaces": self.remove_extra_whitespaces,
-                "escape_whitespaces": self.escape_whitespaces,
-                "case_fold": self.case_fold,
-                "nmt": self.nmt,
-            }
-        ).outputs()
+        return (
+            _get_factory()
+            .create(
+                "CharsMapNormalization",
+                input_nodes,
+                {
+                    "normalization_form": self.normalization_form or "",
+                    "add_dummy_prefix": self.add_dummy_prefix,
+                    "remove_extra_whitespaces": self.remove_extra_whitespaces,
+                    "escape_whitespaces": self.escape_whitespaces,
+                    "case_fold": self.case_fold,
+                    "nmt": self.nmt,
+                },
+            )
+            .outputs()
+        )
 
 
 @dataclass
