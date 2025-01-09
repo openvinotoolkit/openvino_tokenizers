@@ -175,8 +175,8 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
         # results for sentencepiece charsmap:
         ("NFC", 17325),  # failed examples: 2640
         ("NFD", 17736),  # failed examples: 2229
-        ("NFKC", 17159),  # failed examples: 2806
-        ("NFKD", 17554),  # failed examples: 2411
+        ("NFKC", 17224),  # failed examples: 2741
+        ("NFKD", 17619),  # failed examples: 2346
         # results for icu70:
         # ("NFC", 19875),  # failed examples: 90
         # ("NFD", 19851),  # failed examples: 114
