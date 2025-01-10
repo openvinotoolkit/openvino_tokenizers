@@ -124,8 +124,6 @@ sentencepiece_models = [
     "xlm-roberta-base",
     "microsoft/deberta-v3-base",
     "xlnet-base-cased",
-    # "THUDM/chatglm-6b",  # hf_tokenizer init error
-    # "THUDM/chatglm2-6b",  # _pad doesn't support padding side - broke in 4.45
     # "THUDM/chatglm3-6b",  # _pad doesn't support padding side - broke in 4.45
     "t5-base",
     "facebook/musicgen-small",
