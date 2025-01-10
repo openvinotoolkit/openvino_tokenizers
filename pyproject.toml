@@ -39,7 +39,6 @@ dependencies = [
 [project.optional-dependencies]
 transformers = [
     "transformers[sentencepiece] >= 4.36.0",
-    "jinja2",  # has to be installed for sentencepiece-based transformers tokenizers to work
     "tiktoken"
 ]
 dev = [
@@ -48,6 +47,7 @@ dev = [
     "pytest",
     "pytest_harvest",
     "pandas",
+    "jinja2",
     "openvino_tokenizers[transformers]"
 ]
 benchmark = [
