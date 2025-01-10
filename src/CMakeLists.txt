@@ -56,9 +56,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
 get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
 include(CMakeDependentOption)
-if("_GLIBCXX_USE_CXX11_ABI=0" IN_LIST OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
-  set(USE_ABI0 ON CACHE BOOL "Set -D_GLIBCXX_USE_CXX11_ABI to 0 for fast_tokenizers")
-endif()
 
 #
 # Compile flags
@@ -97,44 +94,35 @@ endif()
 
 include(FetchContent)
 
-if(NOT USE_ABI0)
-  # for ABI=0 case, we have to build from sources
-  find_package(sentencepiece QUIET)
+FetchContent_Declare(
+sentencepiece
+URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
+URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
+)
+FetchContent_GetProperties(sentencepiece)
+if(NOT sentencepiece_POPULATED)
+if(DEFINED ENV{CONDA_BUILD_SYSROOT})
+    set(openvino_installed_from_conda ON)
+    # OpenVINO conda package dynamically linked with external protobuf,
+    # and we need to link sentencepiece with external protobuf too.
+    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+    set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
+endif()
+if(openvino_installed_from_conda AND NOT WIN32)
+    set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
+    set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
+    set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
+else()
+    set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
+    set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
+    set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
 endif()
 
-if(sentencepiece_FOUND)
-  find_package(absl REQUIRED)
-else()
-  FetchContent_Declare(
-    sentencepiece
-    URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
-    URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
-  )
-  FetchContent_GetProperties(sentencepiece)
-  if(NOT sentencepiece_POPULATED)
-    if(DEFINED ENV{CONDA_BUILD_SYSROOT})
-        set(openvino_installed_from_conda ON)
-        # OpenVINO conda package dynamically linked with external protobuf,
-        # and we need to link sentencepiece with external protobuf too.
-        set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
-        set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
-    endif()
-    if(openvino_installed_from_conda AND NOT WIN32)
-        set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
-        set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
-        set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
-    else()
-        set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
-        set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-        set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
-    endif()
-
-    set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
-    set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
-    set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
-    FetchContent_Populate(sentencepiece)
-    add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
-  endif()
+set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
+set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
+set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
+FetchContent_Populate(sentencepiece)
+add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
