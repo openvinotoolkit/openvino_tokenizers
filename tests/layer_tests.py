@@ -211,17 +211,22 @@ def test_unicode_normalization_model(test_parameters, unicode_normalization_test
 
 
 @pytest.mark.parametrize(
-    "test_string, expected",
+    "test_string, expected, is_uft8",
     [
-        ("a", "a"),
-        ("A", "a"),
-        ("Ю", "ю"),
-        ("Σ", "σ"),
-        ("Hello World!", "hello world!"),
+        ("a", "a", True),
+        ("a", "a", False),
+        ("A", "a", True),
+        ("A", "a", False),
+        ("Ю", "ю", True),
+        ("Ю", "Ю", False),
+        ("Σ", "σ", True),
+        ("Σ", "Σ", False),
+        ("Hello World!", "hello world!", True),
+        ("Hello World!", "hello world!", False),
     ],
 )
-def test_casefold_normalization(test_string, expected):
-    casefold = CaseFoldStep()
+def test_casefold_normalization(test_string, expected, is_uft8):
+    casefold = CaseFoldStep("utf-8" if is_uft8 else "")
     compiled_model = create_normalization_model(casefold)
     res_ov = compiled_model([test_string])[0]
     assert res_ov == expected

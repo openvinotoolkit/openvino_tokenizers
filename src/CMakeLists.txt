@@ -82,7 +82,7 @@ else()
   endif()
 endif()
 
-cmake_dependent_option(ENABLE_FAST_TOKENIZERS "Enables Fast Tokenizers usage in OpenVINO Tokenizers" ON "FAST_TOKENIZERS_SUPPORTED" OFF)
+cmake_dependent_option(ENABLE_FAST_TOKENIZERS "Enables Fast Tokenizers usage in OpenVINO Tokenizers" OFF "FAST_TOKENIZERS_SUPPORTED" OFF)
 
 if(ENABLE_FAST_TOKENIZERS)
   # The option is forced to ON if _GLIBCXX_USE_CXX11_ABI=0 or on Android (where prebuilt version is not available)
