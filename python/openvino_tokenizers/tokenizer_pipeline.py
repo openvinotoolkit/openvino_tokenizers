@@ -192,19 +192,22 @@ class CaseFoldStep(NormalizationStep):
             )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return (
-            _get_factory()
-            .create(
-                "CharsMapNormalization",
-                input_nodes,
-                {
-                    "normalization_form": "identity",
-                    "case_fold": True,
-                    "remove_extra_whitespaces": False,
-                },
+        if self.encoding == "":
+            return _get_factory().create("CaseFold", input_nodes, {"encoding": self.encoding}).outputs()
+        else:
+            return (
+                _get_factory()
+                .create(
+                    "CharsMapNormalization",
+                    input_nodes,
+                    {
+                        "normalization_form": "identity",
+                        "case_fold": True,
+                        "remove_extra_whitespaces": False,
+                    },
+                )
+                .outputs()
             )
-            .outputs()
-        )
 
 
 @dataclass

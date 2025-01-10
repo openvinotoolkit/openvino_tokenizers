@@ -2,12 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#ifdef ENABLE_FAST_TOKENIZERS
-
 #include "case_fold.hpp"
 #include "utils.hpp"
-
-#include "fast_tokenizer/normalizers/normalizers.h"
+#include "builder.h"  // for making normalizer spec
 
 using namespace ov;
 
@@ -31,6 +28,24 @@ void CaseFold::validate_and_infer_types() {
 bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 4);
 
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        if (m_normalizer == nullptr && m_encoding == "utf-8") {
+            m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
+            m_spec->set_add_dummy_prefix(false);
+            m_spec->set_remove_extra_whitespaces(true);
+            m_spec->set_escape_whitespaces(false);
+
+            sentencepiece::normalizer::Builder::CharsMap chars_map;
+            sentencepiece::normalizer::Builder::MergeUnicodeCaseFoldMap(&chars_map);
+            std::string precompiled_charsmap;
+            sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+
+            m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
+        }
+    }
     if (m_encoding.empty()) {
         return evaluate_normalization_helper(
             outputs, inputs,
@@ -45,12 +60,9 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
         return evaluate_normalization_helper(
             outputs,
             inputs,
-            [](const std::string& str) {
-                using namespace paddlenlp::fast_tokenizer;
-                return normalizers::NormalizedString(str).Lowercase().GetStr();
+            [&](const std::string& str) {
+                return m_normalizer->Normalize(str);
             },
             has_skips);
         }
 }
-
-#endif // ENABLE_FAST_TOKENIZERS
