@@ -47,10 +47,9 @@ jobs:
         revision: 'latest_available_commit'
 
   openvino_tokenizers_cpack:
-    name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
+    name: OpenVINO tokenizers cpack (BUILD_TYPE=${{ matrix.build_type }})
     strategy:
       matrix:
-        build_fast_tokenizers: [ON]
         build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download ]
     if: |
@@ -115,8 +114,7 @@ jobs:
         shell: pwsh
         run: |
           ${{ env.OV_INSTALL_DIR }}/setupvars.ps1
-          cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" `
-                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
         env:
@@ -149,7 +147,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
-          name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
+          name: openvino_tokenizers_cpack_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.zip
           if-no-files-found: 'error'
 
