@@ -63,10 +63,9 @@ jobs:
 
 
   openvino_tokenizers_cpack:
-    name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
+    name: OpenVINO tokenizers cpack, BUILD_TYPE=${{ matrix.build_type }})
     strategy:
       matrix:
-        build_fast_tokenizers: [ON]
         build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download ]
     if: |
@@ -111,8 +110,7 @@ jobs:
         run: |
           apt-get update && apt install -y libicu-dev
           source ${INSTALL_DIR}/setupvars.sh
-          cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
                 -B ${{ env.BUILD_DIR }}
 
@@ -139,15 +137,13 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
-          name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
+          name: openvino_tokenizers_cpack_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.tar.gz
           if-no-files-found: 'error'
 
   openvino_tokenizers_wheel:
-    name: OpenVINO tokenizers extension (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
-    strategy:
-      matrix:
-        build_fast_tokenizers: [ON, OFF]
+    name: OpenVINO tokenizers extension wheel
+
     needs: [ openvino_download ]
     if: |
       always() &&
@@ -190,7 +186,6 @@ jobs:
           apt-get update && apt install -y libicu-dev
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
-              --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
               ${{ needs.openvino_download.outputs.ov_wheel_source }} \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
@@ -206,15 +201,12 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
-          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
+          name: openvino_tokenizers_wheel
           path: ${{ env.BUILD_DIR }}/*.whl
           if-no-files-found: 'error'
 
   openvino_tokenizers_tests:
-    name: OpenVINO tokenizers tests (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
-    strategy:
-      matrix:
-        build_fast_tokenizers: [ON, OFF]
+    name: OpenVINO tokenizers tests
     needs: [ openvino_download, openvino_tokenizers_wheel]
     if: always() && needs.openvino_tokenizers_wheel.result == 'success'
     timeout-minutes: 45
@@ -244,7 +236,7 @@ jobs:
       - name: Download tokenizers package
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
+          name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
 
       - name: Download OpenVINO package
