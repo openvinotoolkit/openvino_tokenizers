@@ -24,8 +24,6 @@ if(POLICY CMP0169)
   cmake_policy(SET CMP0169 OLD)
 endif()
 
-option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
-
 function(ov_tokenizers_set_flags flags replace_value replace_pattern)
   foreach(flag ${flags})
     if(${flag} MATCHES "${replace_pattern}")
@@ -96,7 +94,10 @@ endif()
 
 include(FetchContent)
 
-if (ENABLE_SYSTEM_ICU)
+option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
+
+# There are no prebuilt ICU packages for macOS and Linux arm64
+if (ENABLE_SYSTEM_ICU OR APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")
   message(STATUS "Using system-installed ICU.")
 else()
   if(UNIX)
@@ -113,9 +114,8 @@ else()
     )
   endif()
   FetchContent_MakeAvailable(ICU)
-  set(ICU_DIR "${CMAKE_BINARY_DIR}/_deps/icu-src/usr/local")
-  list(PREPEND CMAKE_PREFIX_PATH "${ICU_DIR}")
-  message(STATUS "Using prebuilt ICU from ${ICU_DIR}.")
+  set(ICU_ROOT "${CMAKE_BINARY_DIR}/_deps/icu-src/usr/local")
+  message(STATUS "Using prebuilt ICU from ${ICU_ROOT}.")
 endif()
 
 FetchContent_Declare(
