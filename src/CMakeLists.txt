@@ -24,6 +24,8 @@ if(POLICY CMP0169)
   cmake_policy(SET CMP0169 OLD)
 endif()
 
+option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
+
 function(ov_tokenizers_set_flags flags replace_value replace_pattern)
   foreach(flag ${flags})
     if(${flag} MATCHES "${replace_pattern}")
@@ -94,10 +96,32 @@ endif()
 
 include(FetchContent)
 
+if (ENABLE_SYSTEM_ICU)
+  message(STATUS "Using system-installed ICU.")
+else()
+  if(UNIX)
+    FetchContent_Declare(
+      ICU
+      URL https://github.com/unicode-org/icu/releases/download/release-70-1/icu4c-70_1-Ubuntu-20.04-x64.tgz
+      URL_HASH SHA256=a8134e9f8a68d33600749601e143e553b5cb48c217c8941dbb9ef478fac420dd
+    )
+  elseif(WIN32)
+    FetchContent_Declare(
+      ICU
+      URL https://github.com/unicode-org/icu/releases/download/release-70-1/icu4c-70_1-Win64-MSVC2019.zip
+      URL_HASH SHA256=af6b585e49d90d39ae9d3fe298b7f56983931706a5e49d4bce675c6a499124e5
+    )
+  endif()
+  FetchContent_MakeAvailable(ICU)
+  set(ICU_DIR "${CMAKE_BINARY_DIR}/_deps/icu-src/usr/local")
+  list(PREPEND CMAKE_PREFIX_PATH "${ICU_DIR}")
+  message(STATUS "Using prebuilt ICU from ${ICU_DIR}.")
+endif()
+
 FetchContent_Declare(
-sentencepiece
-URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
-URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
+  sentencepiece
+  URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
+  URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
