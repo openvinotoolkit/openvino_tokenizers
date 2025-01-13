@@ -212,7 +212,7 @@ text2image_prompts = [
     [
         ("Hello world!", ("Hello", "world", "!"), RegexSplitStep.whitespace_splitter()),
         ("Hello     world!", ("Hello", "world!"), RegexSplitStep.bert_whitespace_splitter()),
-        # ("", ("",), RegexSplitStep.whitespace_splitter()),  # TODO: CVS-159636
+        ("", ("",), RegexSplitStep.whitespace_splitter()),
         *[(prompt, tuple(re_clip_splitter.findall(prompt)), clip_splitter) for prompt in text2image_prompts],
         (
             "▁one▁two▁three▁",
