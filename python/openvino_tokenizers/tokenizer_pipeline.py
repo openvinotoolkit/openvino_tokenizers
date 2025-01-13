@@ -14,7 +14,7 @@ from itertools import groupby, islice
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
-from openvino.runtime import Model, Output, PartialShape, Type, op, Shape, Tensor
+from openvino.runtime import Model, Output, PartialShape, Shape, Type, op, Tensor
 from openvino.runtime import opset12 as opset
 from openvino.runtime.exceptions import OVTypeError, UserInputError
 from openvino.runtime.utils.types import as_node, make_constant_node
@@ -276,6 +276,10 @@ class RegexSplitStep(PreTokenizatinStep):
             )
 
     @classmethod
+    def split_by_chars(cls) -> "RegexSplitStep":
+        return cls(split_pattern=".", invert=False, behaviour="isolate")
+
+    @classmethod
     def bert_whitespace_splitter(cls) -> "RegexSplitStep":
         return cls(split_pattern=r"\s+", invert=False)
 
@@ -407,18 +411,31 @@ class VocabEncoderStep(TokenizationModelStep):
         if self.vocab_values is None:
             self.vocab_values = list(range(len(self.vocab)))
 
+    @classmethod
+    def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "VocabEncoderStep":
+        vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        unk_token = tokenizer_json["model"].get("unk_token")
+        unk_token_id = next((index for index, token in enumerate(vocab) if token == unk_token), -1)
+        return cls(vocab, default_value=unk_token_id)
+
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
         return self.get_pipeline().vocab_node_outputs
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(
+        pipeline = self.get_pipeline()
+        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
+
+        ragged_dims, other_dims = [], input_nodes
+        if len(input_nodes) > 4:
+            ragged_dims, other_dims = input_nodes[:2], input_nodes[2:]
+        other_dims.extend(
             (
-                *self.create_string_constant_node(self.vocab),
+                *pipeline.vocab_node_outputs,
                 make_constant_node(np.array(self.vocab_values, dtype=np.int32), Type.i32),
                 make_constant_node(self.default_value, Type.i32),  # default_value
             )
         )
-        return _get_factory().create("VocabEncoder", input_nodes).outputs()
+        return ragged_dims + _get_factory().create("VocabEncoder", other_dims).outputs()
 
 
 @dataclass
@@ -993,8 +1010,8 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
                     0
                 )  # TODO: Change RaggedToDense to generate mask of any type
 
-        mask.tensor.add_names({ATTENTION_MASK_INPUT_NAME})
         outputs.append(mask)
+        outputs[-1].add_names({ATTENTION_MASK_INPUT_NAME})
 
         return outputs
 
@@ -1015,7 +1032,7 @@ class VocabDecoderStep(DecodingStep):
         if pipeline is None and self.skip_tokens is None:
             self.skip_tokens = []
         elif self.skip_tokens is None:
-            self.skip_tokens = pipeline.skip_tokens
+            self.skip_tokens = pipeline.skip_tokens or []
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
         return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
@@ -1026,7 +1043,7 @@ class VocabDecoderStep(DecodingStep):
         else:
             vocab_outputs = self.create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
-        
+
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
         # Slice through all skip tokens if flag is true, else slice to get an empty tensor.
         stop_const = op.Constant(Type.i32, Shape([1]), [np.iinfo(np.int32).max if self.do_skip_tokens else 0])

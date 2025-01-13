@@ -55,6 +55,7 @@ from .tokenizer_pipeline import (
     TruncationStep,
     UTF8ValidateStep,
     VocabDecoderStep,
+    VocabEncoderStep,
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
@@ -93,7 +94,18 @@ def parse_bert_normalizer(normalizer_dict: Dict[str, Any]) -> List[Normalization
 
 
 def parse_split_step(pretokenizer_dict: Dict[str, Any]) -> RegexSplitStep:
-    split_pattern = pretokenizer_dict["pattern"].get("String") or pretokenizer_dict["pattern"]["Regex"]
+    split_pattern = pretokenizer_dict["pattern"].get("String")
+    if split_pattern is None:
+        split_pattern = pretokenizer_dict["pattern"]["Regex"]
+
+    # empty pattern splits string by characters
+    if split_pattern == "":
+        return RegexSplitStep(
+            split_pattern=".",
+            invert=False,
+            behaviour="isolate",
+        )
+
     return RegexSplitStep(
         split_pattern=split_pattern,
         invert=pretokenizer_dict["invert"],
@@ -246,8 +258,8 @@ class TransformersTokenizerPipelineParser:
     def parse_pre_tokenization_step(self, step_dict: Dict[str, Any]) -> None:
         try:
             self.pipeline.add_steps(self.pre_tokenization_map[step_dict["type"]](step_dict))
-        except KeyError:
-            raise OVTypeError(f"Pre-tokenizer type '{step_dict['type']}' is not supported")
+        except KeyError as error:
+            raise OVTypeError(f"Pre-tokenizer type '{step_dict['type']}' is not supported: {error}")
 
     def pre_tokenization(self) -> None:
         if self.tokenizer_json["pre_tokenizer"] is None:
@@ -262,12 +274,14 @@ class TransformersTokenizerPipelineParser:
     def tokenization_model(self) -> None:
         if self.tokenizer_json["model"]["type"] == "WordPiece":
             self.pipeline.add_steps(WordPieceTokenizationStep.from_hf_json(self.tokenizer_json))
-            self.pipeline.vocab = self.pipeline[-1].vocab
         elif self.tokenizer_json["model"]["type"] == "BPE":
             self.pipeline.add_steps(BPETokenizationStep.from_hf_json(self.tokenizer_json))
-            self.pipeline.vocab = self.pipeline[-1].vocab
+        elif self.tokenizer_json["model"]["type"] == "WordLevel":
+            self.pipeline.add_steps(VocabEncoderStep.from_hf_json(self.tokenizer_json))
         else:
             raise OVTypeError(f"Tokenizer type '{self.tokenizer_json['model']['type']}' is not supported")
+
+        self.pipeline.vocab = self.pipeline[-1].vocab
 
     post_tokenization_map: Dict[
         str,
@@ -296,17 +310,22 @@ class TransformersTokenizerPipelineParser:
 
         if pt_type == "Sequence":
             processors = post_processor_json["processors"]
+            byte_level = next(
+                ([] for step in processors if (step["type"] == "ByteLevel")),
+                None,
+            )
             combine_segments_step = next(
                 (
-                    self.post_tokenization_map[step["type"]](step, self.number_of_inputs, self.add_special_tokens)
+                    step_class(step, self.number_of_inputs, self.add_special_tokens)
                     for step in processors
-                    if step["type"] in self.post_tokenization_map
+                    if (step_class := self.post_tokenization_map.get(step["type"]))
                 ),
                 None,
             )
+            combine_segments_step = combine_segments_step or byte_level
             if combine_segments_step is None:
                 raise OVTypeError(
-                    "Expected that Sequence post-tokenizer type contains one of supported post-tokenizers type:"
+                    "Expected that Sequence post-tokenizer type contains one of supported post-tokenizers type: "
                     f"{list(self.post_tokenization_map)}"
                 )
         else:
@@ -315,7 +334,7 @@ class TransformersTokenizerPipelineParser:
                 post_processor_json, self.number_of_inputs, self.add_special_tokens
             )
 
-        self.num_of_added_tokens += combine_segments_step.number_of_added_tokens
+        self.num_of_added_tokens += getattr(combine_segments_step, "number_of_added_tokens", 0)
 
         self.add_truncation()
         self.pipeline.add_steps(combine_segments_step)
@@ -371,11 +390,29 @@ class TransformersTokenizerPipelineParser:
     }
 
     def decoding(self) -> None:
-        if self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
+        skip_tokens = parse_special_tokens(self.original_tokenizer)
+
+        if self.tokenizer_json["model"]["type"] == "WordLevel":
+            self.pipeline.add_steps(
+                [
+                    VocabDecoderStep(
+                        vocab=[f" {token}" for token in self.pipeline.vocab],
+                        skip_tokens=list(skip_tokens),
+                        do_skip_tokens=self.skip_special_tokens,
+                    ),
+                    FuseStep(),
+                    RegexDecodingStep.strip_forward_space(),
+                ]
+            )
+            if self.clean_up_tokenization_spaces:
+                self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
+            return
+        elif self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
             return
 
-        skip_tokens = parse_special_tokens(self.original_tokenizer)
-        self.pipeline.add_steps(VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens))
+        self.pipeline.add_steps(
+            VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens)
+        )
 
         if self.tokenizer_json["decoder"]["type"] == "Sequence":
             for decoder_dict in self.tokenizer_json["decoder"]["decoders"]:
@@ -389,7 +426,7 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
-        
+
         if self.utf8_replace_mode is not None and (self.utf8_replace_mode != UTF8ReplaceMode.DISABLE):
             self.pipeline.add_steps(UTF8ValidateStep(mode=self.utf8_replace_mode))
 
@@ -444,16 +481,17 @@ def convert_fast_tokenizer(
     filtered_outputs = []
     for i, output_name in enumerate(ov_tokenizer_output_names):
         current_output = next(
-            (output for output in ov_tokenizer.outputs if output.any_name == output_name),
+            (output for output in ov_tokenizer.outputs if output_name in output.names),
             False,
         )
         if current_output:
             filtered_outputs.append(current_output)
+            filtered_outputs[-1].add_names({output_name})
             continue
 
         if output_name in output_names:
-            ov_tokenizer.output(i).tensor.add_names({output_name})
             filtered_outputs.append(ov_tokenizer.output(i))
+            filtered_outputs[-1].add_names({output_name})
 
     tokenizer_model = Model(filtered_outputs, ov_tokenizer.get_parameters(), TOKENIZER_NAME)
 
@@ -861,8 +899,8 @@ def convert_sentencepiece_model_tokenizer(
     outputs = scattered_input_ids.outputs()
 
     if add_attention_mask:
-        attention_mask.output(0).tensor.add_names({ATTENTION_MASK_INPUT_NAME})
         outputs.append(attention_mask.output(0))
+        outputs[-1].add_names({ATTENTION_MASK_INPUT_NAME})
 
     tokenizer = Model(outputs, [input_node], TOKENIZER_NAME)
     tokenizer.validate_nodes_and_infer_types()
@@ -980,7 +1018,7 @@ def get_sp_detokenizer(
 
     if params.clean_up_tokenization_spaces:
         detokenizer = RegexDecodingStep.clean_up_tokenization_spaces().get_ov_subgraph(detokenizer)
-    
+
     last_sinks = detokenizer
     if params.utf8_replace_mode is not None and params.utf8_replace_mode != UTF8ReplaceMode.DISABLE:
         last_sinks = UTF8ValidateStep(params.utf8_replace_mode).get_ov_subgraph(detokenizer)
