@@ -108,7 +108,6 @@ jobs:
 
       - name: CMake configure - tokenizers
         run: |
-          apt-get update && apt install -y libicu-dev
           source ${INSTALL_DIR}/setupvars.sh
           cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
@@ -183,7 +182,6 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          apt-get update && apt install -y libicu-dev
           python -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
               ${{ needs.openvino_download.outputs.ov_wheel_source }} \
