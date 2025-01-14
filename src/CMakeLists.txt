@@ -95,9 +95,9 @@ endif()
 include(FetchContent)
 
 option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
-
+set(SUPPORTED_ARCHS "X86;X86_64")
 # There are no prebuilt ICU packages for macOS and Linux arm64
-if (ENABLE_SYSTEM_ICU OR APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64")
+if (ENABLE_SYSTEM_ICU OR APPLE OR NOT OV_HOST_ARCH IN_LIST SUPPORTED_ARCHS) 
   message(STATUS "Using system-installed ICU.")
 else()
   if(UNIX)
