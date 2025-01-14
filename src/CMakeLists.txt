@@ -106,16 +106,18 @@ else()
       URL https://github.com/unicode-org/icu/releases/download/release-70-1/icu4c-70_1-Ubuntu-20.04-x64.tgz
       URL_HASH SHA256=a8134e9f8a68d33600749601e143e553b5cb48c217c8941dbb9ef478fac420dd
     )
+    set(ICU_DIR "${CMAKE_BINARY_DIR}/_deps/icu-src/usr/local")
   elseif(WIN32)
     FetchContent_Declare(
       ICU
       URL https://github.com/unicode-org/icu/releases/download/release-70-1/icu4c-70_1-Win64-MSVC2019.zip
       URL_HASH SHA256=af6b585e49d90d39ae9d3fe298b7f56983931706a5e49d4bce675c6a499124e5
     )
+    set(ICU_DIR "${CMAKE_BINARY_DIR}/_deps/icu-src")
   endif()
   FetchContent_MakeAvailable(ICU)
-  set(ICU_ROOT "${CMAKE_BINARY_DIR}/_deps/icu-src/usr/local")
-  message(STATUS "Using prebuilt ICU from ${ICU_ROOT}.")
+  list(PREPEND CMAKE_PREFIX_PATH "${ICU_DIR}")
+  message(STATUS "Using prebuilt ICU from ${ICU_DIR}.")
 endif()
 
 FetchContent_Declare(
