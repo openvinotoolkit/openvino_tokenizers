@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2024 Intel Corporation
+# Copyright (C) 2018-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 import difflib
 import os
@@ -307,6 +307,14 @@ def wordpiece_tokenizers_with_padding_options(
         use_max_padding=use_max_padding,
     )
 
+@pytest.fixture(scope="session")
+def wordpiece_tokenizers_detokenizers(hf_wordpiece_tokenizers, do_skip_special_tokens, do_clean_up_tokenization_spaces):
+    return get_tokenizer_detokenizer(
+        hf_wordpiece_tokenizers,
+        skip_special_tokens=do_skip_special_tokens,
+        clean_up_tokenization_spaces=do_clean_up_tokenization_spaces,
+    )
+
 
 @pytest.fixture(scope="session")
 def bpe_tokenizers(hf_bpe_tokenizers, do_add_special_tokens):
@@ -530,6 +538,29 @@ def test_hf_wordpiece_tokenizers_multiple_strings(
         test_string=test_string,
         skip_missing_outputs=False,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
+    )
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        *eng_test_strings,
+        *multilingual_test_strings,
+        *emoji_test_strings,
+        *misc_strings,
+    ],
+)
+def test_wordpiece_model_detokenizer(
+    wordpiece_tokenizers_detokenizers, test_string, do_skip_special_tokens, do_clean_up_tokenization_spaces
+):
+    hf_detokenizer_kwargs = {
+        "skip_special_tokens": do_skip_special_tokens,
+        "clean_up_tokenization_spaces": do_clean_up_tokenization_spaces,
+    }
+    check_detokenizer_output(
+        wordpiece_tokenizers_detokenizers,
+        test_string=test_string,
+        hf_detokenizer_kwargs=hf_detokenizer_kwargs,
     )
 
 

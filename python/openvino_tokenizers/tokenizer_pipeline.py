@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2024 Intel Corporation
+# Copyright (C) 2018-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
@@ -1033,6 +1033,22 @@ class VocabDecoderStep(DecodingStep):
             self.skip_tokens = []
         elif self.skip_tokens is None:
             self.skip_tokens = pipeline.skip_tokens or []
+
+    @classmethod
+    def from_hf_json(cls, tokenizer_json: Dict[str, Any], pipeline_vocab: Optional[List[str]], skip_tokens: Optional[List[int]] = None, do_skip_tokens: bool = True) -> "VocabDecoderStep":
+        model_type = tokenizer_json["model"]["type"]
+
+        if pipeline_vocab is not None and model_type == "WordLevel":
+            vocab = [f" {token}" for token in pipeline_vocab]
+        elif pipeline_vocab is not None and model_type == "WordPiece":
+            vocab = [
+                token if token in ".,!?" else token[2:] if token.startswith("##") else f" {token}"
+                for token in pipeline_vocab
+            ]
+        else:  # Use vocab node from pipeline
+            vocab = None
+
+        return cls(vocab, skip_tokens, do_skip_tokens)
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
         return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
