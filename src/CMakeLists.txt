@@ -95,29 +95,12 @@ endif()
 include(FetchContent)
 
 option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
-set(SUPPORTED_ARCHS "X86;X86_64")
-# There are no prebuilt ICU packages for macOS and Linux arm64
-if (ENABLE_SYSTEM_ICU OR APPLE OR NOT OV_HOST_ARCH IN_LIST SUPPORTED_ARCHS) 
+
+if(ENABLE_SYSTEM_ICU) 
   message(STATUS "Using system-installed ICU.")
 else()
-  if(UNIX)
-    FetchContent_Declare(
-      ICU
-      URL https://github.com/unicode-org/icu/releases/download/release-70-1/icu4c-70_1-Ubuntu-20.04-x64.tgz
-      URL_HASH SHA256=a8134e9f8a68d33600749601e143e553b5cb48c217c8941dbb9ef478fac420dd
-    )
-    set(ICU_DIR "${CMAKE_BINARY_DIR}/_deps/icu-src/usr/local")
-  elseif(WIN32)
-    FetchContent_Declare(
-      ICU
-      URL https://github.com/unicode-org/icu/releases/download/release-70-1/icu4c-70_1-Win64-MSVC2019.zip
-      URL_HASH SHA256=af6b585e49d90d39ae9d3fe298b7f56983931706a5e49d4bce675c6a499124e5
-    )
-    set(ICU_DIR "${CMAKE_BINARY_DIR}/_deps/icu-src")
-  endif()
-  FetchContent_MakeAvailable(ICU)
-  list(PREPEND CMAKE_PREFIX_PATH "${ICU_DIR}")
-  message(STATUS "Using prebuilt ICU from ${ICU_DIR}.")
+  message(STATUS "ICU not found, building from source...")
+  include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
 endif()
 
 FetchContent_Declare(
@@ -334,7 +317,7 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
               "${openvino_tokenizers_SOURCE_DIR}/README.md"
         DESTINATION "docs/openvino_tokenizers"
         COMPONENT openvino_tokenizers_docs)
-
+        
 #
 # Cpack configuration
 #
