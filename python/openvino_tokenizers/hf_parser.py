@@ -383,38 +383,18 @@ class TransformersTokenizerPipelineParser:
         str,
         Callable[[Dict[str, Any]], Union[DecodingStep, List[DecodingStep]]],
     ] = {
-        "Replace": lambda decode_dict: RegexDecodingStep.parse_replace_dict(decode_dict),
+        "Replace": RegexDecodingStep.parse_replace_dict,
         "Fuse": lambda decode_dict: FuseStep(),
-        "Strip": lambda decode_dict: RegexDecodingStep.parse_strip_dict(decode_dict),
+        "Strip": RegexDecodingStep.parse_strip_dict,
         "ByteFallback": lambda decode_dict: ByteFallbackStep(),
     }
 
     def decoding(self) -> None:
         skip_tokens = parse_special_tokens(self.original_tokenizer)
+        self.pipeline.add_steps(VocabDecoderStep.from_hf_json(self.tokenizer_json, self.pipeline.vocab, list(skip_tokens), do_skip_tokens=self.skip_special_tokens))
 
-        if self.tokenizer_json["model"]["type"] == "WordLevel":
-            self.pipeline.add_steps(
-                [
-                    VocabDecoderStep(
-                        vocab=[f" {token}" for token in self.pipeline.vocab],
-                        skip_tokens=list(skip_tokens),
-                        do_skip_tokens=self.skip_special_tokens,
-                    ),
-                    FuseStep(),
-                    RegexDecodingStep.strip_forward_space(),
-                ]
-            )
-            if self.clean_up_tokenization_spaces:
-                self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
-            return
-        elif self.tokenizer_json["decoder"] is None or self.tokenizer_json["model"]["type"] == "WordPiece":
-            return
-
-        self.pipeline.add_steps(
-            VocabDecoderStep(skip_tokens=list(skip_tokens), do_skip_tokens=self.skip_special_tokens)
-        )
-
-        if self.tokenizer_json["decoder"]["type"] == "Sequence":
+        has_decoder = self.tokenizer_json.get("decoder") is not None
+        if has_decoder and self.tokenizer_json["decoder"]["type"] == "Sequence":
             for decoder_dict in self.tokenizer_json["decoder"]["decoders"]:
                 decoder_parser = self.decoding_map.get(decoder_dict.get("type"))
                 if decoder_parser is None:
@@ -422,10 +402,16 @@ class TransformersTokenizerPipelineParser:
                     # raise ValueError(f"Decoder {decoder_dict} is not supported yet.")
                 else:
                     self.pipeline.add_steps(decoder_parser(decoder_dict))
-        elif self.tokenizer_json["decoder"]["type"] == "ByteLevel":
+        elif has_decoder and self.tokenizer_json["decoder"]["type"] == "ByteLevel":
             self.pipeline.add_steps(CharsToBytesStep())
         else:
             self.pipeline.add_steps(FuseStep())
+
+        # strip forward space because VocabDecoderStep.from_hf_json modifies vocabulary
+        if self.tokenizer_json["model"]["type"] == "WordLevel":
+            self.pipeline.add_steps(RegexDecodingStep.strip_forward_space())
+        elif self.tokenizer_json["model"]["type"] == "WordPiece":
+            self.pipeline.add_steps(RegexDecodingStep.strip_forward_space())
 
         if self.utf8_replace_mode is not None and (self.utf8_replace_mode != UTF8ReplaceMode.DISABLE):
             self.pipeline.add_steps(UTF8ValidateStep(mode=self.utf8_replace_mode))
