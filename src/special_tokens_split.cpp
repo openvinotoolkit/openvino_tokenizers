@@ -59,7 +59,7 @@ void SpecialTokensSplit::validate_and_infer_types() {
 }
 
 bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
+    std::string split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
     compile_pattern_if_necessary(split_pattern);
 
     auto input_size = get_input_size();

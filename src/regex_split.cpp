@@ -122,7 +122,29 @@ void RegexSplit::validate_and_infer_types() {
 }
 
 bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
+    const size_t num_chars = inputs[4].get_size();
+    auto input_size = get_input_size();
+    const bool has_skips = (input_size == 7);
+
+    if (num_chars == 0) {
+        // TODO: CVS-160624. This is a workaround for the case when the input is empty.
+        outputs[0].set_shape(Shape{1});
+        outputs[1].set_shape(Shape{1});
+        outputs[0].data<int32_t>()[0] = 0;
+        outputs[1].data<int32_t>()[0] = 0;
+
+        outputs[2] = inputs[2];
+        outputs[3] = inputs[3];
+        outputs[4] = inputs[4];
+        if (has_skips) {
+            outputs[5] = inputs[5];
+        }
+        return true;
+    }
+
+    std::string split_pattern = std::string(inputs[5 + has_skips].data<const char>(), inputs[5 + has_skips].get_size());
+    auto pattern_size = inputs[5 + has_skips].get_size();
+    
     // Write to common trie structures should be protected to prevent race conditions.
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -138,7 +160,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         }
     };
 
-    auto input_size = get_input_size();
     {
         // Write to common trie structures should be protected to prevent race conditions.
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -162,14 +183,10 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     auto begins = inputs[2].data<const int32_t>();
     auto ends   = inputs[3].data<const int32_t>();
     auto chars  = inputs[4].data<const uint8_t>();
-
-    outputs[4] = inputs[4];
+    
     const size_t num_rows = inputs[0].get_size();
-    const size_t num_chars = inputs[4].get_size();
-
     bool * skips;
     bool init_skips = false;
-    const bool has_skips = (input_size == 7);
     if (has_skips) {
         skips = inputs[5].data<bool>();
         outputs[5].set_shape(Shape{num_chars});
@@ -181,11 +198,10 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
     outputs[0].set_shape(inputs[0].get_shape());
     outputs[1].set_shape(inputs[1].get_shape());
+    outputs[4] = inputs[4];
 
     outputs[2].set_shape(Shape{num_chars});
     outputs[3].set_shape(Shape{num_chars});
-
-    outputs[4] = inputs[4];
 
     // Get pointers in the output tensors
     auto new_ragged_begins = outputs[0].data<int32_t>();
@@ -301,5 +317,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         delete[] skips;
         delete[] new_skips;
     };
+
     return true;
 }
