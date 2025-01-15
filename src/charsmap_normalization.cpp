@@ -57,10 +57,9 @@ inline void init_sentencepiece_normalizer_chars_map(
 
 bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 5) || (m_normalization_form != "" && inputs.size() == 4);
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (m_normalizer == nullptr) {
+    if (m_normalizer == nullptr) {
+        std::call_once(m_init_flag, [&]() {
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(m_add_dummy_prefix);
             m_spec->set_remove_extra_whitespaces(m_remove_extra_whitespaces);
@@ -77,7 +76,7 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
             m_spec->set_precompiled_charsmap(precompiled_charsmap);
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
-        }
+        });
     }
 
     return evaluate_normalization_helper(
