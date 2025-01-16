@@ -13,7 +13,7 @@ from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
 
-from __version__ import __version__ as openvino_tokenizers_version
+from .__version__ import __version__ as openvino_tokenizers_version
 from .constants import (
     LOGITS_OUTPUT_NAME,
     ORIGINAL_TOKENIZER_CLASS_NAME,
