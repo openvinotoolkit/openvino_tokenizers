@@ -8,10 +8,12 @@ from dataclasses import dataclass, field, fields
 from functools import lru_cache
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
+import openvino
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
 
+from __version__ import __version__ as openvino_tokenizers_version
 from .constants import (
     LOGITS_OUTPUT_NAME,
     ORIGINAL_TOKENIZER_CLASS_NAME,
@@ -244,7 +246,11 @@ def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
     :param ov_tokenizer: Thes OpenVINO tokenizer model to update.
     :type ov_tokenizer: openvino.Model
     """
-    packages = ["openvino_tokenizers", "transformers", "tiktoken", "sentencepiece", "openvino", "tokenizers"]
+    ov_tokenizer.set_rt_info(openvino.get_version(), f"openvino_version")
+    ov_tokenizer.set_rt_info(openvino_tokenizers_version, f"openvino_tokenizers_version")
+
+    packages = ["transformers", "tiktoken", "sentencepiece", "tokenizers"]
+
     for name in packages:
         version = get_package_version(name)
         if version is not None:
