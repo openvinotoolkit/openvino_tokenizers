@@ -28,10 +28,8 @@ void CaseFold::validate_and_infer_types() {
 bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 4);
 
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        if (m_normalizer == nullptr && m_encoding == "utf-8") {
+    if (m_normalizer == nullptr && m_encoding == "utf-8") {
+        std::call_once(m_init_flag, [&]() {
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(false);
             m_spec->set_remove_extra_whitespaces(true);
@@ -44,8 +42,9 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
             m_spec->set_precompiled_charsmap(precompiled_charsmap);
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
-        }
+        });
     }
+
     if (m_encoding.empty()) {
         return evaluate_normalization_helper(
             outputs, inputs,
