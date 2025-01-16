@@ -6,18 +6,18 @@ import logging
 import re
 from dataclasses import dataclass, field, fields
 from functools import lru_cache
-from typing import Any, Dict, Optional, Sequence, Tuple, Union, Iterable, List
-import numpy as np
-from numpy.typing import NDArray
 from io import BytesIO
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
-
-from openvino import Model, Type
+import numpy as np
+import openvino
+from openvino import Model, Tensor, Type
 from openvino.preprocess import PrePostProcessor
-from openvino.runtime import opset12 as opset, Output
-from openvino.op import Constant
-from openvino import Tensor
+from openvino.runtime import Output
+from openvino.runtime import opset12 as opset
+from openvino.runtime.op import Constant
 
+from .__version__ import __version__ as openvino_tokenizers_version
 from .constants import (
     LOGITS_OUTPUT_NAME,
     ORIGINAL_TOKENIZER_CLASS_NAME,
@@ -26,6 +26,7 @@ from .constants import (
     UTF8ReplaceMode,
     rt_info_to_hf_attribute_map,
 )
+
 
 @dataclass
 class TokenzierConversionParams:
@@ -249,7 +250,11 @@ def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
     :param ov_tokenizer: Thes OpenVINO tokenizer model to update.
     :type ov_tokenizer: openvino.Model
     """
-    packages = ["openvino_tokenizers", "transformers", "tiktoken", "sentencepiece", "openvino", "tokenizers"]
+    ov_tokenizer.set_rt_info(openvino.get_version(), "openvino_version")
+    ov_tokenizer.set_rt_info(openvino_tokenizers_version, "openvino_tokenizers_version")
+
+    packages = ["transformers", "tiktoken", "sentencepiece", "tokenizers"]
+
     for name in packages:
         version = get_package_version(name)
         if version is not None:
@@ -327,5 +332,5 @@ def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
     begins = np.frombuffer(begins.getvalue(), np.int32)
     ends = np.frombuffer(ends.getvalue(), np.int32)
     chars = np.frombuffer(chars.getvalue(), np.uint8)
-    
+
     return [Constant(Tensor(x)).output(0) for x in [begins, ends, chars]]
