@@ -6,12 +6,18 @@ import logging
 import re
 from dataclasses import dataclass, field, fields
 from functools import lru_cache
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union, Iterable, List
+import numpy as np
+from numpy.typing import NDArray
+from io import BytesIO
+
 
 import openvino
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
-from openvino.runtime import opset12 as opset
+from openvino.runtime import opset12 as opset, Output
+from openvino.op import Constant
+from openvino import Tensor
 
 from .__version__ import __version__ as openvino_tokenizers_version
 from .constants import (
@@ -22,7 +28,6 @@ from .constants import (
     UTF8ReplaceMode,
     rt_info_to_hf_attribute_map,
 )
-
 
 @dataclass
 class TokenzierConversionParams:
@@ -301,3 +306,32 @@ def quote_meta(unquoted: Union[str, bytes]) -> str:
             symbols.append("\\")
         symbols.append(char)
     return "".join(symbols)
+
+
+def to_bytes(number: int) -> bytes:
+    return number.to_bytes(4, "little")
+
+
+def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
+    """
+    Convert any list of strings to U8/1D numpy array with begins, ends, and chars
+    """
+    begins = BytesIO()
+    ends = BytesIO()
+    chars = BytesIO()
+    offset = 0
+
+    for string in strings:
+        byte_string = string.encode("utf-8") if isinstance(string, str) else string
+        length = len(byte_string)
+
+        begins.write(to_bytes(offset))
+        offset += length
+        ends.write(to_bytes(offset))
+        chars.write(byte_string)
+
+    begins = np.frombuffer(begins.getvalue(), np.int32)
+    ends = np.frombuffer(ends.getvalue(), np.int32)
+    chars = np.frombuffer(chars.getvalue(), np.uint8)
+    
+    return [Constant(Tensor(x)).output(0) for x in [begins, ends, chars]]
