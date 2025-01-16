@@ -82,6 +82,7 @@ def _get_factory_callable() -> Callable[[], NodeFactory]:
 
     return inner
 
+
 def _get_opset_factory_callable() -> Callable[[], NodeFactory]:
     # factory without extensions
     factory = {}

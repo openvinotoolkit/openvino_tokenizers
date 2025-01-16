@@ -14,13 +14,12 @@ from itertools import groupby, islice
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
-from openvino.runtime import Model, Output, PartialShape, Shape, Type, op, Tensor
+from openvino.runtime import Model, Output, PartialShape, Shape, Type, op
 from openvino.runtime import opset12 as opset
 from openvino.runtime.exceptions import OVTypeError, UserInputError
 from openvino.runtime.utils.types import as_node, make_constant_node
 
 from . import _get_factory, _get_opset_factory
-
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
@@ -32,7 +31,13 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta, create_unpacked_string
+from .utils import (
+    apply_unicode_to_bytes,
+    create_unpacked_string,
+    generate_tokens_with_space_symbols,
+    has_incompatible_re2_op,
+    quote_meta,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -1035,7 +1040,13 @@ class VocabDecoderStep(DecodingStep):
             self.skip_tokens = pipeline.skip_tokens or []
 
     @classmethod
-    def from_hf_json(cls, tokenizer_json: Dict[str, Any], pipeline_vocab: Optional[List[str]], skip_tokens: Optional[List[int]] = None, do_skip_tokens: bool = True) -> "VocabDecoderStep":
+    def from_hf_json(
+        cls,
+        tokenizer_json: Dict[str, Any],
+        pipeline_vocab: Optional[List[str]],
+        skip_tokens: Optional[List[int]] = None,
+        do_skip_tokens: bool = True,
+    ) -> "VocabDecoderStep":
         model_type = tokenizer_json["model"]["type"]
 
         if pipeline_vocab is not None and model_type == "WordLevel":

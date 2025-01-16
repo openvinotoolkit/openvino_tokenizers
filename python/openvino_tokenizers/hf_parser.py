@@ -391,7 +391,11 @@ class TransformersTokenizerPipelineParser:
 
     def decoding(self) -> None:
         skip_tokens = parse_special_tokens(self.original_tokenizer)
-        self.pipeline.add_steps(VocabDecoderStep.from_hf_json(self.tokenizer_json, self.pipeline.vocab, list(skip_tokens), do_skip_tokens=self.skip_special_tokens))
+        self.pipeline.add_steps(
+            VocabDecoderStep.from_hf_json(
+                self.tokenizer_json, self.pipeline.vocab, list(skip_tokens), do_skip_tokens=self.skip_special_tokens
+            )
+        )
 
         has_decoder = self.tokenizer_json.get("decoder") is not None
         if has_decoder and self.tokenizer_json["decoder"]["type"] == "Sequence":
