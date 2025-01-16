@@ -50,10 +50,9 @@ void NormalizeUnicode::validate_and_infer_types() {
 bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 4);
 
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (m_normalizer == nullptr) {
+    if (m_normalizer == nullptr) {
+        std::call_once(m_init_flag, [&]() {
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(false);
             m_spec->set_remove_extra_whitespaces(true);
@@ -66,8 +65,9 @@ bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
             m_spec->set_precompiled_charsmap(precompiled_charsmap);
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
-        }
+        });
     }
+
     return evaluate_normalization_helper(
         outputs,
         inputs,
