@@ -17,7 +17,7 @@ env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '11.0'
   OV_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
-  OV_TARBALL: ''
+  OV_TARBALL: 'https://storage.openvinotoolkit.org/repositories/openvino/packages/pre-release/2025.0.0rc1/m_openvino_toolkit_macos_12_6_2025.0.0.dev20250116_x86_64.tgz'
 
 permissions: read-all
 
@@ -327,6 +327,7 @@ jobs:
               --find-links ${INSTALL_DIR}/wheels \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
+          PIP_EXTRA_INDEX_URL: "https://storage.openvinotoolkit.org/simple/wheels/pre-release"
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
 
       #
@@ -404,7 +405,7 @@ jobs:
             python3 -m pip install $wheel_name[dev]
           popd
         env:
-          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://storage.openvinotoolkit.org/simple/wheels/pre-release"
 
       - name: Tokenizers regression tests (using openvino python modules)
         if: needs.openvino_download.outputs.status == 'success'
