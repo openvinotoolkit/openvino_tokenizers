@@ -12,11 +12,11 @@ from tempfile import TemporaryDirectory
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import openvino.runtime.opset14 as opset
+import openvino.opset14 as opset
 from openvino import Model, PartialShape, Type
-from openvino.runtime import Node, op
-from openvino.runtime.exceptions import OVTypeError
-from openvino.runtime.utils.types import as_node, make_constant_node
+from openvino import Node, op
+from openvino.exceptions import OVTypeError
+from openvino.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
 

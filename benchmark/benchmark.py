@@ -12,7 +12,7 @@ import openvino as ov
 import pandas as pd
 import seaborn as sns
 from openvino import AsyncInferQueue, CompiledModel, InferRequest
-from openvino.runtime import ProfilingInfo, properties
+from openvino import ProfilingInfo, properties
 from openvino_tokenizers import convert_tokenizer
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
