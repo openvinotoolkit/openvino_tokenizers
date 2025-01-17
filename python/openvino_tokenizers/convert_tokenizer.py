@@ -72,6 +72,7 @@ def convert_tokenizer(
     handle_special_tokens_with_re: Optional[bool] = None,
     use_sentencepiece_backend: bool = False,
     utf8_replace_mode: Optional[UTF8ReplaceMode] = UTF8ReplaceMode.REPLACE,
+    max_length: Optional[int] = None,
 ) -> Union[Model, Tuple[Model, Model]]:
     """
     Converts a given tokenizer object into an OpenVINO-compatible model.
@@ -95,6 +96,7 @@ def convert_tokenizer(
         The converted tokenizer model, or a tuple tokenizer and detokenizer depending on with_detokenizer value.
     """
     ov_tokenizers = None
+    print(f'NEED TO USE MAX PADDING {params.use_max_padding}')
 
     if "transformers" not in sys.modules:
         raise EnvironmentError(
@@ -113,6 +115,10 @@ def convert_tokenizer(
         is_sentencepiece_model,
         is_tiktoken_model,
     )
+    # For some reason dataclass transforms None -> (None,)
+    if params.max_length and params.max_length != (None,):
+        print(f"Set max_length to: {params.max_length}")
+        tokenizer_object.model_max_length = params.max_length
 
     can_use_sentencepiece = is_sentencepiece_model(tokenizer_object)
     is_unigram = can_use_sentencepiece and not is_sentencepiece_bpe_model(tokenizer_object)
@@ -135,10 +141,22 @@ def convert_tokenizer(
 
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
+    
+    def add_sinks(model):
+        # Need to add sinks for assign nodes
+        from openvino.runtime import opset12 as opset
 
+        for op in model.get_ops():
+            if op.get_type_name() != "ReadValue":
+                continue
+            assign = opset.assign(op, op.friendly_name)
+            model.add_sinks([assign])
+            
     if isinstance(ov_tokenizers, tuple):
+        add_sinks(ov_tokenizers[0])
         return (
             change_outputs_type(ov_tokenizers[0], params.tokenizer_output_type),
             change_inputs_type(ov_tokenizers[1], params.detokenizer_input_type),
         )
+    add_sinks(ov_tokenizers)
     return change_outputs_type(ov_tokenizers, params.tokenizer_output_type)

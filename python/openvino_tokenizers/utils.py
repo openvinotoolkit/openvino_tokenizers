@@ -11,6 +11,8 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
 from openvino.runtime import opset12 as opset
+from openvino.runtime import Model, PartialShape, Type
+from openvino.runtime.utils.types import make_constant_node
 
 from .constants import (
     LOGITS_OUTPUT_NAME,
@@ -58,6 +60,8 @@ class TokenzierConversionParams:
     utf8_replace_mode : Optional[UTF8ReplaceMode]
         Specifies the UTF-8 replacement mode during tokenization.
         Allowed values are UTF8ReplaceMode.DISABLE, UTF8ReplaceMode.IGNORE and UTF8ReplaceMode.REPLACE. Default is UTF8ReplaceMode.REPLACE.
+    max_length: Optional[int]
+        The maximum length of the input sequence. Default is
     """
 
     with_detokenizer: bool = False
@@ -74,6 +78,7 @@ class TokenzierConversionParams:
     add_attention_mask: bool = True
     add_prefix_space: Optional[bool] = None
     number_of_inputs: int = 1
+    max_length: Optional[int] = None,
 
 
 logger = logging.getLogger(__name__)
@@ -295,3 +300,18 @@ def quote_meta(unquoted: Union[str, bytes]) -> str:
             symbols.append("\\")
         symbols.append(char)
     return "".join(symbols)
+
+def insert_read_value(
+        default_value: Union[int, float, str, bool],
+        name: str,
+        shape: PartialShape = PartialShape([]),
+        el_type: Type = Type.i32) -> None:
+    from openvino.runtime.op.util import VariableInfo, Variable
+    default_val_constant = make_constant_node(default_value, el_type)
+
+    var_info = VariableInfo()
+    var_info.data_shape = shape
+    var_info.data_type = el_type
+    var_info.variable_id = name
+    variable_1 = Variable(var_info)
+    return opset.read_value(default_val_constant, variable_1, name=name)

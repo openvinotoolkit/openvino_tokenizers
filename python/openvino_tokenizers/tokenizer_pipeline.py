@@ -18,6 +18,8 @@ from openvino.runtime import Model, Output, PartialShape, Shape, Type, op
 from openvino.runtime import opset12 as opset
 from openvino.runtime.exceptions import OVTypeError, UserInputError
 from openvino.runtime.utils.types import as_node, make_constant_node
+from openvino.runtime.op.util import VariableInfo, Variable
+from openvino.runtime.op import Constant, Result
 
 from . import _get_factory
 from .constants import (
@@ -32,7 +34,7 @@ from .constants import (
     UTF8ReplaceMode,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta, insert_read_value
 
 
 logger = logging.getLogger(__name__)
@@ -700,6 +702,7 @@ class PostTokenizationStep(BasePipelineStep):
 @dataclass
 class TruncationStep(PostTokenizationStep):
     max_length: int
+    num_of_added_tokens: int
     truncate_right: bool = True
     axis: int = -1
 
@@ -721,12 +724,10 @@ class TruncationStep(PostTokenizationStep):
 
     @classmethod
     def from_hf_object(cls, tokenizer: Any, num_of_added_tokens: int = 0) -> "TruncationStep":
-        max_length = min(
-            tokenizer.model_max_length - num_of_added_tokens,
-            2**31 - 1 - num_of_added_tokens,
-        )
+        max_length = min(tokenizer.model_max_length, 2**31 - 1)
         return cls(
             max_length=max_length,
+            num_of_added_tokens = num_of_added_tokens,
             truncate_right=tokenizer.truncation_side == "right",
         )
 
@@ -739,11 +740,13 @@ class TruncationStep(PostTokenizationStep):
         # FIXME: Truncation side (truncate_right) is ignored
         # TODO: Check if axis is the right-most dimension
         self.validate_inputs(input_nodes)
+        num_added_tokens = make_constant_node(self.num_of_added_tokens, Type.i32)
 
-        max_length = opset.minimum(
-            opset.subtract(input_nodes[1], input_nodes[0]),
-            make_constant_node(self.max_length, Type.i32),
-        )
+        # sinks will be inserted at the end of convert_tokenizer
+        read_value = insert_read_value(self.max_length, "max_trunc_length", PartialShape([]), Type.i32)
+        max_trunc_length = opset.subtract(read_value, num_added_tokens)
+
+        max_length = opset.minimum(opset.subtract(input_nodes[1], input_nodes[0]), max_trunc_length)
         if self.truncate_right:
             return [
                 input_nodes[0],
@@ -984,7 +987,9 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
                 make_constant_node(0, Type.i32),
             )
         else:
-            max_length = make_constant_node(self.max_length, Type.i32)
+
+            # sinks will be inserted at the end of convert_tokenizer
+            max_length = insert_read_value(self.max_length, "max_pad_length", PartialShape([]), Type.i32)
 
         names = [TOKEN_IDS_INPUT_NAME, TOKEN_TYPE_IDS_INPUT_NAME][: len(input_nodes) // 3]
         for idx, name in enumerate(names):
