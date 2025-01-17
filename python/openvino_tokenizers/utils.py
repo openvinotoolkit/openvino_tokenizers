@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
-from openvino.runtime import opset12 as opset
+from openvino import opset12 as opset
 
 from .constants import (
     LOGITS_OUTPUT_NAME,
