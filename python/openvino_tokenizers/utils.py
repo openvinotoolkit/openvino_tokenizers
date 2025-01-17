@@ -14,6 +14,8 @@ import openvino
 from openvino import Model, Tensor, Type
 from openvino.preprocess import PrePostProcessor
 from openvino import opset12 as opset
+from openvino import Output
+from openvino.op import Constant
 
 from .__version__ import __version__ as openvino_tokenizers_version
 from .constants import (
