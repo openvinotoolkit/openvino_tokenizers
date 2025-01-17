@@ -39,10 +39,9 @@ void check_string_input(const Node* node, size_t input_index) {
 void check_string_scalar_input(const Node* node, size_t input_index) {
     auto shape = node->get_input_partial_shape(input_index);
     auto element_type = node->get_input_element_type(input_index);
-
+    
     #if false && USE_STRING_TENSORS
     // This block is not used when we convert ops to decomposed representation (and we really do)
-
     OPENVINO_ASSERT(
         (element_type == element::dynamic || element_type == element::string) &&
         (shape.rank().is_dynamic() || shape.rank().get_length() == 0),
@@ -56,6 +55,7 @@ void check_string_scalar_input(const Node* node, size_t input_index) {
         "u8/1D tensor is expected, got element type ", element_type.to_string(), ", shape ", shape.to_string());
 
     #endif
+
 }
 
 void check_ragged_input(const Node* node, size_t input_index) {
