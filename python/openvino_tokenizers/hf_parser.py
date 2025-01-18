@@ -20,7 +20,7 @@ from openvino.runtime.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
 
-from . import _get_factory, _get_opset_factory
+from . import _get_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
@@ -810,7 +810,7 @@ def convert_sentencepiece_model_tokenizer(
     if params.handle_special_tokens_with_re:
         tokens, ids = zip(*sorted(((token, id) for id, token in add_tokens.items()), reverse=True))
         added_inputs = [
-            *BasePipelineStep.create_string_constant_node(tokens),
+            *BasePipelineStep.create_string_constant_node(tokens).outputs(),
             make_constant_node(np.array(ids, dtype=np.int32), Type.i32).output(0),
         ]
     else:
@@ -1013,7 +1013,7 @@ def get_sp_detokenizer(
     if params.utf8_replace_mode is not None and params.utf8_replace_mode != UTF8ReplaceMode.DISABLE:
         last_sinks = UTF8ValidateStep(params.utf8_replace_mode).get_ov_subgraph(detokenizer)
 
-    string_output = _get_opset_factory("opset15").create("StringTensorPack", last_sinks).outputs()
+    string_output = _get_factory().create("StringTensorPack", last_sinks).outputs()
     string_output[0].tensor.add_names({STRING_OUTPUT_NAME})
     tokenizer_detokenizer = Model(string_output, [model_input], DETOKENIZER_NAME)
     tokenizer_detokenizer.validate_nodes_and_infer_types()
