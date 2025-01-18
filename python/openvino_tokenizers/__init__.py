@@ -67,6 +67,7 @@ def new_fe_init(self, *args, **kwargs):
 
 openvino.Core.__init__ = new_core_init
 openvino.utils.node_factory.NodeFactory.__init__ = new_factory_init
+openvino.frontend.frontend.FrontEnd.__init__ = new_fe_init
 
 
 def _get_factory_callable() -> Callable[[], NodeFactory]:
@@ -75,22 +76,6 @@ def _get_factory_callable() -> Callable[[], NodeFactory]:
     def inner(opset_version: Optional[str] = None) -> NodeFactory:
         nonlocal factory
         if opset_version not in factory:
-            openvino.runtime.utils.node_factory.NodeFactory.__init__ = new_factory_init
-            factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
-
-        return factory[opset_version]
-
-    return inner
-
-
-def _get_opset_factory_callable() -> Callable[[], NodeFactory]:
-    # factory without extensions
-    factory = {}
-
-    def inner(opset_version: Optional[str] = None) -> NodeFactory:
-        nonlocal factory
-        if opset_version not in factory:
-            openvino.runtime.utils.node_factory.NodeFactory.__init__ = old_factory_init
             factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
 
         return factory[opset_version]
@@ -99,10 +84,10 @@ def _get_opset_factory_callable() -> Callable[[], NodeFactory]:
 
 
 _get_factory = _get_factory_callable()
-_get_opset_factory = _get_opset_factory_callable()
 
 # some files uses _get_factory function
 from .__version__ import __version__  # noqa
 from .build_tokenizer import build_rwkv_tokenizer  # noqa
 from .convert_tokenizer import convert_tokenizer  # noqa
+from .str_pack import pack_strings, unpack_strings  # noqa
 from .utils import add_greedy_decoding, connect_models  # noqa
