@@ -7,7 +7,7 @@ from typing import Union
 import openvino as ov
 import pytest
 from openvino import Model, PartialShape, Type
-from openvino.runtime import op
+from openvino import op
 from openvino_tokenizers import _get_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.tokenizer_pipeline import (
