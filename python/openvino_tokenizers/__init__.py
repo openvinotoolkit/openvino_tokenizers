@@ -66,7 +66,7 @@ def new_fe_init(self, *args, **kwargs):
 
 
 openvino.Core.__init__ = new_core_init
-openvino.utils.node_factory.NodeFactory.__init__ = new_factory_init
+openvino.frontend.frontend.FrontEnd.__init__ = new_fe_init
 
 
 def _get_factory_callable() -> Callable[[], NodeFactory]:

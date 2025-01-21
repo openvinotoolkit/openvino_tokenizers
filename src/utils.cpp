@@ -4,10 +4,8 @@
 
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/core/parallel.hpp"
-#include "openvino/opsets/opset13.hpp"
+#include "openvino/opsets/opset15.hpp"
 #include "utils.hpp"
-#include "string_tensor_pack.hpp"
-#include "string_tensor_unpack.hpp"
 #include "ragged_tensor_pack.hpp"
 #include <cstdlib>
 #include <cctype>
@@ -15,7 +13,7 @@
 
 using namespace ov;
 using namespace ov::frontend;
-using namespace ov::opset13;
+using namespace ov::opset15;
 
 void parse_packed_strings (const Tensor& packed, int32_t& batch_size, const int32_t*& begin_ids, const int32_t*& end_ids, const uint8_t*& symbols) {
     auto strings = packed.data<const uint8_t>();
@@ -139,7 +137,7 @@ OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input
         return struct_pack->input_values();
     }
     else {
-        return std::make_shared<StringTensorUnpack>(OutputVector{ input }, "begins_ends")->outputs();
+        return std::make_shared<StringTensorUnpack>(input)->outputs();
     }
 }
 
@@ -159,7 +157,7 @@ OutputVector pre_translate_ragged_string_tensor_input(ov::Output<ov::Node> input
 
 ov::Output<ov::Node> post_translate_string_tensor_output(const OutputVector& outputs) {
     FRONT_END_GENERAL_CHECK(outputs.size() == 3, "Expected 3 tensors in decomposed string tensor representation");
-    return std::make_shared<StringTensorPack>(outputs, "begins_ends");
+    return std::make_shared<StringTensorPack>(outputs[0], outputs[1], outputs[2]);
 }
 
 ov::Output<ov::Node> post_translate_ragged_tensor_output(const OutputVector& outputs) {
