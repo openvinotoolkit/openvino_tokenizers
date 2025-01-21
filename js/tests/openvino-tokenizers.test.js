@@ -51,7 +51,7 @@ describe('getPathToBinary for arm64', () => {
 
     assert.equal(
       relatedFromBin,
-      '/bin/runtime/lib/arm64/libopenvino_tokenizers.so',
+      '/bin/runtime/lib/aarch64/libopenvino_tokenizers.so',
     );
   });
 
@@ -80,7 +80,7 @@ describe('getPathToBinary for armhf', () => {
 
     assert.equal(
       relatedFromBin,
-      '/bin/runtime/lib/arm64/libopenvino_tokenizers.so',
+      '/bin/runtime/lib/aarch64/libopenvino_tokenizers.so',
     );
   });
 
