@@ -96,109 +96,78 @@ include(FetchContent)
 
 option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
 
-# if(ENABLE_SYSTEM_ICU) 
-#   message(STATUS "Using system-installed ICU.")
-# else()
+if(ENABLE_SYSTEM_ICU) 
+  message(STATUS "Using system-installed ICU.")
+else()
   message(STATUS "ICU not found, building from source...")
-  # set(CMAKE_FIND_DEBUG_MODE ON)
-  # include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
-  set(THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/_deps/icu)
-  set(ICU_SOURCE_DIR ${THIRD_PARTY_PATH}/icu-src CACHE PATH "Path to ICU source directory")
-  set(ICU_BUILD_DIR ${THIRD_PARTY_PATH}/icu-build CACHE PATH "Path to ICU build directory")
-  set(ICU_INSTALL_DIR ${THIRD_PARTY_PATH}/icu-install CACHE PATH "Path to ICU build directory")
-  
-  include(ExternalProject)
-  set_property(GLOBAL PROPERTY EP_STEP_TARGETS_VERBOSE ON)
-  # Add ICU as an external project
-  ExternalProject_Add(
-      icu_external
-      # GIT_REPOSITORY "https://github.com/unicode-org/icu.git"
-      # GIT_TAG "release-70-1"
-      URL https://github.com/unicode-org/icu/archive/refs/tags/release-70-1.tar.gz
-      URL_HASH SHA256=f30d670bdc03ba999638a2d2511952ab94adf204d0e14898666f2e0cacb7fef1
-      PREFIX ${THIRD_PARTY_PATH}
-      SOURCE_DIR ${ICU_SOURCE_DIR}
-      BINARY_DIR ${ICU_BUILD_DIR}
-      INSTALL_DIR ${ICU_INSTALL_DIR}
-      CONFIGURE_COMMAND ${ICU_SOURCE_DIR}/icu4c/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
-      BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
-      INSTALL_COMMAND make install
-      DOWNLOAD_EXTRACT_TIMESTAMP ON
-  )
-  
-  list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
-  find_package(ICU COMPONENTS i18n data uc REQUIRED)
-# endif()
-  
-  include(${CMAKE_SOURCE_DIR}/cmake/external/sentencepiece.cmake)
-  
-# FetchContent_Declare(
-#   sentencepiece
-#   URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
-#   URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
-# )
-# FetchContent_GetProperties(sentencepiece)
-# if(NOT sentencepiece_POPULATED)
-#   if(DEFINED ENV{CONDA_BUILD_SYSROOT})
-#       set(openvino_installed_from_conda ON)
-#       # OpenVINO conda package dynamically linked with external protobuf,
-#       # and we need to link sentencepiece with external protobuf too.
-#       set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
-#       set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
-#   endif()
-#   if(openvino_installed_from_conda AND NOT WIN32)
-#       set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
-#       set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
-#       set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
-#   else()
-#       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
-#       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-#       set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
-#   endif()
+  include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
+endif()
 
-#   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
-#   set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
-#   set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
-  
-#   FetchContent_Populate(sentencepiece)
-#   add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
-# endif()
+FetchContent_Declare(
+  sentencepiece
+  URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
+  URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
+)
+FetchContent_GetProperties(sentencepiece)
+if(NOT sentencepiece_POPULATED)
+if(DEFINED ENV{CONDA_BUILD_SYSROOT})
+    set(openvino_installed_from_conda ON)
+    # OpenVINO conda package dynamically linked with external protobuf,
+    # and we need to link sentencepiece with external protobuf too.
+    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+    set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
+endif()
+if(openvino_installed_from_conda AND NOT WIN32)
+    set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
+    set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
+    set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
+else()
+    set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
+    set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
+    set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
+endif()
+
+set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
+set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
+set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
+FetchContent_Populate(sentencepiece)
+add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
-  foreach(sp_target sentencepiece sentencepiece_train)
-    if(TARGET ${sp_target}-static)
-      # on Windows conda-forge builds sentencepiece as static library
-      target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target}-static)
-    else()
-      target_link_libraries(${TARGET_NAME} INTERFACE ${sp_target})
+  if(sentencepiece_FOUND)
+    foreach(sp_target sentencepiece sentencepiece_train)
+      if(TARGET ${sp_target}-static)
+        # on Windows conda-forge builds sentencepiece as static library
+        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target}-static)
+      else()
+        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
+      endif()
+    endforeach()
+    target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
+  else()
+    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
+      "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
+      "${sentencepiece_SOURCE_DIR}/src"
+      "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
+      "${sentencepiece_SOURCE_DIR}/third_party/" # for libabseil
+      "${sentencepiece_SOURCE_DIR}"
+      "${sentencepiece_BINARY_DIR}")
+
+    foreach(sp_target sentencepiece-static sentencepiece_train-static)
+      if(CMAKE_CL_64)
+        target_compile_definitions(${sp_target} PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+      endif()
+      # to propogate _GLIBCXX_USE_CXX11_ABI value
+      target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+      target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
+    endforeach(sp_target sentencepiece sentencepiece_train)
+
+    if(ANDROID)
+      # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
+      target_link_libraries(${TARGET_NAME} PRIVATE log)
     endif()
-  endforeach()
-  target_link_libraries(${TARGET_NAME} INTERFACE absl::string_view absl::flat_hash_set)
-
-  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
-    "${SPM_SOURCE_DIR}/src/builtin_pb"
-    "${SPM_SOURCE_DIR}/src"
-    "${SPM_SOURCE_DIR}/third_party/protobuf-lite"
-    "${SPM_SOURCE_DIR}/third_party/" # for libabseil
-    "${SPM_SOURCE_DIR}"
-    "${SPM_BINARY_DIR}")
-  
-  target_link_libraries(${TARGET_NAME} INTERFACE sentencepiece::sentencepiece)
-
-  # foreach(sp_target sentencepiece-static sentencepiece_train-static)
-  #   if(CMAKE_CL_64)
-  #     target_compile_definitions(${sp_target} PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
-  #   endif()
-  #   # to propogate _GLIBCXX_USE_CXX11_ABI value
-  #   # target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-  #   target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-  # endforeach(sp_target sentencepiece sentencepiece_train)
-
-  if(ANDROID)
-    # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
-    target_link_libraries(${TARGET_NAME} PRIVATE log)
   endif()
-
 endfunction()
 
 function(ov_tokenizers_build_static_re2)
@@ -272,11 +241,6 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
-# Ensure ICU is built before your main project
-add_dependencies(${TARGET_NAME} sentencepiece)
-# Add ICU include and library directories to the target
-target_link_libraries(${TARGET_NAME} INTERFACE ICU::i18n ICU::uc ICU::data)
-
 #
 # Set install RPATH
 #
@@ -301,6 +265,38 @@ endif()
 #
 # Installation
 #
+
+# Put binaries at the top level for NPM package
+if(CPACK_GENERATOR STREQUAL "NPM")
+  set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR .)
+  set(OPENVINO_TOKENIZERS_INSTALL_BINDIR .)
+else()
+  # - Windows: `<openvino_dir>\runtime\bin\intel64\Release\`
+  # - MacOS_x86: `<openvino_dir>/runtime/lib/intel64/Release`
+  # - MacOS_arm64: `<openvino_dir>/runtime/lib/arm64/Release/`
+  # - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
+  # - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
+  string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
+  if(OPENVINO_TOKENIZERS_INSTALL_DIR MATCHES "amd64.*|x86_64.*|AMD64.*")
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
+  elseif(OPENVINO_TOKENIZERS_INSTALL_DIR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
+    if(APPLE)
+      set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
+    else()
+      set(OPENVINO_TOKENIZERS_INSTALL_DIR "aarch64")
+    endif()
+  elseif(OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "x86_64" OR OPENVINO_TOKENIZERS_INSTALL_DIR STREQUAL "amd64"  # Windows detects Intel's 64-bit CPU as AMD64
+      OR CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
+  endif()
+
+  if(WIN32 OR APPLE)
+    set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${BUILD_TYPE})
+  endif()
+
+  set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
+  set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
+endif()
 
 # Installing the extension module
 install(TARGETS ${TARGET_NAME}
