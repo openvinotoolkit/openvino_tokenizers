@@ -100,9 +100,12 @@ if(ENABLE_SYSTEM_ICU)
   message(STATUS "Using system-installed ICU.")
 else()
   message(STATUS "ICU not found, building from source...")
-  include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
-endif()
 
+  include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
+ 
+  list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
+endif()
+  
 FetchContent_Declare(
   sentencepiece
   URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
@@ -110,28 +113,29 @@ FetchContent_Declare(
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
-if(DEFINED ENV{CONDA_BUILD_SYSROOT})
-    set(openvino_installed_from_conda ON)
-    # OpenVINO conda package dynamically linked with external protobuf,
-    # and we need to link sentencepiece with external protobuf too.
-    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
-    set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
-endif()
-if(openvino_installed_from_conda AND NOT WIN32)
-    set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
-    set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
-    set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
-else()
-    set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
-    set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-    set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
-endif()
+  if(DEFINED ENV{CONDA_BUILD_SYSROOT})
+      set(openvino_installed_from_conda ON)
+      # OpenVINO conda package dynamically linked with external protobuf,
+      # and we need to link sentencepiece with external protobuf too.
+      set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+      set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
+  endif()
+  if(openvino_installed_from_conda AND NOT WIN32)
+      set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
+      set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
+  else()
+      set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
+      set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
+  endif()
 
-set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
-set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
-set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
-FetchContent_Populate(sentencepiece)
-add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+  set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
+  set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
+  set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
+  
+  FetchContent_Populate(sentencepiece)
+  add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
@@ -161,7 +165,7 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       # to propogate _GLIBCXX_USE_CXX11_ABI value
       target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
       target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-    endforeach(sp_target sentencepiece sentencepiece_train)
+    endforeach()
 
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
@@ -318,6 +322,11 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
         DESTINATION "docs/openvino_tokenizers"
         COMPONENT openvino_tokenizers_docs)
         
+install(
+    DIRECTORY ${ICU_SHARED_LIB_DIR}
+    DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
+    # FILES_MATCHING PATTERN "${SHARED_LIB_EXT}"
+)
 #
 # Cpack configuration
 #
