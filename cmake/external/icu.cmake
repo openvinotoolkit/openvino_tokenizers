@@ -31,13 +31,43 @@ else()
   set(ICU_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 endif()
 
-if(WIN32)
-    set(SHARED_LIB_EXT "*.dll")
-elseif(APPLE)
-    set(SHARED_LIB_EXT "*.dylib")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(ICU_SUFFIX "d")  # Debug suffix used by ICU
 else()
-    set(SHARED_LIB_EXT "*.so")
+    set(ICU_SUFFIX "")
 endif()
+
+if(WIN32)
+    set(ICU_SHARED_PREFIX "lib")
+    set(ICU_STATIC_PREFIX "")
+    set(ICU_SHARED_SUFFIX "dll")
+    set(ICU_STATIC_SUFFIX "lib")
+    set(ICU_INSTALL_LIB_SUBDIR "lib64")
+    set(ICU_INSTALL_BIN_SUBDIR "bin64")
+elseif()
+    set(ICU_SHARED_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
+    set(ICU_STATIC_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
+    set(ICU_SHARED_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+    set(ICU_STATIC_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+    set(ICU_INSTALL_LIB_SUBDIR "lib")
+    set(ICU_INSTALL_BIN_SUBDIR "lib")
+endif()
+
+if(ICU_STATIC)
+    set(TYPE "STATIC")
+else()
+    set(TYPE "SHARED")
+endif()
+
+if(ICU_INSTALL_DIR)
+    set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
+    set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_LIB_SUBDIR}")
+    set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}")
+endif()
+
+set(ICU_UC_LIB "${ICU_${TYPE}_LIB_DIR}/${ICU_${TYPE}_PREFIX}icuuc.${ICU_${TYPE}_SUFFIX}")
+set(ICU_I18N_LIB "${ICU_${TYPE}_LIB_DIR}/${ICU_${TYPE}_PREFIX}icuin.${ICU_${TYPE}_SUFFIX}")
+set(ICU_DATA_LIB "${ICU_${TYPE}_LIB_DIR}/${ICU_${TYPE}_PREFIX}icudt.${ICU_${TYPE}_SUFFIX}")
 
 include(ExternalProject)
 
@@ -63,7 +93,7 @@ elseif(APPLE)
     URL ${ICU_URL}
     URL_HASH ${ICU_URL_HASH}
     PREFIX ${THIRD_PARTY_PATH}
-    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU MacOSX --prefix ${ICU_INSTALL_DIR} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
+    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU MacOSX --prefix ${ICU_INSTALL_DIR} ${ICU_CONFIGURE_FLAGS} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
     INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON
@@ -77,7 +107,7 @@ else()
     SOURCE_DIR ${ICU_SOURCE_DIR}
     BINARY_DIR ${ICU_BUILD_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
-    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
+    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR} ${ICU_CONFIGURE_FLAGS} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
     INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON

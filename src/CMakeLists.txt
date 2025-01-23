@@ -100,9 +100,7 @@ if(ENABLE_SYSTEM_ICU)
   message(STATUS "Using system-installed ICU.")
 else()
   message(STATUS "ICU not found, building from source...")
-
   include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
- 
   list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 endif()
   
@@ -230,6 +228,9 @@ endfunction()
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_library(${TARGET_NAME} SHARED ${SRCS})
+if(NOT ENABLE_SYSTEM_ICU)
+  add_dependencies(${TARGET_NAME} ${ICU_TARGET_NAME})
+endif()
 
 #
 # Target include dirs, link libraries and other properties
