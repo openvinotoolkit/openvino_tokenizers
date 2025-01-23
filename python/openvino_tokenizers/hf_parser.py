@@ -59,18 +59,13 @@ from .tokenizer_pipeline import (
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
-from .utils import TokenzierConversionParams, filter_re2_incompatible
+from .utils import TokenzierConversionParams
 
 
 def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:
-    regex_search_pattern = normalizer_dict["pattern"].get("String") or normalizer_dict["pattern"]["Regex"]
-    filtered_pattern = filter_re2_incompatible(regex_search_pattern)
-    if filtered_pattern == "":
-        return []
-
     return [
         RegexNormalizationStep(
-            regex_search_pattern=regex_search_pattern,
+            regex_search_pattern=normalizer_dict["pattern"].get("String") or normalizer_dict["pattern"]["Regex"],
             replace_term=normalizer_dict["content"],
         )
     ]

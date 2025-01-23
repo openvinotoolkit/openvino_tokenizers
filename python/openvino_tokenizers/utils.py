@@ -176,25 +176,6 @@ def change_outputs_type(model: Model, output_type: Type) -> Model:
     return ppp.build()
 
 
-def has_incompatible_re2_op(pattern: str) -> bool:
-    return "(?=" in pattern or "(?!" in pattern or "(?<=" in pattern or "(?<!" in pattern
-
-
-_subpattern_regex = re.compile(r"(?:[^()|]+|\([^)]*\))+")
-
-
-def filter_re2_incompatible(pattern: str) -> str:
-    not_filtered = []
-
-    for subpattern in (match.group() for match in _subpattern_regex.finditer(pattern)):
-        if has_incompatible_re2_op(subpattern):
-            logging.warning(f"Subpattern `{subpattern}` is not supported by re2 and filtered out.")
-            continue
-        not_filtered.append(subpattern)
-
-    return "|".join(not_filtered)
-
-
 # from transformers.models.gpt2.tokenization_gpt2
 @lru_cache()
 def unicode_to_bytes() -> Dict[str, int]:
@@ -212,14 +193,14 @@ def unicode_to_bytes() -> Dict[str, int]:
     return dict(zip(cs, bs))
 
 
-def apply_unicode_to_bytes(token: str) -> str:
+def apply_unicode_to_bytes(token: str) -> bytes:
     bytes_encoder = unicode_to_bytes()
     try:
         return bytes(bytes_encoder[char] for char in token)
     except KeyError:
         # tokens that was not bytes-to-chars encoded
         # ModernBERT adds such tokens to the vocab directly, which is wrong, but we need to handle it
-        return token
+        return token.encode()
 
 
 def get_hf_tokenizer_attribute(

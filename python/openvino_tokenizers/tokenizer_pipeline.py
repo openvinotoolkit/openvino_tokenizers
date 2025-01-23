@@ -32,7 +32,7 @@ from .constants import (
     UTF8ReplaceMode,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta
 
 
 logger = logging.getLogger(__name__)
@@ -190,15 +190,6 @@ class RegexNormalizationStep(NormalizationStep):
     regex_search_pattern: str
     replace_term: str
     global_replace: bool = True
-
-    def __post_init__(self):
-        self.vet_search_pattern()
-
-    def vet_search_pattern(self) -> None:
-        if has_incompatible_re2_op(self.regex_search_pattern):
-            logger.warning(
-                "RegexNormalization pattern is not supported, operation output might differ from the original tokenizer."
-            )
 
     @classmethod
     def strip_accents_regex(cls) -> "RegexNormalizationStep":
