@@ -162,6 +162,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       # to propogate _GLIBCXX_USE_CXX11_ABI value
       target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
       target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
+      if(NOT ENABLE_SYSTEM_ICU)
+        add_dependencies(${sp_target} ${ICU_TARGET_NAME})
+      endif()
     endforeach()
 
     if(ANDROID)
@@ -227,9 +230,6 @@ endfunction()
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_library(${TARGET_NAME} SHARED ${SRCS})
-# if(NOT ENABLE_SYSTEM_ICU)
-  add_dependencies(${TARGET_NAME} icu_external)
-# endif()
 
 #
 # Target include dirs, link libraries and other properties
