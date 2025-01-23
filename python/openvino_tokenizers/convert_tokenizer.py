@@ -8,8 +8,8 @@ from dataclasses import fields
 from functools import wraps
 from typing import Any, Optional, Tuple, Union
 
-from openvino.runtime import Model, Type
-from openvino.runtime.exceptions import OVTypeError
+from openvino import Model, Type
+from openvino.exceptions import OVTypeError
 
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.utils import (
