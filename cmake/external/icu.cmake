@@ -86,6 +86,7 @@ if(WIN32)
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/lib64 &&
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/bin64
     DOWNLOAD_EXTRACT_TIMESTAMP ON
+    BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
 elseif(APPLE)
   ExternalProject_Add(
@@ -97,6 +98,7 @@ elseif(APPLE)
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
     INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON
+    BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
 else()
   ExternalProject_Add(
@@ -111,5 +113,6 @@ else()
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
     INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON
+    BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
 endif()
