@@ -227,9 +227,9 @@ endfunction()
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_library(${TARGET_NAME} SHARED ${SRCS})
-if(NOT ENABLE_SYSTEM_ICU)
-  add_dependencies(${TARGET_NAME} ${ICU_TARGET_NAME})
-endif()
+# if(NOT ENABLE_SYSTEM_ICU)
+  add_dependencies(${TARGET_NAME} icu_external)
+# endif()
 
 #
 # Target include dirs, link libraries and other properties
@@ -324,7 +324,7 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
 
 if(EXISTS ${ICU_SHARED_LIB_DIR})
   install(
-      DIRECTORY ${ICU_SHARED_LIB_DIR}
+      DIRECTORY ${ICU_SHARED_LIB_DIR}/
       DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
   )
 endif()
