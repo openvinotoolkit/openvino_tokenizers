@@ -322,12 +322,14 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
               "${openvino_tokenizers_SOURCE_DIR}/README.md"
         DESTINATION "docs/openvino_tokenizers"
         COMPONENT openvino_tokenizers_docs)
-        
-install(
-    DIRECTORY ${ICU_SHARED_LIB_DIR}
-    DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
-    # FILES_MATCHING PATTERN "${SHARED_LIB_EXT}"
-)
+
+if(EXISTS ${ICU_SHARED_LIB_DIR})
+  install(
+      DIRECTORY ${ICU_SHARED_LIB_DIR}
+      DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
+  )
+endif()
+
 #
 # Cpack configuration
 #
