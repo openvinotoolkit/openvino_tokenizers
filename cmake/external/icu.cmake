@@ -32,7 +32,7 @@ else()
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(ICU_SUFFIX "d")  # Debug suffix used by ICU
+    set(ICU_SUFFIX "d")
 else()
     set(ICU_SUFFIX "")
 endif()
@@ -59,15 +59,15 @@ else()
     set(TYPE "SHARED")
 endif()
 
-if(ICU_INSTALL_DIR)
-    set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
-    set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_LIB_SUBDIR}")
-    set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}")
-endif()
+set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
+set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_LIB_SUBDIR}")
+set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}")
 
 set(ICU_UC_LIB "${ICU_${TYPE}_LIB_DIR}/${ICU_${TYPE}_PREFIX}icuuc.${ICU_${TYPE}_SUFFIX}")
 set(ICU_I18N_LIB "${ICU_${TYPE}_LIB_DIR}/${ICU_${TYPE}_PREFIX}icuin.${ICU_${TYPE}_SUFFIX}")
 set(ICU_DATA_LIB "${ICU_${TYPE}_LIB_DIR}/${ICU_${TYPE}_PREFIX}icudt.${ICU_${TYPE}_SUFFIX}")
+
+set(ICU_LIBRARIES ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB})
 
 include(ExternalProject)
 
@@ -81,10 +81,10 @@ if(WIN32)
     BINARY_DIR ${ICU_BUILD_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
     CONFIGURE_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:OutDir=${ICU_BINARY_DIR} /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /p:SkipUWP=true /t:i18n
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INSTALL_DIR}/include && 
-                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/lib64 &&
-                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/bin64
+    BUILD_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INSTALL_DIR}/include && 
+                  ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/lib64 &&
+                  ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/bin64
+    INSTALL_COMMAND ""
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
@@ -95,8 +95,8 @@ elseif(APPLE)
     URL_HASH ${ICU_URL_HASH}
     PREFIX ${THIRD_PARTY_PATH}
     CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU MacOSX --prefix ${ICU_INSTALL_DIR} ${ICU_CONFIGURE_FLAGS} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
-    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
-    INSTALL_COMMAND make install
+    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} && make install
+    INSTALL_COMMAND ""
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
@@ -110,9 +110,12 @@ else()
     BINARY_DIR ${ICU_BUILD_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
     CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR} ${ICU_CONFIGURE_FLAGS} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
-    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
-    INSTALL_COMMAND make install
+    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} && make install
+    INSTALL_COMMAND ""
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
 endif()
+
+# using custom FindICU module
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")

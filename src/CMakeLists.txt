@@ -101,7 +101,6 @@ if(ENABLE_SYSTEM_ICU)
 else()
   message(STATUS "ICU not found, building from source...")
   include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
-  list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 endif()
   
 FetchContent_Declare(
