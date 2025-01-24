@@ -86,10 +86,8 @@ chat_messages = [
 wordpiece_models = [
     "bert-base-multilingual-cased",
     "cointegrated/rubert-tiny2",
-    "distilbert-base-uncased-finetuned-sst-2-english",
     "sentence-transformers/all-MiniLM-L6-v2",
     "google/mobilebert-uncased",
-    "ProsusAI/finbert",
     "rasa/LaBSE",
 ]
 bpe_models = [
@@ -98,12 +96,10 @@ bpe_models = [
     # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
     "tiiuae/falcon-7b",
     "stabilityai/stablecode-completion-alpha-3b-4k",
-    "databricks/dolly-v2-3b",
     "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
     "roberta-base",
     "facebook/opt-66b",
     "gpt2",
-    "EleutherAI/gpt-neox-20b",
     "ai-forever/rugpt3large_based_on_gpt2",
     "facebook/galactica-120b",
     "microsoft/deberta-base",

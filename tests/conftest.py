@@ -136,16 +136,17 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
 
     def strip_dir(test_id: str) -> str:
         if test_id.startswith("tests/"):
-            return test_id[6:]
+            test_id = test_id[6:]
         return test_id
 
     stats = reporter.stats
+
     new_statuses = {}
-    for stat in stats.get("passed", []):
+    for stat in sorted(stats.get("passed", []), key=lambda s: s.nodeid):
         new_statuses[strip_dir(stat.nodeid)] = "passed"
-    for stat in stats.get("skipped", []):
+    for stat in sorted(stats.get("skipped", []), key=lambda s: s.nodeid):
         new_statuses[strip_dir(stat.nodeid)] = "skipped"
-    for stat in stats.get("failed", []):
+    for stat in sorted(stats.get("failed", []), key=lambda s: s.nodeid):
         new_statuses[strip_dir(stat.nodeid)] = "failed"
 
     rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")
