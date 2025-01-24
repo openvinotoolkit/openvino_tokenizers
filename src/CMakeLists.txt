@@ -133,6 +133,16 @@ if(NOT sentencepiece_POPULATED)
   
   FetchContent_Populate(sentencepiece)
   add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+  
+  foreach(sp_target sentencepiece sentencepiece_train)
+    if(TARGET ${sp_target}-static)
+      set(sp_target ${sp_target}-static)  
+    endif()
+    if(TARGET ${ICU_TARGET_NAME})
+      add_dependencies(${sp_target} ${ICU_TARGET_NAME})
+    endif()
+  endforeach()
+
 endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
@@ -162,9 +172,6 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       # to propogate _GLIBCXX_USE_CXX11_ABI value
       target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
       target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-      if(NOT ENABLE_SYSTEM_ICU)
-        add_dependencies(${sp_target} ${ICU_TARGET_NAME})
-      endif()
     endforeach()
 
     if(ANDROID)
@@ -324,8 +331,9 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
 
 if(EXISTS ${ICU_SHARED_LIB_DIR})
   install(
-      DIRECTORY ${ICU_SHARED_LIB_DIR}/
+      FILES ${ICU_UC_SHARED_LIB} ${ICU_I18N_SHARED_LIB} ${ICU_DATA_SHARED_LIB}
       DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
+      COMPONENT openvino_tokenizers
   )
 endif()
 
