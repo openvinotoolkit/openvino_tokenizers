@@ -115,8 +115,8 @@ elseif(APPLE)
     URL_HASH ${ICU_URL_HASH}
     PREFIX ${THIRD_PARTY_PATH}
     CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU MacOSX --prefix ${ICU_INSTALL_DIR} ${ICU_CONFIGURE_FLAGS} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
-    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} && make install
-    INSTALL_COMMAND ""
+    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
+    INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
@@ -130,8 +130,8 @@ else()
     BINARY_DIR ${ICU_BUILD_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
     CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR} ${ICU_CONFIGURE_FLAGS} --disable-tests --disable-samples --disable-tools --disable-extras --disable-icuio --disable-draft --disable-icu-config
-    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} && make install
-    INSTALL_COMMAND ""
+    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
+    INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB}
   )
