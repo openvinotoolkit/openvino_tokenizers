@@ -329,9 +329,9 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
         DESTINATION "docs/openvino_tokenizers"
         COMPONENT openvino_tokenizers_docs)
 
-if(EXISTS ${ICU_SHARED_LIB_DIR})
+if(ICU_SHARED_LIBRARIES)
   install(
-      FILES ${ICU_UC_SHARED_LIB} ${ICU_I18N_SHARED_LIB} ${ICU_DATA_SHARED_LIB}
+      FILES ${ICU_SHARED_LIBRARIES}
       DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
       COMPONENT openvino_tokenizers
   )
