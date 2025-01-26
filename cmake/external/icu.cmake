@@ -73,6 +73,10 @@ else()
     set(ICU_UC_SHARED_LIB_NAME ${ICU_UC_LIB_NAME})
     set(ICU_I18N_SHARED_LIB_NAME ${ICU_I18N_LIB_NAME})
     set(ICU_DATA_SHARED_LIB_NAME ${ICU_DATA_LIB_NAME})
+    
+    # Calculate the number of cores using CMake
+    execute_process(COMMAND nproc OUTPUT_VARIABLE CMAKE_JOB_POOL_SIZE)
+    string(STRIP ${CMAKE_JOB_POOL_SIZE} CMAKE_JOB_POOL_SIZE)
 endif()
 
 if(ICU_STATIC)
@@ -163,7 +167,7 @@ else()
                       --disable-icuio
                       --disable-draft
                       --disable-icu-config
-    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE}
+    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_LIBRARIES}
