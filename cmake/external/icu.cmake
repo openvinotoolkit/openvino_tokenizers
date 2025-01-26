@@ -162,7 +162,7 @@ else()
                       --enable-rpath
                       --disable-tests
                       --disable-samples
-                      --disable-tools
+                      # --disable-tools
                       --disable-extras
                       --disable-icuio
                       --disable-draft
