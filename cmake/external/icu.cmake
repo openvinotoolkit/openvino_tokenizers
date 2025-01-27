@@ -26,8 +26,6 @@ if(OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
 endif()
 
 set(HOST_ENV_CMAKE ${CMAKE_COMMAND} -E env
-        CC=${CMAKE_C_COMPILER}
-        CXX=${CMAKE_CXX_COMPILER}
         CFLAGS=${CMAKE_C_FLAGS}
         CXXFLAGS=${CMAKE_CXX_FLAGS}
         LDFLAGS=${CMAKE_MODULE_LINKER_FLAGS}
@@ -139,6 +137,7 @@ elseif(APPLE)
                       ${ICU_CONFIGURE_FLAGS} 
                       --enable-static
                       --enable-rpath
+                      --disable-shared
                       --disable-tests
                       --disable-samples
                       --disable-tools
@@ -164,9 +163,10 @@ else()
                       ${ICU_CONFIGURE_FLAGS}
                       --enable-static
                       --enable-rpath
+                      --disable-shared
                       --disable-tests
                       --disable-samples
-                      # --disable-tools
+                      --disable-tools
                       --disable-extras
                       --disable-icuio
                       --disable-draft
