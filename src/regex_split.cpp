@@ -168,7 +168,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     const size_t num_rows = inputs[0].get_size();
     const size_t num_chars = inputs[4].get_size();
 
-    bool * skips;
+    bool* skips;
     bool init_skips = false;
     if (has_skips) {
         skips = inputs[5].data<bool>();
