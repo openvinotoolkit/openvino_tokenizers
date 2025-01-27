@@ -1,6 +1,10 @@
-# Custom FindICU.cmake
+# Copyright (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+#
 
+# Custom FindICU.cmake
 # Create imported targets even if libraries are not available yet
+
 if(NOT TARGET ICU::uc)
     add_library(ICU::uc UNKNOWN IMPORTED)
     set_target_properties(ICU::uc PROPERTIES

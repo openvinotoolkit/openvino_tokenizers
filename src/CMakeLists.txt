@@ -252,6 +252,13 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
+if(SPM_ENABLE_NFKC_COMPILE)
+  find_package(ICU COMPONENTS i18n data uc REQUIRED)
+  if(ICU_FOUND)    
+    target_link_libraries(${TARGET_NAME} PRIVATE ${ICU_LIBRARIES})
+  endif()
+endif()
+
 #
 # Set install RPATH
 #

@@ -1,3 +1,7 @@
+# Copyright (C) 2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+#
+
 include(FetchContent)
 
 set(ICU_TARGET_NAME "icu_external")
