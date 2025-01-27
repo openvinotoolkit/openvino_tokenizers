@@ -142,7 +142,6 @@ elseif(APPLE)
                       --disable-shared
                       --disable-tests
                       --disable-samples
-                      --disable-tools
                       --disable-extras
                       --disable-icuio
                       --disable-draft
@@ -166,13 +165,12 @@ else()
                       --enable-static
                       --enable-rpath
                       --disable-shared
-                      # --disable-tests
-                      # --disable-samples
-                      # --disable-tools
-                      # --disable-extras
-                      # --disable-icuio
-                      # --disable-draft
-                      # --disable-icu-config
+                      --disable-tests
+                      --disable-samples
+                      --disable-extras
+                      --disable-icuio
+                      --disable-draft
+                      --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
     DOWNLOAD_EXTRACT_TIMESTAMP ON
