@@ -113,7 +113,6 @@ if(WIN32)
     INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INSTALL_DIR}/include && 
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/lib64 &&
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/bin64
-    DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_LIBRARIES}
   )
 elseif(APPLE)
@@ -137,7 +136,6 @@ elseif(APPLE)
                       --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_LIBRARIES}
   )
 else()
@@ -161,7 +159,6 @@ else()
                       --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    DOWNLOAD_EXTRACT_TIMESTAMP ON
     BUILD_BYPRODUCTS ${ICU_LIBRARIES}
   )
 endif()
