@@ -94,35 +94,55 @@ endif()
 
 include(FetchContent)
 
+option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
+
+if(ENABLE_SYSTEM_ICU) 
+  message(STATUS "Using system-installed ICU.")
+else()
+  message(STATUS "ICU is not found and will be built from source.")
+  include(${PROJECT_SOURCE_DIR}/cmake/external/icu.cmake)
+endif()
+  
 FetchContent_Declare(
-sentencepiece
-URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
-URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
+  sentencepiece
+  URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
+  URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
-if(DEFINED ENV{CONDA_BUILD_SYSROOT})
-    set(openvino_installed_from_conda ON)
-    # OpenVINO conda package dynamically linked with external protobuf,
-    # and we need to link sentencepiece with external protobuf too.
-    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
-    set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
-endif()
-if(openvino_installed_from_conda AND NOT WIN32)
-    set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
-    set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
-    set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
-else()
-    set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
-    set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-    set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
-endif()
+  if(DEFINED ENV{CONDA_BUILD_SYSROOT})
+      set(openvino_installed_from_conda ON)
+      # OpenVINO conda package dynamically linked with external protobuf,
+      # and we need to link sentencepiece with external protobuf too.
+      set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+      set(protobuf_MODULE_COMPATIBLE ON CACHE BOOL "Protobuf module compatible")
+  endif()
+  if(openvino_installed_from_conda AND NOT WIN32)
+      set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
+      set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
+  else()
+      set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
+      set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
+  endif()
 
-set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
-set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
-set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
-FetchContent_Populate(sentencepiece)
-add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+  set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
+  set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
+  set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
+  
+  FetchContent_Populate(sentencepiece)
+  add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+  
+  if(TARGET ${ICU_TARGET_NAME})
+    foreach(sp_target sentencepiece sentencepiece_train)
+      if(TARGET ${sp_target}-static)
+        set(sp_target ${sp_target}-static)  
+        add_dependencies(${sp_target} ${ICU_TARGET_NAME})
+      endif()
+    endforeach()
+  endif()
+
 endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
@@ -152,7 +172,7 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       # to propogate _GLIBCXX_USE_CXX11_ABI value
       target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
       target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-    endforeach(sp_target sentencepiece sentencepiece_train)
+    endforeach()
 
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
@@ -232,6 +252,10 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
+# sentencepiece uses ICU libraries and is linked as INTERFACE, which is why we need to manually link tokenizers with ICU
+find_package(ICU COMPONENTS i18n data uc REQUIRED)
+target_link_libraries(${TARGET_NAME} PRIVATE ${ICU_LIBRARIES})
+
 #
 # Set install RPATH
 #
@@ -294,13 +318,17 @@ install(TARGETS ${TARGET_NAME}
         LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR} COMPONENT openvino_tokenizers
         RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR} COMPONENT openvino_tokenizers)
 
-if(extra_libs)
+if(ICU_SHARED_LIBRARIES)
   if(WIN32)
-    set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
+    set(libs_install_dir ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
   else()
-    set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR})
+    set(libs_install_dir ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR})
   endif()
-  install(FILES ${extra_libs} DESTINATION ${extra_libs_location} COMPONENT openvino_tokenizers)
+  install(
+    FILES ${ICU_UC_SHARED_LIB} ${ICU_DATA_SHARED_LIB}
+    DESTINATION ${libs_install_dir}
+    COMPONENT openvino_tokenizers
+  )
 endif()
 
 install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
