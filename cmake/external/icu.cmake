@@ -32,20 +32,17 @@ set(HOST_ENV_CMAKE ${CMAKE_COMMAND} -E env
 
 if(GENERATOR_IS_MULTI_CONFIG_VAR)
   set(ICU_CONFIGURE_FLAGS $<$<CONFIG:Debug>:"--enable-debug">$<$<CONFIG:Release>:"--enable-release">)
+  set(ICU_SUFFIX $<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>$<$<CONFIG:Release>:${CMAKE_RELEASE_POSTFIX}>)
   set(ICU_BUILD_TYPE $<CONFIG>)
 else()
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(ICU_CONFIGURE_FLAGS "--enable-debug")
+    set(ICU_SUFFIX ${CMAKE_DEBUG_POSTFIX})
   else()
     set(ICU_CONFIGURE_FLAGS "--enable-release")
+    set(ICU_SUFFIX ${CMAKE_RELEASE_POSTFIX})
   endif()
   set(ICU_BUILD_TYPE ${CMAKE_BUILD_TYPE})
-endif()
-
-if(ICU_BUILD_TYPE STREQUAL "Debug")
-    set(ICU_SUFFIX ${CMAKE_DEBUG_POSTFIX})
-else()
-    set(ICU_SUFFIX ${CMAKE_RELEASE_POSTFIX})
 endif()
 
 if(WIN32)
