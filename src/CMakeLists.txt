@@ -100,7 +100,7 @@ if(ENABLE_SYSTEM_ICU)
   message(STATUS "Using system-installed ICU.")
 else()
   message(STATUS "ICU is not found and will be built from source.")
-  include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
+  include(${PROJECT_SOURCE_DIR}/cmake/external/icu.cmake)
 endif()
   
 FetchContent_Declare(
