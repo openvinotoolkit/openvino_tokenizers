@@ -9,8 +9,8 @@ set(ICU_URL https://github.com/unicode-org/icu/releases/download/release-70-1/ic
 set(ICU_URL_HASH SHA256=8d205428c17bf13bb535300669ed28b338a157b1c01ae66d31d0d3e2d47c3fd5)
 
 set(THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/_deps/icu)
-set(ICU_SOURCE_DIR  ${THIRD_PARTY_PATH}/icu-src CACHE PATH "Path to extracted ICU source directory")
-set(ICU_INSTALL_DIR ${THIRD_PARTY_PATH}/icu-install CACHE PATH "Path to extracted ICU install directory")
+set(ICU_SOURCE_DIR  ${THIRD_PARTY_PATH}/icu-src)
+set(ICU_INSTALL_DIR ${THIRD_PARTY_PATH}/icu-install)
 
 if(NOT WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11")
