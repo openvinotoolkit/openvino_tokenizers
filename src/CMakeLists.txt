@@ -99,7 +99,7 @@ option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
 if(ENABLE_SYSTEM_ICU) 
   message(STATUS "Using system-installed ICU.")
 else()
-  message(STATUS "ICU not found, building from source...")
+  message(STATUS "ICU is not found and will be built from source.")
   include(${CMAKE_SOURCE_DIR}/cmake/external/icu.cmake)
 endif()
   
@@ -252,12 +252,9 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
-if(SPM_ENABLE_NFKC_COMPILE)
-  find_package(ICU COMPONENTS i18n data uc REQUIRED)
-  if(ICU_FOUND)    
-    target_link_libraries(${TARGET_NAME} PRIVATE ${ICU_LIBRARIES})
-  endif()
-endif()
+# sentencepiece uses ICU libraries and is linked as INTERFACE, which is why we need to manually link tokenizers with ICU
+find_package(ICU COMPONENTS i18n data uc REQUIRED)
+target_link_libraries(${TARGET_NAME} PRIVATE ${ICU_LIBRARIES})
 
 #
 # Set install RPATH
@@ -321,13 +318,17 @@ install(TARGETS ${TARGET_NAME}
         LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR} COMPONENT openvino_tokenizers
         RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR} COMPONENT openvino_tokenizers)
 
-if(extra_libs)
+if(ICU_SHARED_LIBRARIES)
   if(WIN32)
-    set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
+    set(libs_install_dir ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
   else()
-    set(extra_libs_location ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR})
+    set(libs_install_dir ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR})
   endif()
-  install(FILES ${extra_libs} DESTINATION ${extra_libs_location} COMPONENT openvino_tokenizers)
+  install(
+    FILES ${ICU_UC_SHARED_LIB} ${ICU_DATA_SHARED_LIB}
+    DESTINATION ${libs_install_dir}
+    COMPONENT openvino_tokenizers
+  )
 endif()
 
 install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
@@ -335,14 +336,6 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
               "${openvino_tokenizers_SOURCE_DIR}/README.md"
         DESTINATION "docs/openvino_tokenizers"
         COMPONENT openvino_tokenizers_docs)
-
-if(ICU_SHARED_LIBRARIES)
-  install(
-      FILES ${ICU_UC_SHARED_LIB} ${ICU_DATA_SHARED_LIB}
-      DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
-      COMPONENT openvino_tokenizers
-  )
-endif()
 
 #
 # Cpack configuration
