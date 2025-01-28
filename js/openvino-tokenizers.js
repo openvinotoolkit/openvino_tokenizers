@@ -19,19 +19,19 @@ function getPathToBinary(osProps) {
     __dirname,
     'bin/runtime',
     libOrBin(platform),
-    getDirnameByArch(arch),
+    getDirnameByArchAndPlatform(arch, platform),
     platform === 'linux' ? '' : 'Release',
     getBinaryFilename(platform),
   );
 }
 
-function getDirnameByArch(arch) {
+function getDirnameByArchAndPlatform(arch, platform) {
   switch (arch) {
     case 'x64':
       return 'intel64';
     case 'arm64':
     case 'armhf':
-      return 'arm64';
+      return platform === 'darwin' ? 'arm64' : 'aarch64';
     default:
       throw new Error(`Unsupported architecture: ${arch}`);
   }

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2024 Intel Corporation
+# Copyright (C) 2018-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 from openvino import Model, Type
 from openvino.preprocess import PrePostProcessor
-from openvino.runtime import opset12 as opset
+from openvino import opset12 as opset
 
 from .constants import (
     LOGITS_OUTPUT_NAME,

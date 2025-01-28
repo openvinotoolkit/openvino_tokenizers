@@ -1,4 +1,4 @@
-# Copyright (C) 2022-2024 Intel Corporation
+# Copyright (C) 2022-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -38,12 +38,13 @@ else()
 endif()
 
 project(openvino_tokenizers
-        VERSION 2025.0.0.0
+        VERSION 2025.1.0.0
         DESCRIPTION "OpenVINO Tokenizers"
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
         LANGUAGES CXX)
 
 include(cmake/platforms.cmake)
+include(cmake/version.cmake)
 
 option(BUILD_CPP_EXTENSION "Builds C++ extension for OpenVINO Tokenizers" ON)
 

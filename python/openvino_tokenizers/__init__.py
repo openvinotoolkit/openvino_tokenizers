@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2024 Intel Corporation
+# Copyright (C) 2018-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 import functools
 import os
@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import openvino
-from openvino.runtime.utils.node_factory import NodeFactory
+from openvino.utils.node_factory import NodeFactory
 
 
 _ext_name = "openvino_tokenizers"
@@ -42,8 +42,8 @@ else:
 del _ext_name
 
 # patching openvino
-old_core_init = openvino.runtime.Core.__init__
-old_factory_init = openvino.runtime.utils.node_factory.NodeFactory.__init__
+old_core_init = openvino.Core.__init__
+old_factory_init = openvino.utils.node_factory.NodeFactory.__init__
 old_fe_init = openvino.frontend.frontend.FrontEnd.__init__
 
 
@@ -65,8 +65,8 @@ def new_fe_init(self, *args, **kwargs):
     self.add_extension(str(_ext_path))
 
 
-openvino.runtime.Core.__init__ = new_core_init
-openvino.runtime.utils.node_factory.NodeFactory.__init__ = new_factory_init
+openvino.Core.__init__ = new_core_init
+openvino.utils.node_factory.NodeFactory.__init__ = new_factory_init
 openvino.frontend.frontend.FrontEnd.__init__ = new_fe_init
 
 

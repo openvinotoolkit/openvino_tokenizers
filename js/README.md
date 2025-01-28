@@ -27,4 +27,4 @@ core.addExtension(openvinoTokenizers.path); // Add tokenizers extension
 
 [License](https://github.com/openvinotoolkit/openvino/blob/master/LICENSE)
 
-Copyright © 2018-2024 Intel Corporation
+Copyright © 2018-2025 Intel Corporation

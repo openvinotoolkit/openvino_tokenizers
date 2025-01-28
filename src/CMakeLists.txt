@@ -1,4 +1,4 @@
-# Copyright (C) 2018-2024 Intel Corporation
+# Copyright (C) 2018-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 #
 
@@ -268,9 +268,9 @@ else()
   # - Linux_x86: `<openvino_dir>/runtime/lib/intel64/`
   # - Linux_arm64: `<openvino_dir>/runtime/lib/aarch64/`
   string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" OPENVINO_TOKENIZERS_INSTALL_DIR)
-  if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "amd64.*|x86_64.*|AMD64.*")
+  if(OPENVINO_TOKENIZERS_INSTALL_DIR MATCHES "amd64.*|x86_64.*|AMD64.*")
     set(OPENVINO_TOKENIZERS_INSTALL_DIR intel64)
-  elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
+  elseif(OPENVINO_TOKENIZERS_INSTALL_DIR MATCHES "^(arm64.*|aarch64.*|AARCH64.*|ARM64.*)")
     if(APPLE)
       set(OPENVINO_TOKENIZERS_INSTALL_DIR "arm64")
     else()
@@ -284,9 +284,9 @@ else()
   if(WIN32 OR APPLE)
     set(OPENVINO_TOKENIZERS_INSTALL_DIR ${OPENVINO_TOKENIZERS_INSTALL_DIR}/${BUILD_TYPE})
   endif()
+
   set(OPENVINO_TOKENIZERS_INSTALL_BINDIR "runtime/bin/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING "Destination for files installation of bin files - Windows dll")
   set(OPENVINO_TOKENIZERS_INSTALL_LIBDIR "runtime/lib/${OPENVINO_TOKENIZERS_INSTALL_DIR}" CACHE STRING  "Destination for files installation of lib files")
-
 endif()
 
 # Installing the extension module
