@@ -94,6 +94,8 @@ foreach(build_type RELEASE DEBUG)
     list(APPEND ICU_LIBRARIES_${build_type} ICU_${icu_target}_LIB_${build_type})
     list(APPEND ICU_SHARED_LIBRARIES_${build_type} ICU_${icu_target}_LIB_${build_type})
   endforeach()
+  list(JOIN ICU_LIBRARIES_${build_type} " " ICU_LIBRARIES_${build_type})
+  list(JOIN ICU_SHARED_LIBRARIES_${build_type} " " ICU_SHARED_LIBRARIES_${build_type})
 endforeach()
 
 include(ExternalProject)
