@@ -108,6 +108,9 @@ bpe_models = [
     "Salesforce/codegen-16B-multi",
     "stabilityai/stablelm-2-1_6b",
     "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
+    "allenai/OLMo-1B-hf",
+    "CohereForAI/c4ai-command-r-v01",
+    "answerdotai/ModernBERT-base",
     # "google/flan-t5-xxl",  # needs Precompiled/CharsMap
     # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
@@ -922,8 +925,11 @@ def check_rt_info(hf_tokenizer, *models: Model) -> None:
 
 
 def test_rt_info_wordpiece(hf_wordpiece_tokenizers):
-    ov_tokenizer = convert_tokenizer(hf_wordpiece_tokenizers)
-    check_rt_info(hf_wordpiece_tokenizers, ov_tokenizer)
+    ov_tokenizer, ov_detokenizer = convert_tokenizer(
+        hf_wordpiece_tokenizers,
+        with_detokenizer=True,
+    )
+    check_rt_info(hf_wordpiece_tokenizers, ov_tokenizer, ov_detokenizer)
 
 
 def test_rt_info_bpe(hf_bpe_tokenizers):
