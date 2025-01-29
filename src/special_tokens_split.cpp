@@ -59,10 +59,11 @@ void SpecialTokensSplit::validate_and_infer_types() {
 }
 
 bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    auto split_pattern = std::string(inputs[5].data<const char>(), inputs[5].get_size());
-    compile_pattern_if_necessary(split_pattern);
-
     auto input_size = get_input_size();
+    const bool has_skips = (input_size == 7);
+
+    auto split_pattern = std::string(inputs[5 + has_skips].data<const char>(), inputs[5 + has_skips].get_size());
+    compile_pattern_if_necessary(split_pattern);
 
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
@@ -75,7 +76,6 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
 
     bool * skips;
     bool init_skips = false;
-    const bool has_skips = (input_size == 7);
     if (has_skips) {
         skips = inputs[5].data<bool>();
         outputs[5].set_shape(Shape{num_chars});
