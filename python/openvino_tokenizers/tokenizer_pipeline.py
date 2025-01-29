@@ -1026,7 +1026,13 @@ class VocabDecoderStep(DecodingStep):
             self.skip_tokens = pipeline.skip_tokens or []
 
     @classmethod
-    def from_hf_json(cls, tokenizer_json: Dict[str, Any], pipeline_vocab: Optional[List[str]], skip_tokens: Optional[List[int]] = None, do_skip_tokens: bool = True) -> "VocabDecoderStep":
+    def from_hf_json(
+        cls,
+        tokenizer_json: Dict[str, Any],
+        pipeline_vocab: Optional[List[str]],
+        skip_tokens: Optional[List[int]] = None,
+        do_skip_tokens: bool = True,
+    ) -> "VocabDecoderStep":
         model_type = tokenizer_json["model"]["type"]
 
         if pipeline_vocab is not None and model_type == "WordLevel":
