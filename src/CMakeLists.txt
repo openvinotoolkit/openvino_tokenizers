@@ -254,7 +254,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threadi
 
 # sentencepiece uses ICU libraries and is linked as INTERFACE, which is why we need to manually link tokenizers with ICU
 find_package(ICU COMPONENTS i18n data uc REQUIRED)
-target_link_libraries(${TARGET_NAME} PRIVATE ${ICU_LIBRARIES})
+target_link_libraries(${TARGET_NAME} PRIVATE ICU::i18n ICU::data ICU::uc)
 
 #
 # Set install RPATH
@@ -318,15 +318,17 @@ install(TARGETS ${TARGET_NAME}
         LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR} COMPONENT openvino_tokenizers
         RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR} COMPONENT openvino_tokenizers)
 
-if(ICU_SHARED_LIBRARIES)
-  if(WIN32)
-    set(libs_install_dir ${OPENVINO_TOKENIZERS_INSTALL_BINDIR})
-  else()
-    set(libs_install_dir ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR})
-  endif()
+if(WIN32) 
   install(
-    FILES ${ICU_UC_SHARED_LIB} ${ICU_DATA_SHARED_LIB}
-    DESTINATION ${libs_install_dir}
+    FILES ${ICU_UC_SHARED_LIB_RELEASE} ${ICU_DATA_SHARED_LIB_RELEASE}
+    DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
+    CONFIGURATIONS Release RelWithDebInfo MinSizeRel
+    COMPONENT openvino_tokenizers
+  )  
+  install(
+    FILES ${ICU_UC_SHARED_LIB_DEBUG} ${ICU_DATA_SHARED_LIB_DEBUG}
+    DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
+    CONFIGURATIONS Debug
     COMPONENT openvino_tokenizers
   )
 endif()
