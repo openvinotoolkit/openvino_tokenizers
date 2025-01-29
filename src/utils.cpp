@@ -12,7 +12,6 @@
 #include <algorithm>
 
 using namespace ov;
-using namespace ov::frontend;
 using namespace ov::opset15;
 
 void parse_packed_strings (const Tensor& packed, int32_t& batch_size, const int32_t*& begin_ids, const int32_t*& end_ids, const uint8_t*& symbols) {
@@ -132,12 +131,12 @@ void override_parameter (std::shared_ptr<ov::Node> node, element::Type type, con
 OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input) {
     auto input_node = input.get_node_shared_ptr();
 
-    if (auto struct_pack = std::dynamic_pointer_cast<StringTensorPack>(input_node)) {
+    if (auto struct_pack = std::dynamic_pointer_cast<op::v15::StringTensorPack>(input_node)) {
         FRONT_END_GENERAL_CHECK(struct_pack->get_input_size() == 3, "Expected 3 inputs to StringTensorPack which represents a string tensor");
         return struct_pack->input_values();
     }
     else {
-        return std::make_shared<StringTensorUnpack>(input)->outputs();
+        return std::make_shared<op::v15::StringTensorUnpack>(input)->outputs();
     }
 }
 
@@ -157,7 +156,7 @@ OutputVector pre_translate_ragged_string_tensor_input(ov::Output<ov::Node> input
 
 ov::Output<ov::Node> post_translate_string_tensor_output(const OutputVector& outputs) {
     FRONT_END_GENERAL_CHECK(outputs.size() == 3, "Expected 3 tensors in decomposed string tensor representation");
-    return std::make_shared<StringTensorPack>(outputs[0], outputs[1], outputs[2]);
+    return std::make_shared<op::v15::StringTensorPack>(outputs[0], outputs[1], outputs[2]);
 }
 
 ov::Output<ov::Node> post_translate_ragged_tensor_output(const OutputVector& outputs) {
