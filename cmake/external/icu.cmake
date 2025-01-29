@@ -4,6 +4,7 @@
 
 include(FetchContent)
 
+set(ICU_VERSION "70")
 set(ICU_TARGET_NAME "icu_external")
 set(ICU_URL https://github.com/unicode-org/icu/releases/download/release-70-1/icu4c-70_1-src.tgz)
 set(ICU_URL_HASH SHA256=8d205428c17bf13bb535300669ed28b338a157b1c01ae66d31d0d3e2d47c3fd5)
@@ -32,15 +33,12 @@ set(HOST_ENV_CMAKE ${CMAKE_COMMAND} -E env
 
 if(GENERATOR_IS_MULTI_CONFIG_VAR)
   set(ICU_CONFIGURE_FLAGS $<$<CONFIG:Debug>:"--enable-debug">$<$<CONFIG:Release>:"--enable-release">)
-  set(ICU_SUFFIX $<$<CONFIG:Debug>:${CMAKE_DEBUG_POSTFIX}>$<$<CONFIG:Release>:${CMAKE_RELEASE_POSTFIX}>)
   set(ICU_BUILD_TYPE $<CONFIG>)
 else()
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(ICU_CONFIGURE_FLAGS "--enable-debug")
-    set(ICU_SUFFIX ${CMAKE_DEBUG_POSTFIX})
   else()
     set(ICU_CONFIGURE_FLAGS "--enable-release")
-    set(ICU_SUFFIX ${CMAKE_RELEASE_POSTFIX})
   endif()
   set(ICU_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 endif()
@@ -55,9 +53,9 @@ if(WIN32)
     set(ICU_UC_LIB_NAME "icuuc")
     set(ICU_I18N_LIB_NAME "icuin")
     set(ICU_DATA_LIB_NAME "icudt")
-    set(ICU_UC_SHARED_LIB_NAME "${ICU_UC_LIB_NAME}70")
-    set(ICU_I18N_SHARED_LIB_NAME "${ICU_I18N_LIB_NAME}70")
-    set(ICU_DATA_SHARED_LIB_NAME "${ICU_DATA_LIB_NAME}70")
+    set(ICU_UC_SHARED_LIB_NAME "${ICU_UC_LIB_NAME}${ICU_VERSION}")
+    set(ICU_I18N_SHARED_LIB_NAME "${ICU_I18N_LIB_NAME}${ICU_VERSION}")
+    set(ICU_DATA_SHARED_LIB_NAME "${ICU_DATA_LIB_NAME}${ICU_VERSION}")
 else()
     set(ICU_SHARED_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
     set(ICU_STATIC_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
@@ -78,22 +76,24 @@ else()
 endif()
 
 set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
+
 set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_LIB_SUBDIR}")
 set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}")
 
-set(ICU_UC_LIB "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_UC_LIB_NAME}${ICU_SUFFIX}${ICU_STATIC_SUFFIX}")
-set(ICU_I18N_LIB "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_I18N_LIB_NAME}${ICU_SUFFIX}${ICU_STATIC_SUFFIX}")
-set(ICU_DATA_LIB "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_DATA_LIB_NAME}${ICU_STATIC_SUFFIX}")
-
-set(ICU_UC_SHARED_LIB "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_UC_SHARED_LIB_NAME}${ICU_SUFFIX}${ICU_SHARED_SUFFIX}")
-set(ICU_I18N_SHARED_LIB "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_I18N_SHARED_LIB_NAME}${ICU_SUFFIX}${ICU_SHARED_SUFFIX}")
-set(ICU_DATA_SHARED_LIB "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_DATA_SHARED_LIB_NAME}${ICU_SHARED_SUFFIX}")
-
-set(ICU_LIBRARIES ${ICU_UC_LIB} ${ICU_I18N_LIB} ${ICU_DATA_LIB})
-
-if(WIN32)
-  set(ICU_SHARED_LIBRARIES ${ICU_UC_SHARED_LIB} ${ICU_I18N_SHARED_LIB} ${ICU_DATA_SHARED_LIB})
-endif()
+foreach(build_type RELEASE DEBUG)
+  foreach(icu_target UC I18N DATA)
+    if(icu_target STREQUAL DATA)
+      set(lib_postfix ${CMAKE_RELEASE_POSTFIX})
+    else()
+      set(lib_postfix ${CMAKE_${build_type}_POSTFIX})
+    endif()
+    
+    set(ICU_${icu_target}_LIB_${build_type} "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_${icu_target}_LIB_NAME}${lib_postfix}${ICU_STATIC_SUFFIX}")
+    set(ICU_${icu_target}_SHARED_LIB_${build_type} "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_${icu_target}_SHARED_LIB_NAME}${lib_postfix}${ICU_SHARED_SUFFIX}")
+    list(APPEND ICU_LIBRARIES_${build_type} ${ICU_${icu_target}_LIB_${build_type}})
+    list(APPEND ICU_SHARED_LIBRARIES_${build_type} ${ICU_${icu_target}_LIB_${build_type}})
+  endforeach()
+endforeach()
 
 include(ExternalProject)
 
@@ -105,12 +105,12 @@ if(WIN32)
     PREFIX ${THIRD_PARTY_PATH}
     SOURCE_DIR ${ICU_SOURCE_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
-    CONFIGURE_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:common /t:i18n /t:uconv /t:makedata 
+    CONFIGURE_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata 
     BUILD_COMMAND ""
     INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INSTALL_DIR}/include && 
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/lib64 &&
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/bin64
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
 elseif(APPLE)
   ExternalProject_Add(
@@ -133,7 +133,7 @@ elseif(APPLE)
                       --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
 else()
   ExternalProject_Add(
@@ -156,7 +156,7 @@ else()
                       --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
 endif()
 
