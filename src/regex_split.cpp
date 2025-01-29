@@ -143,8 +143,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     }
 
     std::string split_pattern = std::string(inputs[5 + has_skips].data<const char>(), inputs[5 + has_skips].get_size());
-    auto pattern_size = inputs[5 + has_skips].get_size();
-    
+
     // Write to common trie structures should be protected to prevent race conditions.
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -183,7 +182,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     auto begins = inputs[2].data<const int32_t>();
     auto ends   = inputs[3].data<const int32_t>();
     auto chars  = inputs[4].data<const uint8_t>();
-    
     const size_t num_rows = inputs[0].get_size();
     bool * skips;
     bool init_skips = false;
