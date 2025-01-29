@@ -80,7 +80,6 @@ set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
 set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_LIB_SUBDIR}")
 set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}")
 
-
 foreach(build_type RELEASE DEBUG)
   foreach(icu_target UC I18N DATA)
     if(icu_target STREQUAL DATA)
@@ -91,11 +90,9 @@ foreach(build_type RELEASE DEBUG)
     
     set(ICU_${icu_target}_LIB_${build_type} "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_${icu_target}_LIB_NAME}${lib_postfix}${ICU_STATIC_SUFFIX}")
     set(ICU_${icu_target}_SHARED_LIB_${build_type} "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_${icu_target}_SHARED_LIB_NAME}${lib_postfix}${ICU_SHARED_SUFFIX}")
-    list(APPEND ICU_LIBRARIES_${build_type} ICU_${icu_target}_LIB_${build_type})
-    list(APPEND ICU_SHARED_LIBRARIES_${build_type} ICU_${icu_target}_LIB_${build_type})
+    list(APPEND ICU_LIBRARIES_${build_type} ${ICU_${icu_target}_LIB_${build_type}})
+    list(APPEND ICU_SHARED_LIBRARIES_${build_type} ${ICU_${icu_target}_LIB_${build_type}})
   endforeach()
-  list(JOIN ICU_LIBRARIES_${build_type} " " ICU_LIBRARIES_${build_type})
-  list(JOIN ICU_SHARED_LIBRARIES_${build_type} " " ICU_SHARED_LIBRARIES_${build_type})
 endforeach()
 
 include(ExternalProject)
@@ -113,7 +110,7 @@ if(WIN32)
     INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INSTALL_DIR}/include && 
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/lib64 &&
                     ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/bin64
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
 elseif(APPLE)
   ExternalProject_Add(
@@ -136,7 +133,7 @@ elseif(APPLE)
                       --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
 else()
   ExternalProject_Add(
@@ -159,7 +156,7 @@ else()
                       --disable-icu-config
     BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
 endif()
 
