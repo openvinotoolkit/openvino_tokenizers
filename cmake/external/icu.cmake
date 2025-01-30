@@ -82,7 +82,7 @@ set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}")
 
 foreach(build_type RELEASE DEBUG)
   foreach(icu_target UC I18N DATA)
-    if(icu_target STREQUAL DATA)
+    if(icu_target STREQUAL "DATA")
       set(lib_postfix ${CMAKE_RELEASE_POSTFIX})
     else()
       set(lib_postfix ${CMAKE_${build_type}_POSTFIX})
