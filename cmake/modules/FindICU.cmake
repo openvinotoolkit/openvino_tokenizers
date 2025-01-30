@@ -31,7 +31,7 @@ message(STATUS "ICU_INCLUDE_DIRS: ${ICU_INCLUDE_DIRS}")
 message(STATUS "ICU_UC_LIB_RELEASE: ${ICU_UC_LIB_RELEASE}")
 message(STATUS "ICU_I18N_LIB_RELEASE: ${ICU_I18N_LIB_RELEASE}")
 message(STATUS "ICU_DATA_LIB_RELEASE: ${ICU_DATA_LIB_RELEASE}")
+
 # Standard message for package finding
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(ICU DEFAULT_MSG ICU_INCLUDE_DIRS ICU_LIBRARIES_RELEASE ICU_LIBRARIES_DEBUG)
-
