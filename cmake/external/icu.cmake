@@ -71,8 +71,8 @@ else()
     set(ICU_DATA_SHARED_LIB_NAME ${ICU_DATA_LIB_NAME})
     
     # Calculate the number of cores using CMake
-    execute_process(COMMAND nproc OUTPUT_VARIABLE CMAKE_JOB_POOL_SIZE)
-    string(STRIP ${CMAKE_JOB_POOL_SIZE} CMAKE_JOB_POOL_SIZE)
+    execute_process(COMMAND nproc OUTPUT_VARIABLE ICU_JOB_POOL_SIZE)
+    string(STRIP ${ICU_JOB_POOL_SIZE} ICU_JOB_POOL_SIZE)
 endif()
 
 set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
@@ -131,7 +131,7 @@ elseif(APPLE)
                       --disable-icuio
                       --disable-draft
                       --disable-icu-config
-    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
+    BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
     BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
@@ -154,7 +154,7 @@ else()
                       --disable-icuio
                       --disable-draft
                       --disable-icu-config
-    BUILD_COMMAND make -j${CMAKE_JOB_POOL_SIZE} 
+    BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
     BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
   )
