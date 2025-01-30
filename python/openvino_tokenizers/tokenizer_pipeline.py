@@ -32,7 +32,7 @@ from .constants import (
     UTF8ReplaceMode,
 )
 from .str_pack import pack_string, pack_strings
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, has_incompatible_re2_op, quote_meta
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta
 
 
 logger = logging.getLogger(__name__)
@@ -191,15 +191,6 @@ class RegexNormalizationStep(NormalizationStep):
     replace_term: str
     global_replace: bool = True
 
-    def __post_init__(self):
-        self.vet_search_pattern()
-
-    def vet_search_pattern(self) -> None:
-        if has_incompatible_re2_op(self.regex_search_pattern):
-            logger.warning(
-                "RegexNormalization pattern is not supported, operation output might differ from the original tokenizer."
-            )
-
     @classmethod
     def strip_accents_regex(cls) -> "RegexNormalizationStep":
         return cls(regex_search_pattern=r"\p{Mn}", replace_term="")
@@ -335,7 +326,7 @@ class RegexSplitStep(PreTokenizatinStep):
     @classmethod
     def byte_level_splitter(cls) -> "RegexSplitStep":
         return cls(
-            r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+",
+            r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+",
             invert=False,
             behaviour="isolate",
         )
@@ -1034,8 +1025,34 @@ class VocabDecoderStep(DecodingStep):
         elif self.skip_tokens is None:
             self.skip_tokens = pipeline.skip_tokens or []
 
+    @staticmethod
+    def add_special_tokens_to_vocab(vocab: List[str, bytes], added_tokens: Dict[int, str]) -> List[str, bytes]:
+        if not added_tokens:
+            return vocab
+
+        is_bytes = isinstance(vocab[0], bytes)
+        for idx, token in added_tokens.items():
+            if is_bytes:
+                token = token.encode()
+            if idx < len(vocab):
+                vocab[idx] = token
+            else:
+                while idx > len(vocab):
+                    vocab.append(b"" if is_bytes else "")
+                vocab.append(token)
+
+        return vocab
+
     @classmethod
-    def from_hf_json(cls, tokenizer_json: Dict[str, Any], pipeline_vocab: Optional[List[str]], skip_tokens: Optional[List[int]] = None, do_skip_tokens: bool = True) -> "VocabDecoderStep":
+    def from_hf_json(
+            cls,
+            tokenizer_json: Dict[str, Any],
+            pipeline_vocab: Optional[List[str]],
+            added_tokens: Optional[List[int]] = None,
+            skip_tokens: Optional[List[int]] = None,
+            do_skip_tokens: bool = True,
+            is_byte_level: bool = False,
+    ) -> "VocabDecoderStep":
         model_type = tokenizer_json["model"]["type"]
 
         if pipeline_vocab is not None and model_type == "WordLevel":
@@ -1045,10 +1062,14 @@ class VocabDecoderStep(DecodingStep):
                 token if token in ".,!?" else token[2:] if token.startswith("##") else f" {token}"
                 for token in pipeline_vocab
             ]
+        elif pipeline_vocab is not None and is_byte_level:
+            # corrupt tokens will be filtered from pipeline vocab, has to save them to match hf_tokenizer.decode output
+            vocab = [apply_unicode_to_bytes(token, return_corrupted_tokens=True) for token in pipeline_vocab]
+            vocab = cls.add_special_tokens_to_vocab(vocab, added_tokens)
         else:  # Use vocab node from pipeline
             vocab = None
 
-        return cls(vocab, skip_tokens, do_skip_tokens)
+        return cls(vocab, list(skip_tokens), do_skip_tokens)
 
     def get_vocab_node_outputs(self) -> Optional[List[Output]]:
         return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
