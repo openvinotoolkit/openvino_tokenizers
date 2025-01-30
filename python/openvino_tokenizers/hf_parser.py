@@ -385,10 +385,14 @@ class TransformersTokenizerPipelineParser:
     }
 
     def decoding(self) -> None:
-        skip_tokens = parse_special_tokens(self.original_tokenizer)
         self.pipeline.add_steps(
             VocabDecoderStep.from_hf_json(
-                self.tokenizer_json, self.pipeline.vocab, list(skip_tokens), do_skip_tokens=self.skip_special_tokens
+                tokenizer_json=self.tokenizer_json,
+                pipeline_vocab=self.pipeline.vocab,
+                skip_tokens=parse_special_tokens(self.original_tokenizer),
+                added_tokens=parse_special_tokens(self.original_tokenizer, only_special_tokens=False),
+                do_skip_tokens=self.skip_special_tokens,
+                is_byte_level=self.pipeline.is_byte_level,
             )
         )
 

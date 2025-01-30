@@ -137,17 +137,17 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     stats = reporter.stats
 
     new_statuses = {}
-    for stat in sorted(stats.get("passed", []), key=lambda s: s.nodeid):
+    for stat in stats.get("passed", []):
         new_statuses[stat.nodeid] = "passed"
-    for stat in sorted(stats.get("skipped", []), key=lambda s: s.nodeid):
+    for stat in stats.get("skipped", []):
         new_statuses[stat.nodeid] = "skipped"
-    for stat in sorted(stats.get("failed", []), key=lambda s: s.nodeid):
+    for stat in stats.get("failed", []):
         new_statuses[stat.nodeid] = "failed"
 
     rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")
 
     if rewrite_statuses:
-        new_statuses = {test_id[len(parent):]: status for test_id, status in new_statuses.items()}
+        new_statuses = {test_id[len(parent):]: status for test_id, status in sorted(new_statuses.items())}
         with open(STATUSES_FILE, "w") as stat_file:
             json.dump(new_statuses, stat_file, indent=2)
 
