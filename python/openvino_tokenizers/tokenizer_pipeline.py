@@ -1038,7 +1038,7 @@ class VocabDecoderStep(DecodingStep):
                 vocab[idx] = token
             else:
                 while idx > len(vocab):
-                    vocab.append("")
+                    vocab.append(b"" if is_bytes else "")
                 vocab.append(token)
 
         return vocab
@@ -1063,7 +1063,7 @@ class VocabDecoderStep(DecodingStep):
                 for token in pipeline_vocab
             ]
         elif pipeline_vocab is not None and is_byte_level:
-            # defect tokens will be filtered from pipeline vocab, has to save them to match hf_tokenizer.deocde output
+            # corrupt tokens will be filtered from pipeline vocab, has to save them to match hf_tokenizer.decode output
             vocab = [apply_unicode_to_bytes(token, return_corrupted_tokens=True) for token in pipeline_vocab]
             vocab = cls.add_special_tokens_to_vocab(vocab, added_tokens)
         else:  # Use vocab node from pipeline
