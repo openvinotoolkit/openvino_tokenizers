@@ -134,24 +134,22 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     pass_rate = 1 - session.testsfailed / (session.testscollected - skipped)
     previous = previous_rates.get(parent, 0)
 
-    def strip_dir(test_id: str) -> str:
-        if test_id.startswith("tests/"):
-            return test_id[6:]
-        return test_id
-
     stats = reporter.stats
+
     new_statuses = {}
     for stat in stats.get("passed", []):
-        new_statuses[strip_dir(stat.nodeid)] = "passed"
+        new_statuses[stat.nodeid] = "passed"
     for stat in stats.get("skipped", []):
-        new_statuses[strip_dir(stat.nodeid)] = "skipped"
+        new_statuses[stat.nodeid] = "skipped"
     for stat in stats.get("failed", []):
-        new_statuses[strip_dir(stat.nodeid)] = "failed"
+        new_statuses[stat.nodeid] = "failed"
 
     rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")
+
     if rewrite_statuses:
-        with open(STATUSES_FILE, "w") as f:
-            json.dump(new_statuses, f, indent=2)
+        new_statuses = {test_id[len(parent):]: status for test_id, status in sorted(new_statuses.items())}
+        with open(STATUSES_FILE, "w") as stat_file:
+            json.dump(new_statuses, stat_file, indent=2)
 
     added_tests = {test_id: status for test_id, status in new_statuses.items() if test_id not in previous_statuses}
 
@@ -172,7 +170,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
         session.exitstatus = pytest.ExitCode.OK
         previous_rates[parent] = pass_rate
 
-        with open(PASS_RATES_FILE, "w") as f:
-            json.dump(previous_rates, f, indent=4)
+        with open(PASS_RATES_FILE, "w") as pass_rate_file:
+            json.dump(previous_rates, pass_rate_file, indent=4)
     else:
         reporter.write_line(f"Pass rate is lower! Current: {pass_rate}, previous: {previous}")
