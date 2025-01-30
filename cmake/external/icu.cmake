@@ -31,16 +31,18 @@ set(HOST_ENV_CMAKE ${CMAKE_COMMAND} -E env
         LDFLAGS=${CMAKE_MODULE_LINKER_FLAGS}
 )
 
+# ICU supports only Release and Debug build types 
 if(GENERATOR_IS_MULTI_CONFIG_VAR)
-  set(ICU_CONFIGURE_FLAGS $<$<CONFIG:Debug>:"--enable-debug">$<$<CONFIG:Release>:"--enable-release">)
-  set(ICU_BUILD_TYPE $<CONFIG>)
+  set(ICU_CONFIGURE_FLAGS $<$<CONFIG:Debug>:"--enable-debug">$<$<NOT:$<CONFIG:Release>>:"--enable-release">)
+  set(ICU_BUILD_TYPE $<$<CONFIG:Debug>:Debug>$<$<NOT:$<CONFIG:Debug>>:Release>)
 else()
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(ICU_CONFIGURE_FLAGS "--enable-debug")
+    set(ICU_BUILD_TYPE "DEBUG")
   else()
     set(ICU_CONFIGURE_FLAGS "--enable-release")
+    set(ICU_BUILD_TYPE "RELEASE") 
   endif()
-  set(ICU_BUILD_TYPE ${CMAKE_BUILD_TYPE})
 endif()
 
 if(WIN32)
@@ -77,9 +79,6 @@ endif()
 
 set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
 
-set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_LIB_SUBDIR}")
-set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}")
-
 foreach(build_type RELEASE DEBUG)
   foreach(icu_target UC I18N DATA)
     if(icu_target STREQUAL "DATA")
@@ -87,7 +86,8 @@ foreach(build_type RELEASE DEBUG)
     else()
       set(lib_postfix ${CMAKE_${build_type}_POSTFIX})
     endif()
-    
+    set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_LIB_SUBDIR}")
+    set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_BIN_SUBDIR}")
     set(ICU_${icu_target}_LIB_${build_type} "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_${icu_target}_LIB_NAME}${lib_postfix}${ICU_STATIC_SUFFIX}")
     set(ICU_${icu_target}_SHARED_LIB_${build_type} "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_${icu_target}_SHARED_LIB_NAME}${lib_postfix}${ICU_SHARED_SUFFIX}")
     list(APPEND ICU_LIBRARIES_${build_type} ${ICU_${icu_target}_LIB_${build_type}})
@@ -107,10 +107,10 @@ if(WIN32)
     INSTALL_DIR ${ICU_INSTALL_DIR}
     CONFIGURE_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata 
     BUILD_COMMAND ""
-    INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INSTALL_DIR}/include && 
-                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/lib64 &&
-                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/bin64
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
+    INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INCLUDE_DIRS} && 
+                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/${ICU_INSTALL_LIB_SUBDIR} &&
+                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/${ICU_INSTALL_BIN_SUBDIR}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
   )
 elseif(APPLE)
   ExternalProject_Add(
@@ -120,7 +120,7 @@ elseif(APPLE)
     PREFIX ${THIRD_PARTY_PATH}
     SOURCE_DIR ${ICU_SOURCE_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
-    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU MacOSX --prefix ${ICU_INSTALL_DIR}
+    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU MacOSX --prefix ${ICU_INSTALL_DIR}/${ICU_BUILD_TYPE} --includedir ${ICU_INCLUDE_DIRS}
                       ${ICU_CONFIGURE_FLAGS} 
                       --enable-static
                       --enable-rpath
@@ -133,7 +133,7 @@ elseif(APPLE)
                       --disable-icu-config
     BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
   )
 else()
   ExternalProject_Add(
@@ -143,7 +143,7 @@ else()
     PREFIX ${THIRD_PARTY_PATH}
     SOURCE_DIR ${ICU_SOURCE_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
-    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR} 
+    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR}/${ICU_BUILD_TYPE} --includedir ${ICU_INCLUDE_DIRS}
                       ${ICU_CONFIGURE_FLAGS}
                       --enable-static
                       --enable-rpath
@@ -156,7 +156,7 @@ else()
                       --disable-icu-config
     BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE} 
     INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE}
+    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
   )
 endif()
 
