@@ -7,6 +7,8 @@
 #include <openvino/op/op.hpp>
 #include <openvino/op/string_tensor_pack.hpp>
 
+// THIS CLASS IS DEPRECATED: This class is deprecated and will it's left here only for purpose of backward compatibility with old IRs.
+// Please use op::v15::StringTensorPack from official opset instead.
 // Having a decomposed representation for a tensor, converts it to a single string tensor with element::string element type.
 class StringTensorPack : public ov::op::v15::StringTensorPack {
 public:

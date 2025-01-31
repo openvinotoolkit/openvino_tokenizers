@@ -31,7 +31,6 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .str_pack import pack_string, pack_strings
 from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta, create_unpacked_string
 
 
