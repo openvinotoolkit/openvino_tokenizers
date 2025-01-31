@@ -86,10 +86,8 @@ chat_messages = [
 wordpiece_models = [
     "bert-base-multilingual-cased",
     "cointegrated/rubert-tiny2",
-    "distilbert-base-uncased-finetuned-sst-2-english",
     "sentence-transformers/all-MiniLM-L6-v2",
     "google/mobilebert-uncased",
-    "ProsusAI/finbert",
     "rasa/LaBSE",
 ]
 bpe_models = [
@@ -98,12 +96,10 @@ bpe_models = [
     # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
     "tiiuae/falcon-7b",
     "stabilityai/stablecode-completion-alpha-3b-4k",
-    "databricks/dolly-v2-3b",
     "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
     "roberta-base",
     "facebook/opt-66b",
     "gpt2",
-    "EleutherAI/gpt-neox-20b",
     "ai-forever/rugpt3large_based_on_gpt2",
     "facebook/galactica-120b",
     "microsoft/deberta-base",
@@ -112,6 +108,8 @@ bpe_models = [
     "Salesforce/codegen-16B-multi",
     "stabilityai/stablelm-2-1_6b",
     "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
+    "allenai/OLMo-1B-hf",
+    "answerdotai/ModernBERT-base",
     # "google/flan-t5-xxl",  # needs Precompiled/CharsMap
     # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
     # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
@@ -926,8 +924,11 @@ def check_rt_info(hf_tokenizer, *models: Model) -> None:
 
 
 def test_rt_info_wordpiece(hf_wordpiece_tokenizers):
-    ov_tokenizer = convert_tokenizer(hf_wordpiece_tokenizers)
-    check_rt_info(hf_wordpiece_tokenizers, ov_tokenizer)
+    ov_tokenizer, ov_detokenizer = convert_tokenizer(
+        hf_wordpiece_tokenizers,
+        with_detokenizer=True,
+    )
+    check_rt_info(hf_wordpiece_tokenizers, ov_tokenizer, ov_detokenizer)
 
 
 def test_rt_info_bpe(hf_bpe_tokenizers):

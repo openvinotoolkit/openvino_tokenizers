@@ -59,18 +59,13 @@ from .tokenizer_pipeline import (
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
-from .utils import TokenzierConversionParams, filter_re2_incompatible
+from .utils import TokenzierConversionParams
 
 
 def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:
-    regex_search_pattern = normalizer_dict["pattern"].get("String") or normalizer_dict["pattern"]["Regex"]
-    filtered_pattern = filter_re2_incompatible(regex_search_pattern)
-    if filtered_pattern == "":
-        return []
-
     return [
         RegexNormalizationStep(
-            regex_search_pattern=regex_search_pattern,
+            regex_search_pattern=normalizer_dict["pattern"].get("String") or normalizer_dict["pattern"]["Regex"],
             replace_term=normalizer_dict["content"],
         )
     ]
@@ -390,10 +385,14 @@ class TransformersTokenizerPipelineParser:
     }
 
     def decoding(self) -> None:
-        skip_tokens = parse_special_tokens(self.original_tokenizer)
         self.pipeline.add_steps(
             VocabDecoderStep.from_hf_json(
-                self.tokenizer_json, self.pipeline.vocab, list(skip_tokens), do_skip_tokens=self.skip_special_tokens
+                tokenizer_json=self.tokenizer_json,
+                pipeline_vocab=self.pipeline.vocab,
+                skip_tokens=parse_special_tokens(self.original_tokenizer),
+                added_tokens=parse_special_tokens(self.original_tokenizer, only_special_tokens=False),
+                do_skip_tokens=self.skip_special_tokens,
+                is_byte_level=self.pipeline.is_byte_level,
             )
         )
 
