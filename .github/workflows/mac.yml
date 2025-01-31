@@ -27,7 +27,6 @@ jobs:
       status: ${{ steps.openvino_download.outcome }}
       ov_wheel_source: ${{ steps.openvino_download.outputs.ov_wheel_source }}
       ov_version: ${{ steps.openvino_download.outputs.ov_version }}
-      docker_tag: ${{ steps.get_docker_tag.outputs.docker_tag }}
     timeout-minutes: 10
     defaults:
       run:
@@ -173,15 +172,17 @@ jobs:
       #
       # Build
       #
-
+       
       - name: Build tokenizers wheel
-        run: |
-          python3 -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
-              --config-settings=override=cross.arch="macosx_10_12_x86_64" \
-              --find-links ${INSTALL_DIR}/wheels \
-              ${OPENVINO_TOKENIZERS_REPO}
+        run: >
+          python3 -m pip wheel -v
+            --no-deps --wheel-dir ${BUILD_DIR}
+            --config-settings=override=cross.arch="macosx_10_12_x86_64"
+            ${{ needs.openvino_download.outputs.ov_wheel_source }}
+            ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
+        working-directory: ${{ env.INSTALL_DIR }}
 
       #
       # Upload build artifacts
