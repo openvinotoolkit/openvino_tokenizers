@@ -19,7 +19,7 @@ from openvino import opset12 as opset
 from openvino.exceptions import OVTypeError, UserInputError
 from openvino.utils.types import as_node, make_constant_node
 
-from . import _get_factory
+from . import _get_factory, _get_opset_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
@@ -31,8 +31,7 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .str_pack import pack_string, pack_strings
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta, create_unpacked_string
 
 
 logger = logging.getLogger(__name__)
@@ -66,15 +65,15 @@ class BasePipelineStep:
         raise NotImplementedError
 
     @staticmethod
-    def create_string_constant_node(value: Union[str, Iterable[str]]) -> op.Constant:
+    def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
         if isinstance(value, str):
             # string scalar
-            ps = pack_string(value)
-            return op.Constant(ps)
-        else:
+            return op.Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8)).outputs()
+        elif isinstance(value, Iterable):
             # support only 1D strings for now
-            ps = pack_strings(value)
-            return _get_factory().create("StringTensorUnpack", op.Constant(ps).outputs())
+            return create_unpacked_string(value)
+        else:
+            raise ValueError(f"Unsupported value type {type(value)}")
 
     def finalize(self) -> None:
         """Called after the entire pipeline has been built"""
@@ -144,7 +143,7 @@ class SpecialTokensSplit(BasePipelineStep):
             return list(input_nodes)
 
         split_pattern = "|".join(token.regex_repr() for token in self.special_tokens)
-        input_nodes.extend(self.create_string_constant_node(split_pattern).outputs())
+        input_nodes.extend(self.create_string_constant_node(split_pattern))
 
         return _get_factory().create("SpecialTokensSplit", input_nodes).outputs()
 
@@ -224,10 +223,10 @@ class RegexNormalizationStep(NormalizationStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
-            (
-                self.create_string_constant_node(self.regex_search_pattern),
-                self.create_string_constant_node(self.replace_term),
-            )
+            [
+                *self.create_string_constant_node(self.regex_search_pattern),
+                *self.create_string_constant_node(self.replace_term),
+            ]
         )
         return (
             _get_factory().create("RegexNormalization", input_nodes, {"global_replace": self.global_replace}).outputs()
@@ -348,7 +347,7 @@ class RegexSplitStep(PreTokenizatinStep):
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(self.create_string_constant_node(self.split_pattern).outputs())
+        input_nodes.extend(self.create_string_constant_node(self.split_pattern))
         return (
             _get_factory()
             .create(
@@ -414,7 +413,7 @@ class VocabEncoderStep(TokenizationModelStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
-        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
+        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
 
         ragged_dims, other_dims = [], input_nodes
         if len(input_nodes) > 4:
@@ -466,7 +465,7 @@ class TrieTokenizerStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *self.create_string_constant_node(self.vocab),
                 make_constant_node(np.array(self.indices, dtype=np.int32), Type.i32),
             )
         )
@@ -502,7 +501,7 @@ class WordPieceTokenizationStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *self.create_string_constant_node(self.vocab),
                 *as_node(self.unk_token_id).outputs(),
             )
         )
@@ -634,10 +633,10 @@ class BPETokenizationStep(TokenizationModelStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
-        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
+        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
 
         if self.added_tokens:
-            special_tokens_outputs = self.create_string_constant_node(self.added_tokens).outputs()
+            special_tokens_outputs = self.create_string_constant_node(self.added_tokens)
         else:
             special_tokens_outputs = []
 
@@ -650,12 +649,12 @@ class BPETokenizationStep(TokenizationModelStep):
             left_merges, right_merges = zip(*self.merges)
             input_nodes.extend(
                 (
-                    *self.create_string_constant_node(left_merges).outputs(),
-                    *self.create_string_constant_node(right_merges).outputs(),
+                    *self.create_string_constant_node(left_merges),
+                    *self.create_string_constant_node(right_merges),
                 )
             )
         else:
-            input_nodes.extend(self.create_string_constant_node(self.merges).outputs())
+            input_nodes.extend(self.create_string_constant_node(self.merges))
 
         if special_tokens_outputs:
             input_nodes.extend(
@@ -1078,7 +1077,7 @@ class VocabDecoderStep(DecodingStep):
         if self.vocab is None:
             vocab_outputs = self.get_vocab_node_outputs()
         else:
-            vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
+            vocab_outputs = self.create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
 
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
@@ -1199,8 +1198,8 @@ class RegexDecodingStep(DecodingStep):
 
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.regex_search_pattern).outputs(),
-                *self.create_string_constant_node(self.replace_term).outputs(),
+                *self.create_string_constant_node(self.regex_search_pattern),
+                *self.create_string_constant_node(self.replace_term),
             )
         )
         return ragged_dims + _get_factory().create("RegexNormalization", input_nodes).outputs()
@@ -1255,7 +1254,7 @@ class TokenizerPipeline:
 
         processing_outputs = []
         for input_node in string_inputs:
-            input_node = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+            input_node = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
 
             ragged = []
             if isinstance(self.steps[0], SpecialTokensSplit):
@@ -1328,7 +1327,7 @@ class TokenizerPipeline:
             pipeline_step = step.get_ov_subgraph(input_nodes)
             input_nodes = pipeline_step
 
-        return _get_factory().create("StringTensorPack", input_nodes).outputs()
+        return _get_opset_factory("opset15").create("StringTensorPack", input_nodes).outputs()
 
     def get_detokenizer_ov_subgraph(self) -> Model:
         self.finalize()

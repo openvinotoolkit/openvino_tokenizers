@@ -8,7 +8,7 @@ import openvino as ov
 import pytest
 from openvino import Model, PartialShape, Type
 from openvino import op
-from openvino_tokenizers import _get_factory
+from openvino_tokenizers import _get_factory, _get_opset_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.tokenizer_pipeline import (
     CharsmapStep,
@@ -32,7 +32,6 @@ core = ov.Core()
 
 utf8_validate_strings = [
     # Valid sequences.
-    b"Eng... test, string?!",
     b"Eng... test, string?!",
     b"\xe2\x82\xac",  # Euro sign €ß
     "Проверка, как работает кириллица Љ љ Ђ ђ".encode(),
@@ -71,9 +70,9 @@ def create_normalization_model(layer: Union[NormalizationStep, DecodingStep]) ->
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
 
-    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
     output = layer.get_ov_subgraph(output)
-    output = _get_factory().create("StringTensorPack", output).outputs()
+    output = _get_opset_factory("opset15").create("StringTensorPack", output).outputs()
     normalizer = Model(output, [input_node], "normalizer")
 
     return core.compile_model(normalizer)
@@ -179,10 +178,10 @@ def create_splitting_model(layer: PreTokenizatinStep) -> ov.CompiledModel:
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     input_node.set_friendly_name("string_input")
 
-    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
     output = TokenizerPipeline.add_ragged_dimension(output)
     output = layer.get_ov_subgraph(output)
-    output = _get_factory().create("StringTensorPack", output[2:5]).outputs()
+    output = _get_opset_factory("opset15").create("StringTensorPack", output[2:5]).outputs()
     splitter = Model(output, [input_node], "splitter")
 
     return core.compile_model(splitter)

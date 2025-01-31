@@ -4,18 +4,15 @@
 
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/core/parallel.hpp"
-#include "openvino/opsets/opset13.hpp"
+#include "openvino/opsets/opset15.hpp"
 #include "utils.hpp"
-#include "string_tensor_pack.hpp"
-#include "string_tensor_unpack.hpp"
 #include "ragged_tensor_pack.hpp"
 #include <cstdlib>
 #include <cctype>
 #include <algorithm>
 
 using namespace ov;
-using namespace ov::frontend;
-using namespace ov::opset13;
+using namespace ov::opset15;
 
 void parse_packed_strings (const Tensor& packed, int32_t& batch_size, const int32_t*& begin_ids, const int32_t*& end_ids, const uint8_t*& symbols) {
     auto strings = packed.data<const uint8_t>();
@@ -39,10 +36,9 @@ void check_string_input(const Node* node, size_t input_index) {
 void check_string_scalar_input(const Node* node, size_t input_index) {
     auto shape = node->get_input_partial_shape(input_index);
     auto element_type = node->get_input_element_type(input_index);
-
+    
     #if false && USE_STRING_TENSORS
     // This block is not used when we convert ops to decomposed representation (and we really do)
-
     OPENVINO_ASSERT(
         (element_type == element::dynamic || element_type == element::string) &&
         (shape.rank().is_dynamic() || shape.rank().get_length() == 0),
@@ -56,6 +52,7 @@ void check_string_scalar_input(const Node* node, size_t input_index) {
         "u8/1D tensor is expected, got element type ", element_type.to_string(), ", shape ", shape.to_string());
 
     #endif
+
 }
 
 void check_ragged_input(const Node* node, size_t input_index) {
@@ -134,12 +131,12 @@ void override_parameter (std::shared_ptr<ov::Node> node, element::Type type, con
 OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input) {
     auto input_node = input.get_node_shared_ptr();
 
-    if (auto struct_pack = std::dynamic_pointer_cast<StringTensorPack>(input_node)) {
+    if (auto struct_pack = std::dynamic_pointer_cast<op::v15::StringTensorPack>(input_node)) {
         FRONT_END_GENERAL_CHECK(struct_pack->get_input_size() == 3, "Expected 3 inputs to StringTensorPack which represents a string tensor");
         return struct_pack->input_values();
     }
     else {
-        return std::make_shared<StringTensorUnpack>(OutputVector{ input }, "begins_ends")->outputs();
+        return std::make_shared<op::v15::StringTensorUnpack>(input)->outputs();
     }
 }
 
@@ -159,7 +156,7 @@ OutputVector pre_translate_ragged_string_tensor_input(ov::Output<ov::Node> input
 
 ov::Output<ov::Node> post_translate_string_tensor_output(const OutputVector& outputs) {
     FRONT_END_GENERAL_CHECK(outputs.size() == 3, "Expected 3 tensors in decomposed string tensor representation");
-    return std::make_shared<StringTensorPack>(outputs, "begins_ends");
+    return std::make_shared<op::v15::StringTensorPack>(outputs[0], outputs[1], outputs[2]);
 }
 
 ov::Output<ov::Node> post_translate_ragged_tensor_output(const OutputVector& outputs) {
