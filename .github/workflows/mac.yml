@@ -174,11 +174,11 @@ jobs:
       #
        
       - name: Build tokenizers wheel
-        run: >
-          python3 -m pip wheel -v
-            --no-deps --wheel-dir ${BUILD_DIR}
-            --config-settings=override=cross.arch="macosx_10_12_x86_64"
-            ${{ needs.openvino_download.outputs.ov_wheel_source }}
+        run: |
+          python3 -m pip wheel -v \
+            --no-deps --wheel-dir ${BUILD_DIR} \
+            --config-settings=override=cross.arch="macosx_10_12_x86_64" \
+            ${{ needs.openvino_download.outputs.ov_wheel_source }} \
             ${OPENVINO_TOKENIZERS_REPO}
         env:
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
