@@ -43,7 +43,7 @@ jobs:
     - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       id: openvino_download
       with:
-        platform: 'ubuntu22'
+        platform: 'macos'
         commit_packages_to_provide: 'wheels'
         revision: latest_nightly
 
