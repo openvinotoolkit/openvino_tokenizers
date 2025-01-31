@@ -27,6 +27,7 @@ public:
         const std::shared_ptr<sentencepiece::normalizer::Normalizer> normalizer,
         const std::shared_ptr<sentencepiece::NormalizerSpec> spec
     ): ov::op::Op(arguments), m_normalizer(normalizer), m_spec(spec), m_init_flag() {
+        sentencepiece::logging::SetMinLogLevel(1);
         constructor_validate_and_infer_types();
     }
     CharsMapNormalization(
@@ -40,6 +41,7 @@ public:
         const std::string& normalization_form = "",
         bool nmt = false
     ): ov::op::Op(arguments), m_normalizer(normalizer), m_spec(spec), m_add_dummy_prefix(add_dummy_prefix), m_remove_extra_whitespaces(remove_extra_whitespaces), m_escape_whitespaces(escape_whitespaces), m_case_fold(case_fold), m_normalization_form(normalization_form), m_nmt(nmt), m_init_flag(){
+        sentencepiece::logging::SetMinLogLevel(1);
         constructor_validate_and_infer_types();
     }
     CharsMapNormalization(
@@ -48,6 +50,7 @@ public:
         const std::shared_ptr<sentencepiece::NormalizerSpec> spec,
         const std::string& normalization_form = ""
     ): ov::op::Op(arguments), m_normalizer(normalizer), m_spec(spec), m_normalization_form(normalization_form), m_init_flag() {
+        sentencepiece::logging::SetMinLogLevel(1);
         constructor_validate_and_infer_types();
     }
 
