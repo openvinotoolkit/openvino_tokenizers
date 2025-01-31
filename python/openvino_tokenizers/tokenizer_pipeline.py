@@ -277,7 +277,11 @@ class CharsmapStep(NormalizationStep):
     def __add__(self, other: "CharsmapStep") -> "CharsmapStep":
         if self.charsmap is not None and other.charsmap is not None:
             raise ValueError("Cannot add two CharsmapStep instances with non-None charsmap attributes")
-        if self.normalization_form is not None and other.normalization_form is not None and self.normalization_form != other.normalization_form:
+        if (
+                self.normalization_form is not None and other.normalization_form is not None
+                and self.normalization_form != "identity" and other.normalization_form != "identity"
+                and self.normalization_form != other.normalization_form
+        ):
             raise ValueError("Cannot add two CharsmapStep instances with different normalization_form attributes")
 
         return self.__class__(
@@ -1323,9 +1327,9 @@ class TokenizerPipeline:
         Replaces the normalization steps with an equivalent Charsmap steps before merging.
         """
         if isinstance(step, CaseFoldStep) and step.encoding == "utf-8":
-            return CharsmapStep(case_fold=True)
+            return CharsmapStep(normalization_form="identity", case_fold=True, remove_extra_whitespaces=False)
         if isinstance(step, NormalizeUnicode):
-            return CharsmapStep(normalization_form=step.normalization_form.lower())
+            return CharsmapStep(normalization_form=step.normalization_form.lower(), remove_extra_whitespaces=False)
 
         return step
 

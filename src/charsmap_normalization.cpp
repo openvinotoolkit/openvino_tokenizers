@@ -12,19 +12,19 @@ using namespace ov;
 
 void CharsMapNormalization::validate_and_infer_types() {
     auto input_size = get_input_size();
+    OPENVINO_ASSERT(input_size == 3 || input_size == 4 || input_size == 5, "CharsMapNormalization supports input sizes 3, 4 or 5.");
+
     bool has_skips;
-    if (m_normalization_form == "") {
-        OPENVINO_ASSERT(input_size == 4 || input_size == 5, "supported input sizes are 4 or 5 with input spec");
-        has_skips = (input_size == 5);
-        OPENVINO_ASSERT(get_input_element_type(3 + has_skips) == element::u8, "Charsmap normalizer accepts precompiled mapping and it should be of type u8 tensor");
-    } else {
-        OPENVINO_ASSERT(input_size == 3 || input_size == 4, "supported input sizes are 3 or 4 without input spec");
+    if (input_size == 3) {
+        has_skips = false;
+    } else if (input_size == 4) {
+        has_skips = (get_input_element_type(3) == element::boolean);
+    } else if (input_size == 5) {
         has_skips = (input_size == 4);
-    }
+    };
 
     check_string_input(this, 0);
     set_string_output(this, 0, get_input_partial_shape(0));
-
     if (has_skips) {
         this->set_output_type(3, get_input_element_type(3),  get_input_partial_shape(3));
     };
