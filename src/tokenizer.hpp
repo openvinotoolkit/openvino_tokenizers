@@ -28,10 +28,7 @@
 #include "special_tokens_split.hpp"
 #include "charsmap_normalization.hpp"
 #include "wordpiece_tokenizer.hpp"
-
-#ifdef ENABLE_FAST_TOKENIZERS
 #include "case_fold.hpp"
 #include "normalize_unicode.hpp"
-#endif // ENABLE_FAST_TOKENIZERS
 
 #include "tensorflow_translators.hpp"
