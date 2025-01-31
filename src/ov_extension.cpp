@@ -20,25 +20,10 @@
     std::make_shared<ov::frontend::ConversionExtension>("Equal", translate_equal),                                                   \
     std::make_shared<ov::frontend::ConversionExtension>("StringToHashBucketFast", translate_string_to_hash_bucket_fast),             \
     std::make_shared<ov::frontend::ConversionExtension>("Squeeze", translate_squeeze_op),                                            \
-    std::make_shared<ov::frontend::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),
-
-#ifdef ENABLE_FAST_TOKENIZERS
-
-#define OPENVINO_TOKENIZERS_FAST_TOKENIZER_BASED_EXTENSIONS    \
-    std::make_shared<ov::OpExtension<CaseFold>>(),             \
-    std::make_shared<ov::OpExtension<NormalizeUnicode>>(),
-
-#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_FAST_TOKENIZER_BASED                                                    \
+    std::make_shared<ov::frontend::ConversionExtension>("WordpieceTokenizeWithOffsets", translate_wordpiece_tokenize_with_offsets),  \
     std::make_shared<ov::frontend::ConversionExtension>("StringLower", translate_string_lower),                                      \
     std::make_shared<ov::frontend::ConversionExtension>("NormalizeUTF8", translate_normalize_utf8),                                  \
-    std::make_shared<ov::frontend::ConversionExtension>("CaseFoldUTF8", translate_case_fold_utf8),
-
-#else
-
-#define OPENVINO_TOKENIZERS_FAST_TOKENIZER_BASED_EXTENSIONS
-#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_FAST_TOKENIZER_BASED
-
-#endif // ENABLE_FAST_TOKENIZERS
+    std::make_shared<ov::frontend::ConversionExtension>("CaseFoldUTF8", translate_case_fold_utf8)
 
 // clang-format off
 //! [ov_extension:entry_point]
@@ -70,9 +55,9 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<SentencepieceTokenizer>>(),
             std::make_shared<ov::OpExtension<SentencepieceDetokenizer>>(),
             std::make_shared<ov::OpExtension<SentencepieceStreamDetokenizer>>(),
-            OPENVINO_TOKENIZERS_FAST_TOKENIZER_BASED_EXTENSIONS
+            std::make_shared<ov::OpExtension<CaseFold>>(),
+            std::make_shared<ov::OpExtension<NormalizeUnicode>>(),
             OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
-            OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS_FAST_TOKENIZER_BASED
 }));
 //! [ov_extension:entry_point]
 // clang-format on

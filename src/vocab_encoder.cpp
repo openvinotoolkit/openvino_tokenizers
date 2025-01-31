@@ -39,11 +39,9 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto begins = inputs[0].data<const int32_t>();
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
-    {
-        // Write to common trie structures should be protected to prevent race conditions.
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (m_vocab == nullptr) {
-            // vocab string keys
+
+    if (m_vocab == nullptr) {
+        std::call_once(m_init_flag, [&]() {
             auto vocab_begins = inputs[3].data<const int32_t>();
             auto vocab_ends   = inputs[4].data<const int32_t>();
             auto vocab_chars  = inputs[5].data<const uint8_t>();
@@ -56,7 +54,7 @@ bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 auto token = std::string(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
                 m_vocab->insert(std::pair{token, vocab_values[i]});
             };
-        }
+        });
     }
     
     auto default_value = *inputs[7].data<const int32_t>();

@@ -4,8 +4,7 @@
 
 #pragma once
 
-#ifdef ENABLE_FAST_TOKENIZERS
-
+#include "normalizer.h"  // from sentencepiece
 #include <openvino/op/op.hpp>
 
 class CaseFold : public ov::op::Op {
@@ -17,7 +16,7 @@ public:
     CaseFold (
         const ov::OutputVector& arguments,
         const std::string& encoding = "utf-8"
-    ) : ov::op::Op(arguments), m_encoding(encoding) {
+    ) : ov::op::Op(arguments), m_encoding(encoding), m_init_flag() {
         constructor_validate_and_infer_types();
     }
 
@@ -40,6 +39,9 @@ public:
 
 private:
     std::string m_encoding = "utf-8";
+    mutable std::shared_ptr<sentencepiece::normalizer::Normalizer> m_normalizer;
+    // spec should be preserved for the lifetime of the normalizer
+    mutable std::shared_ptr<sentencepiece::NormalizerSpec> m_spec;
+    mutable std::once_flag m_init_flag;
 };
 
-#endif // ENABLE_FAST_TOKENIZERS
