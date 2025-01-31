@@ -5,7 +5,6 @@
 #pragma once
 
 #include <openvino/op/op.hpp>
-#include <openvino/op/string_tensor_unpack.hpp>
 
 // THIS CLASS IS DEPRECATED: This class is deprecated and will it's left here only for purpose of backward compatibility with old IRs.
 // Please use op::v15::StringTensorUnpack from official opset instead.
@@ -13,14 +12,14 @@
 // can be an OpenVINO tensor with element::string element type or u8 legacy packed
 // representation, to a decompose tensor representation that may potentially
 // consist of multiple tensors. The destination format is defined by `mode` attribute.
-class StringTensorUnpack : public ov::op::v15::StringTensorUnpack {
+class StringTensorUnpack : public ov::op::Op {
 public:
-    OPENVINO_OP("StringTensorUnpack", "extension", ov::op::v15::StringTensorUnpack);
+    OPENVINO_OP("StringTensorPack");
 
     StringTensorUnpack () = default;
 
     StringTensorUnpack(ov::OutputVector inputs, const std::string& mode = "begins_ends")
-        : ov::op::v15::StringTensorUnpack(inputs[0]), m_mode(mode) {
+        : ov::op::Op(inputs), m_mode(mode) {
         constructor_validate_and_infer_types();
     }
 
