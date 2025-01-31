@@ -54,7 +54,6 @@ jobs:
         build_fast_tokenizers: [ON]
         build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download ]
-    if: !cancelled() && needs.openvino_download.outputs.status == 'success'
     timeout-minutes: 45
     defaults:
       run:
@@ -124,7 +123,6 @@ jobs:
   openvino_tokenizers_wheel:
     name: OpenVINO tokenizers extension
     needs: [ openvino_download ]
-    if: !cancelled() && needs.openvino_download.outputs.status == 'success'
     timeout-minutes: 25
     defaults:
       run:
@@ -200,7 +198,6 @@ jobs:
   openvino_tokenizers_tests:
     name: OpenVINO tokenizers tests
     needs: [ openvino_download, openvino_tokenizers_wheel]
-    if: always() && needs.openvino_tokenizers_wheel.result == 'success'
     timeout-minutes: 40
     defaults:
       run:
