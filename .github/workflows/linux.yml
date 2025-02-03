@@ -299,6 +299,7 @@ jobs:
         with:
           ref: ${{ env.OV_BRANCH }}
           path: ${{ env.OPENVINO_REPO }}
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
             tests/layer_tests
             tests/requirements_tensorflow
@@ -337,21 +338,17 @@ jobs:
         env:
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
           
-      - name: Install Python Layer tests dependencies
-        run: |
-          # tensorflow test requirements
-          python3 -m pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
+      - name: Install Tensorflow tests dependencies
+        run: python3 -m pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
 
       - name: TensorFlow 1 Layer Tests
-        run: |
-          python3 -m pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests/ -n logical -m precommit  --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
+        run: python3 -m pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests/ -n logical -m precommit  --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
         env:
           TEST_DEVICE: CPU
           TEST_PRECISION: FP16
 
       - name: TensorFlow 2 Layer Tests
-        run: |
-          python3 -m pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow2_keras_tests/ -n logical -m precommit --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf2_fe.xml
+        run: python3 -m pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow2_keras_tests/ -n logical -m precommit --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf2_fe.xml
         env:
           TEST_DEVICE: CPU
           TEST_PRECISION: FP16
