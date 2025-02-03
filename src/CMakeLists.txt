@@ -24,37 +24,8 @@ if(POLICY CMP0169)
   cmake_policy(SET CMP0169 OLD)
 endif()
 
-function(ov_tokenizers_set_flags flags replace_value replace_pattern)
-  foreach(flag ${flags})
-    if(${flag} MATCHES "${replace_pattern}")
-      string(REGEX REPLACE "${replace_pattern}" "${replace_value}" ${flag} "${${flag}}")
-    elseif(NOT (${flag} MATCHES "${replace_value}"))
-      set(${flag} "${${flag}} ${replace_value}")
-    endif()
-    set(${flag} "${${flag}}" PARENT_SCOPE)
-  endforeach()
-endfunction()
-
-function(ov_tokenizers_set_cxx_standard)
-ov_tokenizers_set_flags("CMAKE_CXX_FLAGS;CMAKE_CXX_FLAGS_DEBUG;CMAKE_CXX_FLAGS_RELEASE;CMAKE_CXX_FLAGS_MINSIZEREL;CMAKE_CXX_FLAGS_RELWITHDEBINFO" "" "--std=c\\+\\+11")
-  set(CMAKE_CXX_STANDARD 17 PARENT_SCOPE)
-  set(CMAKE_CXX_EXTENSIONS OFF PARENT_SCOPE)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON PARENT_SCOPE)
-endfunction()
-
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
-endif()
-
-ov_tokenizers_set_cxx_standard()
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
-# It needs to be propagated to every library openvino_tokenizers links with.
-# That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
-get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
 include(CMakeDependentOption)
 
 #
@@ -84,7 +55,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${c_cxx_flags}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${cxx_flags} ${c_cxx_flags}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${c_cxx_flags}")
 
-if(WIN32 OR APPLE)
+if(NOT DEFINED CMAKE_DEBUG_POSTFIX AND (WIN32 OR APPLE))
   set(CMAKE_DEBUG_POSTFIX "d")
 endif()
 

@@ -12,44 +12,35 @@ set(ICU_URL_HASH SHA256=8d205428c17bf13bb535300669ed28b338a157b1c01ae66d31d0d3e2
 set(THIRD_PARTY_PATH ${CMAKE_BINARY_DIR}/_deps/icu)
 set(ICU_SOURCE_DIR  ${THIRD_PARTY_PATH}/icu-src)
 set(ICU_INSTALL_DIR ${THIRD_PARTY_PATH}/icu-install)
+set(ICU_BINARY_DIR ${THIRD_PARTY_PATH}/icu-target-build)
 
-if(NOT WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++11")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-endif()
-
-if(OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
-    foreach(def ${OPENVINO_RUNTIME_COMPILE_DEFINITIONS})
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D${def}")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D${def}")
-    endforeach()
-endif()
-
-set(HOST_ENV_CMAKE ${CMAKE_COMMAND} -E env
-        CFLAGS=${CMAKE_C_FLAGS}
-        CXXFLAGS=${CMAKE_CXX_FLAGS}
-        LDFLAGS=${CMAKE_MODULE_LINKER_FLAGS}
-)
+# required for cross-compilation
+set(ICU_HOST_TARGET_NAME "icu_host_external")
+set(ICU_HOST_INSTALL_DIR ${THIRD_PARTY_PATH}/icu-host-install)
+set(ICU_HOST_BINARY_DIR ${THIRD_PARTY_PATH}/icu-host-build)
 
 # ICU supports only Release and Debug build types 
 if(GENERATOR_IS_MULTI_CONFIG_VAR)
-  set(ICU_CONFIGURE_FLAGS $<$<CONFIG:Debug>:"--enable-debug">$<$<NOT:$<CONFIG:Release>>:"--enable-release">)
+  list(APPEND ICU_CONFIGURE_FLAGS $<$<CONFIG:Debug>:"--enable-debug">$<$<NOT:$<CONFIG:Release>>:"--enable-release">)
   set(ICU_BUILD_TYPE $<$<CONFIG:Debug>:Debug>$<$<NOT:$<CONFIG:Debug>>:Release>)
 else()
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(ICU_CONFIGURE_FLAGS "--enable-debug")
+    list(APPEND ICU_CONFIGURE_FLAGS "--enable-debug")
     set(ICU_BUILD_TYPE ${CMAKE_BUILD_TYPE})
   else()
-    set(ICU_CONFIGURE_FLAGS "--enable-release")
-    set(ICU_BUILD_TYPE "Release") 
+    list(APPEND ICU_CONFIGURE_FLAGS "--enable-release")
+    set(ICU_BUILD_TYPE "Release")
   endif()
 endif()
 
+# Define build artifacts
+
+set(ICU_SHARED_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
+set(ICU_STATIC_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
+set(ICU_SHARED_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+set(ICU_STATIC_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+
 if(WIN32)
-    set(ICU_SHARED_PREFIX "")
-    set(ICU_STATIC_PREFIX "")
-    set(ICU_SHARED_SUFFIX ".dll")
-    set(ICU_STATIC_SUFFIX ".lib")
     set(ICU_INSTALL_LIB_SUBDIR "lib64")
     set(ICU_INSTALL_BIN_SUBDIR "bin64")
     set(ICU_UC_LIB_NAME "icuuc")
@@ -59,10 +50,6 @@ if(WIN32)
     set(ICU_I18N_SHARED_LIB_NAME "${ICU_I18N_LIB_NAME}${ICU_VERSION}")
     set(ICU_DATA_SHARED_LIB_NAME "${ICU_DATA_LIB_NAME}${ICU_VERSION}")
 else()
-    set(ICU_SHARED_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
-    set(ICU_STATIC_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
-    set(ICU_SHARED_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
-    set(ICU_STATIC_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
     set(ICU_INSTALL_LIB_SUBDIR "lib")
     set(ICU_INSTALL_BIN_SUBDIR "lib")
     set(ICU_UC_LIB_NAME "icuuc")
@@ -73,92 +60,231 @@ else()
     set(ICU_DATA_SHARED_LIB_NAME ${ICU_DATA_LIB_NAME})
     
     # Calculate the number of cores using CMake
-    execute_process(COMMAND nproc OUTPUT_VARIABLE ICU_JOB_POOL_SIZE)
-    string(STRIP ${ICU_JOB_POOL_SIZE} ICU_JOB_POOL_SIZE)
+    execute_process(COMMAND nproc
+      OUTPUT_VARIABLE ICU_JOB_POOL_SIZE
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
 
 set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
 
-foreach(build_type Release Debug)
-  string(TOUPPER ${build_type} BUILD_TYPE)
-  foreach(icu_target UC I18N DATA)
-    if(icu_target STREQUAL "DATA")
-      set(lib_postfix ${CMAKE_RELEASE_POSTFIX})
-    else()
-      set(lib_postfix ${CMAKE_${BUILD_TYPE}_POSTFIX})
-    endif()
-    set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_LIB_SUBDIR}")
-    set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_BIN_SUBDIR}")
-    set(ICU_${icu_target}_LIB_${BUILD_TYPE} "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_${icu_target}_LIB_NAME}${lib_postfix}${ICU_STATIC_SUFFIX}")
-    set(ICU_${icu_target}_SHARED_LIB_${BUILD_TYPE} "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_${icu_target}_SHARED_LIB_NAME}${lib_postfix}${ICU_SHARED_SUFFIX}")
-    list(APPEND ICU_LIBRARIES_${BUILD_TYPE} ${ICU_${icu_target}_LIB_${BUILD_TYPE}})
-    list(APPEND ICU_SHARED_LIBRARIES_${BUILD_TYPE} ${ICU_${icu_target}_LIB_${BUILD_TYPE}})
+# Compile flags
+
+if(NOT WIN32)
+  set(ICU_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
+  set(ICU_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-deprecated-declarations")
+endif()
+
+# openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
+# It needs to be propagated to every library openvino_tokenizers links with.
+# That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
+get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
+
+if(OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
+  foreach(def IN LISTS OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
+    set(ICU_CXX_FLAGS "${ICU_CXX_FLAGS} -D${def}")
+    set(ICU_C_FLAGS "${ICU_C_FLAGS} -D${def}")
   endforeach()
-endforeach()
+endif()
 
-include(ExternalProject)
+# Build
 
-if(WIN32)
-  ExternalProject_Add(
-    ${ICU_TARGET_NAME}
-    URL ${ICU_URL}
-    URL_HASH ${ICU_URL_HASH}
-    PREFIX ${THIRD_PARTY_PATH}
-    SOURCE_DIR ${ICU_SOURCE_DIR}
+#
+# ov_tokenizer_build_icu(
+#    TARGET_NAME <name>
+#    TARGET_SYSTEM_NAME <name>
+#    BUILD_ARCH <arch>
+#    TARGET_ARCH <arch>
+#    BUILD_DIR <dir>
+#    INSTALL_DIR <dir>
+#    [EXTRA_CONFIGURE_STEPS <step1 step2 ...>]
+#    [HOST_ENV <env1 env2 ...>]
+# )
+#
+function(ov_tokenizer_build_icu)
+  set(oneValueRequiredArgs TARGET_NAME TARGET_SYSTEM_NAME BUILD_ARCH TARGET_ARCH BUILD_DIR INSTALL_DIR)
+  set(multiValueArgs EXTRA_CONFIGURE_STEPS HOST_ENV)
+  cmake_parse_arguments(ARG "" "${oneValueRequiredArgs};${oneValueOptionalArgs}" "${multiValueArgs}" ${ARGN})
+
+  # set target platform
+
+  if(ARG_TARGET_SYSTEM_NAME MATCHES "^(Windows|WindowsCE|WindowsPhone|WindowsStore)$")
+    set(ICU_WIN32 ON)
+  elseif(ARG_TARGET_SYSTEM_NAME MATCHES "^(Darwin|iOS|tvOS|visionOS|watchOS)$")
+    set(ICU_APPLE ON)
+    set(ICU_UNIX ON)
+  elseif(ARG_TARGET_SYSTEM_NAME STREQUAL "Android")
+    set(ICU_ANDROID ON)
+    set(ICU_UNIX ON)
+  else()
+    set(ICU_LINUX ON)
+    set(ICU_UNIX ON)
+  endif()
+
+  if(ICU_UNIX)
+    if(ARG_BUILD_ARCH STREQUAL "X86_64")
+      set(build_triplet x86_64-unknown-linux-gnu)
+    elseif(ARG_BUILD_ARCH STREQUAL "AARCH64")
+      set(build_triplet aarch64-unknown-linux-gnu)
+    else()
+      message(FATAL_ERROR "Unsupported build arch: ${ARG_BUILD_ARCH}")
+    endif()
+
+    if(ARG_TARGET_ARCH STREQUAL "X86_64")
+      set(host_triplet x86_64-unknown-linux-gnu)
+    elseif(ARG_TARGET_ARCH STREQUAL "AARCH64")
+      set(host_triplet aarch64-unknown-linux-gnu)
+    else()
+      message(FATAL_ERROR "Unsupported target arch: ${ARG_TARGET_ARCH}")
+    endif()
+
+    if(ICU_LINUX OR ICU_ANDROID)
+      list(APPEND ICU_CONFIGURE_FLAGS
+        --host=${host_triplet}
+        --build=${build_triplet})
+    endif()
+  endif()
+
+  if(ARG_EXTRA_CONFIGURE_STEPS)
+    list(APPEND ICU_CONFIGURE_FLAGS ${ARG_EXTRA_CONFIGURE_STEPS})
+  endif()
+
+  foreach(build_type IN ITEMS Release Debug)
+    string(TOUPPER ${build_type} BUILD_TYPE)
+
+    unset(ICU_LIBRARIES_${BUILD_TYPE})
+    unset(ICU_SHARED_LIBRARIES_${BUILD_TYPE})
+
+    foreach(icu_target IN ITEMS UC I18N DATA)
+      if(icu_target STREQUAL "DATA")
+        set(lib_postfix ${CMAKE_RELEASE_POSTFIX})
+      else()
+        set(lib_postfix ${CMAKE_${BUILD_TYPE}_POSTFIX})
+      endif()
+      set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_LIB_SUBDIR}")
+      set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_BIN_SUBDIR}")
+      set(ICU_${icu_target}_LIB_${BUILD_TYPE} "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_${icu_target}_LIB_NAME}${lib_postfix}${ICU_STATIC_SUFFIX}")
+      set(ICU_${icu_target}_SHARED_LIB_${BUILD_TYPE} "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_${icu_target}_SHARED_LIB_NAME}${lib_postfix}${ICU_SHARED_SUFFIX}")
+      set(ICU_${icu_target}_LIB_${BUILD_TYPE} "${ICU_${icu_target}_LIB_${BUILD_TYPE}}" PARENT_SCOPE)
+      set(ICU_${icu_target}_SHARED_LIB_${BUILD_TYPE} "${ICU_${icu_target}_SHARED_LIB_${BUILD_TYPE}}" PARENT_SCOPE)
+      list(APPEND ICU_LIBRARIES_${BUILD_TYPE} ${ICU_${icu_target}_LIB_${BUILD_TYPE}})
+      list(APPEND ICU_SHARED_LIBRARIES_${BUILD_TYPE} ${ICU_${icu_target}_SHARED_LIB_${BUILD_TYPE}})
+    endforeach()
+
+    set(ICU_LIBRARIES_${BUILD_TYPE} ${ICU_LIBRARIES_${BUILD_TYPE}} PARENT_SCOPE)
+    set(ICU_SHARED_LIBRARIES_${BUILD_TYPE} ${ICU_SHARED_LIBRARIES_${BUILD_TYPE}} PARENT_SCOPE)
+  endforeach()
+
+  # need to unset several variables which can set env to cross-environment
+  list(PREPEND ARG_HOST_ENV ${CMAKE_COMMAND} -E env)
+  foreach(var SDKTARGETSYSROOT CONFIG_SITE OECORE_NATIVE_SYSROOT OECORE_TARGET_SYSROOT
+              OECORE_ACLOCAL_OPTS OECORE_BASELIB OECORE_TARGET_ARCH OECORE_TARGET_OS CC CXX
+              CPP AS LD GDB STRIP RANLIB OBJCOPY OBJDUMP READELF AR NM M4 TARGET_PREFIX
+              CONFIGURE_FLAGS CFLAGS CXXFLAGS LDFLAGS CPPFLAGS KCFLAGS OECORE_DISTRO_VERSION
+              OECORE_SDK_VERSION ARCH CROSS_COMPILE OE_CMAKE_TOOLCHAIN_FILE OPENSSL_CONF
+              OE_CMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX PKG_CONFIG_SYSROOT_DIR PKG_CONFIG_PATH)
+    if(DEFINED ENV{${var}})
+      list(APPEND ARG_HOST_ENV --unset=${var})
+    endif()
+  endforeach()
+
+  include(ExternalProject)
+
+  if(ICU_WIN32)
+    ExternalProject_Add(
+      ${ARG_TARGET_NAME}
+      URL ${ICU_URL}
+      URL_HASH ${ICU_URL_HASH}
+      PREFIX ${THIRD_PARTY_PATH}
+      SOURCE_DIR ${ICU_SOURCE_DIR}
+      BINARY_DIR ${ARG_BUILD_DIR}
+      INSTALL_DIR ${ARG_INSTALL_DIR}
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata 
+      INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ARG_INSTALL_DIR}/include && 
+                      ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_LIB_SUBDIR} &&
+                      ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_BIN_SUBDIR}
+      BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG})
+  elseif(ICU_UNIX)
+    if(ICU_ANDROID)
+      # ICU does not support Android natively, but we can compile it as Linux
+      set(config_os Linux)
+    elseif(ICU_APPLE)
+      set(config_os MacOSX)
+    else()
+      set(config_os Linux)
+    endif()
+
+    ExternalProject_Add(
+      ${ARG_TARGET_NAME}
+      URL ${ICU_URL}
+      URL_HASH ${ICU_URL_HASH}
+      PREFIX ${THIRD_PARTY_PATH}
+      SOURCE_DIR ${ICU_SOURCE_DIR}
+      BINARY_DIR ${ARG_BUILD_DIR}
+      INSTALL_DIR ${ARG_INSTALL_DIR}
+      CONFIGURE_COMMAND ${ARG_HOST_ENV} ${ICU_SOURCE_DIR}/source/runConfigureICU ${config_os} --prefix ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE} --includedir ${ICU_INCLUDE_DIRS}
+                        ${ICU_CONFIGURE_FLAGS}
+                        --enable-static
+                        --disable-rpath
+                        --disable-shared
+                        --disable-tests
+                        --disable-samples
+                        --disable-extras
+                        --disable-icuio
+                        --disable-draft
+                        --disable-icu-config
+      BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE}
+      INSTALL_COMMAND make install
+      BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG})
+  endif()
+endfunction()
+
+#
+# Build
+#
+
+# IMPORTANT! use native compilers
+set(host_env_config
+  CC=cc
+  CXX=c++)
+
+# propogate current compilers and flags
+set(target_env_config
+  CFLAGS=${ICU_C_FLAGS}
+  CXXFLAGS=${ICU_CXX_FLAGS}
+  CC=${CMAKE_C_COMPILER}
+  CXX=${CMAKE_CXX_COMPILER})
+
+if(NOT CMAKE_CROSSCOMPILING)
+  set(host_env_config ${target_env_config})
+  set(ICU_HOST_TARGET_NAME ${ICU_TARGET_NAME})
+  set(ICU_HOST_INSTALL_DIR ${ICU_INSTALL_DIR})
+  set(ICU_HOST_BINARY_DIR ${ICU_BINARY_DIR})
+endif()
+
+# build for host platform
+ov_tokenizer_build_icu(
+   TARGET_NAME ${ICU_HOST_TARGET_NAME}
+   TARGET_SYSTEM_NAME ${CMAKE_HOST_SYSTEM_NAME}
+   BUILD_ARCH ${OV_HOST_ARCH}
+   TARGET_ARCH ${OV_HOST_ARCH}
+   BUILD_DIR ${ICU_HOST_BINARY_DIR}
+   INSTALL_DIR ${ICU_HOST_INSTALL_DIR}
+   HOST_ENV ${host_env_config})
+
+if(CMAKE_CROSSCOMPILING)
+  # build for target platform
+  ov_tokenizer_build_icu(
+    TARGET_NAME ${ICU_TARGET_NAME}
+    TARGET_SYSTEM_NAME ${CMAKE_SYSTEM_NAME}
+    BUILD_ARCH ${OV_HOST_ARCH}
+    TARGET_ARCH ${OV_ARCH}
+    BUILD_DIR ${ICU_BINARY_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
-    CONFIGURE_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata 
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ICU_INCLUDE_DIRS} && 
-                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ICU_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_LIB_SUBDIR} &&
-                    ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ICU_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_BIN_SUBDIR}
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
-  )
-elseif(APPLE)
-  ExternalProject_Add(
-    ${ICU_TARGET_NAME}
-    URL ${ICU_URL}
-    URL_HASH ${ICU_URL_HASH}
-    PREFIX ${THIRD_PARTY_PATH}
-    SOURCE_DIR ${ICU_SOURCE_DIR}
-    INSTALL_DIR ${ICU_INSTALL_DIR}
-    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU MacOSX --prefix ${ICU_INSTALL_DIR}/${ICU_BUILD_TYPE} --includedir ${ICU_INCLUDE_DIRS}
-                      ${ICU_CONFIGURE_FLAGS} 
-                      --enable-static
-                      --enable-rpath
-                      --disable-shared
-                      --disable-tests
-                      --disable-samples
-                      --disable-extras
-                      --disable-icuio
-                      --disable-draft
-                      --disable-icu-config
-    BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE} 
-    INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
-  )
-else()
-  ExternalProject_Add(
-    ${ICU_TARGET_NAME}
-    URL ${ICU_URL}
-    URL_HASH ${ICU_URL_HASH}
-    PREFIX ${THIRD_PARTY_PATH}
-    SOURCE_DIR ${ICU_SOURCE_DIR}
-    INSTALL_DIR ${ICU_INSTALL_DIR}
-    CONFIGURE_COMMAND ${HOST_ENV_CMAKE} ${ICU_SOURCE_DIR}/source/runConfigureICU Linux --prefix ${ICU_INSTALL_DIR}/${ICU_BUILD_TYPE} --includedir ${ICU_INCLUDE_DIRS}
-                      ${ICU_CONFIGURE_FLAGS}
-                      --enable-static
-                      --enable-rpath
-                      --disable-shared
-                      --disable-tests
-                      --disable-samples
-                      --disable-extras
-                      --disable-icuio
-                      --disable-draft
-                      --disable-icu-config
-    BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE} 
-    INSTALL_COMMAND make install
-    BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG}
-  )
+    EXTRA_CONFIGURE_STEPS --with-cross-build=${ICU_HOST_BINARY_DIR}
+    HOST_ENV ${target_env_config})
+
+    add_dependencies(${ICU_TARGET_NAME} ${ICU_HOST_TARGET_NAME})
 endif()
 
 # using custom FindICU module
