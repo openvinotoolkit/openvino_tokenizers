@@ -297,9 +297,11 @@ jobs:
       - name: Clone Openvino TensorFlow tests
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          ref: ${{ env.OV_BRANCH }}
           path: ${{ env.OPENVINO_REPO }}
           sparse-checkout: |
             tests/layer_tests
+            tests/requirements_tensorflow
 
       - name: Setup Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
@@ -320,7 +322,6 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
 
-
       - name: Install OpenVINO Python wheel from pre-built artifacts
         run: |
           python3 -m pip install openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
@@ -335,6 +336,11 @@ jobs:
           popd
         env:
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
+          
+      - name: Install Python Layer tests dependencies
+        run: |
+          # tensorflow test requirements
+          # python3 -m pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
 
       - name: TensorFlow 1 Layer Tests
         run: |
