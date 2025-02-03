@@ -245,22 +245,28 @@ set(host_env_config
   CXX=c++)
 
 # propogate current compilers and flags
-set(target_env_config
-  CFLAGS=${ICU_C_FLAGS}
-  CC=${CMAKE_C_COMPILER}
-  CXXFLAGS=${ICU_CXX_FLAGS}
-  CXX=${CMAKE_CXX_COMPILER})
+if(APPLE)
+  set(target_env_config
+    CFLAGS=${ICU_C_FLAGS}
+    CXXFLAGS=${ICU_CXX_FLAGS})
+else()
+  set(target_env_config
+    CFLAGS=${ICU_C_FLAGS}
+    CC=${CMAKE_C_COMPILER}
+    CXXFLAGS=${ICU_CXX_FLAGS}
+    CXX=${CMAKE_CXX_COMPILER})
 
-foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
+    foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
                       CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
-  set(tool ${tool})
-  if(EXISTS ${tool})
-    string(REPLACE "CMAKE_MAKE_PROGRAM" "MAKE" tool_name ${tool})
-    string(REPLACE "CMAKE_LINKER" "LD" tool_name ${tool})
-    string(REPLACE "CMAKE_" "" tool_name ${tool})
-    list(APPEND target_env_config ${tool_name}=${tool})
-  endif()
-endforeach()
+    set(tool ${tool})
+    if(EXISTS ${tool})
+      string(REPLACE "CMAKE_MAKE_PROGRAM" "MAKE" tool_name ${tool})
+      string(REPLACE "CMAKE_LINKER" "LD" tool_name ${tool})
+      string(REPLACE "CMAKE_" "" tool_name ${tool})
+      list(APPEND target_env_config ${tool_name}=${tool})
+    endif()
+  endforeach()
+endif()
 
 if(NOT CMAKE_CROSSCOMPILING)
   set(host_env_config ${target_env_config})
