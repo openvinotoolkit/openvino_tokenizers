@@ -19,7 +19,7 @@ set(ICU_HOST_TARGET_NAME "icu_host_external")
 set(ICU_HOST_INSTALL_DIR ${THIRD_PARTY_PATH}/icu-host-install)
 set(ICU_HOST_BINARY_DIR ${THIRD_PARTY_PATH}/icu-host-build)
 
-# ICU supports only Release and Debug build types 
+# ICU supports only Release and Debug build types
 if(GENERATOR_IS_MULTI_CONFIG_VAR)
   list(APPEND ICU_CONFIGURE_FLAGS $<$<CONFIG:Debug>:"--enable-debug">$<$<NOT:$<CONFIG:Release>>:"--enable-release">)
   set(ICU_BUILD_TYPE $<$<CONFIG:Debug>:Debug>$<$<NOT:$<CONFIG:Debug>>:Release>)
@@ -58,7 +58,7 @@ else()
     set(ICU_UC_SHARED_LIB_NAME ${ICU_UC_LIB_NAME})
     set(ICU_I18N_SHARED_LIB_NAME ${ICU_I18N_LIB_NAME})
     set(ICU_DATA_SHARED_LIB_NAME ${ICU_DATA_LIB_NAME})
-    
+
     # Calculate the number of cores using CMake
     execute_process(COMMAND nproc
       OUTPUT_VARIABLE ICU_JOB_POOL_SIZE
@@ -105,6 +105,10 @@ function(ov_tokenizer_build_icu)
   set(multiValueArgs EXTRA_CONFIGURE_STEPS HOST_ENV)
   cmake_parse_arguments(ARG "" "${oneValueRequiredArgs};${oneValueOptionalArgs}" "${multiValueArgs}" ${ARGN})
 
+  if(NOT ARG_BUILD_ARCH STREQUAL ARG_TARGET_ARCH)
+    set(ICU_CROSS_COMPILING ON)
+  endif()
+
   # set target platform
 
   if(ARG_TARGET_SYSTEM_NAME MATCHES "^(Windows|WindowsCE|WindowsPhone|WindowsStore)$")
@@ -120,34 +124,6 @@ function(ov_tokenizer_build_icu)
     set(ICU_UNIX ON)
   endif()
 
-  if(ICU_UNIX)
-    if(ARG_BUILD_ARCH STREQUAL "X86_64")
-      set(build_triplet x86_64-unknown-linux-gnu)
-    elseif(ARG_BUILD_ARCH STREQUAL "AARCH64")
-      set(build_triplet aarch64-unknown-linux-gnu)
-    else()
-      message(FATAL_ERROR "Unsupported build arch: ${ARG_BUILD_ARCH}")
-    endif()
-
-    if(ARG_TARGET_ARCH STREQUAL "X86_64")
-      set(host_triplet x86_64-unknown-linux-gnu)
-    elseif(ARG_TARGET_ARCH STREQUAL "AARCH64")
-      set(host_triplet aarch64-unknown-linux-gnu)
-    else()
-      message(FATAL_ERROR "Unsupported target arch: ${ARG_TARGET_ARCH}")
-    endif()
-
-    if(ICU_LINUX OR ICU_ANDROID)
-      list(APPEND ICU_CONFIGURE_FLAGS
-        --host=${host_triplet}
-        --build=${build_triplet})
-    endif()
-  endif()
-
-  if(ARG_EXTRA_CONFIGURE_STEPS)
-    list(APPEND ICU_CONFIGURE_FLAGS ${ARG_EXTRA_CONFIGURE_STEPS})
-  endif()
-
   foreach(build_type IN ITEMS Release Debug)
     string(TOUPPER ${build_type} BUILD_TYPE)
 
@@ -160,8 +136,8 @@ function(ov_tokenizer_build_icu)
       else()
         set(lib_postfix ${CMAKE_${BUILD_TYPE}_POSTFIX})
       endif()
-      set(ICU_STATIC_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_LIB_SUBDIR}")
-      set(ICU_SHARED_LIB_DIR "${ICU_INSTALL_DIR}/${build_type}/${ICU_INSTALL_BIN_SUBDIR}")
+      set(ICU_STATIC_LIB_DIR "${ARG_INSTALL_DIR}/${build_type}/${ICU_INSTALL_LIB_SUBDIR}")
+      set(ICU_SHARED_LIB_DIR "${ARG_INSTALL_DIR}/${build_type}/${ICU_INSTALL_BIN_SUBDIR}")
       set(ICU_${icu_target}_LIB_${BUILD_TYPE} "${ICU_STATIC_LIB_DIR}/${ICU_STATIC_PREFIX}${ICU_${icu_target}_LIB_NAME}${lib_postfix}${ICU_STATIC_SUFFIX}")
       set(ICU_${icu_target}_SHARED_LIB_${BUILD_TYPE} "${ICU_SHARED_LIB_DIR}/${ICU_SHARED_PREFIX}${ICU_${icu_target}_SHARED_LIB_NAME}${lib_postfix}${ICU_SHARED_SUFFIX}")
       set(ICU_${icu_target}_LIB_${BUILD_TYPE} "${ICU_${icu_target}_LIB_${BUILD_TYPE}}" PARENT_SCOPE)
@@ -175,7 +151,6 @@ function(ov_tokenizer_build_icu)
   endforeach()
 
   # need to unset several variables which can set env to cross-environment
-  list(PREPEND ARG_HOST_ENV ${CMAKE_COMMAND} -E env)
   foreach(var SDKTARGETSYSROOT CONFIG_SITE OECORE_NATIVE_SYSROOT OECORE_TARGET_SYSROOT
               OECORE_ACLOCAL_OPTS OECORE_BASELIB OECORE_TARGET_ARCH OECORE_TARGET_OS CC CXX
               CPP AS LD GDB STRIP RANLIB OBJCOPY OBJDUMP READELF AR NM M4 TARGET_PREFIX
@@ -183,9 +158,11 @@ function(ov_tokenizer_build_icu)
               OECORE_SDK_VERSION ARCH CROSS_COMPILE OE_CMAKE_TOOLCHAIN_FILE OPENSSL_CONF
               OE_CMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX PKG_CONFIG_SYSROOT_DIR PKG_CONFIG_PATH)
     if(DEFINED ENV{${var}})
-      list(APPEND ARG_HOST_ENV --unset=${var})
+      list(PREPEND ARG_HOST_ENV --unset=${var})
     endif()
   endforeach()
+
+  list(PREPEND ARG_HOST_ENV ${CMAKE_COMMAND} -E env)
 
   include(ExternalProject)
 
@@ -199,19 +176,46 @@ function(ov_tokenizer_build_icu)
       BINARY_DIR ${ARG_BUILD_DIR}
       INSTALL_DIR ${ARG_INSTALL_DIR}
       CONFIGURE_COMMAND ""
-      BUILD_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata 
-      INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ARG_INSTALL_DIR}/include && 
+      BUILD_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata
+      INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ARG_INSTALL_DIR}/include &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_LIB_SUBDIR} &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_BIN_SUBDIR}
       BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG})
   elseif(ICU_UNIX)
-    if(ICU_ANDROID)
-      # ICU does not support Android natively, but we can compile it as Linux
-      set(config_os Linux)
-    elseif(ICU_APPLE)
-      set(config_os MacOSX)
+    set(ICU_CONFIGURE_FLAGS
+      --prefix ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}
+      --includedir ${ICU_INCLUDE_DIRS}
+      --enable-static
+      --disable-rpath
+      --disable-shared
+      --disable-tests
+      --disable-samples
+      --disable-extras
+      --disable-icuio
+      --disable-draft
+      --disable-icu-config
+      --disable-layoutex
+      --disable-layout
+      ${ARG_EXTRA_CONFIGURE_STEPS})
+
+    if(ICU_UNIX AND ICU_CROSS_COMPILING)
+      if(ARG_TARGET_ARCH STREQUAL "X86_64")
+        set(host_triplet x86_64-unknown-linux-gnu)
+      elseif(ARG_TARGET_ARCH STREQUAL "AARCH64")
+        set(host_triplet aarch64-unknown-linux-gnu)
+      elseif(ARG_TARGET_ARCH STREQUAL "RISCV64")
+        set(host_triplet riscv64-unknown-linux-gnu)
+      else()
+        message(FATAL_ERROR "Unsupported target arch: ${ARG_TARGET_ARCH}")
+      endif()
+
+      list(APPEND ICU_CONFIGURE_FLAGS --host=${host_triplet})
+    endif()
+
+    if(ICU_CROSS_COMPILING)
+      list(APPEND ICU_CONFIGURE_FLAGS --disable-tools)
     else()
-      set(config_os Linux)
+      list(APPEND ICU_CONFIGURE_FLAGS --enable-tools)
     endif()
 
     ExternalProject_Add(
@@ -222,20 +226,12 @@ function(ov_tokenizer_build_icu)
       SOURCE_DIR ${ICU_SOURCE_DIR}
       BINARY_DIR ${ARG_BUILD_DIR}
       INSTALL_DIR ${ARG_INSTALL_DIR}
-      CONFIGURE_COMMAND ${ARG_HOST_ENV} ${ICU_SOURCE_DIR}/source/runConfigureICU ${config_os} --prefix ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE} --includedir ${ICU_INCLUDE_DIRS}
-                        ${ICU_CONFIGURE_FLAGS}
-                        --enable-static
-                        --disable-rpath
-                        --disable-shared
-                        --disable-tests
-                        --disable-samples
-                        --disable-extras
-                        --disable-icuio
-                        --disable-draft
-                        --disable-icu-config
+      CONFIGURE_COMMAND ${ARG_HOST_ENV} ${ICU_SOURCE_DIR}/source/configure ${ICU_CONFIGURE_FLAGS}
       BUILD_COMMAND make -j${ICU_JOB_POOL_SIZE}
       INSTALL_COMMAND make install
       BUILD_BYPRODUCTS ${ICU_LIBRARIES_RELEASE} ${ICU_LIBRARIES_DEBUG})
+  else()
+    message(FATAL_ERROR "Unsupported platform: ${ARG_TARGET_SYSTEM_NAME}")
   endif()
 endfunction()
 
@@ -251,9 +247,20 @@ set(host_env_config
 # propogate current compilers and flags
 set(target_env_config
   CFLAGS=${ICU_C_FLAGS}
-  CXXFLAGS=${ICU_CXX_FLAGS}
   CC=${CMAKE_C_COMPILER}
+  CXXFLAGS=${ICU_CXX_FLAGS}
   CXX=${CMAKE_CXX_COMPILER})
+
+foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
+                      CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
+  set(tool ${tool})
+  if(EXISTS ${tool})
+    string(REPLACE "CMAKE_MAKE_PROGRAM" "MAKE" tool_name ${tool})
+    string(REPLACE "CMAKE_LINKER" "LD" tool_name ${tool})
+    string(REPLACE "CMAKE_" "" tool_name ${tool})
+    list(APPEND target_env_config ${tool_name}=${tool})
+  endif()
+endforeach()
 
 if(NOT CMAKE_CROSSCOMPILING)
   set(host_env_config ${target_env_config})
