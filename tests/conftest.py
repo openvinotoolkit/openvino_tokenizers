@@ -60,7 +60,7 @@ def build_coverege_report(session: pytest.Session) -> None:
         results_df.hf_tiktoken_tokenizers_with_padding_sides_param, inplace=True
     )
     results_df.status = (results_df.status == "passed").astype(int)
-    results_df = results_df.dropna(subset=["hf_wordpiece_tokenizers_param"])
+    results_df = results_df.dropna(subset=['hf_wordpiece_tokenizers_param'])
     results_df["Model"] = (
         results_df.hf_wordpiece_tokenizers_param
         + ["_legacy" * value for value in results_df.index.str.contains("Slow")]
