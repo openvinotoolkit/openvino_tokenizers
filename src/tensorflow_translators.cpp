@@ -23,8 +23,11 @@
 #include "string_to_hash_bucket.hpp"
 #include "vocab_encoder.hpp"
 #include "wordpiece_tokenizer.hpp"
+
+#ifdef ENABLE_FAST_TOKENIZERS
 #include "case_fold.hpp"
 #include "normalize_unicode.hpp"
+#endif // ENABLE_FAST_TOKENIZERS
 
 using namespace ov;
 using namespace ov::op;
@@ -153,6 +156,8 @@ NamedOutputVector translate_ragged_tensor_to_sparse(const NodeContext& node) {
     return named_results;
 }
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 ov::OutputVector translate_case_fold_utf8(const ov::frontend::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 1, "CaseFold expects only 1 input");
     return { post_translate_string_tensor_output(std::make_shared<CaseFold>(
@@ -165,6 +170,8 @@ ov::OutputVector translate_normalize_utf8(const ov::frontend::NodeContext& node)
         pre_translate_string_tensor_input(node.get_input(0)),
         node.get_attribute<std::string>("normalization_form"))->outputs()) };
 }
+
+#endif // ENABLE_FAST_TOKENIZERS
 
 ov::OutputVector translate_static_regex_replace(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
@@ -214,6 +221,8 @@ ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::N
     return { post_translate_ragged_tensor_output(wp_tokenizer->outputs()) };
 }
 
+#ifdef ENABLE_FAST_TOKENIZERS
+
 ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 1, "StringLower expects only 1 input");
@@ -223,6 +232,8 @@ ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node) {
     set_node_name(node_name, string_lower_result.get_node_shared_ptr());
     return { string_lower_result };
 }
+
+#endif // ENABLE_FAST_TOKENIZERS
 
 OutputVector translate_lookup_table_find_op(const ov::frontend::NodeContext& node) {
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 3, "LookupTableFind or LookupTableFindV2 expects 3 inputs");

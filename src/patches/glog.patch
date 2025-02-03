@@ -1,0 +1,47 @@
+diff --git a/fast_tokenizer/cmake/external/glog.cmake b/fast_tokenizer/cmake/external/glog.cmake
+index 2afc3960..fc2b21ce 100644
+--- a/fast_tokenizer/cmake/external/glog.cmake
++++ b/fast_tokenizer/cmake/external/glog.cmake
+@@ -21,17 +21,29 @@ SET(GLOG_REPOSITORY ${GIT_URL}/google/glog.git)
+ SET(GLOG_TAG        v0.4.0)
+ 
+ IF(WIN32)
+-  SET(GLOG_LIBRARIES "${GLOG_INSTALL_DIR}/lib/glog.lib" CACHE FILEPATH "glog library." FORCE)
++  SET(GLOG_LIBRARIES_RELEASE "${GLOG_INSTALL_DIR}/lib/glog.lib" CACHE FILEPATH "glog release library." FORCE)
++  SET(GLOG_LIBRARIES_DEBUG "${GLOG_INSTALL_DIR}/lib/glogd.lib" CACHE FILEPATH "glog debug library." FORCE)
+   SET(GLOG_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4267 /wd4530")
+   add_definitions("/DGOOGLE_GLOG_DLL_DECL=")
+ ELSE(WIN32)
+-  SET(GLOG_LIBRARIES "${GLOG_INSTALL_DIR}/lib/libglog.a" CACHE FILEPATH "glog library." FORCE)
++  SET(GLOG_LIBRARIES_RELEASE "${GLOG_INSTALL_DIR}/lib/libglog.a" CACHE FILEPATH "glog release library." FORCE)
++  SET(GLOG_LIBRARIES_DEBUG "${GLOG_INSTALL_DIR}/lib/libglogd.a" CACHE FILEPATH "glog release library." FORCE)
+   SET(GLOG_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+ ENDIF(WIN32)
+ 
++if(GENERATOR_IS_MULTI_CONFIG_VAR)
++  set(GLOG_LIBRARIES "$<CONFIG:Debug>:${GLOG_LIBRARIES_DEBUG} $<CONFIG:Release>:${GLOG_LIBRARIES_RELEASE}")
++else()
++  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
++    set(GLOG_LIBRARIES "${GLOG_LIBRARIES_DEBUG}")
++  else()
++    set(GLOG_LIBRARIES "${GLOG_LIBRARIES_RELEASE}")
++  endif()
++endif()
++
+ INCLUDE_DIRECTORIES(${GLOG_INCLUDE_DIR})
+ 
+-IF(ANDROID)    
++IF(ANDROID)
+ set(CROSS_COMPILE_CMAKE_ARGS
+     "-DCMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}"
+     "-DCMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION}"
+@@ -112,6 +124,7 @@ ExternalProject_Add(
+ ENDIF()
+ 
+ ADD_LIBRARY(glog STATIC IMPORTED GLOBAL)
+-SET_PROPERTY(TARGET glog PROPERTY IMPORTED_LOCATION ${GLOG_LIBRARIES})
++SET_PROPERTY(TARGET glog PROPERTY IMPORTED_LOCATION "${GLOG_LIBRARIES_RELEASE}")
++SET_PROPERTY(TARGET glog PROPERTY IMPORTED_LOCATION_DEBUG "${GLOG_LIBRARIES_DEBUG}")
+ ADD_DEPENDENCIES(glog extern_glog gflags)
+ LINK_LIBRARIES(glog)
+\ No newline at end of file

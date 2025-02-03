@@ -150,6 +150,77 @@ make
 
 After that, you can transfer all binaries from `build/src` to `<openvino_dir>` as described in the C++ installation instruction above.
 
+### Reducing the ICU Data Size
+
+By default, all available ICU locales are supported, which significantly increases the package size. To reduce the size of the ICU libraries included in your final package, follow these steps:
+
+1. **Use the ICU Data Configuration File**:
+    - This file specifies which features and locales to include in a custom data bundle. You can find more information [here](https://unicode-org.github.io/icu/userguide/icu_data/buildtool.html#icu-data-configuration-file).
+
+2. **Set the ICU Data Filter File as an Environment Variable**:
+    - **On Unix-like systems (Linux, macOS)**:
+      Set the `ICU_DATA_FILTER_FILE` environment variable to the path of your configuration file (`filters.json`):
+
+      ```bash
+      export ICU_DATA_FILTER_FILE="filters.json"
+      ```
+
+    - **On Windows**:
+      Set the `ICU_DATA_FILTER_FILE` environment variable using the Command Prompt or PowerShell:
+
+      **Command Prompt:**
+      ```cmd
+      set ICU_DATA_FILTER_FILE=filters.json
+      ```
+
+      **PowerShell:**
+      ```powershell
+      $env:ICU_DATA_FILTER_FILE="filters.json"
+      ```
+
+3. **Create a Configuration File**:
+    - An example configuration file (`filters.json`) might look like this:
+
+    ```json
+    {
+      "localeFilter": {
+        "filterType": "language",
+        "includelist": [
+          "en"
+        ]
+      }
+    }
+    ```
+
+4. **Configure OpenVINO Tokenizers**:
+    - When building OpenVINO tokenizers, set the following CMake option during the project configuration:
+
+    ```bash
+    -DBUILD_FAST_TOKENIZERS=ON
+    ```
+   - Example for a pip installation path:
+   ```bash
+   ICU_DATA_FILTER_FILE=</path/to/filters.json> pip install git+https://github.com/openvinotoolkit/openvino_tokenizers.git --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly --config-settings=override=cmake.options.BUILD_FAST_TOKENIZERS=ON
+   ```
+
+By following these instructions, you can effectively reduce the size of the ICU libraries in your final package.
+
+### Build OpenVINO Tokenizers without FastTokenizer Library
+
+If a tokenizer doesn't use `CaseFold`, `UnicodeNormalization` or `Wordpiece` operations, you can drastically reduce package binary size by building OpenVINO Tokenizers without FastTokenizer dependency with this flag:
+
+```bash
+-DENABLE_FAST_TOKENIZERS=OFF
+```
+
+This option can also help with building for platform that is supported by FastTokenizer, for example `Android x86_64`.
+
+Example for a pip installation path:
+```bash
+
+pip install git+https://github.com/openvinotoolkit/openvino_tokenizers.git --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly --config-settings=override=cmake.options.ENABLE_FAST_TOKENIZERS=OFF
+```
+
 ## Usage
 
 :warning: OpenVINO Tokenizers can be inferred on a `CPU` device only.

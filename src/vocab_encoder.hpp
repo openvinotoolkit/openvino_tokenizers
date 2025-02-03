@@ -44,5 +44,5 @@ public:
     }
 private:
     mutable std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> m_vocab;
-    mutable std::once_flag m_init_flag;
+    mutable std::mutex m_mutex;
 };
