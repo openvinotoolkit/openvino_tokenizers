@@ -340,7 +340,7 @@ jobs:
       - name: Install Python Layer tests dependencies
         run: |
           # tensorflow test requirements
-          # python3 -m pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
+          python3 -m pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
 
       - name: TensorFlow 1 Layer Tests
         run: |
