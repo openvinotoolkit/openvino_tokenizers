@@ -11,6 +11,10 @@ from typing import Callable, Optional
 
 import openvino
 from openvino.utils.node_factory import NodeFactory
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 _ext_name = "openvino_tokenizers"
@@ -64,6 +68,17 @@ def new_fe_init(self, *args, **kwargs):
     old_fe_init(self, *args, **kwargs)
     self.add_extension(str(_ext_path))
 
+def get_create_wrapper(old_create: Callable) -> Callable:
+    @functools.wraps(old_fe_init)
+    def new_create(*args, **kwargs):
+        op_name = args[0] if len(args) > 0 else None
+        if len(args) > 0 and op_name in ['StringTensorUnpack', 'StringTensorPack']:
+            msg = f"Creating {op_name} from extension is deprecated. Consider creating operation from original opset factory."
+            f"E.g. _get_opset_factory(\"opset15\").create(\"{op_name}\", ...)"
+            logger.info(msg)
+        return old_create(*args, **kwargs)
+    return new_create
+
 
 openvino.Core.__init__ = new_core_init
 openvino.frontend.frontend.FrontEnd.__init__ = new_fe_init
@@ -77,6 +92,8 @@ def _get_factory_callable() -> Callable[[], NodeFactory]:
         if opset_version not in factory:
             openvino.utils.node_factory.NodeFactory.__init__ = new_factory_init
             factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
+            if opset_version is None:
+                factory[opset_version].create = get_create_wrapper(factory[opset_version].create)
 
         return factory[opset_version]
 
