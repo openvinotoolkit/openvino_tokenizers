@@ -90,7 +90,7 @@ def _get_opset_factory_callable() -> Callable[[], NodeFactory]:
     def inner(opset_version: Optional[str] = None) -> NodeFactory:
         nonlocal factory
         if opset_version not in factory:
-            openvino.runtime.utils.node_factory.NodeFactory.__init__ = old_factory_init
+            openvino.utils.node_factory.NodeFactory.__init__ = old_factory_init
             factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
 
         return factory[opset_version]
