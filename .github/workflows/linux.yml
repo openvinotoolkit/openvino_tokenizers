@@ -267,10 +267,7 @@ jobs:
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
   openvino_tf_tests:
-    name: OpenVINO TensorFlow tests (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }})
-    strategy:
-      matrix:
-        build_fast_tokenizers: [ON]
+    name: OpenVINO TensorFlow tests
     needs: [ openvino_download, openvino_tokenizers_wheel]
     if: always() && needs.openvino_tokenizers_wheel.result == 'success'
     timeout-minutes: 45
@@ -305,7 +302,7 @@ jobs:
       - name: Download tokenizers package
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          name: openvino_tokenizers_wheel_${{ matrix.build_fast_tokenizers }}
+          name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
 
       - name: Download OpenVINO package
