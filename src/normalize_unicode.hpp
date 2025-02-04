@@ -4,8 +4,7 @@
 
 #pragma once
 
-#ifdef ENABLE_FAST_TOKENIZERS
-
+#include "normalizer.h"  // from sentencepiece
 #include <openvino/op/op.hpp>
 
 class NormalizeUnicode : public ov::op::Op {
@@ -16,7 +15,9 @@ public:
 
     NormalizeUnicode(const ov::OutputVector& arguments, const std::string& normalization_form = "NFD") :
         ov::op::Op(arguments),
-        m_normalization_form(normalization_form) {
+        m_normalization_form(normalization_form),
+        m_init_flag()  {
+
         constructor_validate_and_infer_types();
     }
 
@@ -38,8 +39,9 @@ public:
     }
 
 private:
-
     std::string m_normalization_form = "NFD";
+    mutable std::shared_ptr<sentencepiece::normalizer::Normalizer> m_normalizer;
+    // spec should be preserved for the lifetime of the normalizer
+    mutable std::shared_ptr<sentencepiece::NormalizerSpec> m_spec;
+    mutable std::once_flag m_init_flag;
 };
-
-#endif // ENABLE_FAST_TOKENIZERS
