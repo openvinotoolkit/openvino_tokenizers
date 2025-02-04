@@ -14,7 +14,7 @@
 // consist of multiple tensors. The destination format is defined by `mode` attribute.
 class StringTensorUnpack : public ov::op::Op {
 public:
-    OPENVINO_OP("StringTensorPack");
+    OPENVINO_OP("StringTensorUnpack");
 
     StringTensorUnpack () = default;
 
