@@ -2,36 +2,41 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#ifdef ENABLE_FAST_TOKENIZERS
-
 #ifdef _MSC_VER
 #    pragma warning(disable : 4251)
 #    pragma warning(disable : 4275)
 #endif
 
-#include "fast_tokenizer/normalizers/normalizers.h"
-
 #include "normalize_unicode.hpp"
 #include "utils.hpp"
+#include "builder.h"  // for making normalizer spec
 
 using namespace ov;
 
-namespace {
-using namespace paddlenlp::fast_tokenizer::normalizers;
-using NormalizersMap = std::map<std::string, std::function<std::string(const std::string&)>>;
 
-const NormalizersMap normalizers = {
-    {"NFD", [](const std::string& str) { return NormalizedString(str).NFD().GetStr(); }},
-    {"NFC", [](const std::string& str) { return NormalizedString(str).NFC().GetStr(); }},
-    {"NFKD", [](const std::string& str) { return NormalizedString(str).NFKD().GetStr(); }},
-    {"NFKC", [](const std::string& str) { return NormalizedString(str).NFKC().GetStr(); }},
-};
-
+inline void init_unicode_normalizer_chars_map(
+    const std::string& normalization_form,
+    sentencepiece::normalizer::Builder::CharsMap& chars_map
+) {
+    if (normalization_form == "NFC") {
+        sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map);
+    } else if (normalization_form == "NFD") {
+        sentencepiece::normalizer::Builder::BuildNFDMap(&chars_map);
+    } else if (normalization_form == "NFKC") {
+        sentencepiece::normalizer::Builder::BuildNFKCMap(&chars_map);
+    } else if (normalization_form == "NFKD") {
+        sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
+    } else {
+        OPENVINO_ASSERT(false, "Unsupported normalization form: `" + normalization_form + "`");
+    };
 }
+
 
 void NormalizeUnicode::validate_and_infer_types() {
     check_string_input(this, 0);
-    OPENVINO_ASSERT(normalizers.find(m_normalization_form) != normalizers.end(), "NormalizeUnicode doesn't know normalization form ", m_normalization_form);
+    OPENVINO_ASSERT(
+        m_normalization_form == "NFC" || m_normalization_form == "NFD" || m_normalization_form == "NFKC" || m_normalization_form == "NFKD",
+        "NormalizeUnicode doesn't know normalization form ", m_normalization_form);
     set_string_output(this, 0, get_input_partial_shape(0));
 
     auto input_size = get_input_size();
@@ -44,7 +49,31 @@ void NormalizeUnicode::validate_and_infer_types() {
 
 bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 4);
-    return evaluate_normalization_helper(outputs, inputs, normalizers.at(m_normalization_form), has_skips);
-}
 
-#endif // ENABLE_FAST_TOKENIZERS
+
+    if (m_normalizer == nullptr) {
+        std::call_once(m_init_flag, [&]() {
+            m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
+            m_spec->set_add_dummy_prefix(false);
+            m_spec->set_remove_extra_whitespaces(true);
+            m_spec->set_escape_whitespaces(false);
+
+            sentencepiece::normalizer::Builder::CharsMap chars_map;
+            init_unicode_normalizer_chars_map(m_normalization_form, chars_map);
+            std::string precompiled_charsmap;
+            sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+
+            m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
+        });
+    }
+
+    return evaluate_normalization_helper(
+        outputs,
+        inputs,
+        [&](const std::string& str) {
+            return m_normalizer->Normalize(str);
+        },
+        has_skips
+    );
+}
