@@ -159,10 +159,11 @@ function(ov_tokenizer_build_icu)
               OE_CMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX PKG_CONFIG_SYSROOT_DIR PKG_CONFIG_PATH)
     if(DEFINED ENV{${var}})
       list(PREPEND ARG_HOST_ENV --unset=${var})
+      set(ARG_HOST_ENV "--unset=${var}" ${ARG_HOST_ENV})
     endif()
   endforeach()
 
-  list(PREPEND ARG_HOST_ENV ${CMAKE_COMMAND} -E env)
+  set(ARG_HOST_ENV "${CMAKE_COMMAND} -E env" ${ARG_HOST_ENV})
 
   include(ExternalProject)
 
