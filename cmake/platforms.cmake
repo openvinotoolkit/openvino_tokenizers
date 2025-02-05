@@ -78,8 +78,6 @@ endif()
 set(HOST_${OV_HOST_ARCH} ON)
 set(${OV_ARCH} ON)
 
-unset(OV_ARCH)
-
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     set(EMSCRIPTEN ON)
 endif()

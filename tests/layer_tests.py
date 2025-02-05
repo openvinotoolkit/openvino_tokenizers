@@ -2,18 +2,21 @@ import json
 import re
 import tempfile
 from pathlib import Path
-from typing import Union
+from typing import NamedTuple, Union
 
 import openvino as ov
 import pytest
+import requests
 from openvino import Model, PartialShape, Type
 from openvino import op
 from openvino_tokenizers import _get_factory, _get_opset_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.tokenizer_pipeline import (
+    CaseFoldStep,
     CharsmapStep,
     DecodingStep,
     NormalizationStep,
+    NormalizeUnicode,
     PreTokenizatinStep,
     RegexNormalizationStep,
     RegexSplitStep,
@@ -25,6 +28,50 @@ from tests.utils import get_hf_tokenizer
 
 
 core = ov.Core()
+UNICODE_TEST_FILE_URL = "https://www.unicode.org/Public/UCD/latest/ucd/NormalizationTest.txt"
+
+
+class NormalizationTestLine(NamedTuple):
+    source: str
+    nfc: str
+    nfd: str
+    nfkc: str
+    nfkd: str
+    comment: str
+
+
+def parse_normalization_test_line(line):
+    parts, comment = line.split("#", 1)
+    parts = [part.strip() for part in parts.split(";")]
+
+    # Convert the hexadecimal Unicode code points to characters
+    def hex_to_char(hex_str):
+        return "".join(chr(int(code, 16)) for code in hex_str.split())
+
+    # Parse the components
+    source = hex_to_char(parts[0])
+    nfc = hex_to_char(parts[1])
+    nfd = hex_to_char(parts[2])
+    nfkc = hex_to_char(parts[3])
+    nfkd = hex_to_char(parts[4])
+
+    return NormalizationTestLine(source, nfc, nfd, nfkc, nfkd, comment)
+
+
+@pytest.fixture(scope="session")
+def icu_test_data(request):
+    return requests.get(UNICODE_TEST_FILE_URL).text
+
+
+@pytest.fixture(scope="session")
+def unicode_normalization_test_data(request, icu_test_data):
+    # check https://www.unicode.org/Public/UCD/latest/ucd/NormalizationTest.txt for details
+    return [
+        parse_normalization_test_line(line)
+        for line in icu_test_data.split("\n")
+        if line and not line.startswith("#") and not line.startswith("@")
+    ]
+
 
 ############################################
 ########## Test Normalizer Step ############
@@ -124,6 +171,68 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
 
 
 @pytest.mark.parametrize(
+    "test_parameters",
+    [
+        # results for sentencepiece charsmap:
+        ("NFC", 17325),  # failed examples: 2640
+        ("NFD", 17736),  # failed examples: 2229
+        ("NFKC", 17224),  # failed examples: 2741
+        ("NFKD", 17619),  # failed examples: 2346
+        # results for icu70:
+        # ("NFC", 19875),  # failed examples: 90
+        # ("NFD", 19851),  # failed examples: 114
+        # ("NFKC", 19777),  # failed examples: 188
+        # ("NFKD", 19753),  # failed examples: 212
+        # results for huggingface tokenizers:
+        # ("NFC", 19247),  # failed examples: 718
+        # ("NFD", 19220),  # failed examples: 745
+        # ("NFKC", 19077),  # failed examples: 888
+        # ("NFKD", 19050),  # failed examples: 915
+    ],
+)
+def test_unicode_normalization_model(test_parameters, unicode_normalization_test_data):
+    normalization_type, positive_threshold = test_parameters
+    normalizer_layer = NormalizeUnicode(normalization_type)
+    compiled_model = create_normalization_model(normalizer_layer)
+    positive, negative, no_transformation = 0, 0, 0
+    for test_input in unicode_normalization_test_data:
+        res_ov = compiled_model([test_input.source])[0][0].encode()
+        expected = getattr(test_input, normalization_type.lower()).encode()
+        positive += res_ov == expected
+        negative += res_ov != expected
+        no_transformation += test_input.source.encode() == expected
+
+    assert positive == positive_threshold, (
+        f"{normalization_type}\n"
+        f"Positive: {positive}, expected: {positive_threshold}\n"
+        f"Negative: {negative}, expected: {len(unicode_normalization_test_data) - positive_threshold}\n"
+        f"No transformation: {no_transformation}, positive delta: {positive - no_transformation}"
+    )
+
+
+@pytest.mark.parametrize(
+    "test_string, expected, is_uft8",
+    [
+        ("a", "a", True),
+        ("a", "a", False),
+        ("A", "a", True),
+        ("A", "a", False),
+        ("Ю", "ю", True),
+        ("Ю", "Ю", False),
+        ("Σ", "σ", True),
+        ("Σ", "Σ", False),
+        ("Hello World!", "hello world!", True),
+        ("Hello World!", "hello world!", False),
+    ],
+)
+def test_casefold_normalization(test_string, expected, is_uft8):
+    casefold = CaseFoldStep("utf-8" if is_uft8 else "")
+    compiled_model = create_normalization_model(casefold)
+    res_ov = compiled_model([test_string])[0]
+    assert res_ov == expected
+
+
+@pytest.mark.parametrize(
     "test_string, expected, layer",
     [
         ("Hello world!", " Hello world!", RegexNormalizationStep.add_prefix_whitespace_regex()),
@@ -139,7 +248,7 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
             RegexNormalizationStep(
                 regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
                 replace_term=r"\1",
-            )
+            ),
         ),
         ("", "", RegexNormalizationStep.prepend_regex("▁")),
         ("\n", "▁\n", RegexNormalizationStep.prepend_regex("▁")),
@@ -151,7 +260,7 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
             RegexNormalizationStep(
                 regex_search_pattern=r"(^)(.)",
                 replace_term=r"▁\2",
-            )
+            ),
         ),
         (  # test backward compatibility with old regex
             "\n",
@@ -159,9 +268,9 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
             RegexNormalizationStep(
                 regex_search_pattern=r"(^)(.+)",
                 replace_term=r"▁$2",
-            )
+            ),
         ),
-    ]
+    ],
 )
 def test_regex_normalization(test_string, expected, layer):
     compiled_model = create_normalization_model(layer)
