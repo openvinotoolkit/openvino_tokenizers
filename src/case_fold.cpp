@@ -63,7 +63,6 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
             inputs,
             [&](const std::string& str) {
                 auto res = m_normalizer->Normalize(str);
-                std::cerr << "Before: `" << str << "`\nAfter:  `" << res << "`" << std::endl;
                 return res;
             },
             has_skips);
