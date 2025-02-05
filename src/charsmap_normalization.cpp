@@ -60,6 +60,8 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
 
     if (m_normalizer == nullptr) {
         std::call_once(m_init_flag, [&]() {
+            sentencepiece::logging::SetMinLogLevel(1);
+
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(m_add_dummy_prefix);
             m_spec->set_remove_extra_whitespaces(m_remove_extra_whitespaces);

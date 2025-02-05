@@ -53,9 +53,11 @@ bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
 
     if (m_normalizer == nullptr) {
         std::call_once(m_init_flag, [&]() {
+            sentencepiece::logging::SetMinLogLevel(1);
+
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(false);
-            m_spec->set_remove_extra_whitespaces(true);
+            m_spec->set_remove_extra_whitespaces(false);
             m_spec->set_escape_whitespaces(false);
 
             sentencepiece::normalizer::Builder::CharsMap chars_map;

@@ -30,9 +30,11 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
 
     if (m_normalizer == nullptr && m_encoding == "utf-8") {
         std::call_once(m_init_flag, [&]() {
+            sentencepiece::logging::SetMinLogLevel(1);
+
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(false);
-            m_spec->set_remove_extra_whitespaces(true);
+            m_spec->set_remove_extra_whitespaces(false);
             m_spec->set_escape_whitespaces(false);
 
             sentencepiece::normalizer::Builder::CharsMap chars_map;
@@ -60,7 +62,9 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
             outputs,
             inputs,
             [&](const std::string& str) {
-                return m_normalizer->Normalize(str);
+                auto res = m_normalizer->Normalize(str);
+                std::cerr << "Before: `" << str << "`\nAfter:  `" << res << "`" << std::endl;
+                return res;
             },
             has_skips);
         }
