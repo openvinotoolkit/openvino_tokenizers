@@ -301,4 +301,4 @@ if(CMAKE_CROSSCOMPILING)
 endif()
 
 # using custom FindICU module
-list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules" ${CMAKE_MODULE_PATH})
