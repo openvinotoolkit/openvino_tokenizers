@@ -23,8 +23,6 @@ jobs:
     name: Download prebuilt OpenVINO
     outputs:
       status: ${{ steps.openvino_download.outcome }}
-      ov_version: ${{ steps.openvino_download.outputs.ov_version }}
-      ov_wheel_source: ${{ steps.openvino_download.outputs.ov_wheel_source }}
       docker_tag: ${{ steps.get_docker_tag.outputs.docker_tag }}
     timeout-minutes: 10
     defaults:
@@ -72,15 +70,12 @@ jobs:
       image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
       volumes:
         - /mount:/mount
-      options: -v ${{ github.workspace }}:${{ github.workspace }}
+        - ${{ github.workspace }}:${{ github.workspace }}
     env:
       CMAKE_GENERATOR: 'Ninja'
-      OPENVINO_REPO: ${{ github.workspace }}/openvino
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
-      OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
       BUILD_TYPE: Release
-      BUILD_FAST_TOKENIZERS: 'ON'
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
 
     steps:
@@ -109,7 +104,7 @@ jobs:
         run: |
           echo """
           mkdir -p ${BUILD_DIR}
-          cmake -DBUILD_FAST_TOKENIZERS= -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -S${OPENVINO_TOKENIZERS_REPO} -B${BUILD_DIR} 
+          cmake -DBUILD_FAST_TOKENIZERS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -S${OPENVINO_TOKENIZERS_REPO} -B${BUILD_DIR}
           CMAKE_BUILD_PARALLEL_LEVEL=4 cmake --build ${{ env.BUILD_DIR }} --parallel --config ${BUILD_TYPE}
           """ > build.sh
 
