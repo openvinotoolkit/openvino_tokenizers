@@ -244,7 +244,7 @@ jobs:
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ env.TARGET_BRANCH }}-ccache
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
           path: ${{ env.CCACHE_DIR }}
 
       #
