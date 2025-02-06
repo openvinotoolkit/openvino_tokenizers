@@ -2,14 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include <openvino/core/extension.hpp>
-#include <openvino/core/op_extension.hpp>
-#include <openvino/frontend/extension.hpp>
 #include <openvino/frontend/tensorflow/extension/conversion.hpp>
 
 #include "tokenizer.hpp"
 
-#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS                                                                         \
+#define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS                                                                                     \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RegexSplitWithOffsets", translate_regex_split_with_offsets),                \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("SentencepieceOp", translate_sentencepiece_op),                              \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("RaggedTensorToSparse", translate_ragged_tensor_to_sparse),                  \
