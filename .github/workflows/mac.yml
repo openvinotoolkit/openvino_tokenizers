@@ -297,7 +297,7 @@ jobs:
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
   Overall_Status:
-    name: ci/gha_overall_status_linux
+    name: ci/gha_overall_status_macos
     needs: [openvino_download, openvino_tokenizers_cpack, openvino_tokenizers_wheel, openvino_tokenizers_tests]
     if: ${{ always() }}
     runs-on: ubuntu-latest
