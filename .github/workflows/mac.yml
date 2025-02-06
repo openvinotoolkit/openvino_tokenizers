@@ -96,7 +96,7 @@ jobs:
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ env.TARGET_BRANCH }}-ccache
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
           path: ${{ env.CCACHE_DIR }}
 
       - name: Clean ccache stats
@@ -196,9 +196,9 @@ jobs:
         id: ccache-restore
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-ccache--${{ env.TARGET_BRANCH }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}--${{ env.TARGET_BRANCH }}-ccache
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
           path: ${{ env.CCACHE_DIR }}
 
         #
@@ -295,3 +295,17 @@ jobs:
       - name: Tokenizers regression tests (using openvino python wheel)
         run: python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
+
+  Overall_Status:
+    name: ci/gha_overall_status_macos
+    needs: [openvino_download, openvino_tokenizers_cpack, openvino_tokenizers_wheel, openvino_tokenizers_tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status of all jobs
+        if: >-
+          ${{
+            contains(needs.*.result, 'failure') ||
+            contains(needs.*.result, 'cancelled')
+          }}
+        run: exit 1
