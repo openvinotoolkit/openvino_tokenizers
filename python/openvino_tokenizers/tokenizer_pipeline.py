@@ -9,8 +9,9 @@ import logging
 import weakref
 from copy import copy
 from dataclasses import dataclass, field
-from functools import singledispatchmethod
+from functools import singledispatchmethod, reduce
 from itertools import groupby, islice
+from operator import add
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -19,7 +20,7 @@ from openvino import opset12 as opset
 from openvino.exceptions import OVTypeError, UserInputError
 from openvino.utils.types import as_node, make_constant_node
 
-from . import _get_factory
+from . import _get_factory, _get_opset_factory
 from .constants import (
     ATTENTION_MASK_INPUT_NAME,
     DETOKENIZER_NAME,
@@ -31,8 +32,7 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .str_pack import pack_string, pack_strings
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta, create_unpacked_string
 
 
 logger = logging.getLogger(__name__)
@@ -66,15 +66,15 @@ class BasePipelineStep:
         raise NotImplementedError
 
     @staticmethod
-    def create_string_constant_node(value: Union[str, Iterable[str]]) -> op.Constant:
+    def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
         if isinstance(value, str):
             # string scalar
-            ps = pack_string(value)
-            return op.Constant(ps)
-        else:
+            return op.Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8)).outputs()
+        elif isinstance(value, Iterable):
             # support only 1D strings for now
-            ps = pack_strings(value)
-            return _get_factory().create("StringTensorUnpack", op.Constant(ps).outputs())
+            return create_unpacked_string(value)
+        else:
+            raise ValueError(f"Unsupported value type {type(value)}")
 
     def finalize(self) -> None:
         """Called after the entire pipeline has been built"""
@@ -144,7 +144,7 @@ class SpecialTokensSplit(BasePipelineStep):
             return list(input_nodes)
 
         split_pattern = "|".join(token.regex_repr() for token in self.special_tokens)
-        input_nodes.extend(self.create_string_constant_node(split_pattern).outputs())
+        input_nodes.extend(self.create_string_constant_node(split_pattern))
 
         return _get_factory().create("SpecialTokensSplit", input_nodes).outputs()
 
@@ -158,13 +158,23 @@ class NormalizationStep(BasePipelineStep):
 class NormalizeUnicode(NormalizationStep):
     normalization_form: str = "NFD"
 
+    def __post_init__(self):
+        if self.normalization_form not in ["NFD", "NFC", "NFKD", "NFKC"]:
+            raise ValueError(
+                '[ NormalizeUnicode ] `normalization_form` attribute must be one of ["NFD", "NFC", "NFKD", "NFKC"], '
+                f"got {self.normalization_form}."
+            )
+
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         return (
             _get_factory()
             .create(
-                "NormalizeUnicode",
+                "CharsMapNormalization",
                 input_nodes,
-                {"normalization_form": self.normalization_form},
+                {
+                    "normalization_form": self.normalization_form.lower(),
+                    "remove_extra_whitespaces": False,
+                },
             )
             .outputs()
         )
@@ -182,7 +192,22 @@ class CaseFoldStep(NormalizationStep):
             )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return _get_factory().create("CaseFold", input_nodes, {"encoding": self.encoding}).outputs()
+        if self.encoding == "":
+            return _get_factory().create("CaseFold", input_nodes, {"encoding": self.encoding}).outputs()
+        else:
+            return (
+                _get_factory()
+                .create(
+                    "CharsMapNormalization",
+                    input_nodes,
+                    {
+                        "normalization_form": "identity",
+                        "case_fold": True,
+                        "remove_extra_whitespaces": False,
+                    },
+                )
+                .outputs()
+            )
 
 
 @dataclass
@@ -224,10 +249,10 @@ class RegexNormalizationStep(NormalizationStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
-            (
-                self.create_string_constant_node(self.regex_search_pattern),
-                self.create_string_constant_node(self.replace_term),
-            )
+            [
+                *self.create_string_constant_node(self.regex_search_pattern),
+                *self.create_string_constant_node(self.replace_term),
+            ]
         )
         return (
             _get_factory().create("RegexNormalization", input_nodes, {"global_replace": self.global_replace}).outputs()
@@ -236,15 +261,62 @@ class RegexNormalizationStep(NormalizationStep):
 
 @dataclass
 class CharsmapStep(NormalizationStep):
-    charsmap: bytes
+    charsmap: Optional[bytes] = None
+    normalization_form: Optional[str] = None
+    add_dummy_prefix: bool = False
+    remove_extra_whitespaces: bool = True
+    escape_whitespaces: bool = False
+    case_fold: bool = False
+    nmt: bool = False
+
+    # def __post_init__(self):
+    #     if self.charsmap is None and self.normalization_form is None:
+    #         raise ValueError("[ CharsmapStep ] `charsmap` or `normalization_form` attribute must be set")
+
+    def __add__(self, other: "CharsmapStep") -> "CharsmapStep":
+        if self.charsmap is not None and other.charsmap is not None:
+            raise ValueError("Cannot add two CharsmapStep instances with non-None charsmap attributes")
+        if (
+                self.normalization_form is not None and other.normalization_form is not None
+                and self.normalization_form != "identity" and other.normalization_form != "identity"
+                and self.normalization_form != other.normalization_form
+        ):
+            raise ValueError("Cannot add two CharsmapStep instances with different normalization_form attributes")
+
+        return self.__class__(
+            charsmap=self.charsmap or other.charsmap,
+            normalization_form=self.normalization_form or other.normalization_form,
+            add_dummy_prefix=self.add_dummy_prefix or other.add_dummy_prefix,
+            remove_extra_whitespaces=self.remove_extra_whitespaces and other.remove_extra_whitespaces,
+            escape_whitespaces=self.escape_whitespaces or other.escape_whitespaces,
+            case_fold=self.case_fold or other.case_fold,
+            nmt=self.nmt or other.nmt,
+        )
+
 
     @classmethod
     def from_hf_step_json(cls, step_json: Dict[str, Any]) -> "CharsmapStep":
         return cls(charsmap=base64.b64decode(step_json["precompiled_charsmap"]))
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes += make_constant_node(np.frombuffer(self.charsmap, dtype=np.uint8), dtype=Type.u8).outputs()
-        return _get_factory().create("CharsMapNormalization", input_nodes).outputs()
+        if self.charsmap is not None:
+            input_nodes += make_constant_node(np.frombuffer(self.charsmap, dtype=np.uint8), dtype=Type.u8).outputs()
+        return (
+            _get_factory()
+            .create(
+                "CharsMapNormalization",
+                input_nodes,
+                {
+                    "normalization_form": self.normalization_form or "",
+                    "add_dummy_prefix": self.add_dummy_prefix,
+                    "remove_extra_whitespaces": self.remove_extra_whitespaces,
+                    "escape_whitespaces": self.escape_whitespaces,
+                    "case_fold": self.case_fold,
+                    "nmt": self.nmt,
+                },
+            )
+            .outputs()
+        )
 
 
 @dataclass
@@ -348,7 +420,7 @@ class RegexSplitStep(PreTokenizatinStep):
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(self.create_string_constant_node(self.split_pattern).outputs())
+        input_nodes.extend(self.create_string_constant_node(self.split_pattern))
         return (
             _get_factory()
             .create(
@@ -414,7 +486,7 @@ class VocabEncoderStep(TokenizationModelStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
-        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
+        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
 
         ragged_dims, other_dims = [], input_nodes
         if len(input_nodes) > 4:
@@ -466,7 +538,7 @@ class TrieTokenizerStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *self.create_string_constant_node(self.vocab),
                 make_constant_node(np.array(self.indices, dtype=np.int32), Type.i32),
             )
         )
@@ -502,7 +574,7 @@ class WordPieceTokenizationStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab).outputs(),
+                *self.create_string_constant_node(self.vocab),
                 *as_node(self.unk_token_id).outputs(),
             )
         )
@@ -634,10 +706,10 @@ class BPETokenizationStep(TokenizationModelStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
-        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab).outputs()
+        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
 
         if self.added_tokens:
-            special_tokens_outputs = self.create_string_constant_node(self.added_tokens).outputs()
+            special_tokens_outputs = self.create_string_constant_node(self.added_tokens)
         else:
             special_tokens_outputs = []
 
@@ -650,12 +722,12 @@ class BPETokenizationStep(TokenizationModelStep):
             left_merges, right_merges = zip(*self.merges)
             input_nodes.extend(
                 (
-                    *self.create_string_constant_node(left_merges).outputs(),
-                    *self.create_string_constant_node(right_merges).outputs(),
+                    *self.create_string_constant_node(left_merges),
+                    *self.create_string_constant_node(right_merges),
                 )
             )
         else:
-            input_nodes.extend(self.create_string_constant_node(self.merges).outputs())
+            input_nodes.extend(self.create_string_constant_node(self.merges))
 
         if special_tokens_outputs:
             input_nodes.extend(
@@ -1078,7 +1150,7 @@ class VocabDecoderStep(DecodingStep):
         if self.vocab is None:
             vocab_outputs = self.get_vocab_node_outputs()
         else:
-            vocab_outputs = self.create_string_constant_node(self.vocab).outputs()
+            vocab_outputs = self.create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
 
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
@@ -1199,8 +1271,8 @@ class RegexDecodingStep(DecodingStep):
 
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.regex_search_pattern).outputs(),
-                *self.create_string_constant_node(self.replace_term).outputs(),
+                *self.create_string_constant_node(self.regex_search_pattern),
+                *self.create_string_constant_node(self.replace_term),
             )
         )
         return ragged_dims + _get_factory().create("RegexNormalization", input_nodes).outputs()
@@ -1248,6 +1320,33 @@ class TokenizerPipeline:
     def __getitem__(self, item: int) -> BasePipelineStep:
         return self.steps[item]
 
+    @staticmethod
+    def replace_normalization_step(step: BasePipelineStep) -> BasePipelineStep:
+        """
+        Replaces the normalization steps with an equivalent Charsmap steps before merging.
+        """
+        if isinstance(step, CaseFoldStep) and step.encoding == "utf-8":
+            return CharsmapStep(normalization_form="identity", case_fold=True, remove_extra_whitespaces=False)
+        if isinstance(step, NormalizeUnicode):
+            return CharsmapStep(normalization_form=step.normalization_form.lower(), remove_extra_whitespaces=False)
+
+        return step
+
+
+    def merge_normalization_steps(self) -> None:
+        self.steps = [self.replace_normalization_step(step) for step in self.steps]
+
+        charsmap_steps = [step for step in self.steps if isinstance(step, CharsmapStep)]
+        if len(charsmap_steps) > 1:
+            first_step_position = next(
+                idx for idx, step in enumerate(self.steps) if isinstance(step, CharsmapStep)
+            )
+            steps_without_charsmaps = [step for step in self.steps if not isinstance(step, CharsmapStep)]
+
+            steps_without_charsmaps.insert(first_step_position, reduce(add, charsmap_steps))
+            self.steps = steps_without_charsmaps
+
+
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
 
@@ -1255,7 +1354,7 @@ class TokenizerPipeline:
 
         processing_outputs = []
         for input_node in string_inputs:
-            input_node = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+            input_node = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
 
             ragged = []
             if isinstance(self.steps[0], SpecialTokensSplit):
@@ -1288,6 +1387,8 @@ class TokenizerPipeline:
     def finalize(self) -> None:
         if self.finalized:
             return
+
+        self.merge_normalization_steps()
 
         for step in copy(self.steps):
             step.finalize()
@@ -1328,7 +1429,7 @@ class TokenizerPipeline:
             pipeline_step = step.get_ov_subgraph(input_nodes)
             input_nodes = pipeline_step
 
-        return _get_factory().create("StringTensorPack", input_nodes).outputs()
+        return _get_opset_factory("opset15").create("StringTensorPack", input_nodes).outputs()
 
     def get_detokenizer_ov_subgraph(self) -> Model:
         self.finalize()
