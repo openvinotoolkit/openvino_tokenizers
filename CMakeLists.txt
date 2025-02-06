@@ -41,7 +41,7 @@ project(openvino_tokenizers
         VERSION 2025.1.0.0
         DESCRIPTION "OpenVINO Tokenizers"
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
-        LANGUAGES CXX)
+        LANGUAGES CXX C)
 
 include(cmake/platforms.cmake)
 include(cmake/version.cmake)

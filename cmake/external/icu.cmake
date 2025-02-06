@@ -246,10 +246,18 @@ endfunction()
 # Build
 #
 
+if(CMAKE_C_COMPILER_LAUNCHER)
+  set(c_prefix "${CMAKE_C_COMPILER_LAUNCHER} ")
+endif()
+
+if(CMAKE_CXX_COMPILER_LAUNCHER)
+  set(cxx_prefix "${CMAKE_CXX_COMPILER_LAUNCHER} ")
+endif()
+
 # IMPORTANT! use native compilers
 set(host_env_config
-  CC=cc
-  CXX=c++)
+  CC=${c_prefix}cc
+  CXX=${cxx_prefix}c++)
 
 # propogate current compilers and flags
 if(APPLE)
@@ -259,9 +267,9 @@ if(APPLE)
 else()
   set(target_env_config
     CFLAGS=${ICU_C_FLAGS}
-    CC=${CMAKE_C_COMPILER}
+    CC=${c_prefix}${CMAKE_C_COMPILER}
     CXXFLAGS=${ICU_CXX_FLAGS}
-    CXX=${CMAKE_CXX_COMPILER})
+    CXX=${cxx_prefix}${CMAKE_CXX_COMPILER})
 
     foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
                       CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
