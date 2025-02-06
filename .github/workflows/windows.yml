@@ -62,12 +62,8 @@ jobs:
     runs-on: windows-latest
 
     env:
-      CMAKE_GENERATOR: 'Ninja'
-      OPENVINO_REPO: ${{ github.workspace }}\src\ov
-      OV_INSTALL_DIR: ${{ github.workspace }}\b\ov
-      OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
-      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
-      BUILD_DIR: ${{ github.workspace }}\b\tk
+      CCACHE_DIR: ${{ github.workspace }}\\ccache
+      CCACHE_MAXSIZE: 50Mi
 
     steps:
       - name: Clone Openvino tokenizers
@@ -199,9 +195,27 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
 
+      - name: Download and install ccache
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/ccache/ccache/releases/download/v4.9.1/ccache-4.9.1-windows-x86_64.zip' -OutFile 'ccache.zip'
+          Expand-Archive -Path 'ccache.zip' -DestinationPath 'C:\temp\ccache'
+          Move-Item -Path 'C:\temp\ccache\*' -Destination 'C:\ccache'
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          save-always: true
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-ccache
+
       #
       # Build
       #
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
 
       - name: Build tokenizers wheel
         run: |
@@ -210,9 +224,14 @@ jobs:
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+          CMAKE_C_COMPILER_LAUNCHER: ccache
           CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_BUILD_DIR: 'D:\a\b'
         working-directory: ${{ env.INSTALL_DIR }}
+
+      - name: Show ccache stats
+        run: ccache --show-stats
 
       #
       # Upload build artifacts
