@@ -158,11 +158,11 @@ function(ov_tokenizer_build_icu)
               OECORE_SDK_VERSION ARCH CROSS_COMPILE OE_CMAKE_TOOLCHAIN_FILE OPENSSL_CONF
               OE_CMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX PKG_CONFIG_SYSROOT_DIR PKG_CONFIG_PATH)
     if(DEFINED ENV{${var}})
-      set(ARG_HOST_ENV "--unset=${var}" ${ARG_HOST_ENV})
+      set(ARG_HOST_ENV --unset=${var} ${ARG_HOST_ENV})
     endif()
   endforeach()
 
-  set(ARG_HOST_ENV "${CMAKE_COMMAND} -E env" ${ARG_HOST_ENV})
+  set(ARG_HOST_ENV ${CMAKE_COMMAND} -E env ${ARG_HOST_ENV})
 
   include(ExternalProject)
 
