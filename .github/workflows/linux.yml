@@ -42,7 +42,7 @@ jobs:
     - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       id: openvino_download
       with:
-        platform: 'centos7'
+        platform: 'rhel8'
         commit_packages_to_provide: 'wheels'
         revision: 2025.0
 
