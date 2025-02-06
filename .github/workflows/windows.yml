@@ -16,6 +16,9 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
+  CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  CMAKE_C_COMPILER_LAUNCHER: ccache
+  CCACHE_MAXSIZE: 100Mi
 
 permissions: read-all
 
@@ -60,10 +63,14 @@ jobs:
       run:
         shell: pwsh
     runs-on: windows-latest
-
     env:
+      CMAKE_GENERATOR: 'Ninja'
+      OPENVINO_REPO: ${{ github.workspace }}\src\ov
+      OV_INSTALL_DIR: ${{ github.workspace }}\b\ov
+      OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
+      OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
+      BUILD_DIR: ${{ github.workspace }}\b\tk
       CCACHE_DIR: ${{ github.workspace }}\\ccache
-      CCACHE_MAXSIZE: 50Mi
 
     steps:
       - name: Clone Openvino tokenizers
@@ -102,6 +109,25 @@ jobs:
           Expand-Archive -Force ninja-win.zip
           # Add it to the GitHub Path so it would be available in the subsequent steps
           Add-Content -Path $env:GITHUB_PATH -Value "${{ github.workspace }}/ninja-win"
+          
+      - name: Download and install ccache
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/ccache/ccache/releases/download/v4.9.1/ccache-4.9.1-windows-x86_64.zip' -OutFile 'ccache.zip'
+          Expand-Archive -Path 'ccache.zip' -DestinationPath 'C:\temp\ccache'
+          Move-Item -Path 'C:\temp\ccache\*' -Destination 'C:\ccache'
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
+
+      - name: Setup ccache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          save-always: true
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-ccache
+            
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
 
       - name: Configure Developer Command Prompt for Microsoft Visual C++
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
@@ -122,6 +148,9 @@ jobs:
         run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
         env:
           ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
+          
+      - name: Show ccache stats
+        run: ccache --show-stats
 
       - name: Cmake install - tokenizers
         run: |
@@ -160,12 +189,12 @@ jobs:
       run:
         shell: pwsh
     runs-on: windows-latest
-
     env:
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
       INSTALL_DIR: ${{ github.workspace }}\b\ov
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
+      CCACHE_DIR: ${{ github.workspace }}\\ccache
 
     steps:
       - name: Clone Openvino tokenizers
@@ -203,7 +232,7 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
 
       - name: Setup ccache
-        uses: actions/cache@v4
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           save-always: true
           path: ${{ env.CCACHE_DIR }}
@@ -224,9 +253,6 @@ jobs:
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
-          CMAKE_CXX_COMPILER_LAUNCHER: ccache
-          CMAKE_C_COMPILER_LAUNCHER: ccache
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_BUILD_DIR: 'D:\a\b'
         working-directory: ${{ env.INSTALL_DIR }}
 
