@@ -118,13 +118,13 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
 
       - name: Setup ccache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        id: ccache-restore
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          save-always: true
-          path: ${{ env.CCACHE_DIR }}
           key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
+          path: ${{ env.CCACHE_DIR }}
             
       - name: Clean ccache stats
         run: ccache --zero-stats --show-config
@@ -169,6 +169,13 @@ jobs:
       #
       # Upload build artifacts
       #
+      
+      - name: Save ccache
+        if: always() && steps.ccache-restore.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
+          path: ${{ env.CCACHE_DIR }}
 
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
@@ -232,13 +239,13 @@ jobs:
           Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
 
       - name: Setup ccache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        id: ccache-restore
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          save-always: true
-          path: ${{ env.CCACHE_DIR }}
           key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-${{ env.TARGET_BRANCH }}-ccache
+          path: ${{ env.CCACHE_DIR }}
 
       #
       # Build
@@ -263,6 +270,13 @@ jobs:
       # Upload build artifacts
       #
 
+      - name: Save ccache
+        if: always() && steps.ccache-restore.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
+          path: ${{ env.CCACHE_DIR }}
+      
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
