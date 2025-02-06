@@ -15,7 +15,10 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
+  TARGET_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
+  CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  CMAKE_C_COMPILER_LAUNCHER: ccache
+  CCACHE_MAXSIZE: 100Mi
 
 permissions: read-all
 
@@ -60,7 +63,6 @@ jobs:
       run:
         shell: pwsh
     runs-on: windows-latest
-
     env:
       CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
@@ -68,6 +70,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
+      CCACHE_DIR: ${{ github.workspace }}\\ccache
 
     steps:
       - name: Clone Openvino tokenizers
@@ -80,7 +83,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
+          ref: ${{ env.TARGET_BRANCH }}
           sparse-checkout: |
             install_build_dependencies.sh
 
@@ -106,6 +109,25 @@ jobs:
           Expand-Archive -Force ninja-win.zip
           # Add it to the GitHub Path so it would be available in the subsequent steps
           Add-Content -Path $env:GITHUB_PATH -Value "${{ github.workspace }}/ninja-win"
+          
+      - name: Download and install ccache
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/ccache/ccache/releases/download/v4.9.1/ccache-4.9.1-windows-x86_64.zip' -OutFile 'ccache.zip'
+          Expand-Archive -Path 'ccache.zip' -DestinationPath 'C:\temp\ccache'
+          Move-Item -Path 'C:\temp\ccache\*' -Destination 'C:\ccache'
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
+
+      - name: Setup ccache
+        id: ccache-restore
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
+          path: ${{ env.CCACHE_DIR }}
+            
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
 
       - name: Configure Developer Command Prompt for Microsoft Visual C++
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
@@ -126,6 +148,9 @@ jobs:
         run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
         env:
           ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
+          
+      - name: Show ccache stats
+        run: ccache --show-stats
 
       - name: Cmake install - tokenizers
         run: |
@@ -144,6 +169,13 @@ jobs:
       #
       # Upload build artifacts
       #
+      
+      - name: Save ccache
+        if: always() && steps.ccache-restore.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
+          path: ${{ env.CCACHE_DIR }}
 
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
@@ -164,12 +196,12 @@ jobs:
       run:
         shell: pwsh
     runs-on: windows-latest
-
     env:
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
       INSTALL_DIR: ${{ github.workspace }}\b\ov
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
+      CCACHE_DIR: ${{ github.workspace }}\\ccache
 
     steps:
       - name: Clone Openvino tokenizers
@@ -182,7 +214,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
+          ref: ${{ env.TARGET_BRANCH }}
           sparse-checkout: |
             install_build_dependencies.sh
 
@@ -199,9 +231,27 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
 
+      - name: Download and install ccache
+        run: |
+          Invoke-WebRequest -Uri 'https://github.com/ccache/ccache/releases/download/v4.9.1/ccache-4.9.1-windows-x86_64.zip' -OutFile 'ccache.zip'
+          Expand-Archive -Path 'ccache.zip' -DestinationPath 'C:\temp\ccache'
+          Move-Item -Path 'C:\temp\ccache\*' -Destination 'C:\ccache'
+          Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
+
+      - name: Setup ccache
+        id: ccache-restore
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
+          path: ${{ env.CCACHE_DIR }}
+
       #
       # Build
       #
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
 
       - name: Build tokenizers wheel
         run: |
@@ -210,14 +260,23 @@ jobs:
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
         env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_BUILD_DIR: 'D:\a\b'
         working-directory: ${{ env.INSTALL_DIR }}
+
+      - name: Show ccache stats
+        run: ccache --show-stats
 
       #
       # Upload build artifacts
       #
 
+      - name: Save ccache
+        if: always() && steps.ccache-restore.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
+          path: ${{ env.CCACHE_DIR }}
+      
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
