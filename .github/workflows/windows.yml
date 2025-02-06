@@ -44,7 +44,7 @@ jobs:
       with:
         platform: 'windows'
         commit_packages_to_provide: 'wheels'
-        revision: 2025.0.0
+        revision: 2025.0
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})

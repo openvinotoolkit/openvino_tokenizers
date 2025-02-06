@@ -44,7 +44,7 @@ jobs:
       with:
         platform: 'centos7'
         commit_packages_to_provide: 'wheels'
-        revision: 2025.0.0
+        revision: 2025.0
 
     - name: Clone docker tag from OpenVINO repo
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
