@@ -15,7 +15,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.11'
-  OV_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
+  TARGET_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
   CMAKE_CXX_COMPILER_LAUNCHER: ccache
   CMAKE_C_COMPILER_LAUNCHER: ccache
   CCACHE_MAXSIZE: 100Mi
@@ -83,7 +83,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
+          ref: ${{ env.TARGET_BRANCH }}
           sparse-checkout: |
             install_build_dependencies.sh
 
@@ -122,9 +122,9 @@ jobs:
         with:
           save-always: true
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ccache
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
             
       - name: Clean ccache stats
         run: ccache --zero-stats --show-config
@@ -207,7 +207,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
+          ref: ${{ env.TARGET_BRANCH }}
           sparse-checkout: |
             install_build_dependencies.sh
 
@@ -236,9 +236,9 @@ jobs:
         with:
           save-always: true
           path: ${{ env.CCACHE_DIR }}
-          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ccache
+            ${{ runner.os }}-${{ runner.arch }}-${{ env.TARGET_BRANCH }}-ccache
 
       #
       # Build
