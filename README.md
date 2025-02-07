@@ -231,7 +231,7 @@ print(f"HuggingFace logits {hf_output.logits}")
 
 ### Use Extension With Converted (De)Tokenizer or Model With (De)Tokenizer
 
-Import `openvino_tokenizers` will add all tokenizer-related operations to OpenVINO,
+Import `openvino_tokenizers` will register tokenizer-related operations to OpenVINO,
 after which you can work with saved tokenizers and detokenizers.
 
 ```python
@@ -251,7 +251,7 @@ print(openvino_output["string_output"])
 # ['sc�ouition�', 'intvenord hasient', 'g shouldwer M more']
 ```
 
-### Text generation pipeline
+### Text Generation Pipeline
 
 ```python
 import numpy as np
