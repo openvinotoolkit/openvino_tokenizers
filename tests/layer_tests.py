@@ -140,7 +140,7 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
             RegexNormalizationStep(
                 regex_search_pattern=r" ([\\.\\?\\!,])| ('[ms])| (') | ('[rv]e)| (n't)",
                 replace_term=r"\1",
-            )
+            ),
         ),
         ("", "", RegexNormalizationStep.prepend_regex("▁")),
         ("\n", "▁\n", RegexNormalizationStep.prepend_regex("▁")),
@@ -152,7 +152,7 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
             RegexNormalizationStep(
                 regex_search_pattern=r"(^)(.)",
                 replace_term=r"▁\2",
-            )
+            ),
         ),
         (  # test backward compatibility with old regex
             "\n",
@@ -160,9 +160,9 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled
             RegexNormalizationStep(
                 regex_search_pattern=r"(^)(.+)",
                 replace_term=r"▁$2",
-            )
+            ),
         ),
-    ]
+    ],
 )
 def test_regex_normalization(test_string, expected, layer):
     compiled_model = create_normalization_model(layer)
@@ -249,8 +249,12 @@ def test_regex_split(test_string, expected, layer):
     [
         (
             {
-                "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300], 
-                "padding_size": 10, "value": 42, "padding_side": "right",
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "padding_side": "right",
             },
             [
                 [10, 20, 100, 42, 42, 42, 42, 42, 42, 42],
@@ -259,8 +263,12 @@ def test_regex_split(test_string, expected, layer):
         ),
         (
             {
-                "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300],
-                "padding_size": 10, "value": 42, "padding_side": "left",
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "padding_side": "left",
             },
             [
                 [42, 42, 42, 42, 42, 42, 42, 10, 20, 100],
@@ -269,8 +277,12 @@ def test_regex_split(test_string, expected, layer):
         ),
         (
             {
-                "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300],
-                "padding_size": 2, "value": 42, "padding_side": "right",
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 2,
+                "value": 42,
+                "padding_side": "right",
             },
             [
                 [10, 20],
@@ -307,31 +319,39 @@ def test_ragged_to_dense(input_values, expected):
 @pytest.mark.parametrize(
     "input_values, expected",
     [
-        ([
-            { "begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50] },                # [10, 20], [30, 40, 50]
-            { "begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300] }                      # [100], [200, 300]
-        ],  
-            { "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300]}  # [[10, 20, 100], [30, 40, 50, 200, 300]]
+        (
+            [
+                {"begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50]},  # [10, 20], [30, 40, 50]
+                {"begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300]},  # [100], [200, 300]
+            ],
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+            },  # [[10, 20, 100], [30, 40, 50, 200, 300]]
         ),
-         
-        ([
-            { "begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50] },  # [10, 20], [30, 40, 50]
-            { "begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300] },       # [100], [200, 300]
-            { "begins": [0, 2], "ends": [2, 3], "data": [1000, 2000, 3000] },    # [1000, 2000], [3000]
-        ],
-            { "begins": [0, 5], "ends": [5, 11] ,                                # [[10, 20, 100, 1000, 2000], [30, 40, 50, 200, 300, 3000]]
-              "data": [10, 20, 100, 1000, 2000, 30, 40, 50, 200, 300, 3000] },
+        (
+            [
+                {"begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50]},  # [10, 20], [30, 40, 50]
+                {"begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300]},  # [100], [200, 300]
+                {"begins": [0, 2], "ends": [2, 3], "data": [1000, 2000, 3000]},  # [1000, 2000], [3000]
+            ],
+            {
+                "begins": [0, 5],
+                "ends": [5, 11],  # [[10, 20, 100, 1000, 2000], [30, 40, 50, 200, 300, 3000]]
+                "data": [10, 20, 100, 1000, 2000, 30, 40, 50, 200, 300, 3000],
+            },
         ),
-    ]
+    ],
 )
 def test_combine_segments(input_values, expected):
     numeric_input_names = "begins", "ends", "data"
-    
+
     np_input_values = []
     for value in input_values:
         np_input_values.extend([np.array(value[k], dtype=np.int32) for k in numeric_input_names])
     np_input_values.append(np.arange(len(input_values), dtype=np.int32))
-    
+
     input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(np_input_values))]
     combine_segments = _get_factory().create("CombineSegments", input_params).outputs()
     combine_segments_model = Model(combine_segments, input_params, "combine_segments")

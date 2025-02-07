@@ -60,7 +60,7 @@ def build_coverege_report(session: pytest.Session) -> None:
         results_df.hf_tiktoken_tokenizers_with_padding_sides_param, inplace=True
     )
     results_df.status = (results_df.status == "passed").astype(int)
-    results_df = results_df.dropna(subset=['hf_wordpiece_tokenizers_param'])
+    results_df = results_df.dropna(subset=["hf_wordpiece_tokenizers_param"])
     results_df["Model"] = (
         results_df.hf_wordpiece_tokenizers_param
         + ["_legacy" * value for value in results_df.index.str.contains("Slow")]
@@ -147,7 +147,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")
 
     if rewrite_statuses:
-        new_statuses = {test_id[len(parent):]: status for test_id, status in sorted(new_statuses.items())}
+        new_statuses = {test_id[len(parent) :]: status for test_id, status in sorted(new_statuses.items())}
         with open(STATUSES_FILE, "w") as stat_file:
             json.dump(new_statuses, stat_file, indent=2)
 
