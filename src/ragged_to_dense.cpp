@@ -60,7 +60,7 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
 
     // Suppose validate was called and set correct output shape
     // Take a target shape value for ragged dimension
-    size_t target_dim = outputs[0].get_shape().back();
+    size_t target_dim = inputs[3].data<const int32_t>()[0];
 
     auto out_elems = reinterpret_cast<char*>(outputs[0].data());
     auto out_mask = outputs[1].data<char>();
