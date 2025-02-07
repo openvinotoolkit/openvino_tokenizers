@@ -10,11 +10,10 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import openvino
-from openvino import Model, Tensor, Type
-from openvino.preprocess import PrePostProcessor
+from openvino import Model, Output, Tensor, Type
 from openvino import opset12 as opset
-from openvino import Output
 from openvino.op import Constant
+from openvino.preprocess import PrePostProcessor
 
 from .__version__ import __version__ as openvino_tokenizers_version
 from .constants import (
@@ -283,7 +282,7 @@ def quote_meta(unquoted: Union[str, bytes]) -> str:
         unquoted = unquoted.decode("latin1")
     symbols = []
     for char in unquoted:
-        if not char.isalnum() and char != "_":
+        if not char.isalnum() and char not in ("_", "▁", "｜"):
             symbols.append("\\")
         symbols.append(char)
     return "".join(symbols)
