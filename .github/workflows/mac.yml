@@ -16,7 +16,10 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   MACOSX_DEPLOYMENT_TARGET: '11.0'
-  OV_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
+  TARGET_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
+  CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  CMAKE_C_COMPILER_LAUNCHER: ccache
+  CCACHE_MAXSIZE: 100Mi
 
 permissions: read-all
 
@@ -47,10 +50,9 @@ jobs:
         revision: latest_nightly
 
   openvino_tokenizers_cpack:
-    name: OpenVINO tokenizers cpack (BUILD_FAST_TOKENIZERS=${{ matrix.build_fast_tokenizers }}, BUILD_TYPE=${{ matrix.build_type }})
+    name: OpenVINO tokenizers cpack (BUILD_TYPE=${{ matrix.build_type }})
     strategy:
       matrix:
-        build_fast_tokenizers: [ON]
         build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [ openvino_download ]
     timeout-minutes: 45
@@ -66,6 +68,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}/openvino_tokenizers/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+      CCACHE_DIR: ${{ github.workspace }}/ccache
 
     steps:
       - name: Clone Openvino tokenizers
@@ -84,24 +87,36 @@ jobs:
       # Build
       #
       - name: Install build dependencies
-        run: brew install coreutils ninja
+        run: brew install coreutils ninja ccache
+
+
+      - name: Setup ccache
+        id: ccache-restore
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
+          path: ${{ env.CCACHE_DIR }}
+
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
 
       - name: CMake configure - tokenizers
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          cmake -DBUILD_FAST_TOKENIZERS="${{ matrix.build_fast_tokenizers }}" \
-                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
                 -B ${{ env.BUILD_DIR }}
 
       - name: Cmake build - tokenizers
         run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
+        
+      - name: Show ccache stats
+        run: ccache --show-stats
 
       - name: Cmake install - tokenizers
-        run: |
-          cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
+        run: cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
 
       - name: Pack Artifacts
         run: tar -czvf ${{ env.BUILD_DIR }}/ov_tokenizers.tar.gz *
@@ -110,12 +125,18 @@ jobs:
       #
       # Upload build artifacts
       #
-
+      - name: Save ccache
+        if: always() && steps.ccache-restore.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
+          path: ${{ env.CCACHE_DIR }}
+          
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
-          name: openvino_tokenizers_cpack_${{ matrix.build_fast_tokenizers }}_${{ matrix.build_type }}
+          name: openvino_tokenizers_cpack_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.tar.gz
           if-no-files-found: 'error'
 
@@ -133,6 +154,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
+      CCACHE_DIR: ${{ github.workspace }}/ccache
 
     steps:
       - name: Clone Openvino tokenizers
@@ -145,7 +167,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           path: ${{ env.OPENVINO_REPO }}
-          ref: ${{ env.OV_BRANCH }}
+          ref: ${{ env.TARGET_BRANCH }}
           sparse-checkout: |
             install_build_dependencies.sh
 
@@ -167,12 +189,25 @@ jobs:
       #
 
       - name: Install build dependencies
-        run: brew install coreutils ninja
+        run: brew install coreutils ninja ccache
 
-      #
-      # Build
-      #
-       
+
+      - name: Setup ccache
+        id: ccache-restore
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
+          path: ${{ env.CCACHE_DIR }}
+
+        #
+        # Build
+        #
+
+      - name: Clean ccache stats
+        run: ccache --zero-stats --show-config
+
       - name: Build tokenizers wheel
         run: |
           python3 -m pip wheel -v \
@@ -180,13 +215,20 @@ jobs:
             --config-settings=override=cross.arch="macosx_10_12_x86_64" \
             ${{ needs.openvino_download.outputs.ov_wheel_source }} \
             ${OPENVINO_TOKENIZERS_REPO}
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
         working-directory: ${{ env.INSTALL_DIR }}
+
+      - name: Show ccache stats
+        run: ccache --show-stats
 
       #
       # Upload build artifacts
       #
+      - name: Save ccache
+        if: always() && steps.ccache-restore.outputs.cache-hit != 'true' && github.event_name == 'push'
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
+          path: ${{ env.CCACHE_DIR }}
 
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
@@ -253,3 +295,17 @@ jobs:
       - name: Tokenizers regression tests (using openvino python wheel)
         run: python3 -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
+
+  Overall_Status:
+    name: ci/gha_overall_status_macos
+    needs: [openvino_download, openvino_tokenizers_cpack, openvino_tokenizers_wheel, openvino_tokenizers_tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status of all jobs
+        if: >-
+          ${{
+            contains(needs.*.result, 'failure') ||
+            contains(needs.*.result, 'cancelled')
+          }}
+        run: exit 1

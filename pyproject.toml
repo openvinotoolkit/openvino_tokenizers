@@ -41,17 +41,14 @@ transformers = [
     "transformers[sentencepiece] >= 4.36.0",
     "tiktoken"
 ]
-# chatglm2 custom tokenizer file imports torch, have to add torch dependency for tests
-torch = [
-    'torch'
-]
 dev = [
     "ruff",
     "bandit",
     "pytest",
     "pytest_harvest",
     "pandas",
-    "openvino_tokenizers[transformers, torch]"
+    "jinja2",
+    "openvino_tokenizers[transformers]"
 ]
 benchmark = [
     "pandas",
@@ -118,7 +115,7 @@ python_abi = "none"
 
 [build-system]
 requires = [
-    "py-build-cmake==0.3.4",
+    "py-build-cmake==0.4.0",
     "cmake~=3.14",
     "openvino~=2025.1.0.dev"
 ]
