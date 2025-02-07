@@ -221,7 +221,7 @@ string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
-target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading openvino::frontend::tensorflow)
+target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
 # sentencepiece uses ICU libraries and is linked as INTERFACE, which is why we need to manually link tokenizers with ICU
 find_package(ICU COMPONENTS i18n data uc REQUIRED)
