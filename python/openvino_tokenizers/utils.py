@@ -53,6 +53,9 @@ class TokenzierConversionParams:
     use_max_padding : bool
         If True, enables maximum padding for the tokenizer. Default is False.
 
+    max_length: Optional[int]
+        The maximum length of the input sequence.
+
     handle_special_tokens_with_re : Optional[bool]
         If True, uses regular expressions to handle special tokens during tokenization. Default is None.
 
@@ -72,6 +75,7 @@ class TokenzierConversionParams:
     detokenizer_input_type: Type = Type.i64
     streaming_detokenizer: bool = False
     use_max_padding: bool = False
+    max_length: Optional[int] = None
     handle_special_tokens_with_re: Optional[bool] = None
     use_sentencepiece_backend: bool = False
     utf8_replace_mode: Optional[UTF8ReplaceMode] = field(default_factory=lambda: UTF8ReplaceMode.REPLACE)
