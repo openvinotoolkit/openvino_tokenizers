@@ -243,45 +243,59 @@ def test_regex_split(test_string, expected, layer):
 ######## Test RaggedToDense Operation ##########
 ################################################
 
-def infer_ragged_to_dense(test_inputs: List[List[int]], padding: str) -> List[np.array]:
-    begins = op.Parameter(Type.i32, PartialShape(["?"]))
-    ends = op.Parameter(Type.i32, PartialShape(["?"]))
-    data = op.Parameter(Type.i32, PartialShape(["?"]))
-    vaulue = op.Parameter(Type.i32, PartialShape(["?"]))
-    padding_size = op.Parameter(Type.i32, PartialShape([]))
 
-    input_params = [begins, ends, data, vaulue, padding_size]
-    assert padding in ["right", "left"]
-    pad_right = True if padding == "right" else False
+@pytest.mark.parametrize(
+    "input_values, expected",
+    [
+        (
+            {
+                "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300], 
+                "padding_size": 10, "value": 42, "padding_side": "right",
+            },
+            [
+                [10, 20, 100, 42, 42, 42, 42, 42, 42, 42],
+                [30, 40, 50, 200, 300, 42, 42, 42, 42, 42],
+            ],
+        ),
+        (
+            {
+                "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10, "value": 42, "padding_side": "left",
+            },
+            [
+                [42, 42, 42, 42, 42, 42, 42, 10, 20, 100],
+                [42, 42, 42, 42, 42, 30, 40, 50, 200, 300],
+            ],
+        ),
+        (
+            {
+                "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 2, "value": 42, "padding_side": "right",
+            },
+            [
+                [10, 20],
+                [30, 40],
+            ],
+        ),
+    ],
+)
+def test_ragged_to_dense(input_values, expected):
+    numeric_input_names = "begins", "ends", "data", "padding_size", "value"
+    np_input_values = [np.array(input_values[key], dtype=np.int32) for key in numeric_input_names]
+
+    # Parameter for all inputs except value
+    input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(numeric_input_names) - 1)]
+    # Parameter for value
+    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([]))]
+
+    assert input_values["padding_side"] in ["right", "left"]
+    pad_right = True if input_values["padding_side"] == "right" else False
     combine_segments = _get_factory().create("RaggedToDense", input_params, {"pad_right": pad_right}).outputs()
 
     ragged_to_dense_model = Model(combine_segments, input_params, "ragged_to_dense")
-    # ov.save_model(ragged_to_dense_model, 'ragged_to_dense.xml')
-
     compiled_model = core.compile_model(ragged_to_dense_model)
-    return compiled_model([np.array(inp, dtype=np.int32) for inp in test_inputs])
 
-
-@pytest.mark.parametrize(
-    "test_inputs, padding, expected",
-    [   # beging, ends, data, padding_size, value
-        (([0, 3], [3, 8] , [10, 20, 100, 30, 40, 50, 200, 300], 10, 42), 
-         "right",
-         [[10, 20, 100, 42, 42,  42,  42, 42, 42, 42],
-          [30, 40, 50,  200, 300, 42, 42, 42, 42, 42]]),
-        (([0, 3], [3, 8] , [10, 20, 100, 30, 40, 50, 200, 300], 10, 42), 
-         "left",
-         [[42, 42,  42,  42, 42, 42, 42, 10, 20, 100],
-          [42, 42, 42, 42, 42, 30, 40, 50,  200, 300]]),
-        # RaggedToDense can be used for truncation as well
-        (([0, 3], [3, 8] , [10, 20, 100, 30, 40, 50, 200, 300], 2, 42), 
-         "right",
-         [[10, 20],
-          [30, 40]]),
-    ]
-)
-def test_ragged_to_dense(test_inputs, padding, expected):
-    res = infer_ragged_to_dense(test_inputs, padding)
+    res = compiled_model(np_input_values)
     assert np.all(res[0] == np.array(expected, dtype=np.int32))
 
 
@@ -289,35 +303,40 @@ def test_ragged_to_dense(test_inputs, padding, expected):
 ######## Test CombinedSegments Operation #########
 ##################################################
 
-def infer_combine_segments(test_inputs: List[List[int]]) -> ov.CompiledModel:
-    num_of_segments = int(len(test_inputs) // 3)
-    
-    input_tensors = [np.array(x, dtype=np.int32) for x in test_inputs]
-    input_tensors.append(np.arange(num_of_segments, dtype=np.int32))
-    input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(input_tensors))]
 
+@pytest.mark.parametrize(
+    "input_values, expected",
+    [
+        ([
+            { "begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50] },                # [10, 20], [30, 40, 50]
+            { "begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300] }                      # [100], [200, 300]
+        ],  
+            { "begins": [0, 3], "ends": [3, 8], "data": [10, 20, 100, 30, 40, 50, 200, 300]}  # [[10, 20, 100], [30, 40, 50, 200, 300]]
+        ),
+         
+        ([
+            { "begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50] },  # [10, 20], [30, 40, 50]
+            { "begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300] },       # [100], [200, 300]
+            { "begins": [0, 2], "ends": [2, 3], "data": [1000, 2000, 3000] },    # [1000, 2000], [3000]
+        ],
+            { "begins": [0, 5], "ends": [5, 11] ,                                # [[10, 20, 100, 1000, 2000], [30, 40, 50, 200, 300, 3000]]
+              "data": [10, 20, 100, 1000, 2000, 30, 40, 50, 200, 300, 3000] },
+        ),
+    ]
+)
+def test_combine_segments(input_values, expected):
+    numeric_input_names = "begins", "ends", "data"
+    
+    np_input_values = []
+    for value in input_values:
+        np_input_values.extend([np.array(value[k], dtype=np.int32) for k in numeric_input_names])
+    np_input_values.append(np.arange(len(input_values), dtype=np.int32))
+    
+    input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(np_input_values))]
     combine_segments = _get_factory().create("CombineSegments", input_params).outputs()
     combine_segments_model = Model(combine_segments, input_params, "combine_segments")
 
     compiled_model = core.compile_model(combine_segments_model)
-    return compiled_model(input_tensors)
-
-
-@pytest.mark.parametrize(
-    "test_inputs, expected",
-    [
-        (([0, 2], [2, 5], [10, 20, 30, 40, 50], # [10, 20], [30, 40, 50]
-          [0, 1], [1, 3], [100, 200, 300]),     # [100], [200, 300]
-         ([0, 3], [3, 8] , [10, 20, 100, 30, 40, 50, 200, 300]),  # [[10, 20, 100], [30, 40, 50, 200, 300]]
-        ),
-        (([0, 2], [2, 5], [10, 20, 30, 40, 50], # [10, 20], [30, 40, 50]
-          [0, 1], [1, 3], [100, 200, 300],     # [100], [200, 300]
-          [0, 2], [2, 3], [1000, 2000, 3000]),  # [1000, 2000], [3000]
-         ([0, 5], [5, 11] , [10, 20, 100, 1000, 2000, 30, 40, 50, 200, 300, 3000]),  # [[10, 20, 100, 1000, 2000], [30, 40, 50, 200, 300, 3000]]
-        )
-    ]
-)
-def test_combine_segments(test_inputs, expected):
-    res = infer_combine_segments(test_inputs)
-    for (k, value), expect_val in zip(res.items(), expected):
-        assert np.all(value == np.array(expect_val, dtype=np.int32))
+    res = compiled_model(np_input_values)
+    for (_, val), (_, expect_val) in zip(res.items(), expected.items()):
+        assert np.all(val == np.array(expect_val, dtype=np.int32))
