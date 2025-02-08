@@ -2,13 +2,13 @@ import json
 import re
 import tempfile
 from pathlib import Path
-from typing import NamedTuple, Union, List
+from typing import List, NamedTuple, Union
+
 import numpy as np
 import openvino as ov
 import pytest
 import requests
-from openvino import Model, PartialShape, Type
-from openvino import op
+from openvino import Model, PartialShape, Type, op
 from openvino_tokenizers import _get_factory, _get_opset_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.tokenizer_pipeline import (
@@ -20,6 +20,8 @@ from openvino_tokenizers.tokenizer_pipeline import (
     PreTokenizatinStep,
     RegexNormalizationStep,
     RegexSplitStep,
+    SpecialToken,
+    SpecialTokensSplit,
     TokenizerPipeline,
     UTF8ValidateStep,
 )
@@ -346,6 +348,54 @@ def test_regex_split(test_string, expected, layer):
     res_ov = compiled_model([test_string])[0]
     assert (res_ov == expected).all()
 
+    
+def create_special_tokens_split(special_tokens: List[SpecialToken]) -> ov.CompiledModel:
+    layer = SpecialTokensSplit(special_tokens)
+
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = TokenizerPipeline.add_ragged_dimension(output)
+    output = layer.get_ov_subgraph(output)
+    output_string = _get_factory().create("StringTensorPack", output[2:5]).outputs()
+
+    splitter = Model(output_string + output[-1:], [input_node], "splitter")
+    return core.compile_model(splitter)
+
+
+@pytest.mark.parametrize(
+    "special_tokens, text, expected, expected_skips",
+    [
+        (
+            [
+                SpecialToken("<｜begin▁of▁sentence｜>"),
+            ],
+            "<｜begin▁of▁sentence｜> the user's <</SYS>>",
+            ("<｜begin▁of▁sentence｜>", " the user's <</SYS>>"),
+            [1, 0],
+        ),
+        (
+            [SpecialToken("<｜begin▁of▁sentence｜>", strip_right=True)],
+            "<｜begin▁of▁sentence｜>   the user's <</SYS>>",
+            ("<｜begin▁of▁sentence｜>   ", "the user's <</SYS>>"),
+            [1, 0],
+        ),
+        (
+            [SpecialToken("<|eot_id|>", strip_left=True)],
+            "    the user's <</SYS>>    <|eot_id|>",
+            ("    the user's <</SYS>>", "    <|eot_id|>"),
+            [0, 1],
+        ),
+        ([SpecialToken("    ")], "    def", ("    ", "def"), [1, 0]),
+        ([SpecialToken("    ")], "    def  ", ("    ", "def  "), [1, 0]),
+        ([SpecialToken("    ")], "    def    ", ("    ", "def", "    "), [1, 0, 1]),
+    ],
+)
+def test_special_tokens_split(special_tokens, text, expected, expected_skips):
+    compiled_model = create_special_tokens_split(special_tokens)
+    res, skips = compiled_model([text]).values()
+    assert (res == expected).all()
+    assert (skips == expected_skips).all()
+    
 
 ################################################
 ######## Test RaggedToDense Operation ##########

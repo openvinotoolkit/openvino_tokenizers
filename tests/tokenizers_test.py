@@ -4,13 +4,13 @@
 import difflib
 import os
 import sys
-from dataclasses import fields
 from collections import namedtuple
+from dataclasses import fields
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
-from openvino import Core, Model, Type, save_model, properties
+from openvino import Core, Model, Type, properties, save_model
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
 from openvino_tokenizers.utils import TokenzierConversionParams, get_hf_tokenizer_attribute
