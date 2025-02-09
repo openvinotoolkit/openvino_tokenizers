@@ -6,13 +6,30 @@
 
 #include <openvino/op/op.hpp>
 
-// Takes a ragged tensor with one ragged right-most dimension and produces a normal tensor
+
 class RaggedToDense : public ov::op::Op {
 public:
     OPENVINO_OP("RaggedToDense");
 
     RaggedToDense () = default;
 
+    /**
+     * @class RaggedToDense
+     * @brief Takes a ragged tensor with one ragged right-most dimension and produces a normal tensor.
+     *
+     * This operation takes a ragged tensor and produces a dense tensor by padding the ragged dimension.
+     *
+     * @param arguments is a vector containing the following inputs:
+     * - beging The beginning indices of the ragged tensor.
+     * - ends The ending indices of the ragged tensor.
+     * - data The data of the ragged tensor.
+     * - padding_size The size of the padding to be applied.
+     * - value The value to be used for padding.
+     * @param pad_right If true, padding is applied to the right side of the tensor. Default is true.
+     * @param pad_max_length If true, padding is applied to the maximum length of the tensor. Default is false.s
+     *
+     * @note This class inherits from ov::op::Op and overrides necessary methods for validation, cloning, and evaluation.
+     */
     RaggedToDense(
         const ov::OutputVector& arguments,
         const bool pad_right = true,
@@ -32,6 +49,7 @@ public:
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
         visitor.on_attribute("pad_right", m_pad_right);
+        visitor.on_attribute("m_pad_max_length", m_pad_max_length);
         return true;
     }
 

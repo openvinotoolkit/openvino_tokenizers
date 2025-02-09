@@ -132,4 +132,3 @@ bool CombineSegments::evaluate(ov::TensorVector& outputs, const ov::TensorVector
     OPENVINO_ASSERT(out_ids == out_ids_orig + outputs[3*1 + 2].get_byte_size());
     return true;
 }
-

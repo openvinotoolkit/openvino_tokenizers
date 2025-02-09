@@ -16,6 +16,12 @@ concurrency:
 env:
   PYTHON_VERSION: '3.11'
   OV_BRANCH: ${{ github.base_ref || github.event.merge_group.base_ref || github.ref }}
+  CMAKE_CXX_COMPILER_LAUNCHER: sccache
+  CMAKE_C_COMPILER_LAUNCHER: sccache
+  SCCACHE_IGNORE_SERVER_IO_ERROR: 1
+  SCCACHE_SERVER_PORT: 35555
+  SCCACHE_CACHE_SIZE: 30G
+  SCCACHE_AZURE_KEY_PREFIX: tokenizers/ubuntu/22_04/x64
 
 permissions: read-all
 
@@ -81,6 +87,7 @@ jobs:
       volumes: 
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
+      options: -e SCCACHE_AZURE_BLOB_CONTAINER -e SCCACHE_AZURE_CONNECTION_STRING
     env:
       CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}/openvino
@@ -157,6 +164,7 @@ jobs:
       volumes: 
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
+      options: -e SCCACHE_AZURE_BLOB_CONTAINER -e SCCACHE_AZURE_CONNECTION_STRING
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
@@ -187,7 +195,6 @@ jobs:
               ${{ needs.openvino_download.outputs.ov_wheel_source }} \
               ${OPENVINO_TOKENIZERS_REPO}
         env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
           CMAKE_GENERATOR: 'Unix Makefiles'
         working-directory: ${{ env.INSTALL_DIR }}
 
@@ -328,7 +335,9 @@ jobs:
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
           
       - name: Install Tensorflow tests dependencies
-        run: python3 -m pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
+        run: |
+          python3 -m pip install uv
+          python3 -m uv pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
 
       - name: TensorFlow 1 Layer Tests
         run: python3 -m pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests/ -n logical -m precommit  --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
@@ -351,3 +360,17 @@ jobs:
             ${{ env.OPENVINO_REPO }}/TEST*.html
             ${{ env.OPENVINO_REPO }}/TEST*.xml
           if-no-files-found: 'warn'
+          
+  Overall_Status:
+    name: ci/gha_overall_status_linux
+    needs: [openvino_download, openvino_tokenizers_cpack, openvino_tokenizers_wheel, openvino_tokenizers_tests, openvino_tf_tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check status of all jobs
+        if: >-
+          ${{
+            contains(needs.*.result, 'failure') ||
+            contains(needs.*.result, 'cancelled')
+          }}
+        run: exit 1

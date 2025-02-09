@@ -20,7 +20,7 @@ void CharsMapNormalization::validate_and_infer_types() {
     } else if (input_size == 4) {
         has_skips = (get_input_element_type(3) == element::boolean);
     } else if (input_size == 5) {
-        has_skips = (input_size == 4);
+        has_skips = true;
     };
 
     check_string_input(this, 0);

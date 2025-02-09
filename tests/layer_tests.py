@@ -2,13 +2,13 @@ import json
 import re
 import tempfile
 from pathlib import Path
-from typing import NamedTuple, Union
+from typing import List, NamedTuple, Union
 
+import numpy as np
 import openvino as ov
 import pytest
 import requests
-from openvino import Model, PartialShape, Type
-from openvino import op
+from openvino import Model, PartialShape, Type, op
 from openvino_tokenizers import _get_factory, _get_opset_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.tokenizer_pipeline import (
@@ -20,6 +20,8 @@ from openvino_tokenizers.tokenizer_pipeline import (
     PreTokenizatinStep,
     RegexNormalizationStep,
     RegexSplitStep,
+    SpecialToken,
+    SpecialTokensSplit,
     TokenizerPipeline,
     UTF8ValidateStep,
 )
@@ -345,3 +347,174 @@ def test_regex_split(test_string, expected, layer):
     compiled_model = create_splitting_model(layer)
     res_ov = compiled_model([test_string])[0]
     assert (res_ov == expected).all()
+
+    
+def create_special_tokens_split(special_tokens: List[SpecialToken]) -> ov.CompiledModel:
+    layer = SpecialTokensSplit(special_tokens)
+
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = TokenizerPipeline.add_ragged_dimension(output)
+    output = layer.get_ov_subgraph(output)
+    output_string = _get_factory().create("StringTensorPack", output[2:5]).outputs()
+
+    splitter = Model(output_string + output[-1:], [input_node], "splitter")
+    return core.compile_model(splitter)
+
+
+@pytest.mark.parametrize(
+    "special_tokens, text, expected, expected_skips",
+    [
+        (
+            [
+                SpecialToken("<｜begin▁of▁sentence｜>"),
+            ],
+            "<｜begin▁of▁sentence｜> the user's <</SYS>>",
+            ("<｜begin▁of▁sentence｜>", " the user's <</SYS>>"),
+            [1, 0],
+        ),
+        (
+            [SpecialToken("<｜begin▁of▁sentence｜>", strip_right=True)],
+            "<｜begin▁of▁sentence｜>   the user's <</SYS>>",
+            ("<｜begin▁of▁sentence｜>   ", "the user's <</SYS>>"),
+            [1, 0],
+        ),
+        (
+            [SpecialToken("<|eot_id|>", strip_left=True)],
+            "    the user's <</SYS>>    <|eot_id|>",
+            ("    the user's <</SYS>>", "    <|eot_id|>"),
+            [0, 1],
+        ),
+        ([SpecialToken("    ")], "    def", ("    ", "def"), [1, 0]),
+        ([SpecialToken("    ")], "    def  ", ("    ", "def  "), [1, 0]),
+        ([SpecialToken("    ")], "    def    ", ("    ", "def", "    "), [1, 0, 1]),
+    ],
+)
+def test_special_tokens_split(special_tokens, text, expected, expected_skips):
+    compiled_model = create_special_tokens_split(special_tokens)
+    res, skips = compiled_model([text]).values()
+    assert (res == expected).all()
+    assert (skips == expected_skips).all()
+    
+
+################################################
+######## Test RaggedToDense Operation ##########
+################################################
+
+
+@pytest.mark.parametrize(
+    "input_values, expected",
+    [
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "padding_side": "right",
+            },
+            [
+                [10, 20, 100, 42, 42, 42, 42, 42, 42, 42],
+                [30, 40, 50, 200, 300, 42, 42, 42, 42, 42],
+            ],
+        ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "padding_side": "left",
+            },
+            [
+                [42, 42, 42, 42, 42, 42, 42, 10, 20, 100],
+                [42, 42, 42, 42, 42, 30, 40, 50, 200, 300],
+            ],
+        ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 2,
+                "value": 42,
+                "padding_side": "right",
+            },
+            [
+                [10, 20],
+                [30, 40],
+            ],
+        ),
+    ],
+)
+def test_ragged_to_dense(input_values, expected):
+    numeric_input_names = "begins", "ends", "data", "padding_size", "value"
+    np_input_values = [np.array(input_values[key], dtype=np.int32) for key in numeric_input_names]
+
+    # Parameter for all inputs except value
+    input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(numeric_input_names) - 1)]
+    # Parameter for value
+    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([]))]
+
+    assert input_values["padding_side"] in ["right", "left"]
+    pad_right = True if input_values["padding_side"] == "right" else False
+    combine_segments = _get_factory().create("RaggedToDense", input_params, {"pad_right": pad_right}).outputs()
+
+    ragged_to_dense_model = Model(combine_segments, input_params, "ragged_to_dense")
+    compiled_model = core.compile_model(ragged_to_dense_model)
+
+    res = compiled_model(np_input_values)
+    assert np.all(res[0] == np.array(expected, dtype=np.int32))
+
+
+##################################################
+######## Test CombinedSegments Operation #########
+##################################################
+
+
+@pytest.mark.parametrize(
+    "input_values, expected",
+    [
+        (
+            [
+                {"begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50]},  # [10, 20], [30, 40, 50]
+                {"begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300]},  # [100], [200, 300]
+            ],
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+            },  # [[10, 20, 100], [30, 40, 50, 200, 300]]
+        ),
+        (
+            [
+                {"begins": [0, 2], "ends": [2, 5], "data": [10, 20, 30, 40, 50]},  # [10, 20], [30, 40, 50]
+                {"begins": [0, 1], "ends": [1, 3], "data": [100, 200, 300]},  # [100], [200, 300]
+                {"begins": [0, 2], "ends": [2, 3], "data": [1000, 2000, 3000]},  # [1000, 2000], [3000]
+            ],
+            {
+                "begins": [0, 5],
+                "ends": [5, 11],  # [[10, 20, 100, 1000, 2000], [30, 40, 50, 200, 300, 3000]]
+                "data": [10, 20, 100, 1000, 2000, 30, 40, 50, 200, 300, 3000],
+            },
+        ),
+    ],
+)
+def test_combine_segments(input_values, expected):
+    numeric_input_names = "begins", "ends", "data"
+
+    np_input_values = []
+    for value in input_values:
+        np_input_values.extend([np.array(value[k], dtype=np.int32) for k in numeric_input_names])
+    np_input_values.append(np.arange(len(input_values), dtype=np.int32))
+
+    input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(np_input_values))]
+    combine_segments = _get_factory().create("CombineSegments", input_params).outputs()
+    combine_segments_model = Model(combine_segments, input_params, "combine_segments")
+
+    compiled_model = core.compile_model(combine_segments_model)
+    res = compiled_model(np_input_values)
+    for (_, val), (_, expect_val) in zip(res.items(), expected.items()):
+        assert np.all(val == np.array(expect_val, dtype=np.int32))

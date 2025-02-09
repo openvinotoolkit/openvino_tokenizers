@@ -147,7 +147,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")
 
     if rewrite_statuses:
-        new_statuses = {test_id[len(parent):]: status for test_id, status in sorted(new_statuses.items())}
+        new_statuses = {test_id[len(parent) :]: status for test_id, status in sorted(new_statuses.items())}
         with open(STATUSES_FILE, "w") as stat_file:
             json.dump(new_statuses, stat_file, indent=2)
 

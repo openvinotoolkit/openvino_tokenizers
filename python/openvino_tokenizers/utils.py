@@ -10,11 +10,10 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import openvino
-from openvino import Model, Tensor, Type
-from openvino.preprocess import PrePostProcessor
+from openvino import Model, Output, Tensor, Type
 from openvino import opset12 as opset
-from openvino import Output
 from openvino.op import Constant
+from openvino.preprocess import PrePostProcessor
 
 from .__version__ import __version__ as openvino_tokenizers_version
 from .constants import (
@@ -54,6 +53,9 @@ class TokenzierConversionParams:
     use_max_padding : bool
         If True, enables maximum padding for the tokenizer. Default is False.
 
+    max_length: Optional[int]
+        The maximum length of the input sequence.
+
     handle_special_tokens_with_re : Optional[bool]
         If True, uses regular expressions to handle special tokens during tokenization. Default is None.
 
@@ -73,6 +75,7 @@ class TokenzierConversionParams:
     detokenizer_input_type: Type = Type.i64
     streaming_detokenizer: bool = False
     use_max_padding: bool = False
+    max_length: Optional[int] = None
     handle_special_tokens_with_re: Optional[bool] = None
     use_sentencepiece_backend: bool = False
     utf8_replace_mode: Optional[UTF8ReplaceMode] = field(default_factory=lambda: UTF8ReplaceMode.REPLACE)
@@ -283,7 +286,7 @@ def quote_meta(unquoted: Union[str, bytes]) -> str:
         unquoted = unquoted.decode("latin1")
     symbols = []
     for char in unquoted:
-        if not char.isalnum() and char != "_":
+        if not char.isalnum() and char not in ("_", "▁", "｜"):
             symbols.append("\\")
         symbols.append(char)
     return "".join(symbols)
