@@ -47,7 +47,7 @@ inline void init_sentencepiece_normalizer_chars_map(
     } else if (normalization_form == "nfkd") {
         sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
     } else {
-        OPENVINO_ASSERT(false, "Unsupported normalization form: `" + normalization_form + "`");
+        OPENVINO_THROW("Unsupported normalization form: `", normalization_form, "`");
     };
     if (case_fold) {
         sentencepiece::normalizer::Builder::MergeUnicodeCaseFoldMap(&chars_map);
