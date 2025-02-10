@@ -128,13 +128,25 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     endforeach()
     target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
   else()
-    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
-      "${sentencepiece_SOURCE_DIR}/src/builtin_pb"
-      "${sentencepiece_SOURCE_DIR}/src"
-      "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite"
-      "${sentencepiece_SOURCE_DIR}/third_party/" # for libabseil
-      "${sentencepiece_SOURCE_DIR}"
-      "${sentencepiece_BINARY_DIR}")
+    if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
+      if(SPM_ABSL_PROVIDER STREQUAL "package")
+        message(FATAL_ERROR "When 'SPM_PROTOBUF_PROVIDER' is 'package', 'SPM_ABSL_PROVIDER' must have the same value")
+      endif()
+
+      target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
+        "${sentencepiece_SOURCE_DIR}/src/builtin_pb" # for "sentencepiece_model.pb.h"
+        "${sentencepiece_SOURCE_DIR}/src" # for "normalizer.h"
+        "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite" # for "google/protobuf/port_def.inc"
+        "${sentencepiece_SOURCE_DIR}/third_party/" # for "absl/strings/string_view.h"
+        "${sentencepiece_SOURCE_DIR}" # for "third_party/absl/strings/string_view.h"
+        )
+    else()
+      target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
+        "${sentencepiece_SOURCE_DIR}/src" # for "normalizer.h"
+        "${sentencepiece_SOURCE_DIR}" # for "third_party/absl/strings/string_view.h"
+        "${sentencepiece_BINARY_DIR}/src" # for "sentencepiece_model.pb.h"
+        )
+      endif()
 
     foreach(sp_target sentencepiece-static sentencepiece_train-static)
       if(CMAKE_CL_64)

@@ -27,7 +27,7 @@ inline void init_unicode_normalizer_chars_map(
     } else if (normalization_form == "NFKD") {
         sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
     } else {
-        OPENVINO_ASSERT(false, "Unsupported normalization form: `" + normalization_form + "`");
+        OPENVINO_THROW("Unsupported normalization form: `", normalization_form, "`");
     };
 }
 
