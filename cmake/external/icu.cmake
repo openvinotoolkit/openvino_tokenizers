@@ -33,6 +33,13 @@ else()
   endif()
 endif()
 
+set(ICU_RELEASE_POSTFIX "")
+if(WIN32)
+  set(ICU_DEBUG_POSTFIX "d")
+else()
+  set(ICU_DEBUG_POSTFIX "")
+endif()
+
 # Define build artifacts
 
 set(ICU_SHARED_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
@@ -132,9 +139,9 @@ function(ov_tokenizer_build_icu)
 
     foreach(icu_target IN ITEMS UC I18N DATA)
       if(icu_target STREQUAL "DATA")
-        set(lib_postfix ${CMAKE_RELEASE_POSTFIX})
+        set(lib_postfix ${ICU_RELEASE_POSTFIX})
       else()
-        set(lib_postfix ${CMAKE_${BUILD_TYPE}_POSTFIX})
+        set(lib_postfix ${ICU_${BUILD_TYPE}_POSTFIX})
       endif()
       set(ICU_STATIC_LIB_DIR "${ARG_INSTALL_DIR}/${build_type}/${ICU_INSTALL_LIB_SUBDIR}")
       set(ICU_SHARED_LIB_DIR "${ARG_INSTALL_DIR}/${build_type}/${ICU_INSTALL_BIN_SUBDIR}")
