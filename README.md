@@ -360,6 +360,27 @@ print(tokenized := tokenizer(["Test string"])["input_ids"])  # [[24235 47429]]
 print(detokenizer(tokenized)["string_output"])  # ['Test string']
 ```
 
+
+### Tokenizer From GGUF Model 
+
+```python
+from transformers import AutoTokenizer
+import openvino as ov
+from openvino_tokenizers import convert_tokenizer
+
+
+model_id = "unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF"
+filename = "DeepSeek-R1-Distill-Qwen-1.5B-Q2_K.gguf"
+hf_tokenizer = AutoTokenizer.from_pretrained(model_id, gguf_file=filename, trust_remote_code=True)
+
+ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
+ov_tokenizer, ov_detokenizer = ov.compile_model(ov_tokenizer), ov.compile_model(ov_detokenizer)
+
+print(ov_res := ov_tokenizer(["Test string"])["input_ids"])  # [[2271  914]]
+print(ov_detokenizer(ov_res)["string_output"])  # ['Test string']
+```
+
+
 ### C++ Usage example
 
 This example shows how to run inference with C++ on a text-classification model from Hugging Face. It
