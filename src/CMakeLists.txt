@@ -67,13 +67,13 @@ include(FetchContent)
 
 option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
 
-if(ENABLE_SYSTEM_ICU) 
+if(ENABLE_SYSTEM_ICU)
   message(STATUS "Using system-installed ICU.")
 else()
   message(STATUS "ICU is not found and will be built from source.")
   include(${PROJECT_SOURCE_DIR}/cmake/external/icu.cmake)
 endif()
-  
+
 FetchContent_Declare(
   sentencepiece
   URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
@@ -101,14 +101,14 @@ if(NOT sentencepiece_POPULATED)
   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
   set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
   set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
-  
+
   FetchContent_Populate(sentencepiece)
   add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
-  
+
   if(TARGET ${ICU_TARGET_NAME})
     foreach(sp_target sentencepiece sentencepiece_train)
       if(TARGET ${sp_target}-static)
-        set(sp_target ${sp_target}-static)  
+        set(sp_target ${sp_target}-static)
         add_dependencies(${sp_target} ${ICU_TARGET_NAME})
       endif()
     endforeach()
@@ -327,7 +327,7 @@ if(WIN32)
     DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
     CONFIGURATIONS Release RelWithDebInfo MinSizeRel
     COMPONENT openvino_tokenizers
-  )  
+  )
   install(
     FILES ${ICU_UC_SHARED_LIB_DEBUG} ${ICU_DATA_SHARED_LIB_DEBUG}
     DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
