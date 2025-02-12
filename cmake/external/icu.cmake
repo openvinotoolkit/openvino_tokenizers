@@ -268,8 +268,8 @@ if(NOT CMAKE_C_COMPILER OR NOT CMAKE_CXX_COMPILER)
     message(FATAL_ERROR "No C or C++ compiler found. Please install a compiler (GCC, Clang, or MSVC).")
   else()
     set(host_env_config
-      CFLAGS=${c_prefix}${CMAKE_C_COMPILER}
-      CXXFLAGS=${cxx_prefix}${CMAKE_CXX_COMPILER})
+      СС=${c_prefix}${CMAKE_C_COMPILER}
+      CXX=${cxx_prefix}${CMAKE_CXX_COMPILER})
   endif()
 endif()
 
