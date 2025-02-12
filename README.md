@@ -360,7 +360,26 @@ print(tokenized := tokenizer(["Test string"])["input_ids"])  # [[24235 47429]]
 print(detokenizer(tokenized)["string_output"])  # ['Test string']
 ```
 
-### C++ Usage example
+### Tokenizer From GGUF Model 
+
+```python
+from transformers import AutoTokenizer
+import openvino as ov
+from openvino_tokenizers import convert_tokenizer
+
+
+model_id = "unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF"
+filename = "DeepSeek-R1-Distill-Qwen-1.5B-Q2_K.gguf"
+hf_tokenizer = AutoTokenizer.from_pretrained(model_id, gguf_file=filename)
+
+ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
+ov_tokenizer, ov_detokenizer = ov.compile_model(ov_tokenizer), ov.compile_model(ov_detokenizer)
+
+print(ov_res := ov_tokenizer(["Test string"])["input_ids"])  # [[2271  914]]
+print(ov_detokenizer(ov_res)["string_output"])  # ['Test string']
+```
+
+### C++ Usage Example
 
 This example shows how to run inference with C++ on a text-classification model from Hugging Face. It
 expects the path to a model directory as parameter, and prints the logits returned by the model inference.
@@ -412,6 +431,14 @@ int main(int argc, char* argv[]) {
    return 0;
 }
 ```
+
+### Unicode Support
+
+- OpenVINO Tokenizers support UTF-8 encoded inputs. 
+- Internal tokenizer vocabulary is stored in UTF-8 encoding:
+  - Providing a tokenizer model with  non-UTF-8 input may lead to unexpected outputs or errors,
+  - Detokenizer output is UTF-8 encoded; if your terminal does not expect UTF-8, you might see garbage characters.
+- By default, a detokenizer replaces invalid UTF-8 output with � character. You can change this behavior during conversion.
 
 ## Supported Tokenizer Types
 
