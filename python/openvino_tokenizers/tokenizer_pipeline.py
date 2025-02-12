@@ -616,10 +616,12 @@ class BPETokenizationStep(TokenizationModelStep):
             else:
                 self.merges = [tuple(map(apply_unicode_to_bytes, merge.split(" "))) for merge in self.merges]
 
-            chars_to_bytes_idx = next(
-                idx for idx, step in enumerate(pipeline.steps) if isinstance(step, CharsToBytesStep)
-            )
-            pipeline.steps.insert(chars_to_bytes_idx, FuseStep())
+            # CharsToBytesStep might not be present in gguf-based tokenizers
+            if any(isinstance(step, CharsToBytesStep) for step in pipeline.steps):
+                chars_to_bytes_idx = next(
+                    idx for idx, step in enumerate(pipeline.steps) if isinstance(step, CharsToBytesStep)
+                )
+                pipeline.steps.insert(chars_to_bytes_idx, FuseStep())
             pipeline.steps = [
                 step for step in pipeline.steps if not isinstance(step, (BytesToCharsStep, CharsToBytesStep))
             ]
