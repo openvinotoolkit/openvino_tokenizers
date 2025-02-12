@@ -246,10 +246,32 @@ endfunction()
 # Build
 #
 
-# IMPORTANT! use native compilers
-set(host_env_config
-  CC=cc
-  CXX=c++)
+if(CMAKE_C_COMPILER_LAUNCHER)
+  set(c_prefix "${CMAKE_C_COMPILER_LAUNCHER} ")
+endif()
+
+if(CMAKE_CXX_COMPILER_LAUNCHER)
+  set(cxx_prefix "${CMAKE_CXX_COMPILER_LAUNCHER} ")
+endif()
+
+# Ensure native compilers are set
+if(NOT CMAKE_C_COMPILER OR NOT CMAKE_CXX_COMPILER)
+  if(CMAKE_HOST_WIN32)
+    find_program(CMAKE_C_COMPILER NAMES cl gcc clang)
+    find_program(CMAKE_CXX_COMPILER NAMES cl g++ clang++)
+  else()
+    find_program(CMAKE_C_COMPILER NAMES cc gcc clang)
+    find_program(CMAKE_CXX_COMPILER NAMES c++ g++ clang++)
+  endif()
+
+  if(NOT CMAKE_C_COMPILER OR NOT CMAKE_CXX_COMPILER)
+    message(FATAL_ERROR "No C or C++ compiler found. Please install a compiler (GCC, Clang, or MSVC).")
+  else()
+    set(target_env_config
+      CFLAGS=${c_prefix}${CMAKE_C_COMPILER}
+      CXXFLAGS=${cxx_prefix}${CMAKE_CXX_COMPILER})
+  endif()
+endif()
 
 # propogate current compilers and flags
 if(APPLE)
@@ -259,9 +281,9 @@ if(APPLE)
 else()
   set(target_env_config
     CFLAGS=${ICU_C_FLAGS}
-    CC=${CMAKE_C_COMPILER}
+    CC=${cxx_prefix}${CMAKE_C_COMPILER}
     CXXFLAGS=${ICU_CXX_FLAGS}
-    CXX=${CMAKE_CXX_COMPILER})
+    CXX=${cxx_prefix}${CMAKE_CXX_COMPILER})
 
     foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
                       CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
