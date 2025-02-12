@@ -370,7 +370,7 @@ from openvino_tokenizers import convert_tokenizer
 
 model_id = "unsloth/DeepSeek-R1-Distill-Qwen-1.5B-GGUF"
 filename = "DeepSeek-R1-Distill-Qwen-1.5B-Q2_K.gguf"
-hf_tokenizer = AutoTokenizer.from_pretrained(model_id, gguf_file=filename, trust_remote_code=True)
+hf_tokenizer = AutoTokenizer.from_pretrained(model_id, gguf_file=filename)
 
 ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
 ov_tokenizer, ov_detokenizer = ov.compile_model(ov_tokenizer), ov.compile_model(ov_detokenizer)
