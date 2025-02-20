@@ -801,26 +801,27 @@ class TruncationStep(PostTokenizationStep):
             raise UserInputError("Only one input ragged tensor is supported as an input for TruncationStep")
 
     def get_ov_subgraph(self, input_nodes: List[Output]):
-        # FIXME: Truncation side (truncate_right) is ignored
-        # TODO: Check if axis is the right-most dimension
-        self.validate_inputs(input_nodes)
+        # # FIXME: Truncation side (truncate_right) is ignored
+        # # TODO: Check if axis is the right-most dimension
+        # self.validate_inputs(input_nodes)
 
-        max_length = opset.minimum(
-            opset.subtract(input_nodes[1], input_nodes[0]),
-            make_constant_node(self.max_length, Type.i32),
-        )
-        if self.truncate_right:
-            return [
-                input_nodes[0],
-                opset.add(input_nodes[0], max_length).output(0),
-                input_nodes[2],
-            ]
-        else:
-            return [
-                opset.subtract(input_nodes[1], max_length).output(0),
-                input_nodes[1],
-                input_nodes[2],
-            ]
+        # max_length = opset.minimum(
+        #     opset.subtract(input_nodes[1], input_nodes[0]),
+        #     make_constant_node(self.max_length, Type.i32),
+        # )
+        # if self.truncate_right:
+        #     return [
+        #         input_nodes[0],
+        #         opset.add(input_nodes[0], max_length).output(0),
+        #         input_nodes[2],
+        #     ]
+        # else:
+        #     return [
+        #         opset.subtract(input_nodes[1], max_length).output(0),
+        #         input_nodes[1],
+        #         input_nodes[2],
+        #     ]
+        return input_nodes
 
 
 @dataclass
@@ -1351,8 +1352,21 @@ class TokenizerPipeline:
 
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
-
-        string_inputs = [op.Parameter(Type.string, PartialShape(["?"])) for _ in range(self.number_of_inputs)]
+        # TODO: starts here
+        
+        pshape = PartialShape(["?"])
+        inputs = [op.Parameter(Type.string, pshape) for _ in range(self.number_of_inputs)]
+        string_inputs = inputs
+        
+        assert self.number_of_inputs in [1, 2], "Only 1 or 2 inputs are supported"
+        # if self.number_of_inputs > 1:
+        #     pshape = PartialShape([-1] * self.number_of_inputs)
+        #     inputs = [op.Parameter(Type.string, pshape)]
+        #     string_inputs = [opset.reshape(inputs[0], make_constant_node([-1], Type.i32), special_zero=False)]
+        
+        if self.number_of_inputs == 2:
+            concatenated = opset.concat(inputs, axis=0)
+            string_inputs = [concatenated]
 
         processing_outputs = []
         for input_node in string_inputs:
@@ -1380,10 +1394,28 @@ class TokenizerPipeline:
 
             processing_outputs.extend(input_node)
 
+        # if self.number_of_inputs > 1:
+        #     inp_shape = opset.shape_of(inputs[0], output_type='i32')
+        #     reshape_1 = opset.reshape(processing_outputs[0], inp_shape, special_zero=False)
+        #     reshape_2 = opset.reshape(processing_outputs[1], inp_shape, special_zero=False)
+        #     split_1 = opset.split(reshape_1, axis=1, num_splits=self.number_of_inputs)
+        #     split_2 = opset.split(reshape_2, axis=1, num_splits=self.number_of_inputs)
+
+        #     # [begins, ends, data]
+        #     inputs_1 = [opset.squeeze(split_1.output(0), [1]), opset.squeeze(split_2.output(0), [1]), processing_outputs[2]]
+        #     inputs_2 = [opset.squeeze(split_1.output(1), [1]), opset.squeeze(split_2.output(1), [1]), processing_outputs[2]]
+        #     processing_outputs = [*inputs_1, *inputs_2]
+
+        split_1 = opset.split(processing_outputs[0], axis=0, num_splits=2)
+        split_2 = opset.split(processing_outputs[1], axis=0, num_splits=2)
+        inputs_1 = [split_1.output(0), split_2.output(0), processing_outputs[2]]
+        inputs_2 = [split_1.output(1), split_2.output(1), processing_outputs[2]]
+        processing_outputs = [*inputs_1, *inputs_2]
+
         for step in self.post_tokenization_steps:
             processing_outputs = step.get_ov_subgraph(processing_outputs)
 
-        model = Model(processing_outputs, string_inputs, name=TOKENIZER_NAME)
+        model = Model([*processing_outputs], inputs, name=TOKENIZER_NAME)
         return model
 
     def finalize(self) -> None:
