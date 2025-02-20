@@ -850,6 +850,7 @@ class TokenWithTypeId:
 @dataclass
 class AddToken(TokenWithTypeId, SpecialTokenWithId):
     enabled_by_default: bool = True
+    depends_on_input: Optional[int] = None
     pass
 
 
@@ -897,8 +898,10 @@ class CombineSegmentsStep(PostTokenizationStep):
             post_processor = post_processor_dict["single"]
         else:
             post_processor = post_processor_dict["pair"]
+        
+        # assert that template dict id for for num input 1 can be achieved by dropping the last element of the template dict for num input 2
 
-        for template_dict in post_processor:
+        for idx, template_dict in enumerate(post_processor):
             if "SpecialToken" in template_dict:
                 step = AddToken(
                     token=template_dict["SpecialToken"]["id"],
@@ -910,6 +913,11 @@ class CombineSegmentsStep(PostTokenizationStep):
                 inputs.append(step)
             elif "Sequence" in template_dict:
                 inputs.append(Sequence(token_type_id=template_dict["Sequence"]["type_id"]))
+            
+        # add variable end so that when second input is not present make add_special_token also false.
+        if isinstance(inputs[-1], AddToken) and number_of_inputs == 2:
+            inputs[-1].depends_on_input = idx - 1
+
         return cls(inputs, add_special_tokens=add_special_tokens)
 
     @classmethod
@@ -974,8 +982,8 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         segment_ids = []
         segment_index = 0
-        for (key, token_id), group_iter in groupby(
-            self.inputs, key=lambda input: (type(input), getattr(input, "token_id", None))
+        for (key, token_id, depends_on_input), group_iter in groupby(
+            self.inputs, key=lambda input: (type(input), getattr(input, "token_id", None), getattr(input, "depends_on_input", None))
         ):
             if key is Sequence:
                 for sequence in group_iter:
@@ -988,9 +996,16 @@ class CombineSegmentsStep(PostTokenizationStep):
                 segment_ids.append(self.segment_ids[segment_index])
                 segment_index += len(ids)
 
-                op_inputs.extend(make_constant_node(0, Type.i32).outputs())
                 # If we don't add special tokens then end is 0.
-                op_inputs.extend(make_constant_node(len(ids) if self.add_special_tokens else 0, Type.i32).outputs())
+                ends = make_constant_node(len(ids) if self.add_special_tokens else 0, Type.i32).outputs()
+                
+                if depends_on_input is not None:
+                    # if all elements of ends is zero
+                    eq = opset.equal(op_inputs[depends_on_input * 3], make_constant_node([0], Type.i32))
+                    ends = opset.multiply(ends[0], opset.select(eq, make_constant_node([0], Type.i32), make_constant_node([1], Type.i32))).outputs()
+                    
+                op_inputs.extend(make_constant_node(0, Type.i32).outputs())
+                op_inputs.extend(ends)
                 op_inputs.append(make_constant_node(np.array(ids), Type.i32).output(0))
             else:
                 raise UserInputError(f"Unexpected node type in CombineSegments: {key}")
@@ -1352,7 +1367,6 @@ class TokenizerPipeline:
 
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
-        # TODO: starts here
         
         pshape = PartialShape(["?"])
         inputs = [op.Parameter(Type.string, pshape) for _ in range(self.number_of_inputs)]
@@ -1364,13 +1378,32 @@ class TokenizerPipeline:
             inputs = [op.Parameter(Type.string, pshape)]
             inp_shape = opset.shape_of(inputs[0], output_type='i32')
             num_batches = opset.slice(inp_shape, [0], [1], [1])
+            # boradcasted_shape = [num_batches, number_of_inputs]
             boradcasted_shape = opset.concat([num_batches, make_constant_node([self.number_of_inputs], Type.i32)], axis=0)
-            bcast = opset.broadcast(inputs[0], boradcasted_shape)
-            string_inputs = [opset.reshape(inputs[0], make_constant_node([-1], Type.i32), special_zero=False)]
+            
+            string_inputs = inputs
 
         processing_outputs = []
         for input_node in string_inputs:
             input_node = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
+            
+            if self.number_of_inputs > 1:
+                begins = opset.broadcast(input_node[0], boradcasted_shape)
+                ends = opset.broadcast(input_node[1], boradcasted_shape)
+
+                num_inputs = opset.slice(inp_shape, [1], [2], [1])
+                equal = opset.equal(num_inputs, make_constant_node(1, Type.i32))
+
+                # If the number of inputs is 1, we need to zero the second dimension 
+                # of the broadcasted begins and ends tensors.
+                # This is done so that the second input string is empty "".
+                multiplier = opset.select(equal, make_constant_node([[1, 0]], Type.i32), make_constant_node([[1, 1]], Type.i32))
+                begins = opset.multiply(begins, multiplier)
+                ends = opset.multiply(ends, multiplier)
+
+                begins_ = opset.reshape(begins, make_constant_node([-1], Type.i32), special_zero=False)
+                ends_ = opset.reshape(ends, make_constant_node([-1], Type.i32), special_zero=False)
+                input_node = [begins_, ends_, input_node[2]]
 
             ragged = []
             if isinstance(self.steps[0], SpecialTokensSplit):
@@ -1395,15 +1428,20 @@ class TokenizerPipeline:
             processing_outputs.extend(input_node)
 
         if self.number_of_inputs > 1:
-            inp_shape = opset.shape_of(inputs[0], output_type='i32')
-            reshape_1 = opset.reshape(processing_outputs[0], inp_shape, special_zero=False)
-            reshape_2 = opset.reshape(processing_outputs[1], inp_shape, special_zero=False)
+            reshape_1 = opset.reshape(processing_outputs[0], boradcasted_shape, special_zero=False)
+            reshape_2 = opset.reshape(processing_outputs[1], boradcasted_shape, special_zero=False)
             split_1 = opset.split(reshape_1, axis=1, num_splits=self.number_of_inputs)
             split_2 = opset.split(reshape_2, axis=1, num_splits=self.number_of_inputs)
             
             # [begins, ends, data]
             inputs_1 = [opset.squeeze(split_1.output(0), [1]), opset.squeeze(split_2.output(0), [1]), processing_outputs[2]]
-            inputs_2 = [opset.squeeze(split_1.output(1), [1]), opset.squeeze(split_2.output(1), [1]), processing_outputs[2]]
+
+            # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
+            ends_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_2.output(1), [1]))
+            begins_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_1.output(1), [1]))
+            inputs_2 = [begins_2, ends_2, processing_outputs[2]]
+            
+            # inputs_2 = [opset.squeeze(split_1.output(1), [1]), opset.squeeze(split_2.output(1), [1]), processing_outputs[2]]
             processing_outputs = [*inputs_1, *inputs_2]
 
         for step in self.post_tokenization_steps:
