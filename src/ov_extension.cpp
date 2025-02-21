@@ -22,7 +22,7 @@
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("NormalizeUTF8", translate_normalize_utf8),                                 \
     std::make_shared<ov::frontend::tensorflow::ConversionExtension>("CaseFoldUTF8", translate_case_fold_utf8)
 
-// clang-format off
+// clang-format off 
 //! [ov_extension:entry_point]
 OPENVINO_CREATE_EXTENSIONS(
     std::vector<ov::Extension::Ptr>({
