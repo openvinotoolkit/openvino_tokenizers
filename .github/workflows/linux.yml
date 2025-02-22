@@ -397,8 +397,8 @@ jobs:
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
     env:
-      CPACK_PACKAGE: ${{ github.workspace }}/openvino_tokenizers_cpack_${{ matrix.build_type }}
-      WHEEL_PACKAGE: ${{ github.workspace }}/openvino_tokenizers_wheel
+      CPACK_PACKAGE: ${{ github.workspace }}/openvino_tokenizers_cpack_Release
+      WHEEL_PACKAGE: ${{ github.workspace }}/wheels
       MANIFEST_PATH: ${{ github.workspace }}/manifest.yml
 
     steps:
@@ -406,7 +406,7 @@ jobs:
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: openvino_tokenizers_cpack_Release
-          path: ${{ env.CPACK_PACKAGE }}
+          path: ${{ github.workspace }}
 
       - name: Download tokenizers wheels
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
@@ -418,7 +418,7 @@ jobs:
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: manifest
-          path: ${{ env.MANIFEST_PATH }}
+          path: ${{ github.workspace }}
 
       - name: Store artifacts to a shared drive
         id: store_artifacts
