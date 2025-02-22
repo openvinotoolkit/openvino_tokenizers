@@ -20,7 +20,7 @@ env:
   CMAKE_C_COMPILER_LAUNCHER: ccache
   CCACHE_MAXSIZE: 100Mi
   ARTIFACTS_SHARE: 'C:\\mount\\build-artifacts'
-  PRODUCT_TYPE: 'public_windows_vs2022_release'
+  PRODUCT_TYPE: 'public_windows_vs2022_Release'
 
 permissions: read-all
 
