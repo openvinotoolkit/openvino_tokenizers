@@ -397,7 +397,7 @@ jobs:
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
     env:
-      CPACK_PACKAGE: ${{ github.workspace }}/openvino_tokenizers_cpack_Release
+      CPACK_PACKAGE: ${{ github.workspace }}/ov_tokenizers.tar.gz
       WHEEL_PACKAGE: ${{ github.workspace }}/wheels
       MANIFEST_PATH: ${{ github.workspace }}/manifest.yml
 
