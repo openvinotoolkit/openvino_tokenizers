@@ -310,6 +310,14 @@ jobs:
           path: ${{ env.BUILD_DIR }}/*.whl
           if-no-files-found: 'error'
 
+      - name: Upload manifest
+        if: ${{ always() }}
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: manifest
+          path: ${{ env.MANIFEST_PATH }}
+          if-no-files-found: 'error'
+
   openvino_tokenizers_tests:
     name: OpenVINO tokenizers tests
     needs: [ openvino_download, openvino_tokenizers_wheel]
