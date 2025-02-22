@@ -19,7 +19,7 @@ env:
   CMAKE_CXX_COMPILER_LAUNCHER: ccache
   CMAKE_C_COMPILER_LAUNCHER: ccache
   CCACHE_MAXSIZE: 100Mi
-  ARTIFACTS_SHARE: 'C:\\mount\\build-artifacts'
+  ARTIFACTS_SHARE: '/mount/build-artifacts'
   PRODUCT_TYPE: 'public_windows_vs2022_Release'
 
 permissions: read-all
@@ -187,16 +187,6 @@ jobs:
           path: ${{ env.BUILD_DIR }}/*.zip
           if-no-files-found: 'error'
 
-      - name: Store artifacts to a shared drive
-        id: store_artifacts
-        if: ${{ always() }}
-        uses: openvinotoolkit/openvino/.github/actions/store_artifacts@master
-        with:
-          artifacts: |
-            ${{ env.BUILD_DIR }}/ov_tokenizers.zip
-            ${{ env.MANIFEST_PATH }}
-          storage_dir: ${{ env.PRODUCT_TYPE }}
-          storage_root: ${{ env.ARTIFACTS_SHARE }}
 
   openvino_tokenizers_wheel:
     name: OpenVINO tokenizers wheel
