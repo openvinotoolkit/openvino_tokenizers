@@ -224,7 +224,7 @@ jobs:
 
       - name: Generate product manifest
         id: create_manifest
-        uses: openvinotoolkit/openvino/.github/actions/create_manifest@refs/pull/29121/head
+        uses: openvinotoolkit/openvino/.github/actions/create_manifest@master
         with:
           repos: |
             ${{ env.OPENVINO_TOKENIZERS_REPO }}
