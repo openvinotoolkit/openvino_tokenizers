@@ -809,13 +809,14 @@ class TruncationStep(PostTokenizationStep):
         if len(input_nodes) == 6:
             max_length_const = make_constant_node(self.max_length, Type.i32)
             half_max_length = opset.divide(max_length_const, make_constant_node(2, Type.i32))
+            half_plus_mod = opset.add(half_max_length, opset.mod(max_length_const, make_constant_node(2, Type.i32)))
             
             gt = opset.greater(opset.add(input_nodes[1] - input_nodes[0], input_nodes[4] - input_nodes[3]), max_length_const)
             
             if self.truncate_right:
                 return [
                     input_nodes[0],
-                    opset.select(gt, opset.add(input_nodes[0], half_max_length), input_nodes[1]).output(0),
+                    opset.select(gt, opset.add(input_nodes[0], half_plus_mod), input_nodes[1]).output(0),
                     input_nodes[2],
                     input_nodes[3],
                     opset.select(gt, opset.add(input_nodes[3], half_max_length), input_nodes[4]).output(0),
@@ -823,7 +824,7 @@ class TruncationStep(PostTokenizationStep):
                 ]
             else:
                 return [
-                    opset.select(gt, opset.subtract(input_nodes[1], half_max_length), input_nodes[0]).output(0),
+                    opset.select(gt, opset.subtract(input_nodes[1], half_plus_mod), input_nodes[0]).output(0),
                     input_nodes[1],
                     input_nodes[2],
                     opset.select(gt, opset.subtract(input_nodes[4], half_max_length), input_nodes[3]).output(0),
