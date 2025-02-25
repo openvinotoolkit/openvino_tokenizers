@@ -61,7 +61,11 @@ def benchmark_tokenizer_async(
         enumerate(batch_iter(chain.from_iterable(dataset), batch)), total=iterations, desc="Async benchmark"
     ):
         start = perf_counter()
+        # TODO: this is temporary w/a
+        # prompt = prompt[0]
+        # async_queue.start_async([[prompt[:len(prompt)//2], prompt[len(prompt)//2:]]], (times, start, idx))
         async_queue.start_async(prompt, (times, start, idx))
+
     async_queue.wait_all()
     elapsed = perf_counter() - bench_start
 
@@ -93,6 +97,7 @@ def benchmark_tokenizers(
 
     # warmup
     for repeat in range(1, 2):
+        # ov_tokenizer([["test " * repeat]])
         ov_tokenizer(["test " * repeat])
         hf_tokenizer(["test " * repeat])
 
@@ -103,7 +108,11 @@ def benchmark_tokenizers(
         res = [prompt]
 
         ov_start = perf_counter()
+        # TODO: this is temporary w/a
+        # prompt = prompt[0]
+        # ov_res = ov_tokenizer([[prompt[:len(prompt)//2], prompt[len(prompt)//2:]]])
         ov_res = ov_tokenizer(prompt)
+
         res.append(perf_counter() - ov_start)
 
         hf_start = perf_counter()

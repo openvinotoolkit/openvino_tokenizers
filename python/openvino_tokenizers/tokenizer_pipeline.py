@@ -797,31 +797,56 @@ class TruncationStep(PostTokenizationStep):
 
     @staticmethod
     def validate_inputs(input_nodes):
-        if len(input_nodes) != 3:
-            raise UserInputError("Only one input ragged tensor is supported as an input for TruncationStep")
+        if len(input_nodes) not in [3, 6]:
+            raise UserInputError("Only single or pair of ragged tensors are supported as an inputs for TruncationStep")
 
     def get_ov_subgraph(self, input_nodes: List[Output]):
-        # # FIXME: Truncation side (truncate_right) is ignored
-        # # TODO: Check if axis is the right-most dimension
-        # self.validate_inputs(input_nodes)
+        # FIXME: Truncation side (truncate_right) is ignored
+        # TODO: Check if axis is the right-most dimension
+        self.validate_inputs(input_nodes)
 
-        # max_length = opset.minimum(
-        #     opset.subtract(input_nodes[1], input_nodes[0]),
-        #     make_constant_node(self.max_length, Type.i32),
-        # )
-        # if self.truncate_right:
-        #     return [
-        #         input_nodes[0],
-        #         opset.add(input_nodes[0], max_length).output(0),
-        #         input_nodes[2],
-        #     ]
-        # else:
-        #     return [
-        #         opset.subtract(input_nodes[1], max_length).output(0),
-        #         input_nodes[1],
-        #         input_nodes[2],
-        #     ]
-        return input_nodes
+        # pair of ragged tensors
+        if len(input_nodes) == 6:
+            max_length_const = make_constant_node(self.max_length, Type.i32)
+            half_max_length = opset.divide(max_length_const, make_constant_node(2, Type.i32))
+            
+            gt = opset.greater(opset.add(input_nodes[1] - input_nodes[0], input_nodes[4] - input_nodes[3]), max_length_const)
+            
+            if self.truncate_right:
+                return [
+                    input_nodes[0],
+                    opset.select(gt, opset.add(input_nodes[0], half_max_length), input_nodes[1]).output(0),
+                    input_nodes[2],
+                    input_nodes[3],
+                    opset.select(gt, opset.add(input_nodes[3], half_max_length), input_nodes[4]).output(0),
+                    input_nodes[5],
+                ]
+            else:
+                return [
+                    opset.select(gt, opset.subtract(input_nodes[1], half_max_length), input_nodes[0]).output(0),
+                    input_nodes[1],
+                    input_nodes[2],
+                    opset.select(gt, opset.subtract(input_nodes[4], half_max_length), input_nodes[3]).output(0),
+                    input_nodes[4],
+                    input_nodes[5],
+                ]
+        else:
+            max_length = opset.minimum(
+                opset.subtract(input_nodes[1], input_nodes[0]),
+                make_constant_node(self.max_length, Type.i32),
+            )
+            if self.truncate_right:
+                return [
+                    input_nodes[0],
+                    opset.add(input_nodes[0], max_length).output(0),
+                    input_nodes[2],
+                ]
+            else:
+                return [
+                    opset.subtract(input_nodes[1], max_length).output(0),
+                    input_nodes[1],
+                    input_nodes[2],
+                ]
 
 
 @dataclass
@@ -1437,6 +1462,7 @@ class TokenizerPipeline:
             inputs_1 = [opset.squeeze(split_1.output(0), [1]), opset.squeeze(split_2.output(0), [1]), processing_outputs[2]]
 
             # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
+            # TODO: indeed for ends it should've been 1 but for thix bug CSV-xxxxx we zeto zero for the moment. 
             ends_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_2.output(1), [1]))
             begins_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_1.output(1), [1]))
             inputs_2 = [begins_2, ends_2, processing_outputs[2]]
