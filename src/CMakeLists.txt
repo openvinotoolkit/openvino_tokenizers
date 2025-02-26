@@ -247,12 +247,24 @@ target_link_libraries(${TARGET_NAME} PRIVATE ICU::i18n ICU::data ICU::uc)
 if(LINUX)
   # to find libcore_tokenizer.so in the same folder
   set(rpaths "$ORIGIN")
+  if(CPACK_GENERATOR STREQUAL "NPM")
+    # to find libopenvino.so when installing from npm
+    list(APPEND rpaths "$ORIGIN/../../openvino-node/bin")
+    # to find libopenvino.so when installing from source
+    list(APPEND rpaths "$ORIGIN/../node_modules/openvino-node/bin")
+  endif()
 elseif(APPLE)
   # to find libcore_tokenizer.dylib in the same folder
   set(rpaths "@loader_path")
   if(DEFINED PY_BUILD_CMAKE_PACKAGE_NAME)
     # in case we build pip package, we need to refer to libopenvino.dylib from 'openvino' package
     list(APPEND rpaths "@loader_path/../../openvino/libs")
+  endif()
+  if(CPACK_GENERATOR STREQUAL "NPM")
+    # to find libopenvino.dylib when installing from npm
+    list(APPEND rpaths "@loader_path/../../openvino-node/bin")
+    # to find libopenvino.dylib when installing from source
+    list(APPEND rpaths "@loader_path/../node_modules/openvino-node/bin")
   endif()
 endif()
 
