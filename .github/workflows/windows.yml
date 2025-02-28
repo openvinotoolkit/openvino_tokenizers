@@ -62,7 +62,7 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
       CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
@@ -195,7 +195,7 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    runs-on: windows-latest
+    runs-on: windows-2022
     env:
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
       INSTALL_DIR: ${{ github.workspace }}\b\ov
