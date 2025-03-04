@@ -10,6 +10,7 @@ from typing import Any, Optional, Tuple, Union
 
 from openvino import Model, Type
 from openvino.exceptions import OVTypeError
+from openvino_tokenizers.extend_to_pair_of_inputs import extend_input_to_pair
 
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.utils import (
@@ -139,6 +140,8 @@ def convert_tokenizer(
 
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
+
+    extend_input_to_pair(ov_tokenizers[0], max_length=params.max_length)
 
     if isinstance(ov_tokenizers, tuple):
         return (

@@ -925,7 +925,7 @@ class CombineSegmentsStep(PostTokenizationStep):
         else:
             post_processor = post_processor_dict["pair"]
         
-        # assert that template dict id for for num input 1 can be achieved by dropping the last element of the template dict for num input 2
+        # TODO: assert that template dict id for for num input 1 can be achieved by dropping the last element of the template dict for num input 2
 
         for idx, template_dict in enumerate(post_processor):
             if "SpecialToken" in template_dict:
@@ -1404,7 +1404,6 @@ class TokenizerPipeline:
             inputs = [op.Parameter(Type.string, pshape)]
             inp_shape = opset.shape_of(inputs[0], output_type='i32')
             num_batches = opset.slice(inp_shape, [0], [1], [1])
-            # boradcasted_shape = [num_batches, number_of_inputs]
             boradcasted_shape = opset.concat([num_batches, make_constant_node([self.number_of_inputs], Type.i32)], axis=0)
             
             string_inputs = inputs
@@ -1456,6 +1455,7 @@ class TokenizerPipeline:
         if self.number_of_inputs > 1:
             reshape_1 = opset.reshape(processing_outputs[0], boradcasted_shape, special_zero=False)
             reshape_2 = opset.reshape(processing_outputs[1], boradcasted_shape, special_zero=False)
+            # split begins, ends
             split_1 = opset.split(reshape_1, axis=1, num_splits=self.number_of_inputs)
             split_2 = opset.split(reshape_2, axis=1, num_splits=self.number_of_inputs)
             
@@ -1463,7 +1463,7 @@ class TokenizerPipeline:
             inputs_1 = [opset.squeeze(split_1.output(0), [1]), opset.squeeze(split_2.output(0), [1]), processing_outputs[2]]
 
             # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
-            # TODO: indeed for ends it should've been 1 but for thix bug CSV-xxxxx we zeto zero for the moment. 
+            # TODO: indeed for ends it should've been 1 but for thix bug CSV-xxxxx we set to zero for the moment. 
             ends_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_2.output(1), [1]))
             begins_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_1.output(1), [1]))
             inputs_2 = [begins_2, ends_2, processing_outputs[2]]
