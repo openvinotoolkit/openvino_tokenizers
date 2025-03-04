@@ -1052,3 +1052,28 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
     # Check that output is still the same
     compiled_tokenizer = Core().compile_model(ov_tokenizer, "CPU", {properties.cache_dir: str(tmp_path)})
     check_tokenizer_output((hf_tokenizer, compiled_tokenizer), test_string=test_string)
+
+
+@pytest.mark.parametrize("test_string", [   
+    [["hi", "sun in yellow"]],
+    [["hi", "\n\n\n\t\t   A    lot\t\tof\twhitespaces\n!\n\n\n\t\n\n"]],
+    [["Eng... test, string?!", "Multiline\nstring!\nWow!"]],
+    [["Eng... test, string?!" * 100, "Multiline\nstring!\nWow!"]],
+    [["Eng... test, string?!", "Multiline\nstring!\nWow!" * 100]],
+])
+@pytest.mark.parametrize(
+    "model_id",
+    [
+        "answerdotai/ModernBERT-base",
+    ],
+)
+def test_pair_input(model_id, test_string):
+    request = namedtuple("request", ["param"])(model_id)
+
+    hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True)
+    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2)  
+
+    ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
+
+    # Check that output is still the same
+    check_tokenizer_output((hf_tokenizer, ov_tokenizer), test_string=test_string)

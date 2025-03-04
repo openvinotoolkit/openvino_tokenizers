@@ -797,57 +797,30 @@ class TruncationStep(PostTokenizationStep):
 
     @staticmethod
     def validate_inputs(input_nodes):
-        if len(input_nodes) not in [3, 6]:
-            raise UserInputError("Only single or pair of ragged tensors are supported as an inputs for TruncationStep")
+        if len(input_nodes) != 3:
+            raise UserInputError("Only one input ragged tensor is supported as an input for TruncationStep")
 
     def get_ov_subgraph(self, input_nodes: List[Output]):
         # FIXME: Truncation side (truncate_right) is ignored
         # TODO: Check if axis is the right-most dimension
         self.validate_inputs(input_nodes)
 
-        # pair of ragged tensors
-        if len(input_nodes) == 6:
-            max_length_const = make_constant_node(self.max_length, Type.i32)
-            half_max_length = opset.divide(max_length_const, make_constant_node(2, Type.i32))
-            half_plus_mod = opset.add(half_max_length, opset.mod(max_length_const, make_constant_node(2, Type.i32)))
-            
-            gt = opset.greater(opset.add(input_nodes[1] - input_nodes[0], input_nodes[4] - input_nodes[3]), max_length_const)
-            
-            if self.truncate_right:
-                return [
-                    input_nodes[0],
-                    opset.select(gt, opset.add(input_nodes[0], half_plus_mod), input_nodes[1]).output(0),
-                    input_nodes[2],
-                    input_nodes[3],
-                    opset.select(gt, opset.add(input_nodes[3], half_max_length), input_nodes[4]).output(0),
-                    input_nodes[5],
-                ]
-            else:
-                return [
-                    opset.select(gt, opset.subtract(input_nodes[1], half_plus_mod), input_nodes[0]).output(0),
-                    input_nodes[1],
-                    input_nodes[2],
-                    opset.select(gt, opset.subtract(input_nodes[4], half_max_length), input_nodes[3]).output(0),
-                    input_nodes[4],
-                    input_nodes[5],
-                ]
+        max_length = opset.minimum(
+            opset.subtract(input_nodes[1], input_nodes[0]),
+            make_constant_node(self.max_length, Type.i32),
+        )
+        if self.truncate_right:
+            return [
+                input_nodes[0],
+                opset.add(input_nodes[0], max_length).output(0),
+                input_nodes[2],
+            ]
         else:
-            max_length = opset.minimum(
-                opset.subtract(input_nodes[1], input_nodes[0]),
-                make_constant_node(self.max_length, Type.i32),
-            )
-            if self.truncate_right:
-                return [
-                    input_nodes[0],
-                    opset.add(input_nodes[0], max_length).output(0),
-                    input_nodes[2],
-                ]
-            else:
-                return [
-                    opset.subtract(input_nodes[1], max_length).output(0),
-                    input_nodes[1],
-                    input_nodes[2],
-                ]
+            return [
+                opset.subtract(input_nodes[1], max_length).output(0),
+                input_nodes[1],
+                input_nodes[2],
+            ]
 
 
 @dataclass
@@ -876,7 +849,6 @@ class TokenWithTypeId:
 @dataclass
 class AddToken(TokenWithTypeId, SpecialTokenWithId):
     enabled_by_default: bool = True
-    depends_on_input: Optional[int] = None
     pass
 
 
@@ -920,14 +892,31 @@ class CombineSegmentsStep(PostTokenizationStep):
         cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1, add_special_tokens: bool = True
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
-        if number_of_inputs == 1:
-            post_processor = post_processor_dict["single"]
-        else:
-            post_processor = post_processor_dict["pair"]
         
-        # TODO: assert that template dict id for for num input 1 can be achieved by dropping the last element of the template dict for num input 2
+        post_processor = post_processor_dict["single"]
+        pair_post_processor = post_processor_dict["pair"]
+        
+        single_num_inputs = len(post_processor)
+        pair_num_inputs = len(pair_post_processor)
+        num_additional = pair_num_inputs - single_num_inputs
+        start_from_idx = single_num_inputs - num_additional
+        
+        assert num_additional > 0 and start_from_idx > 0
+        
+        # Assert that post_processor_dict for pair inputs is extended variant for single inputs
+        for i in range(num_additional):
+            pair_input = pair_post_processor[single_num_inputs + i]
+            single_input = post_processor[start_from_idx + i]
 
-        for idx, template_dict in enumerate(post_processor):
+            assert pair_input.keys() == single_input.keys()
+            for key in pair_input.keys():
+                if key == 'SpecialToken':
+                    assert pair_input[key]["id"] == single_input[key]["id"]
+                # TODO: type_ids do not always match, but appears that they do not influence 'get_ov_subgraph'
+                # elif key == 'Sequence':
+                #     assert pair_input[key]['type_id'] == single_input[key]['type_id']
+
+        for template_dict in post_processor:
             if "SpecialToken" in template_dict:
                 step = AddToken(
                     token=template_dict["SpecialToken"]["id"],
@@ -939,11 +928,6 @@ class CombineSegmentsStep(PostTokenizationStep):
                 inputs.append(step)
             elif "Sequence" in template_dict:
                 inputs.append(Sequence(token_type_id=template_dict["Sequence"]["type_id"]))
-            
-        # add variable end so that when second input is not present make add_special_token also false.
-        if isinstance(inputs[-1], AddToken) and number_of_inputs == 2:
-            inputs[-1].depends_on_input = idx - 1
-
         return cls(inputs, add_special_tokens=add_special_tokens)
 
     @classmethod
@@ -952,17 +936,25 @@ class CombineSegmentsStep(PostTokenizationStep):
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
         inputs.append(
-            AddToken(token=post_processor_dict["cls"][0], token_type_id=0, enabled_by_default=add_special_tokens)
+            AddToken(token=post_processor_dict["cls"][0], 
+                     token_type_id=0,
+                     enabled_by_default=add_special_tokens)
         )
+        inputs[-1].token_id = post_processor_dict["cls"][1]
         inputs.append(Sequence(token_type_id=0))
         inputs.append(
-            AddToken(token=post_processor_dict["sep"][0], token_type_id=0, enabled_by_default=add_special_tokens)
+            AddToken(token=post_processor_dict["sep"][0], 
+                     token_type_id=0, 
+                     enabled_by_default=add_special_tokens)
         )
-        if number_of_inputs == 2:
-            inputs.append(Sequence(token_type_id=1))
-            inputs.append(
-                AddToken(token=post_processor_dict["sep"][0], token_type_id=1, enabled_by_default=add_special_tokens)
-            )
+        inputs[-1].token_id = post_processor_dict["sep"][1]
+
+        # TODO: type_id and token_type_id appears that they do not influence 'get_ov_subgraph'
+        # if number_of_inputs == 2:
+        #     inputs.append(Sequence(token_type_id=1))
+        #     inputs.append(
+        #         AddToken(token=post_processor_dict["sep"][0], token_type_id=1, enabled_by_default=add_special_tokens)
+        #     )
         return cls(inputs, add_special_tokens=add_special_tokens)
 
     @classmethod
@@ -1008,8 +1000,8 @@ class CombineSegmentsStep(PostTokenizationStep):
 
         segment_ids = []
         segment_index = 0
-        for (key, token_id, depends_on_input), group_iter in groupby(
-            self.inputs, key=lambda input: (type(input), getattr(input, "token_id", None), getattr(input, "depends_on_input", None))
+        for (key, token_id), group_iter in groupby(
+            self.inputs, key=lambda input: (type(input), getattr(input, "token_id", None))
         ):
             if key is Sequence:
                 for sequence in group_iter:
@@ -1022,16 +1014,9 @@ class CombineSegmentsStep(PostTokenizationStep):
                 segment_ids.append(self.segment_ids[segment_index])
                 segment_index += len(ids)
 
-                # If we don't add special tokens then end is 0.
-                ends = make_constant_node(len(ids) if self.add_special_tokens else 0, Type.i32).outputs()
-                
-                if depends_on_input is not None:
-                    # if all elements of ends is zero
-                    eq = opset.equal(op_inputs[depends_on_input * 3], make_constant_node([0], Type.i32))
-                    ends = opset.multiply(ends[0], opset.select(eq, make_constant_node([0], Type.i32), make_constant_node([1], Type.i32))).outputs()
-                    
                 op_inputs.extend(make_constant_node(0, Type.i32).outputs())
-                op_inputs.extend(ends)
+                # If we don't add special tokens then end is 0.
+                op_inputs.extend(make_constant_node(len(ids) if self.add_special_tokens else 0, Type.i32).outputs())
                 op_inputs.append(make_constant_node(np.array(ids), Type.i32).output(0))
             else:
                 raise UserInputError(f"Unexpected node type in CombineSegments: {key}")
@@ -1393,42 +1378,12 @@ class TokenizerPipeline:
 
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
-        
-        pshape = PartialShape(["?"])
-        inputs = [op.Parameter(Type.string, pshape) for _ in range(self.number_of_inputs)]
-        string_inputs = inputs
-        
-        assert self.number_of_inputs in [1, 2], "Only 1 or 2 inputs are supported"
-        if self.number_of_inputs > 1:
-            pshape = PartialShape([-1] * self.number_of_inputs)
-            inputs = [op.Parameter(Type.string, pshape)]
-            inp_shape = opset.shape_of(inputs[0], output_type='i32')
-            num_batches = opset.slice(inp_shape, [0], [1], [1])
-            boradcasted_shape = opset.concat([num_batches, make_constant_node([self.number_of_inputs], Type.i32)], axis=0)
-            
-            string_inputs = inputs
+
+        string_inputs = [op.Parameter(Type.string, PartialShape(["?"]))]
 
         processing_outputs = []
         for input_node in string_inputs:
             input_node = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
-            
-            if self.number_of_inputs > 1:
-                begins = opset.broadcast(input_node[0], boradcasted_shape)
-                ends = opset.broadcast(input_node[1], boradcasted_shape)
-
-                num_inputs = opset.slice(inp_shape, [1], [2], [1])
-                equal = opset.equal(num_inputs, make_constant_node(1, Type.i32))
-
-                # If the number of inputs is 1, we need to zero the second dimension 
-                # of the broadcasted begins and ends tensors.
-                # This is done so that the second input string is empty "".
-                multiplier = opset.select(equal, make_constant_node([[1, 0]], Type.i32), make_constant_node([[1, 1]], Type.i32))
-                begins = opset.multiply(begins, multiplier)
-                ends = opset.multiply(ends, multiplier)
-
-                begins_ = opset.reshape(begins, make_constant_node([-1], Type.i32), special_zero=False)
-                ends_ = opset.reshape(ends, make_constant_node([-1], Type.i32), special_zero=False)
-                input_node = [begins_, ends_, input_node[2]]
 
             ragged = []
             if isinstance(self.steps[0], SpecialTokensSplit):
@@ -1452,29 +1407,10 @@ class TokenizerPipeline:
 
             processing_outputs.extend(input_node)
 
-        if self.number_of_inputs > 1:
-            reshape_1 = opset.reshape(processing_outputs[0], boradcasted_shape, special_zero=False)
-            reshape_2 = opset.reshape(processing_outputs[1], boradcasted_shape, special_zero=False)
-            # split begins, ends
-            split_1 = opset.split(reshape_1, axis=1, num_splits=self.number_of_inputs)
-            split_2 = opset.split(reshape_2, axis=1, num_splits=self.number_of_inputs)
-            
-            # [begins, ends, data]
-            inputs_1 = [opset.squeeze(split_1.output(0), [1]), opset.squeeze(split_2.output(0), [1]), processing_outputs[2]]
-
-            # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
-            # TODO: indeed for ends it should've been 1 but for thix bug CSV-xxxxx we set to zero for the moment. 
-            ends_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_2.output(1), [1]))
-            begins_2 = opset.select(equal, make_constant_node([0], Type.i32), opset.squeeze(split_1.output(1), [1]))
-            inputs_2 = [begins_2, ends_2, processing_outputs[2]]
-            
-            # inputs_2 = [opset.squeeze(split_1.output(1), [1]), opset.squeeze(split_2.output(1), [1]), processing_outputs[2]]
-            processing_outputs = [*inputs_1, *inputs_2]
-
         for step in self.post_tokenization_steps:
             processing_outputs = step.get_ov_subgraph(processing_outputs)
 
-        model = Model([*processing_outputs], inputs, name=TOKENIZER_NAME)
+        model = Model(processing_outputs, string_inputs, name=TOKENIZER_NAME)
         return model
 
     def finalize(self) -> None:

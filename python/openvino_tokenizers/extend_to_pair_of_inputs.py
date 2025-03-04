@@ -208,11 +208,11 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
         self.register_matcher(Matcher(combine_seg_pattern, "ModifyCombineSegmentsForPairInput"), callback)
 
 
-def extend_input_to_pair(model: ov.Model, max_length: Optional[int] = None) -> ov.Model:
-
+def extend_input_to_pair(model: ov.Model, max_length: Optional[int] = None):
+    """
+    Extends inplace the input of the model to a pair of inputs.
+    """
     manager = Manager()
     manager.register_pass(AddReshapeForPairInput(model))
     manager.register_pass(ModifyCombineSegmentsForPairInput(model))
-    # manager.register_pass(VisualizeTree("after.svg"))
     manager.run_passes(model)
-    return model
