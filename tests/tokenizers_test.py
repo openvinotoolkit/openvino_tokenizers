@@ -1054,6 +1054,14 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
     check_tokenizer_output((hf_tokenizer, compiled_tokenizer), test_string=test_string)
 
 
+@pytest.fixture(scope="session")
+def hf_model(request):
+    hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True)
+    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2)
+    ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
+    return hf_tokenizer, ov_tokenizer
+
+
 @pytest.mark.parametrize("test_string", [   
     [["hi", "sun in yellow"]],
     [["hi", "\n\n\n\t\t   A    lot\t\tof\twhitespaces\n!\n\n\n\t\n\n"]],
@@ -1062,18 +1070,12 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
     [["Eng... test, string?!", "Multiline\nstring!\nWow!" * 100]],
 ])
 @pytest.mark.parametrize(
-    "model_id",
+    "hf_model",
     [
         "answerdotai/ModernBERT-base",
+        "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     ],
+    indirect=True
 )
-def test_pair_input(model_id, test_string):
-    request = namedtuple("request", ["param"])(model_id)
-
-    hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True)
-    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2)  
-
-    ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
-
-    # Check that output is still the same
-    check_tokenizer_output((hf_tokenizer, ov_tokenizer), test_string=test_string)
+def test_pair_input(hf_model, test_string):
+    check_tokenizer_output(hf_model, test_string=test_string)

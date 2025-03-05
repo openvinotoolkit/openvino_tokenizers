@@ -9,22 +9,16 @@ import numpy as np
 from . import _get_factory
 from openvino import PartialShape
 from openvino.runtime import opset13 as ops
-from openvino.runtime.passes import Matcher, WrapType, Or, AnyInput, MatcherPass, Manager, VisualizeTree
+from openvino.runtime.passes import Matcher, WrapType, Or, AnyInput, MatcherPass, Manager
 
-
-# input [num_batched, 1-2]
-# broadcast to [num_batched, 2]
-# multiply begin, ends to [1, 1] if second input was 2, and to [1, 0] it it was 1.
-# reshape to [num_batched * 1 (or 2)] so that the subsequent graph remains the same
-
-# reshape both begins, ends back to [num_batches, 1-2]
-# split botch begins, ends
-# select for ends zero if input shape was [num_batces, 1]
-# if some constant SpecialToken depends on Sequence inputs which are zerod, zero that constant ends as well
-# extend truncation
-# connect to CombineSegments
 
 class AddReshapeForPairInput(MatcherPass):
+    """
+    This pass is responsible for reshaping the input tensor to a pair of tensors.
+    The input tensor has shape [num_batches, 1-2]. Broadcast the input tensor to shape [num_batches, 2].
+    Multiply the begin and end tensors by [1, 1] if the second input exists, and by [1, 0] if it does not.
+    Reshape the begin and end tensors to [num_batches * 1 (or 2)] to maintain the subsequent graph structure.
+    """
     
     def __init__(self, model: ov.Model, number_of_inputs: int = 2):
         MatcherPass.__init__(self)
@@ -72,19 +66,24 @@ class AddReshapeForPairInput(MatcherPass):
             for input in target_ends:
                 input.replace_source_output(ends_.output(0))
             
-            # TODO: check whether we should return false in orde to not run validate_and_infer types
             return True
 
         self.register_matcher(Matcher(str_unpack_pattern, "AddReshapeForPairInput"), callback)
 
 
 class ModifyCombineSegmentsForPairInput(MatcherPass):
-    def __init__(self, model: ov.Model, max_length: int = 18, number_of_inputs: int = 2):
+    """
+    Reshape both begin and end tensors back to [num_batches, 1-2]. Split both begin and end tensors.
+    Use select to zero the end tensor if the input shape was [num_batches, 1].
+    If any constant SpecialToken depends on sequence inputs that are zeroed, zero that 
+    constant end tensor as well extend truncation logic for left and right truncation.
+    Connect the modified tensors to CombineSegments node
+    """
+    def __init__(self, model: ov.Model):
         MatcherPass.__init__(self)
         combine_seg_pattern = AnyInput(lambda output: output.node.get_type_name() == "CombineSegments")
         
-        is_max_len = lambda x: isinstance(x.node.get_data(), np.ndarray) and x.node.get_data().item(0) == max_length
-        const_pattern = WrapType("opset1::Constant", is_max_len)
+        const_pattern = WrapType("opset1::Constant")
         min_pattern = WrapType("opset1::Minimum", [AnyInput(), const_pattern])        
         
         sub_trunc_pattern = WrapType("opset15::Subtract", [AnyInput(), min_pattern])
@@ -108,14 +107,21 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
 
             combine_seg: ov.Node = matcher.get_match_root()
             num_segments = int(combine_seg.get_input_size() - 1) // 3
+            if num_segments not in [2, 3]:
+                return False
             
             num_sequences = 0
             inputs = []
+            input_signature = [[]] * num_segments
+
             for i in range(num_segments):
                 if isinstance(combine_seg.input_value(3*i).node, ov.op.Constant):
                     # Constant input
-                    pass
+                    if not isinstance(combine_seg.input_value(3*i + 2).node, ov.op.Constant):
+                        return False
+                    input_signature[i] = ('add_tokens', combine_seg.input_value(3*i + 2).node.get_data().item(0))
                 else:
+                    input_signature[i] = 'sequence'
                     # Sequence input
                     num_sequences += 1
 
@@ -138,22 +144,31 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
             reshape_2 = opset.reshape(end, broadcasted_shape, special_zero=False)
             
             # split begins, ends
+            number_of_inputs = 2
             split_1 = opset.split(reshape_1, axis=1, num_splits=number_of_inputs)
             split_2 = opset.split(reshape_2, axis=1, num_splits=number_of_inputs)
-            
-            # TODO: take them from post_processor_dict
-            depends_on_input = 1
+
+            # At the moment, for the second sequence we support only repeating last 2 inputs.
+            # There are 3 options:
+            # 1. [bos_token, sequence_1, eos_token]
+            # 2. [sequence_1, eos_token]
+            # 3. [bos_token, sequence_1]
+            if input_signature[-2:][0] == 'sequence':
+                # Would add [sequence_2, eos_token]
+                spec_token_value = input_signature[-2:][1][1]
+            else:
+                spec_token_value = input_signature[-2:][0][1]
+                # We should repeat [bos_token, sequence_2]
+            depends_on_input = input_signature.index('sequence')
 
             added_spec_begins = make_constant_node(0, Type.i32).output(0)
             added_spec_ends = make_constant_node(1, Type.i32).output(0)
-
-            spec_token_value = inputs[(depends_on_input + 1) * 3 + 2].node.get_data().item(0)
             added_spec_data = make_constant_node([spec_token_value], Type.i32).output(0)
+            new_spec_tokens = [added_spec_begins, added_spec_ends, added_spec_data]
 
+            # If ends for the sequence_2 is nullified, we should nullify special_tokens constant as well
             eq = opset.equal(inputs[depends_on_input * 3 + 1], make_constant_node([0], Type.i32))
-            # if all elements of ends is zero
             added_spec_ends = opset.multiply(added_spec_ends, opset.select(eq, make_constant_node([0], Type.i32), make_constant_node([1], Type.i32))).output(0)
-
 
             # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
             # TODO: indeed for ends it should've been 1 but for thix bug CSV-xxxxx we zeto zero for the moment. 
@@ -183,26 +198,17 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
             elif is_right_trunc:
                 first_input[1] = opset.select(gt, opset.add(first_input[0], half_plus_mod), first_input[1]).output(0)
                 second_input[1] = opset.select(gt, opset.add(second_input[0], half_max_length), second_input[1]).output(0)
-
-            new_inputs = [
-                # add special token at BOS
-                inputs[0], inputs[1], inputs[2],
-                # First Sequence input
-                *first_input,
-                # Add special token at EOS
-                inputs[6], inputs[7], inputs[8], 
-                # Second Sequence input
-                *second_input,
-                # add special tokens at EOS
-                added_spec_begins, added_spec_ends, added_spec_data,
-                # segment ids
-                new_segment_ids
-            ]
+            
+            if len(input_signature) == 3:
+                new_inputs = [*inputs[0:3], *first_input, *inputs[6:], *second_input, *new_spec_tokens, new_segment_ids]
+            if len(input_signature) == 2 and input_signature[0] == 'sequence':
+                new_inputs = [*first_input, *inputs[3:6], *second_input, *new_spec_tokens, new_segment_ids]
+            if len(input_signature) == 2 and input_signature[1] == 'sequence':
+                new_inputs = [*inputs[0:3], *first_input, *new_spec_tokens, *second_input, new_segment_ids]
             
             new_combine_segments = _get_factory().create("CombineSegments", new_inputs)
             ov.utils.replace_node(combine_seg, new_combine_segments)
             
-            # # TODO: copy runtime info
             return True
 
         self.register_matcher(Matcher(combine_seg_pattern, "ModifyCombineSegmentsForPairInput"), callback)

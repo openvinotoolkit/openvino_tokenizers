@@ -142,7 +142,7 @@ def convert_tokenizer(
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
     
-    assert number_of_inputs in [1, 2], "Number of inputs should be 1 or 2"
+    assert params.number_of_inputs in [1, 2], "Number of inputs should be 1 or 2"
 
     if params.number_of_inputs == 2:
         extend_input_to_pair(ov_tokenizers[0] if isinstance(ov_tokenizers, tuple) else ov_tokenizers, 

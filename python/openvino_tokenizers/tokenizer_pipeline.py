@@ -901,7 +901,8 @@ class CombineSegmentsStep(PostTokenizationStep):
         num_additional = pair_num_inputs - single_num_inputs
         start_from_idx = single_num_inputs - num_additional
         
-        assert num_additional > 0 and start_from_idx > 0
+        # We support only adding one additional pair for the second input
+        assert num_additional in [2] and start_from_idx >= 0
         
         # Assert that post_processor_dict for pair inputs is extended variant for single inputs
         for i in range(num_additional):
