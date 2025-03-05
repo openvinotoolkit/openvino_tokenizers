@@ -1073,7 +1073,24 @@ def hf_model(request):
     "hf_model",
     [
         "answerdotai/ModernBERT-base",
+        "amberoad/bert-multilingual-passage-reranking-msmarco",
+        "BAAI/bge-reranker-v2.5-gemma2-lightweight",
+        
         "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
+        "deepseek-ai/deepseek-coder-6.7b-instruct",
+        "cointegrated/rubert-tiny2",
+        "google/mobilebert-uncased",
+        "microsoft/deberta-base",
+        
+        # Rerankers with sentencepiece
+        # "BAAI/bge-reranker-v2-m3",
+        # "BAAI/bge-reranker-base",
+
+        # Fail when string exceed max_length
+        # "sentence-transformers/all-MiniLM-L6-v2",
+        # "rasa/LaBSE",
+        # "bert-base-multilingual-cased",
     ],
     indirect=True
 )

@@ -21,7 +21,7 @@ class AddReshapeForPairInput(MatcherPass):
     """
     
     def __init__(self, model: ov.Model, number_of_inputs: int = 2):
-        MatcherPass.__init__(self)
+        super().__init__()
 
         str_input_pattern = WrapType("opset1::Parameter")
         str_unpack_pattern = WrapType("opset15.StringTensorUnpack", [str_input_pattern])
@@ -80,7 +80,7 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
     Connect the modified tensors to CombineSegments node
     """
     def __init__(self, model: ov.Model):
-        MatcherPass.__init__(self)
+        super().__init__()
         combine_seg_pattern = AnyInput(lambda output: output.node.get_type_name() == "CombineSegments")
         
         const_pattern = WrapType("opset1::Constant")
@@ -96,14 +96,14 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
             nonlocal model, sub_trunc_matcher, add_trunc_matcher
 
             broadcasted_shape = None
-            equual_node = None
+            equal_node = None
             for node in model.get_ops():
                 if node.get_friendly_name() == "broadcasted_shape":
                     broadcasted_shape = node
                 if node.get_friendly_name() == "is_paired_input":
-                    equual_node = node
+                    equal_node = node
             assert broadcasted_shape is not None
-            assert equual_node is not None
+            assert equal_node is not None
 
             combine_seg: ov.Node = matcher.get_match_root()
             num_segments = int(combine_seg.get_input_size() - 1) // 3
@@ -171,11 +171,12 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
             added_spec_ends = opset.multiply(added_spec_ends, opset.select(eq, make_constant_node([0], Type.i32), make_constant_node([1], Type.i32))).output(0)
 
             # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
-            # TODO: indeed for ends it should've been 1 but for thix bug CSV-xxxxx we zeto zero for the moment. 
-            begins_2 = opset.select(equual_node, make_constant_node([0], Type.i32), opset.squeeze(split_1.output(1), [1])).output(0)
-            ends_2 = opset.select(equual_node, make_constant_node([0], Type.i32), opset.squeeze(split_2.output(1), [1])).output(0)
+            # TODO: indeed for ends it should've been 1 but for thix bug CSV-160624 we zeto zero for the moment. 
+            begins_2 = opset.select(equal_node, make_constant_node([0], Type.i32), opset.squeeze(split_1.output(1), [1])).output(0)
+            ends_2 = opset.select(equal_node, make_constant_node([0], Type.i32), opset.squeeze(split_2.output(1), [1])).output(0)
             
-            new_segment_ids = make_constant_node([0 for i in range(num_segments + 2)], Type.i32).output(0)
+            # For the added inputs segment ids should be 1.
+            new_segment_ids = make_constant_node([0 for i in range(num_segments)] + [1, 1], Type.i32).output(0)
 
             first_input = [opset.squeeze(split_1.output(0), [1]).output(0), opset.squeeze(split_2.output(0), [1]).output(0), data]
             second_input = [begins_2, ends_2, data]
@@ -214,7 +215,7 @@ class ModifyCombineSegmentsForPairInput(MatcherPass):
         self.register_matcher(Matcher(combine_seg_pattern, "ModifyCombineSegmentsForPairInput"), callback)
 
 
-def extend_input_to_pair(model: ov.Model, max_length: Optional[int] = None):
+def add_second_input(model: ov.Model):
     """
     Extends inplace the input of the model to a pair of inputs.
     """

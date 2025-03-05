@@ -901,21 +901,30 @@ class CombineSegmentsStep(PostTokenizationStep):
         num_additional = pair_num_inputs - single_num_inputs
         start_from_idx = single_num_inputs - num_additional
         
-        # We support only adding one additional pair for the second input
-        assert num_additional in [2] and start_from_idx >= 0
+        if not num_additional in [2] and start_from_idx >= 0:
+            raise UserInputError("Only adding one additional pair for the second input is currently supported")
+
+        is_two_inputs_supported = True
         
         # Assert that post_processor_dict for pair inputs is extended variant for single inputs
         for i in range(num_additional):
             pair_input = pair_post_processor[single_num_inputs + i]
             single_input = post_processor[start_from_idx + i]
 
-            assert pair_input.keys() == single_input.keys()
+            is_two_inputs_supported = pair_input.keys() == single_input.keys()
+            if not is_two_inputs_supported:
+                break
             for key in pair_input.keys():
                 if key == 'SpecialToken':
-                    assert pair_input[key]["id"] == single_input[key]["id"]
-                # TODO: type_ids do not always match, but appears that they do not influence 'get_ov_subgraph'
-                # elif key == 'Sequence':
-                #     assert pair_input[key]['type_id'] == single_input[key]['type_id']
+                    is_two_inputs_supported = pair_input[key]["id"] == single_input[key]["id"]
+                    
+                    if not is_two_inputs_supported:
+                        break
+        
+        if number_of_inputs == 2 and not is_two_inputs_supported:
+            raise UserInputError(f"Two inputs not supported for this post-processors "
+                                 f"single input post_processor {post_processor} " 
+                                 f"and pair input post_processor {pair_post_processor}")
 
         for template_dict in post_processor:
             if "SpecialToken" in template_dict:
@@ -950,12 +959,6 @@ class CombineSegmentsStep(PostTokenizationStep):
         )
         inputs[-1].token_id = post_processor_dict["sep"][1]
 
-        # TODO: type_id and token_type_id appears that they do not influence 'get_ov_subgraph'
-        # if number_of_inputs == 2:
-        #     inputs.append(Sequence(token_type_id=1))
-        #     inputs.append(
-        #         AddToken(token=post_processor_dict["sep"][0], token_type_id=1, enabled_by_default=add_special_tokens)
-        #     )
         return cls(inputs, add_special_tokens=add_special_tokens)
 
     @classmethod

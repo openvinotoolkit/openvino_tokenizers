@@ -10,7 +10,7 @@ from typing import Any, Optional, Tuple, Union
 
 from openvino import Model, Type
 from openvino.exceptions import OVTypeError
-from openvino_tokenizers.extend_to_pair_of_inputs import extend_input_to_pair
+from openvino_tokenizers.tokenizer_transformations import add_second_input
 
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.utils import (
@@ -145,8 +145,7 @@ def convert_tokenizer(
     assert params.number_of_inputs in [1, 2], "Number of inputs should be 1 or 2"
 
     if params.number_of_inputs == 2:
-        extend_input_to_pair(ov_tokenizers[0] if isinstance(ov_tokenizers, tuple) else ov_tokenizers, 
-                             max_length=params.max_length)
+        add_second_input(ov_tokenizers[0] if isinstance(ov_tokenizers, tuple) else ov_tokenizers)
 
     if isinstance(ov_tokenizers, tuple):
         return (
