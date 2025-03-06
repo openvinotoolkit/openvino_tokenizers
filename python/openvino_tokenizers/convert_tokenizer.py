@@ -74,7 +74,7 @@ def convert_tokenizer(
     use_sentencepiece_backend: bool = False,
     utf8_replace_mode: Optional[UTF8ReplaceMode] = UTF8ReplaceMode.REPLACE,
     max_length: Optional[int] = None,
-    number_of_inputs: int = 1
+    number_of_inputs: int = 1,
 ) -> Union[Model, Tuple[Model, Model]]:
     """
     Converts a given tokenizer object into an OpenVINO-compatible model.
@@ -116,6 +116,7 @@ def convert_tokenizer(
         is_sentencepiece_model,
         is_tiktoken_model,
     )
+
     # For some reason dataclass transforms None -> (None,)
     if params.max_length and params.max_length != (None,):
         tokenizer_object.model_max_length = params.max_length
@@ -141,7 +142,7 @@ def convert_tokenizer(
 
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
-    
+
     assert params.number_of_inputs in [1, 2], "Number of inputs should be 1 or 2"
 
     if params.number_of_inputs == 2:

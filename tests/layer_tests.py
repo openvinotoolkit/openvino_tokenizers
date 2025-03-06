@@ -348,7 +348,7 @@ def test_regex_split(test_string, expected, layer):
     res_ov = compiled_model([test_string])[0]
     assert (res_ov == expected).all()
 
-    
+
 def create_special_tokens_split(special_tokens: List[SpecialToken]) -> ov.CompiledModel:
     layer = SpecialTokensSplit(special_tokens)
 
@@ -395,7 +395,7 @@ def test_special_tokens_split(special_tokens, text, expected, expected_skips):
     res, skips = compiled_model([text]).values()
     assert (res == expected).all()
     assert (skips == expected_skips).all()
-    
+
 
 ################################################
 ######## Test RaggedToDense Operation ##########

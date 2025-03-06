@@ -1062,37 +1062,37 @@ def hf_model(request):
     return hf_tokenizer, ov_tokenizer
 
 
-@pytest.mark.parametrize("test_string", [   
-    [["hi", "sun in yellow"]],
-    [["hi", "\n\n\n\t\t   A    lot\t\tof\twhitespaces\n!\n\n\n\t\n\n"]],
-    [["Eng... test, string?!", "Multiline\nstring!\nWow!"]],
-    [["Eng... test, string?!" * 100, "Multiline\nstring!\nWow!"]],
-    [["Eng... test, string?!", "Multiline\nstring!\nWow!" * 100]],
-])
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        [["hi", "sun in yellow"]],
+        [["hi", "\n\n\n\t\t   A    lot\t\tof\twhitespaces\n!\n\n\n\t\n\n"]],
+        [["Eng... test, string?!", "Multiline\nstring!\nWow!"]],
+        [["Eng... test, string?!" * 100, "Multiline\nstring!\nWow!"]],
+        [["Eng... test, string?!", "Multiline\nstring!\nWow!" * 100]],
+    ],
+)
 @pytest.mark.parametrize(
     "hf_model",
     [
         "answerdotai/ModernBERT-base",
         "amberoad/bert-multilingual-passage-reranking-msmarco",
         "BAAI/bge-reranker-v2.5-gemma2-lightweight",
-        
         "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
         "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
         "deepseek-ai/deepseek-coder-6.7b-instruct",
         "cointegrated/rubert-tiny2",
         "google/mobilebert-uncased",
         "microsoft/deberta-base",
-        
         # Rerankers with sentencepiece
         # "BAAI/bge-reranker-v2-m3",
         # "BAAI/bge-reranker-base",
-
         # Fail when string exceed max_length
         # "sentence-transformers/all-MiniLM-L6-v2",
         # "rasa/LaBSE",
         # "bert-base-multilingual-cased",
     ],
-    indirect=True
+    indirect=True,
 )
 def test_pair_input(hf_model, test_string):
     check_tokenizer_output(hf_model, test_string=test_string)

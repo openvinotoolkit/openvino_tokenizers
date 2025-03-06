@@ -277,9 +277,11 @@ class CharsmapStep(NormalizationStep):
         if self.charsmap is not None and other.charsmap is not None:
             raise ValueError("Cannot add two CharsmapStep instances with non-None charsmap attributes")
         if (
-                self.normalization_form is not None and other.normalization_form is not None
-                and self.normalization_form != "identity" and other.normalization_form != "identity"
-                and self.normalization_form != other.normalization_form
+            self.normalization_form is not None
+            and other.normalization_form is not None
+            and self.normalization_form != "identity"
+            and other.normalization_form != "identity"
+            and self.normalization_form != other.normalization_form
         ):
             raise ValueError("Cannot add two CharsmapStep instances with different normalization_form attributes")
 
@@ -292,7 +294,6 @@ class CharsmapStep(NormalizationStep):
             case_fold=self.case_fold or other.case_fold,
             nmt=self.nmt or other.nmt,
         )
-
 
     @classmethod
     def from_hf_step_json(cls, step_json: Dict[str, Any]) -> "CharsmapStep":
@@ -892,20 +893,20 @@ class CombineSegmentsStep(PostTokenizationStep):
         cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1, add_special_tokens: bool = True
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
-        
+
         post_processor = post_processor_dict["single"]
         pair_post_processor = post_processor_dict["pair"]
-        
+
         single_num_inputs = len(post_processor)
         pair_num_inputs = len(pair_post_processor)
         num_additional = pair_num_inputs - single_num_inputs
         start_from_idx = single_num_inputs - num_additional
-        
-        if not num_additional in [2] and start_from_idx >= 0:
+
+        if number_of_inputs == 2 and not num_additional in [2] and not start_from_idx >= 0:
             raise UserInputError("Only adding one additional pair for the second input is currently supported")
 
         is_two_inputs_supported = True
-        
+
         # Assert that post_processor_dict for pair inputs is extended variant for single inputs
         for i in range(num_additional):
             pair_input = pair_post_processor[single_num_inputs + i]
@@ -915,16 +916,18 @@ class CombineSegmentsStep(PostTokenizationStep):
             if not is_two_inputs_supported:
                 break
             for key in pair_input.keys():
-                if key == 'SpecialToken':
+                if key == "SpecialToken":
                     is_two_inputs_supported = pair_input[key]["id"] == single_input[key]["id"]
-                    
+
                     if not is_two_inputs_supported:
                         break
-        
+
         if number_of_inputs == 2 and not is_two_inputs_supported:
-            raise UserInputError(f"Two inputs not supported for this post-processors "
-                                 f"single input post_processor {post_processor} " 
-                                 f"and pair input post_processor {pair_post_processor}")
+            raise UserInputError(
+                f"Two inputs not supported for this post-processors "
+                f"single input post_processor {post_processor} "
+                f"and pair input post_processor {pair_post_processor}"
+            )
 
         for template_dict in post_processor:
             if "SpecialToken" in template_dict:
@@ -946,16 +949,12 @@ class CombineSegmentsStep(PostTokenizationStep):
     ) -> "CombineSegmentsStep":
         inputs: List[TokenWithTypeId] = []
         inputs.append(
-            AddToken(token=post_processor_dict["cls"][0], 
-                     token_type_id=0,
-                     enabled_by_default=add_special_tokens)
+            AddToken(token=post_processor_dict["cls"][0], token_type_id=0, enabled_by_default=add_special_tokens)
         )
         inputs[-1].token_id = post_processor_dict["cls"][1]
         inputs.append(Sequence(token_type_id=0))
         inputs.append(
-            AddToken(token=post_processor_dict["sep"][0], 
-                     token_type_id=0, 
-                     enabled_by_default=add_special_tokens)
+            AddToken(token=post_processor_dict["sep"][0], token_type_id=0, enabled_by_default=add_special_tokens)
         )
         inputs[-1].token_id = post_processor_dict["sep"][1]
 
@@ -1150,13 +1149,13 @@ class VocabDecoderStep(DecodingStep):
 
     @classmethod
     def from_hf_json(
-            cls,
-            tokenizer_json: Dict[str, Any],
-            pipeline_vocab: Optional[List[str]],
-            added_tokens: Optional[List[int]] = None,
-            skip_tokens: Optional[List[int]] = None,
-            do_skip_tokens: bool = True,
-            is_byte_level: bool = False,
+        cls,
+        tokenizer_json: Dict[str, Any],
+        pipeline_vocab: Optional[List[str]],
+        added_tokens: Optional[List[int]] = None,
+        skip_tokens: Optional[List[int]] = None,
+        do_skip_tokens: bool = True,
+        is_byte_level: bool = False,
     ) -> "VocabDecoderStep":
         model_type = tokenizer_json["model"]["type"]
 
@@ -1365,20 +1364,16 @@ class TokenizerPipeline:
 
         return step
 
-
     def merge_normalization_steps(self) -> None:
         self.steps = [self.replace_normalization_step(step) for step in self.steps]
 
         charsmap_steps = [step for step in self.steps if isinstance(step, CharsmapStep)]
         if len(charsmap_steps) > 1:
-            first_step_position = next(
-                idx for idx, step in enumerate(self.steps) if isinstance(step, CharsmapStep)
-            )
+            first_step_position = next(idx for idx, step in enumerate(self.steps) if isinstance(step, CharsmapStep))
             steps_without_charsmaps = [step for step in self.steps if not isinstance(step, CharsmapStep)]
 
             steps_without_charsmaps.insert(first_step_position, reduce(add, charsmap_steps))
             self.steps = steps_without_charsmaps
-
 
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
