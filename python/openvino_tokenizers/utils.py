@@ -65,6 +65,8 @@ class TokenzierConversionParams:
     utf8_replace_mode : Optional[UTF8ReplaceMode]
         Specifies the UTF-8 replacement mode during tokenization.
         Allowed values are UTF8ReplaceMode.DISABLE, UTF8ReplaceMode.IGNORE and UTF8ReplaceMode.REPLACE. Default is UTF8ReplaceMode.REPLACE.
+    number_of_inputs: int
+        The number of inputs for the model. Default is 1.
     """
 
     with_detokenizer: bool = False
