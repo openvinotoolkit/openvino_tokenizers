@@ -256,10 +256,8 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                             }
                             break;
                         case (SplitMode::MERGED_WITH_NEXT):
-                            std::cerr << "MERGED_WITH_NEXT" << std::endl;
                             if (invert == false) {
                                 if (last_begin != -1) { begin = last_begin; }
-                                std::cerr << "begin: " << begin << " end: " << end << std::endl;
                             } else {
                                 last_begin = begin;
                                 return;
@@ -270,7 +268,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                     // Clamp begin and end to the string length
                     begin = std::max(0, begin);
                     end = std::min(static_cast<int>(str.length()), end);
-                    std::cerr << "After clamp@ begin: " << begin << " end: " << end << std::endl;
 
                     new_begins[ragged_offset] = begins[ragged_col] + begin;
                     if (num_splits == m_max_splits) {
