@@ -57,11 +57,11 @@ multilingual_test_strings = [
 ]
 emoji_test_strings = [
     "😀",
-    # "😁😁",
-    # "🤣🤣🤣😁😁😁😁",
-    # "🫠",  # melting face
-    # "🤷‍♂️",
-    # "🤦🏼‍♂️",
+    "😁😁",
+    "🤣🤣🤣😁😁😁😁",
+    "🫠",  # melting face
+    "🤷‍♂️",
+    "🤦🏼‍♂️",
 ]
 misc_strings = [
     "",
@@ -131,7 +131,7 @@ sentencepiece_models = [
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
-    # "THUDM/glm-4-9b-chat",
+    "THUDM/glm-4-9b-chat",
 ]
 wordlevel_models = ["cisco-ai/mini-bart-g2p"]
 
@@ -239,12 +239,6 @@ def hf_sentencepiece_tokenizers_with_padding_sides(
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
     if not hf_tokenizer.is_fast and is_fast_tokenizer:
         pytest.skip("Fast tokenizer should use Rust backend.")
-    # if (
-    #     is_fast_tokenizer
-    #     and not is_sentencepiece_backend
-    #     and isinstance(hf_tokenizer.backend_tokenizer.model, Unigram)
-    # ):
-    #     pytest.skip("Unigram model supports only sentencepiece backend.")
 
     return hf_tokenizer
 
@@ -1093,9 +1087,9 @@ def hf_model(request):
         "cointegrated/rubert-tiny2",
         "google/mobilebert-uncased",
         "microsoft/deberta-base",
-        # Rerankers with sentencepiece
-        # "BAAI/bge-reranker-v2-m3",
-        # "BAAI/bge-reranker-base",
+        # Rerankers with Unigram
+        "BAAI/bge-reranker-v2-m3",
+        "BAAI/bge-reranker-base",
         # Fail when string exceed max_length
         # "sentence-transformers/all-MiniLM-L6-v2",
         # "rasa/LaBSE",
