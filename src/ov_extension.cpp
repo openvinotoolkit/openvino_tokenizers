@@ -54,6 +54,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<SentencepieceStreamDetokenizer>>(),
             std::make_shared<ov::OpExtension<CaseFold>>(),
             std::make_shared<ov::OpExtension<NormalizeUnicode>>(),
+            std::make_shared<ov::OpExtension<UnigramTokenizer>>(),
             OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS
 }));
 //! [ov_extension:entry_point]

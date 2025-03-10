@@ -215,6 +215,13 @@ def apply_unicode_to_bytes(token: str, return_corrupted_tokens: bool = False) ->
         return b""
 
 
+def transform_unigram_token_to_bytes(token: str, byte_fallback: bool = False) -> bytes:
+    token = token.replace("▁", " ")
+    if byte_fallback and len(token) == 6 and token.startswith("<0x") and token.endswith(">"):
+        return bytes.fromhex(token[3:5])
+    return token.encode()
+
+
 def get_hf_tokenizer_attribute(
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
     attributes: Tuple[str],

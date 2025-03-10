@@ -30,5 +30,6 @@
 #include "wordpiece_tokenizer.hpp"
 #include "case_fold.hpp"
 #include "normalize_unicode.hpp"
+#include "unigram_tokenizer.hpp"
 
 #include "tensorflow_translators.hpp"

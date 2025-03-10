@@ -10,9 +10,9 @@ from typing import Any, Optional, Tuple, Union
 
 from openvino import Model, Type
 from openvino.exceptions import OVTypeError
-from openvino_tokenizers.tokenizer_transformations import add_second_input
 
 from openvino_tokenizers.constants import UTF8ReplaceMode
+from openvino_tokenizers.tokenizer_transformations import add_second_input
 from openvino_tokenizers.utils import (
     TokenzierConversionParams,
     change_inputs_type,
@@ -112,7 +112,6 @@ def convert_tokenizer(
         convert_fast_tokenizer,
         convert_sentencepiece_model_tokenizer,
         convert_tiktoken_model_tokenizer,
-        is_sentencepiece_bpe_model,
         is_sentencepiece_model,
         is_tiktoken_model,
     )
@@ -122,9 +121,8 @@ def convert_tokenizer(
         tokenizer_object.model_max_length = params.max_length
 
     can_use_sentencepiece = is_sentencepiece_model(tokenizer_object)
-    is_unigram = can_use_sentencepiece and not is_sentencepiece_bpe_model(tokenizer_object)
     if isinstance(tokenizer_object, PreTrainedTokenizerBase):
-        if can_use_sentencepiece and (is_unigram or not tokenizer_object.is_fast or params.use_sentencepiece_backend):
+        if can_use_sentencepiece and (not tokenizer_object.is_fast or params.use_sentencepiece_backend):
             logger.info("Convert tokenizer using SentencePiece .model file.")
             ov_tokenizers = convert_sentencepiece_model_tokenizer(tokenizer_object, params)
         elif is_tiktoken_model(tokenizer_object):

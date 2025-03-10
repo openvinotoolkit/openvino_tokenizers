@@ -15,6 +15,16 @@ def pytest_addoption(parser):
 PASS_RATES_FILE = Path(__file__).parent / "pass_rates.json"
 STATUSES_FILE = Path(__file__).parent / "stats.json"
 
+# todo: create a unified source of tokenizer models and types for all tests
+unigram_tokenizers = [
+    "camembert-base",
+    "google/flan-t5-xxl",
+    "BAAI/bge-reranker-v2-m3",
+    "microsoft/deberta-v3-base",  # byte fallback
+    "facebook/musicgen-small",
+    "rinna/bilingual-gpt-neox-4b",  # t5-tokenizer
+]
+
 
 def build_coverege_report(session: pytest.Session) -> None:
     import pandas as pd
@@ -30,9 +40,19 @@ def build_coverege_report(session: pytest.Session) -> None:
         if not pd.isnull(row["hf_bpe_tokenizers_with_padding_sides_param"]):
             return "BPE"
         if not pd.isnull(row["hf_sentencepiece_tokenizers_param"]):
-            return "SentencePiece"
+            if row["is_sentencepiece_backend_param"]:
+                return "SentencePiece"
+            elif row["hf_sentencepiece_tokenizers_param"] in unigram_tokenizers:
+                return "Unigram"
+            else:
+                return "BPE"
         if not pd.isnull(row["hf_sentencepiece_tokenizers_with_padding_sides_param"]):
-            return "SentencePiece"
+            if row["is_sentencepiece_backend_param"]:
+                return "SentencePiece"
+            elif row["hf_sentencepiece_tokenizers_with_padding_sides_param"] in unigram_tokenizers:
+                return "Unigram"
+            else:
+                return "BPE"
         if not pd.isnull(row["hf_tiktoken_tokenizers_param"]):
             return "Tiktoken"
         if not pd.isnull(row["hf_tiktoken_tokenizers_with_padding_sides_param"]):
@@ -61,11 +81,9 @@ def build_coverege_report(session: pytest.Session) -> None:
     )
     results_df.status = (results_df.status == "passed").astype(int)
     results_df = results_df.dropna(subset=["hf_wordpiece_tokenizers_param"])
-    results_df["Model"] = (
-        results_df.hf_wordpiece_tokenizers_param
-        + ["_legacy" * value for value in results_df.index.str.contains("Slow")]
-        + ["_sp_backend" * value for value in results_df.index.str.contains("sp_backend")]
-    )
+    results_df["Model"] = results_df.hf_wordpiece_tokenizers_param + [
+        "_legacy" * value for value in results_df.index.str.contains("Slow")
+    ]
     results_df = results_df[["Tokenizer Type", "Model", "test_string", "status"]]
     grouped_by_model = results_df.groupby(["Tokenizer Type", "Model"]).agg({"status": ["mean", "count"]}).reset_index()
     grouped_by_model.columns = ["Tokenizer Type", "Model", "Output Matched, %", "Number of Tests"]

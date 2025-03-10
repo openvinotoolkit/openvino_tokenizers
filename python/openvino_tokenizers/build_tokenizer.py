@@ -1,7 +1,6 @@
 from typing import Iterable, Tuple
 
-from openvino import Model, PartialShape, Type
-from openvino import op
+from openvino import Model, PartialShape, Type, op
 from openvino import opset12 as opset
 from openvino.utils.types import make_constant_node
 

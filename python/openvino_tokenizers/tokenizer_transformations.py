@@ -1,15 +1,10 @@
-from typing import Iterable, Tuple, Optional, Set
-
-from openvino import Model, PartialShape, Type, op
-from openvino import op
 import openvino as ov
+from openvino import PartialShape, Type, op
 from openvino import opset15 as opset
+from openvino.runtime.passes import AnyInput, Manager, Matcher, MatcherPass, WrapType
 from openvino.utils.types import make_constant_node
-import numpy as np
+
 from . import _get_factory
-from openvino import PartialShape
-from openvino.runtime import opset13 as ops
-from openvino.runtime.passes import Matcher, WrapType, Or, AnyInput, MatcherPass, Manager
 
 
 class AddReshapeForPairInput(MatcherPass):
