@@ -1457,6 +1457,17 @@ class TokenizerPipeline:
 
         self.steps = [step for step in self.steps if not isinstance(step, WhitespaceSplitStep)]
 
+    def finalize(self) -> None:
+        if self.finalized:
+            return
+
+        self.merge_normalization_steps()
+        self.del_duplicated_split_steps()
+
+        for step in copy(self.steps):
+            step.finalize()
+        self.finalized = True
+
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
 
@@ -1493,17 +1504,6 @@ class TokenizerPipeline:
 
         model = Model(processing_outputs, string_inputs, name=TOKENIZER_NAME)
         return model
-
-    def finalize(self) -> None:
-        if self.finalized:
-            return
-
-        self.merge_normalization_steps()
-        self.del_duplicated_split_steps()
-
-        for step in copy(self.steps):
-            step.finalize()
-        self.finalized = True
 
     @property
     def normalization_steps(self) -> List[NormalizationStep]:

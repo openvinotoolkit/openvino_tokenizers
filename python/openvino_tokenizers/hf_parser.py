@@ -199,7 +199,7 @@ class TransformersTokenizerPipelineParser:
         "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", "")),
         "Precompiled": CharsmapStep.from_hf_step_json,
         "Strip": lambda step_dict: RegexNormalizationStep.strip_regex(
-            step_dict.get("left", False), step_dict.get("right", False)
+            step_dict.get("strip_left", False), step_dict.get("strip_right", False)
         ),
     }
 
