@@ -109,7 +109,6 @@ bpe_models = [
     "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
     "allenai/OLMo-1B-hf",
     "answerdotai/ModernBERT-base",
-    # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
 ]
 sentencepiece_models = [
     # bpe
