@@ -14,7 +14,6 @@ from openvino import Core, Model, Type, properties, save_model
 from openvino_tokenizers import convert_tokenizer
 from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info_to_hf_attribute_map
 from openvino_tokenizers.utils import TokenzierConversionParams, get_hf_tokenizer_attribute
-from tokenizers.models import Unigram
 from transformers import AutoTokenizer
 
 from tests.utils import get_hf_tokenizer
@@ -110,25 +109,23 @@ bpe_models = [
     "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
     "allenai/OLMo-1B-hf",
     "answerdotai/ModernBERT-base",
-    # "google/flan-t5-xxl",  # needs Precompiled/CharsMap
-    # "jinmang2/textcnn-ko-dialect-classifier",  # Needs Metaspace Pretokenizer
-    # "hyunwoongko/blenderbot-9B",  # hf script to get fast tokenizer doesn't work
 ]
 sentencepiece_models = [
+    # bpe
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
     "baichuan-inc/Baichuan2-7B-Chat",
-    "camembert-base",
     "NousResearch/Llama-2-13b-hf",
-    "xlm-roberta-base",
-    "microsoft/deberta-v3-base",
-    "xlnet-base-cased",
     # "THUDM/chatglm3-6b",  # _pad doesn't support padding side - broke in 4.45
-    "t5-base",
-    "facebook/musicgen-small",
-    "rinna/bilingual-gpt-neox-4b",
     "microsoft/Phi-3-mini-128k-instruct",
     "mlx-community/quantized-gemma-7b-it",
+    # unigram
+    "camembert-base",
+    "google/flan-t5-xxl",
+    "BAAI/bge-reranker-v2-m3",
+    "microsoft/deberta-v3-base",  # byte fallback
+    "facebook/musicgen-small",
+    "rinna/bilingual-gpt-neox-4b",  # t5-tokenizer
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
@@ -227,12 +224,6 @@ def hf_sentencepiece_tokenizers(request, is_fast_tokenizer, is_sentencepiece_bac
     hf_tokenizer = get_hf_tokenizer(request, fast_tokenizer=is_fast_tokenizer, trust_remote_code=True)
     if not hf_tokenizer.is_fast and is_fast_tokenizer:
         pytest.skip("Fast tokenizer should use Rust backend.")
-    if (
-        is_fast_tokenizer
-        and not is_sentencepiece_backend
-        and isinstance(hf_tokenizer.backend_tokenizer.model, Unigram)
-    ):
-        pytest.skip("Unigram model supports only sentencepiece backend.")
 
     return hf_tokenizer
 
@@ -247,12 +238,6 @@ def hf_sentencepiece_tokenizers_with_padding_sides(
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
     if not hf_tokenizer.is_fast and is_fast_tokenizer:
         pytest.skip("Fast tokenizer should use Rust backend.")
-    if (
-        is_fast_tokenizer
-        and not is_sentencepiece_backend
-        and isinstance(hf_tokenizer.backend_tokenizer.model, Unigram)
-    ):
-        pytest.skip("Unigram model supports only sentencepiece backend.")
 
     return hf_tokenizer
 
@@ -461,7 +446,7 @@ def check_tokenizer_output(
     skip_missing_outputs: bool = False,
     hf_tokenizer_kwargs: Optional[Dict[str, Any]] = None,
     calculate_diff: bool = False,
-) -> None:
+) -> Tuple[bool, str]:
     hf_tokenizer, ov_tokenizer = tokenizers
     hf_tokenizer_kwargs = {} if hf_tokenizer_kwargs is None else hf_tokenizer_kwargs
 
@@ -478,10 +463,15 @@ def check_tokenizer_output(
         assert output_name in ov_tokenized, f"OV Tokenizer missing output: {output_name}"
         ov_result = ov_tokenized[output_name]
 
-        outputs = f"\n{hf_result}\n{ov_result}"
+        outputs = f"\nHF: {hf_result}\nOV: {ov_result}"
         diff = print_diff(hf_result, ov_result) if calculate_diff and ov_result.shape != hf_result.shape else outputs
-        assert ov_result.shape == hf_result.shape, diff
-        assert np.all(ov_result == hf_result), outputs
+        if ov_result.shape != hf_result.shape:
+            return False, diff
+
+        if not np.all(ov_result == hf_result):
+            return False, outputs
+
+        return True, ""
 
 
 def check_detokenizer_output(
@@ -510,13 +500,14 @@ def check_detokenizer_output(
 )
 def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         wordpiece_tokenizers,
         test_string=test_string,
         skip_missing_outputs=False,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
         calculate_diff=True,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -535,12 +526,13 @@ def test_hf_wordpiece_tokenizers_multiple_strings(
         "add_special_tokens": do_add_special_tokens,
         "padding": "max_length" if use_max_padding else True,
     }
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         wordpiece_tokenizers_with_padding_options,
         test_string=test_string,
         skip_missing_outputs=False,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -577,12 +569,13 @@ def test_wordpiece_model_detokenizer(
 )
 def test_sentencepiece_model_tokenizer(sentencepice_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         sentencepice_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -603,13 +596,14 @@ def test_sentencepiece_model_tokenizer_chat(sentencepice_tokenizers, test_chat, 
         test_string = hf_tokenizer.apply_chat_template(test_chat[1:], tokenize=False, add_generation_prompt=True)
 
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         sentencepice_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
         calculate_diff=True,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -628,12 +622,13 @@ def test_hf_sentencepiece_tokenizers_multiple_strings(
         "add_special_tokens": do_add_special_tokens,
         "padding": True,
     }
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         sentencepiece_tokenizers_with_padding_options,
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -670,13 +665,14 @@ def test_sentencepiece_model_detokenizer(
 )
 def test_hf_bpe_tokenizers_outputs(bpe_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         bpe_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
         calculate_diff=True,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -690,12 +686,13 @@ def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_chat, do_add_special_toke
 
     test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         bpe_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -714,12 +711,13 @@ def test_hf_bpe_tokenizers_multiple_strings(
         "add_special_tokens": do_add_special_tokens,
         "padding": "max_length" if use_max_padding else True,
     }
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         bpe_tokenizers_with_padding_options,
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -756,13 +754,14 @@ def test_bpe_detokenizer(
 )
 def test_tiktoken_tokenizers(tiktoken_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         tiktoken_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
         calculate_diff=True,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -776,12 +775,13 @@ def test_tiktoken_model_tokenizer_chat(tiktoken_tokenizers, test_chat, do_add_sp
 
     test_string = hf_tokenizer.apply_chat_template(test_chat, tokenize=False, add_generation_prompt=True)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         tiktoken_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,  # chatglm has token_type_ids output that we omit
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -800,12 +800,13 @@ def test_hf_tiktoken_tokenizers_multiple_strings(
         "add_special_tokens": do_add_special_tokens,
         "padding": True,
     }
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         tiktoken_tokenizers_with_padding_options,
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -846,13 +847,14 @@ def test_tiktoken_detokenizer(
 )
 def test_wordlevel_tokenizers(wordlevel_tokenizers, test_string, do_add_special_tokens):
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens, "padding": True}
-    check_tokenizer_output(
+    result, diff = check_tokenizer_output(
         wordlevel_tokenizers,
         test_string=test_string,
         skip_missing_outputs=True,
         hf_tokenizer_kwargs=hf_tokenizer_kwargs,
         calculate_diff=True,
     )
+    assert result, diff
 
 
 @pytest.mark.parametrize(
@@ -1055,7 +1057,7 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
 
 
 @pytest.fixture(scope="session")
-def hf_model(request):
+def ov_hf_tokenizer_pair(request):
     hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True)
     ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2)
     ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
@@ -1073,7 +1075,7 @@ def hf_model(request):
     ],
 )
 @pytest.mark.parametrize(
-    "hf_model",
+    "ov_hf_tokenizer_pair",
     [
         "answerdotai/ModernBERT-base",
         "amberoad/bert-multilingual-passage-reranking-msmarco",
@@ -1084,9 +1086,11 @@ def hf_model(request):
         "cointegrated/rubert-tiny2",
         "google/mobilebert-uncased",
         "microsoft/deberta-base",
-        # Rerankers with sentencepiece
-        # "BAAI/bge-reranker-v2-m3",
-        # "BAAI/bge-reranker-base",
+        # Rerankers with Unigram
+        pytest.param(
+            "BAAI/bge-reranker-v2-m3",
+            marks=pytest.mark.xfail(reason="Two special tokens between inputs is not supported yet")
+        ),
         # Fail when string exceed max_length
         # "sentence-transformers/all-MiniLM-L6-v2",
         # "rasa/LaBSE",
@@ -1094,5 +1098,6 @@ def hf_model(request):
     ],
     indirect=True,
 )
-def test_pair_input(hf_model, test_string):
-    check_tokenizer_output(hf_model, test_string=test_string)
+def test_pair_input(ov_hf_tokenizer_pair, test_string):
+    result, diff = check_tokenizer_output(ov_hf_tokenizer_pair, test_string=test_string)
+    assert result, diff

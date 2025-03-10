@@ -177,6 +177,9 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         }
     }
 
+    // max new shapes estimate is number_of_chars + number_of_string (because of empty strings, where begins == ends)
+    const size_t max_shape = num_chars + inputs[2].get_size();
+
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();
@@ -187,7 +190,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     bool init_skips = false;
     if (has_skips) {
         skips = inputs[5].data<bool>();
-        outputs[5].set_shape(Shape{num_chars});
+        outputs[5].set_shape(Shape{max_shape});
     } else {
         skips = new bool[num_rows];
         init_skips = true;
@@ -198,8 +201,8 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     outputs[1].set_shape(inputs[1].get_shape());
     outputs[4] = inputs[4];
 
-    outputs[2].set_shape(Shape{num_chars});
-    outputs[3].set_shape(Shape{num_chars});
+    outputs[2].set_shape(Shape{max_shape});
+    outputs[3].set_shape(Shape{max_shape});
 
     // Get pointers in the output tensors
     auto new_ragged_begins = outputs[0].data<int32_t>();
@@ -210,7 +213,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     if (has_skips) {
         new_skips = outputs[5].data<bool>();
     } else {
-        new_skips = new bool[num_chars];
+        new_skips = new bool[max_shape];
     };
     int32_t ragged_offset = 0;
 

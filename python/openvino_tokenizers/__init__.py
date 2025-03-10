@@ -2,6 +2,7 @@
 # Copyright (C) 2018-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 import functools
+import logging
 import os
 import site
 import sys
@@ -11,7 +12,6 @@ from typing import Callable, Optional
 
 import openvino
 from openvino.utils.node_factory import NodeFactory
-import logging
 
 
 logger = logging.getLogger(__name__)
