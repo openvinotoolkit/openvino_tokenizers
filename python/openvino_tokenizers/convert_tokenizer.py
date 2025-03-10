@@ -10,9 +10,9 @@ from typing import Any, Optional, Tuple, Union
 
 from openvino import Model, Type
 from openvino.exceptions import OVTypeError
-from openvino_tokenizers.tokenizer_transformations import add_second_input
 
 from openvino_tokenizers.constants import UTF8ReplaceMode
+from openvino_tokenizers.tokenizer_transformations import add_second_input
 from openvino_tokenizers.utils import (
     TokenzierConversionParams,
     change_inputs_type,

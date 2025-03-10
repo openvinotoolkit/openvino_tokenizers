@@ -420,7 +420,9 @@ model_test_strings = [
 
 @pytest.mark.parametrize("test_string", model_test_strings)
 def test_unigram_model(test_string, hf_charsmap_sentencepiece_tokenizer):
-    pipeline = TransformersTokenizerPipelineParser(hf_charsmap_sentencepiece_tokenizer, TokenzierConversionParams()).parse()
+    pipeline = TransformersTokenizerPipelineParser(
+        hf_charsmap_sentencepiece_tokenizer, TokenzierConversionParams()
+    ).parse()
     pipeline.steps = pipeline.steps[:7]
     unigram_model = pipeline.get_tokenizer_ov_subgraph()
     compiled_model = core.compile_model(unigram_model)

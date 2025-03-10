@@ -221,6 +221,7 @@ def transform_unigram_token_to_bytes(token: str, byte_fallback: bool = False) ->
         return bytes.fromhex(token[3:5])
     return token.encode()
 
+
 def get_hf_tokenizer_attribute(
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
     attributes: Tuple[str],

@@ -9,7 +9,7 @@ import logging
 import weakref
 from copy import copy
 from dataclasses import dataclass, field
-from functools import singledispatchmethod, reduce
+from functools import reduce, singledispatchmethod
 from itertools import groupby, islice
 from operator import add
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
@@ -32,8 +32,14 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta, create_unpacked_string, \
-    transform_unigram_token_to_bytes
+from .utils import (
+    apply_unicode_to_bytes,
+    create_unpacked_string,
+    generate_tokens_with_space_symbols,
+    quote_meta,
+    transform_unigram_token_to_bytes,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -817,7 +823,6 @@ class UnigramModelStep(TokenizationModelStep):
         )
 
 
-
 @dataclass
 class PostTokenizationStep(BasePipelineStep):
     pass
@@ -962,7 +967,7 @@ class CombineSegmentsStep(PostTokenizationStep):
         num_additional = pair_num_inputs - single_num_inputs
         start_from_idx = single_num_inputs - num_additional
 
-        if number_of_inputs == 2 and not num_additional in [2] and not start_from_idx >= 0:
+        if number_of_inputs == 2 and num_additional != 2 and not start_from_idx >= 0:
             raise UserInputError("Only adding one additional pair for the second input is currently supported")
 
         is_two_inputs_supported = True
@@ -1439,7 +1444,14 @@ class TokenizerPipeline:
             self.steps = steps_without_charsmaps
 
     def del_duplicated_split_steps(self) -> None:
-        metaspace_split = next((step  for step in self.pre_tokenization_steps if (isinstance(step, RegexSplitStep) and step.split_pattern == "▁")), None)
+        metaspace_split = next(
+            (
+                step
+                for step in self.pre_tokenization_steps
+                if (isinstance(step, RegexSplitStep) and step.split_pattern == "▁")
+            ),
+            None,
+        )
         if not metaspace_split:
             return
 

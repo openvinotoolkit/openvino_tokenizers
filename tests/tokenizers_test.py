@@ -120,7 +120,6 @@ sentencepiece_models = [
     # "THUDM/chatglm3-6b",  # _pad doesn't support padding side - broke in 4.45
     "microsoft/Phi-3-mini-128k-instruct",
     "mlx-community/quantized-gemma-7b-it",
-
     # unigram
     "camembert-base",
     "google/flan-t5-xxl",
@@ -473,7 +472,7 @@ def check_tokenizer_output(
 
         outputs = f"\n{hf_result}\n{ov_result}"
         diff = print_diff(hf_result, ov_result) if calculate_diff and ov_result.shape != hf_result.shape else outputs
-        if  ov_result.shape != hf_result.shape:
+        if ov_result.shape != hf_result.shape:
             return False, diff
 
         if not np.all(ov_result == hf_result):

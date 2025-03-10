@@ -81,10 +81,9 @@ def build_coverege_report(session: pytest.Session) -> None:
     )
     results_df.status = (results_df.status == "passed").astype(int)
     results_df = results_df.dropna(subset=["hf_wordpiece_tokenizers_param"])
-    results_df["Model"] = (
-        results_df.hf_wordpiece_tokenizers_param
-        + ["_legacy" * value for value in results_df.index.str.contains("Slow")]
-    )
+    results_df["Model"] = results_df.hf_wordpiece_tokenizers_param + [
+        "_legacy" * value for value in results_df.index.str.contains("Slow")
+    ]
     results_df = results_df[["Tokenizer Type", "Model", "test_string", "status"]]
     grouped_by_model = results_df.groupby(["Tokenizer Type", "Model"]).agg({"status": ["mean", "count"]}).reset_index()
     grouped_by_model.columns = ["Tokenizer Type", "Model", "Output Matched, %", "Number of Tests"]

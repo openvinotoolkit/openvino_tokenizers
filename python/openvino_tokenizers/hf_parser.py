@@ -13,8 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import openvino.opset14 as opset
-from openvino import Model, PartialShape, Type
-from openvino import Node, op
+from openvino import Model, Node, PartialShape, Type, op
 from openvino.exceptions import OVTypeError
 from openvino.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
@@ -53,10 +52,10 @@ from .tokenizer_pipeline import (
     SpecialTokensSplit,
     TokenizerPipeline,
     TruncationStep,
+    UnigramModelStep,
     UTF8ValidateStep,
     VocabDecoderStep,
     VocabEncoderStep,
-    UnigramModelStep,
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
