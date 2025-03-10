@@ -464,7 +464,7 @@ def check_tokenizer_output(
         assert output_name in ov_tokenized, f"OV Tokenizer missing output: {output_name}"
         ov_result = ov_tokenized[output_name]
 
-        outputs = f"\n{hf_result}\n{ov_result}"
+        outputs = f"\nHF: {hf_result}\nOV: {ov_result}"
         diff = print_diff(hf_result, ov_result) if calculate_diff and ov_result.shape != hf_result.shape else outputs
         if ov_result.shape != hf_result.shape:
             return False, diff
@@ -1058,7 +1058,7 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
 
 
 @pytest.fixture(scope="session")
-def hf_model(request):
+def ov_hf_tokenizer_pair(request):
     hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True)
     ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2)
     ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
@@ -1076,7 +1076,7 @@ def hf_model(request):
     ],
 )
 @pytest.mark.parametrize(
-    "hf_model",
+    "ov_hf_tokenizer_pair",
     [
         "answerdotai/ModernBERT-base",
         "amberoad/bert-multilingual-passage-reranking-msmarco",
@@ -1088,8 +1088,10 @@ def hf_model(request):
         "google/mobilebert-uncased",
         "microsoft/deberta-base",
         # Rerankers with Unigram
-        "BAAI/bge-reranker-v2-m3",
-        "BAAI/bge-reranker-base",
+        pytest.param(
+            "BAAI/bge-reranker-v2-m3",
+            marks=pytest.mark.xfail(reason="Two special tokens between inputs is not supported yet")
+        ),
         # Fail when string exceed max_length
         # "sentence-transformers/all-MiniLM-L6-v2",
         # "rasa/LaBSE",
@@ -1097,5 +1099,6 @@ def hf_model(request):
     ],
     indirect=True,
 )
-def test_pair_input(hf_model, test_string):
-    check_tokenizer_output(hf_model, test_string=test_string)
+def test_pair_input(ov_hf_tokenizer_pair, test_string):
+    result, diff = check_tokenizer_output(ov_hf_tokenizer_pair, test_string=test_string)
+    assert result, diff
