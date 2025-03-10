@@ -56,6 +56,7 @@ from .tokenizer_pipeline import (
     UTF8ValidateStep,
     VocabDecoderStep,
     VocabEncoderStep,
+    UnigramModelStep,
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
@@ -198,6 +199,9 @@ class TransformersTokenizerPipelineParser:
         "Replace": parse_replace_normalizer,
         "Prepend": lambda step_dict: RegexNormalizationStep.prepend_regex(step_dict.get("prepend", "")),
         "Precompiled": CharsmapStep.from_hf_step_json,
+        "Strip": lambda step_dict: RegexNormalizationStep.strip_regex(
+            step_dict.get("left", False), step_dict.get("right", False)
+        ),
     }
 
     def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
@@ -271,6 +275,8 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(WordPieceTokenizationStep.from_hf_json(self.tokenizer_json))
         elif self.tokenizer_json["model"]["type"] == "BPE":
             self.pipeline.add_steps(BPETokenizationStep.from_hf_json(self.tokenizer_json))
+        elif self.tokenizer_json["model"]["type"] == "Unigram":
+            self.pipeline.add_steps(UnigramModelStep.from_hf_json(self.tokenizer_json))
         elif self.tokenizer_json["model"]["type"] == "WordLevel":
             self.pipeline.add_steps(VocabEncoderStep.from_hf_json(self.tokenizer_json))
         else:
@@ -411,9 +417,7 @@ class TransformersTokenizerPipelineParser:
             self.pipeline.add_steps(FuseStep())
 
         # strip forward space because VocabDecoderStep.from_hf_json modifies vocabulary
-        if self.tokenizer_json["model"]["type"] == "WordLevel":
-            self.pipeline.add_steps(RegexDecodingStep.strip_forward_space())
-        elif self.tokenizer_json["model"]["type"] == "WordPiece":
+        if self.tokenizer_json["model"]["type"] in ["WordLevel", "WordPiece", "Unigram"]:
             self.pipeline.add_steps(RegexDecodingStep.strip_forward_space())
 
         if self.utf8_replace_mode is not None and (self.utf8_replace_mode != UTF8ReplaceMode.DISABLE):

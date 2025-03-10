@@ -32,8 +32,8 @@ from .constants import (
     VOCAB_SIZE_CACHE_PROPORTION,
     UTF8ReplaceMode,
 )
-from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta, create_unpacked_string
-
+from .utils import apply_unicode_to_bytes, generate_tokens_with_space_symbols, quote_meta, create_unpacked_string, \
+    transform_unigram_token_to_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -247,6 +247,13 @@ class RegexNormalizationStep(NormalizationStep):
             replace_term="",
         )
 
+    @classmethod
+    def strip_regex(cls, left: bool = True, right: bool = True) -> "RegexNormalizationStep":
+        return cls(
+            regex_search_pattern=r"^\s*" * left + "|" * (left and right) + r"\s*$" * right,
+            replace_term="",
+        )
+
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             [
@@ -261,17 +268,13 @@ class RegexNormalizationStep(NormalizationStep):
 
 @dataclass
 class CharsmapStep(NormalizationStep):
-    charsmap: Optional[bytes] = None
+    charsmap: Optional[bytes] = field(default=None, repr=False)
     normalization_form: Optional[str] = None
     add_dummy_prefix: bool = False
     remove_extra_whitespaces: bool = True
     escape_whitespaces: bool = False
     case_fold: bool = False
     nmt: bool = False
-
-    # def __post_init__(self):
-    #     if self.charsmap is None and self.normalization_form is None:
-    #         raise ValueError("[ CharsmapStep ] `charsmap` or `normalization_form` attribute must be set")
 
     def __add__(self, other: "CharsmapStep") -> "CharsmapStep":
         if self.charsmap is not None and other.charsmap is not None:
@@ -442,7 +445,7 @@ class WhitespaceSplitStep(PreTokenizatinStep):
     """Works like python `str.split`."""
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        return RegexSplitStep.whitespace_splitter().get_ov_subgraph(input_nodes).outputs()
+        return RegexSplitStep.whitespace_splitter().get_ov_subgraph(input_nodes)
 
 
 @dataclass
@@ -756,6 +759,63 @@ class BPETokenizationStep(TokenizationModelStep):
             )
             .outputs()
         )
+
+
+@dataclass
+class UnigramModelStep(TokenizationModelStep):
+    vocab: List[Union[str, bytes]] = field(repr=False)
+    vocab_logprobs: List[float] = field(repr=False)
+    byte_fallback: bool = False
+    unk_token_id: Optional[int] = None
+    fuse_unk: bool = True
+    min_score: float = float("inf")
+
+    @classmethod
+    def from_hf_json(cls, tokenizer_json: Dict[str, Any]) -> "UnigramModelStep":
+        vocab = tokenizer_json["model"]["vocab"]
+
+        max_score = max(score for _, score in vocab)
+        min_score = min(score for _, score in vocab)
+        added_tokens = sorted((token["id"], token["content"]) for token in tokenizer_json.get("added_tokens", []))
+
+        if added_tokens:
+            max_added_token_id = added_tokens[-1][0]
+            while max_added_token_id >= len(vocab):
+                vocab.append(["", min_score])
+
+        for added_token_id, token in added_tokens:
+            # score for added tokens is (length * max_score_ - 0.1)
+            vocab[added_token_id][0] = token
+            vocab[added_token_id][1] = max(vocab[added_token_id][1], max_score * len(token) - 0.1)
+
+        return cls(
+            vocab=[token for token, _ in vocab],
+            vocab_logprobs=[logprob for _, logprob in vocab],
+            byte_fallback=tokenizer_json["model"]["byte_fallback"],
+            unk_token_id=tokenizer_json["model"]["unk_id"],
+        )
+
+    def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
+        input_nodes.extend(
+            (
+                *self.create_string_constant_node(self.vocab),
+                make_constant_node(np.array(self.vocab_logprobs, dtype=np.float32), Type.f32),
+            )
+        )
+        return (
+            _get_factory()
+            .create(
+                "UnigramTokenizer",
+                input_nodes,
+                {
+                    "byte_fallback": self.byte_fallback,
+                    "unk_token_id": self.unk_token_id,
+                    "fuse_unk": self.fuse_unk,
+                },
+            )
+            .outputs()
+        )
+
 
 
 @dataclass
@@ -1170,6 +1230,9 @@ class VocabDecoderStep(DecodingStep):
             # corrupt tokens will be filtered from pipeline vocab, has to save them to match hf_tokenizer.decode output
             vocab = [apply_unicode_to_bytes(token, return_corrupted_tokens=True) for token in pipeline_vocab]
             vocab = cls.add_special_tokens_to_vocab(vocab, added_tokens)
+        elif pipeline_vocab is not None and model_type == "Unigram":
+            byte_fallback = tokenizer_json["model"]["byte_fallback"]
+            vocab = [transform_unigram_token_to_bytes(token, byte_fallback) for token in pipeline_vocab]
         else:  # Use vocab node from pipeline
             vocab = None
 
@@ -1375,6 +1438,13 @@ class TokenizerPipeline:
             steps_without_charsmaps.insert(first_step_position, reduce(add, charsmap_steps))
             self.steps = steps_without_charsmaps
 
+    def del_duplicated_split_steps(self) -> None:
+        metaspace_split = next((step  for step in self.pre_tokenization_steps if (isinstance(step, RegexSplitStep) and step.split_pattern == "▁")), None)
+        if not metaspace_split:
+            return
+
+        self.steps = [step for step in self.steps if not isinstance(step, WhitespaceSplitStep)]
+
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
 
@@ -1417,6 +1487,7 @@ class TokenizerPipeline:
             return
 
         self.merge_normalization_steps()
+        self.del_duplicated_split_steps()
 
         for step in copy(self.steps):
             step.finalize()

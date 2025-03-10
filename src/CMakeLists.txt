@@ -137,7 +137,7 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
         "${sentencepiece_SOURCE_DIR}/src/builtin_pb" # for "sentencepiece_model.pb.h"
         "${sentencepiece_SOURCE_DIR}/src" # for "normalizer.h"
         "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite" # for "google/protobuf/port_def.inc"
-        "${sentencepiece_SOURCE_DIR}/third_party/" # for "absl/strings/string_view.h"
+        "${sentencepiece_SOURCE_DIR}/third_party/" # for "absl/strings/string_view.h" and "darts_clone/darts.h"
         "${sentencepiece_SOURCE_DIR}" # for "third_party/absl/strings/string_view.h"
         )
     else()

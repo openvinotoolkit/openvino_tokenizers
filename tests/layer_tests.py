@@ -11,6 +11,7 @@ import requests
 from openvino import Model, PartialShape, Type, op
 from openvino_tokenizers import _get_factory, _get_opset_factory
 from openvino_tokenizers.constants import UTF8ReplaceMode
+from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
 from openvino_tokenizers.tokenizer_pipeline import (
     CaseFoldStep,
     CharsmapStep,
@@ -25,6 +26,7 @@ from openvino_tokenizers.tokenizer_pipeline import (
     TokenizerPipeline,
     UTF8ValidateStep,
 )
+from openvino_tokenizers.utils import TokenzierConversionParams
 
 from tests.utils import get_hf_tokenizer
 
@@ -140,11 +142,15 @@ def test_utf8_validate(test_string, replace_mode):
 tokenizers_with_charsmap = ["google/flan-t5-xxl"]
 
 
-charsmap_test_strings = ["Henry \u2163  ①②③", ""]
+charsmap_test_strings = [
+    "Henry \u2163  ①②③",
+    "",
+    pytest.param(" \t\n", marks=pytest.mark.xfail(reason="Whitespace is deleted by OV tokenizer, need a fix")),
+]
 
 
 @pytest.fixture(scope="session", params=tokenizers_with_charsmap, ids=lambda checkpoint: checkpoint.split("/")[-1])
-def hf_charsmap_tokenizer(request):
+def hf_charsmap_sentencepiece_tokenizer(request):
     hf_tokenizer = get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=True)
     if not hf_tokenizer.is_fast:
         pytest.skip("Fast tokenizer should use Rust backend.")
@@ -153,22 +159,26 @@ def hf_charsmap_tokenizer(request):
 
 
 @pytest.fixture(scope="session")
-def precompiled_charsmap_json(request, hf_charsmap_tokenizer):
+def unigram_model_json(request, hf_charsmap_sentencepiece_tokenizer):
     with tempfile.TemporaryDirectory() as tmpdir:
-        hf_charsmap_tokenizer.save_pretrained(tmpdir)
+        hf_charsmap_sentencepiece_tokenizer.save_pretrained(tmpdir)
 
         tmpdir = Path(tmpdir)
         with open(tmpdir / "tokenizer.json") as tok_json:
-            tj = json.load(tok_json)
-            return tj["normalizer"]["normalizers"][0]
+            return json.load(tok_json)
+
+
+@pytest.fixture(scope="session")
+def precompiled_charsmap_json(request, unigram_model_json):
+    return unigram_model_json["normalizer"]["normalizers"][0]
 
 
 @pytest.mark.parametrize("test_string", charsmap_test_strings)
-def test_charsmap_normalizartion(test_string, hf_charsmap_tokenizer, precompiled_charsmap_json):
+def test_charsmap_normalizartion(test_string, hf_charsmap_sentencepiece_tokenizer, precompiled_charsmap_json):
     charsmap_normalization_node = CharsmapStep.from_hf_step_json(precompiled_charsmap_json)
     compiled_model = create_normalization_model(charsmap_normalization_node)
     res_ov = compiled_model([test_string])[0][0]
-    res_hf = hf_charsmap_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
+    res_hf = hf_charsmap_sentencepiece_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
     assert res_ov == res_hf
 
 
@@ -397,8 +407,38 @@ def test_special_tokens_split(special_tokens, text, expected, expected_skips):
     assert (skips == expected_skips).all()
 
 
+###############################################
+########## Test Tokenization Model ############
+###############################################
+
+
+model_test_strings = [
+    "test",
+    "Hello world!",
+]
+
+
+@pytest.mark.parametrize("test_string", model_test_strings)
+def test_unigram_model(test_string, hf_charsmap_sentencepiece_tokenizer):
+    pipeline = TransformersTokenizerPipelineParser(hf_charsmap_sentencepiece_tokenizer, TokenzierConversionParams()).parse()
+    pipeline.steps = pipeline.steps[:7]
+    unigram_model = pipeline.get_tokenizer_ov_subgraph()
+    compiled_model = core.compile_model(unigram_model)
+
+    res_ov = compiled_model([test_string])[compiled_model.output(2)]
+
+    test_string = hf_charsmap_sentencepiece_tokenizer.backend_tokenizer.normalizer.normalize_str(test_string)
+    test_string = hf_charsmap_sentencepiece_tokenizer.backend_tokenizer.pre_tokenizer.pre_tokenize_str(test_string)
+    res_hf = [
+        token.id
+        for string in test_string
+        for token in hf_charsmap_sentencepiece_tokenizer.backend_tokenizer.model.tokenize(string[0])
+    ]
+    assert (res_ov == res_hf).all()
+
+
 ################################################
-######## Test RaggedToDense Operation ##########
+########## Test PostTokenizatin Step ###########
 ################################################
 
 
@@ -467,11 +507,6 @@ def test_ragged_to_dense(input_values, expected):
 
     res = compiled_model(np_input_values)
     assert np.all(res[0] == np.array(expected, dtype=np.int32))
-
-
-##################################################
-######## Test CombinedSegments Operation #########
-##################################################
 
 
 @pytest.mark.parametrize(
