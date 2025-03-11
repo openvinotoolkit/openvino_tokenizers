@@ -74,11 +74,12 @@ endif()
 
 set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
 
-# Compile flags
+# Compile & link flags
 
 if(NOT WIN32)
   set(ICU_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
   set(ICU_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-deprecated-declarations")
+  set(ICU_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} -ldl")
 endif()
 
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
@@ -263,13 +264,15 @@ set(host_env_config
 if(APPLE)
   set(target_env_config
     CFLAGS=${ICU_C_FLAGS}
-    CXXFLAGS=${ICU_CXX_FLAGS})
+    CXXFLAGS=${ICU_CXX_FLAGS}
+    LDFLAGS=${ICU_LINKER_FLAGS})
 else()
   set(target_env_config
     CFLAGS=${ICU_C_FLAGS}
     CC=${c_prefix}${CMAKE_C_COMPILER}
     CXXFLAGS=${ICU_CXX_FLAGS}
-    CXX=${cxx_prefix}${CMAKE_CXX_COMPILER})
+    CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
+    LDFLAGS=${ICU_LINKER_FLAGS})
 
     foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
                       CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
