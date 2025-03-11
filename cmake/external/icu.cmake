@@ -79,7 +79,7 @@ set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
 if(NOT WIN32)
   set(ICU_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
   set(ICU_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-deprecated-declarations")
-  set(ICU_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} -ldl")
+  set(ICU_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} -l${CMAKE_DL_LIBS}")
 endif()
 
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
