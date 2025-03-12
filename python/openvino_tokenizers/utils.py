@@ -274,7 +274,7 @@ def get_processor_template(
     with tempfile.TemporaryDirectory() as tmpdir:
         hf_tokenizer.save_pretrained(tmpdir)
         try:
-            with open(f"{tmpdir}/tokenizer.json", "r") as f:
+            with open(f"{tmpdir}/tokenizer.json", "r", encoding="utf-8") as f:
                 tokenizer_json = json.load(f)
         except FileNotFoundError:
             return
