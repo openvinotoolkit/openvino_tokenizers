@@ -20,20 +20,32 @@ logger = logging.getLogger(__name__)
 _ext_name = "openvino_tokenizers"
 if sys.platform == "win32":
     _ext_name = f"{_ext_name}.dll"
+    _bin_dir = "Release"
 elif sys.platform == "darwin":
     _ext_name = f"lib{_ext_name}.dylib"
+    _bin_dir = "Release"
 elif sys.platform == "linux":
     _ext_name = f"lib{_ext_name}.so"
+    _bin_dir = ""
 else:
     sys.exit(f"Error: extension does not support the platform {sys.platform}")
 
 # when the path to the extension set manually
 _extension_path = os.environ.get("OV_TOKENIZER_PREBUILD_EXTENSION_PATH")
+_openvino_dir = os.environ.get("OpenVINO_DIR")
 if _extension_path and Path(_extension_path).is_file():
     # when the path to the extension set manually
     _ext_path = Path(_extension_path)
 else:
-    site_packages = chain((Path(__file__).parent.parent,), site.getusersitepackages(), site.getsitepackages())
+    # extension binary from OpenVINO installation dir has higher priority
+    _openvino_path = []
+    if _openvino_dir:
+        _system_type = next((Path(_openvino_dir).parent / "lib").iterdir(), Path()).name
+        _openvino_path = [Path(_openvino_dir).parent / "lib" / _system_type / _bin_dir]
+
+    site_packages = chain(
+        _openvino_path, (Path(__file__).parent.parent,), site.getusersitepackages(), site.getsitepackages()
+    )
     _ext_path = next(
         (
             ext

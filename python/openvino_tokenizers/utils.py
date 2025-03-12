@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2018-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-
+import json
 import logging
+import tempfile
 from dataclasses import dataclass, field, fields
 from functools import lru_cache
 from io import BytesIO
@@ -18,7 +19,9 @@ from openvino.preprocess import PrePostProcessor
 from .__version__ import __version__ as openvino_tokenizers_version
 from .constants import (
     LOGITS_OUTPUT_NAME,
+    ORIGINAL_POST_PROCESSOR_NAME,
     ORIGINAL_TOKENIZER_CLASS_NAME,
+    PROCESSED_POST_PROCESSOR_NAME,
     SPACE_SYMBOLS,
     TOKEN_IDS_OUTPUT_NAME,
     UTF8ReplaceMode,
@@ -253,6 +256,104 @@ def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
         version = get_package_version(name)
         if version is not None:
             ov_tokenizer.set_rt_info(version, f"{name}_version")
+
+
+def get_processor_template(
+        hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+) -> Optional[Dict[str, Any]]:
+    """Gets the JSON representation of the tokenizer post-processor template.
+
+    :param hf_tokenizer: The Huggingface tokenizer object.
+    :type hf_tokenizer: transformers.tokenization_utils_base.PreTrainedTokenizerBase
+    :return: The JSON representation of the Huggingface tokenizer.
+    :rtype: Dict[str, Any]
+    """
+    if not getattr(hf_tokenizer, "is_fast", False):
+        return
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        hf_tokenizer.save_pretrained(tmpdir)
+        try:
+            with open(f"{tmpdir}/tokenizer.json", "r", encoding="utf-8") as f:
+                tokenizer_json = json.load(f)
+        except FileNotFoundError:
+            return
+
+    return tokenizer_json.get("post_processor", None)
+
+
+def parse_template_processing(
+        post_processor_json: Dict[str, Any],
+        hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+) -> Dict[str, Dict[str, List[int]]]:
+    vocab = hf_tokenizer.get_vocab()
+
+    def parse_one_template(template: List[Dict[str, Any]]) -> Dict[str, List[int]]:
+        ids, type_ids = [], []
+        sequence_id = -1
+        for element_type, element_dict in (next(iter(el.items())) for el in template):
+            type_ids.append(element_dict["type_id"])
+            if element_type == "Sequence":
+                ids.append(sequence_id)
+                sequence_id -= 1
+            else:
+                ids.append(vocab[element_dict["id"]])
+
+        return {"ids": ids, "type_ids": type_ids}
+
+    return {
+        "single": parse_one_template(post_processor_json["single"]),
+        "pair": parse_one_template(post_processor_json["pair"]),
+    }
+
+
+# todo: add BertProcessing and RobertaProcessing parsers
+processor_parsers = {
+    "TemplateProcessing": parse_template_processing,
+}
+
+
+def parse_processor_template(
+    post_processor_json: Dict[str, Any],
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+) -> Optional[Dict[str, Any]]:
+    if post_processor_json["type"] == "Sequence":
+        post_processor_json = next(
+            (
+                processor
+                 for processor in post_processor_json["processors"]
+                 if processor["type"] in processor_parsers
+            ),
+            {}
+        )
+
+    parser = processor_parsers.get(post_processor_json.get("type"), None)
+    if parser is not None:
+        return parser(post_processor_json, hf_tokenizer)
+
+
+def update_rt_info_with_processor_template(
+    ov_tokenizer: Model,
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+) -> None:
+    """Updates the rt_info of the tokenizer model with the post-processor template of the HF.
+    
+    Saves the original and the processed post-processor templates.
+    Processed template uses negative ids for text inputs (A=-1, B=-2) and positive ids for special tokens.
+
+    :param ov_tokenizer: The OpenVINO tokenizer model to update.
+    :type ov_tokenizer: openvino.Model
+    :param hf_tokenizer: The Huggingface tokenizer object.
+    :type hf_tokenizer: transformers.tokenization_utils_base.PreTrainedTokenizerBase
+    """
+    post_processor_json = get_processor_template(hf_tokenizer)
+    if post_processor_json is None:
+        return
+
+    ov_tokenizer.set_rt_info(json.dumps(post_processor_json), ORIGINAL_POST_PROCESSOR_NAME)
+    parsed_post_processor = parse_processor_template(post_processor_json, hf_tokenizer)
+    if parsed_post_processor is not None:
+        ov_tokenizer.set_rt_info(json.dumps(parsed_post_processor), PROCESSED_POST_PROCESSOR_NAME)
 
 
 def update_rt_info_with_params(
