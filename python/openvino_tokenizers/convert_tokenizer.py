@@ -19,7 +19,7 @@ from openvino_tokenizers.utils import (
     change_outputs_type,
     update_rt_info_with_environment,
     update_rt_info_with_params,
-    update_rt_info_with_postprocessor_template,
+    update_rt_info_with_processor_template,
 )
 
 
@@ -138,7 +138,7 @@ def convert_tokenizer(
         for model in ov_tokenizers if isinstance(ov_tokenizers, tuple) else [ov_tokenizers]:
             update_rt_info_with_params(model, tokenizer_object, params)
             update_rt_info_with_environment(model)
-            update_rt_info_with_postprocessor_template(model, tokenizer_object)
+            update_rt_info_with_processor_template(model, tokenizer_object)
 
     if ov_tokenizers is None:
         raise OVTypeError(f"Tokenizer type is not supported: {type(tokenizer_object)}")
