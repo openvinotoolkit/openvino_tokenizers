@@ -17,6 +17,8 @@ EOS_TOKEN_ID_NAME = "eos_token_id"
 PAD_TOKEN_ID_NAME = "pad_token_id"
 CHAT_TEMPLATE_NAME = "chat_template"
 ORIGINAL_TOKENIZER_CLASS_NAME = "original_tokenizer_class"
+ORIGINAL_POST_PROCESSOR_NAME = "original_post_processor_template"
+PROCESSED_POST_PROCESSOR_NAME = "processed_post_processor_template"
 
 rt_info_to_hf_attribute_map = {
     BOS_TOKEN_ID_NAME: (BOS_TOKEN_ID_NAME,),
