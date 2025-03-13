@@ -178,7 +178,7 @@ def get_parser() -> ArgumentParser:
         "--use-sentencepiece-backend",
         "--use_sentencepiece_backend",
         required=False,
-        action="store_false",
+        action="store_true",
         help=(
             "Use Sentencepiece library as a backend for tokenizer operation. "
             "The repository should contain Sentencepiece `.model` file. "
