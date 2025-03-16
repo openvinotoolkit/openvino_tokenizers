@@ -503,7 +503,20 @@ ov::OutputVector translate_equal(const ov::frontend::NodeContext& node) {
         result = std::make_shared<Convert>(equal_str, element::boolean);
     }
     else {
-        result = std::make_shared<Equal>(input1, input2)->output(0);
+        auto lhs_complex = ov::as_type_ptr<ComplexTypeMark>(input1.get_node_shared_ptr());
+        auto rhs_complex = ov::as_type_ptr<ComplexTypeMark>(input2.get_node_shared_ptr());
+        if (lhs_complex && rhs_complex) {
+            auto lhs_data = lhs_complex->get_data();
+            auto rhs_data = rhs_complex->get_data();
+            auto equal = std::make_shared<Equal>(lhs_data, rhs_data);
+    
+            // reduce along the last dimension using ReduceAnd
+            auto reduce_axes = std::make_shared<Constant>(element::i32, Shape{1}, std::vector<int32_t>{-1});
+            result = std::make_shared<ReduceLogicalAnd>(equal, reduce_axes, false)->output(0);
+        }
+        else{
+            result = std::make_shared<Equal>(input1, input2)->output(0);
+        }
     }
 
     result.get_node_shared_ptr()->set_friendly_name(node_name);
