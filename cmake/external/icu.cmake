@@ -76,13 +76,13 @@ set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
 
 # Compile & link flags
 
-set(ICU_CXX_FLAGS "{CMAKE_CXX_FLAGS}")
+set(ICU_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(ICU_C_FLAGS "${CMAKE_C_FLAGS}")
+set(ICU_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 
 if(NOT WIN32)
   set(ICU_CXX_FLAGS "${ICU_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
   set(ICU_C_FLAGS "${ICU_C_FLAGS} -fPIC -Wno-deprecated-declarations")
-  set(ICU_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS}")
   if (CMAKE_DL_LIBS)
     set(ICU_LINKER_FLAGS "${ICU_LINKER_FLAGS} -l${CMAKE_DL_LIBS}")
   endif()
@@ -100,6 +100,10 @@ if(OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
     set(ICU_C_FLAGS "${ICU_C_FLAGS} -D${def}")
   endforeach()
 endif()
+
+message(STATUS "ICU_CXX_FLAGS: ${ICU_CXX_FLAGS}")
+message(STATUS "ICU_C_FLAGS: ${ICU_C_FLAGS}")
+message(STATUS "ICU_LINKER_FLAGS: ${ICU_LINKER_FLAGS}")
 
 # Build
 
