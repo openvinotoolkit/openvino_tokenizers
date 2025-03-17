@@ -91,9 +91,10 @@ endif()
 # openvino::runtime exports _GLIBCXX_USE_CXX11_ABI=0 on CentOS7.
 # It needs to be propagated to every library openvino_tokenizers links with.
 # That prohibits linkage with prebuilt libraries because they aren't compiled with _GLIBCXX_USE_CXX11_ABI=0.
-get_directory_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS COMPILE_DEFINITIONS)
+get_target_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS openvino::runtime INTERFACE_COMPILE_DEFINITIONS)
 
 if(OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
+  message(INFO "Propagating OPENVINO_RUNTIME_COMPILE_DEFINITIONS to ICU: ${OPENVINO_RUNTIME_COMPILE_DEFINITIONS}")
   foreach(def IN LISTS OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
     set(ICU_CXX_FLAGS "${ICU_CXX_FLAGS} -D${def}")
     set(ICU_C_FLAGS "${ICU_C_FLAGS} -D${def}")
