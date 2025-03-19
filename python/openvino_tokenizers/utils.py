@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, fields
 from functools import lru_cache
 from io import BytesIO
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from enum import Enum
 
 import numpy as np
 import openvino
@@ -374,7 +375,7 @@ def update_rt_info_with_params(
 
     for key in fields(params):
         v = getattr(params, key.name)
-        v = str(v) if isinstance(v, bool) else v
+        v = str(v) if isinstance(v, (bool, Enum)) else v
         ov_tokenizer.set_rt_info(v, key.name)
 
     for rt_field_name, hf_attributes in rt_info_to_hf_attribute_map.items():
