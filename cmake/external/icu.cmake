@@ -194,7 +194,7 @@ function(ov_tokenizer_build_icu)
       BINARY_DIR ${ARG_BUILD_DIR}
       INSTALL_DIR ${ARG_INSTALL_DIR}
       CONFIGURE_COMMAND ""
-      BUILD_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /p:AdditionalOptions=${ICU_LINKER_FLAGS} /t:i18n /t:uconv /t:makedata
+      BUILD_COMMAND ${CMAKE_COMMAND} -E env CL=${ICU_CXX_FLAGS} LINK=${ICU_LINKER_FLAGS} msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata
       INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ARG_INSTALL_DIR}/include &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_LIB_SUBDIR} &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_BIN_SUBDIR}
