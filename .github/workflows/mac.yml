@@ -34,10 +34,10 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: aks-linux-2-cores-8gb
+    runs-on: aks-linux-medium
     container:
       image: 'openvinogithubactions.azurecr.io/openvino_provider:0.1.0'
-      volumes: 
+      volumes:
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
 
@@ -111,7 +111,7 @@ jobs:
 
       - name: Cmake build - tokenizers
         run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
-        
+
       - name: Show ccache stats
         run: ccache --show-stats
 
@@ -131,7 +131,7 @@ jobs:
         with:
           key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
           path: ${{ env.CCACHE_DIR }}
-          
+
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
