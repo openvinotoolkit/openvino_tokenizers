@@ -81,6 +81,7 @@ set(ICU_C_FLAGS "${CMAKE_C_FLAGS}")
 set(ICU_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 
 if(NOT WIN32)
+  set(ICU_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS}")
   set(ICU_CXX_FLAGS "${ICU_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
   set(ICU_C_FLAGS "${ICU_C_FLAGS} -fPIC -Wno-deprecated-declarations")
   if (CMAKE_DL_LIBS)
