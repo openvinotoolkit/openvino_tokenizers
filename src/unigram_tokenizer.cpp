@@ -106,12 +106,11 @@ UnigramTokenizerImpl::UnigramTokenizerImpl(
         int idx;
     };
 
-    if (m_scores == nullptr) m_scores = std::make_shared<unigram_impl::Scores>();
-    m_scores->reserve(vocab.size());
+    m_scores.reserve(vocab.size());
     std::vector<VocabWithIdx> vocab_with_idx(vocab.size());
     for (int idx = 0; idx < vocab.size(); ++idx) {
         vocab_with_idx[idx] = {vocab[idx].first, vocab[idx].second, idx};
-        (*m_scores)[idx] = vocab[idx].second;
+        m_scores[idx] = vocab[idx].second;
     };
     // DoubleArray::build() requires sorted string input
     std::sort(vocab_with_idx.begin(), vocab_with_idx.end(), [](const VocabWithIdx& a, const VocabWithIdx& b) {
@@ -130,8 +129,7 @@ UnigramTokenizerImpl::UnigramTokenizerImpl(
         values[new_idx++] = old_idx;
     };
 
-    m_trie = std::make_shared<Darts::DoubleArray>();
-    if (m_trie->build(keys.size(), const_cast<char**>(keys.data()), nullptr, values.data()) != 0) {
+    if (m_trie.build(keys.size(), const_cast<char**>(keys.data()), nullptr, values.data()) != 0) {
         OPENVINO_THROW("[ UNIGRAM ] Failed to build trie");
     };
     return;
@@ -159,7 +157,7 @@ std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
         );
 
         while (current_pos < input_length) {
-            const int token_id = m_trie->traverse(text.data(), node_pos, current_pos, current_pos + 1);
+            const int token_id = m_trie.traverse(text.data(), node_pos, current_pos, current_pos + 1);
             if (token_id == -2) { break; };
 
             if (token_id >= 0) {
@@ -167,7 +165,7 @@ std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
                 const auto length = current_pos - starts_at;
 
                 // scores for special tokens should be precomputed and stored in m_scores
-                const auto score = (*m_scores)[token_id];
+                const auto score = m_scores[token_id];
                 const auto candidate_best_score = score + best_score_so_far;
 
                 if (target_node.starts_at == -1 || candidate_best_score > target_node.best_score) {

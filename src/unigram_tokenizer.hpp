@@ -25,13 +25,12 @@ using Scores = std::vector<float>;
 
 class UnigramTokenizerImpl {
 private:
-    std::shared_ptr<Darts::DoubleArray> m_trie;
-    std::shared_ptr<unigram_impl::Scores> m_scores;
+    Darts::DoubleArray m_trie;
+    unigram_impl::Scores m_scores;
     double m_min_score;
     bool m_byte_fallback = false;
     const int m_unk_token_id = 0;
     bool m_fuse_unk = false;
-//    std::unordered_map<std::string, std::vector<int32_t>> m_cache;
 public:
     UnigramTokenizerImpl(
         unigram_impl::Vocab& vocab,
