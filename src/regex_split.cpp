@@ -25,11 +25,11 @@ const std::map<std::string, RegexSplit::SplitMode> split_modes_map = {
 
 void RegexSplit::compile_pattern_if_necessary(std::string split_pattern) const {
     m_split_mode = split_modes_map.at(m_behaviour);
-    
+
     if (m_search_pattern_pcre2) {
         return;
     }
-    
+
     if (m_behaviour == "contiguous" && split_pattern[split_pattern.length() - 1] != '+') {
         std::stringstream tmp_stream;
         tmp_stream << "(" << split_pattern << ")+";
@@ -149,7 +149,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         std::lock_guard<std::mutex> lock(m_mutex);
         compile_pattern_if_necessary(split_pattern);
     }
-    
+
     auto get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
         auto match = this->m_search_pattern_pcre2->match(str, curr_start);
         if (match.first != SIZE_MAX && match.first != match.second) {
@@ -186,15 +186,15 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     auto ends   = inputs[3].data<const int32_t>();
     auto chars  = inputs[4].data<const uint8_t>();
     const size_t num_rows = inputs[0].get_size();
-    bool * skips;
-    bool init_skips = false;
+    const bool *skips;
+    Tensor skips_t, new_skips_t;
+
     if (has_skips) {
         skips = inputs[5].data<bool>();
         outputs[5].set_shape(Shape{max_shape});
     } else {
-        skips = new bool[num_rows];
-        init_skips = true;
-        std::fill(skips, skips + num_rows, false);
+        skips_t = Tensor(element::boolean, Shape{num_rows});
+        skips = std::fill_n(skips_t.data<bool>(), num_rows, false) - num_rows;
     };
 
     outputs[0].set_shape(inputs[0].get_shape());
@@ -213,7 +213,8 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     if (has_skips) {
         new_skips = outputs[5].data<bool>();
     } else {
-        new_skips = new bool[max_shape];
+        new_skips_t = Tensor(element::boolean, Shape{num_rows});
+        new_skips = new_skips_t.data<bool>();
     };
     int32_t ragged_offset = 0;
 
@@ -234,7 +235,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
             } else {
                 size_t start = 0;
                 uint32_t num_splits = 0;
-               
+
                 size_t last_begin = -1;
                 auto add_split = [&](int begin, int end, bool invert) {
                     switch (m_split_mode) {
@@ -274,14 +275,14 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                         end = str.length();
                     };
                     new_ends[ragged_offset++] = begins[ragged_col] + end;
-                    
+
                     ++num_splits;
                 };
 
                 std::optional<std::pair<size_t, size_t>> match;
                 while ((match = get_next_match(str, start)) != std::nullopt) {
                     auto [curr_start, curr_end] = *match;
-                    
+
                     if (curr_start != start) {
                         if (has_skips) {
                             new_skips[ragged_offset] = false;
@@ -313,10 +314,6 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     outputs[3].set_shape({size_t(ragged_offset)});
     if (has_skips) {
         outputs[5].set_shape({size_t(ragged_offset)});
-    };
-    if (init_skips) {
-        delete[] skips;
-        delete[] new_skips;
     };
 
     return true;

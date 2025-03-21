@@ -18,26 +18,26 @@ void UTF8Validate::validate_and_infer_types() {
 bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     auto begins = inputs[0].data<int32_t>();
     auto ends   = inputs[1].data<int32_t>();
-    uint8_t* bytes  = inputs[2].data<uint8_t>();
+    auto bytes = inputs[2].data<uint8_t>();
     auto begins_shape = inputs[0].get_shape();
     auto chars_shape = inputs[2].get_shape();
-    
+
     const unsigned char replacement_symbol[] = {0xEF, 0xBF, 0xBD};  // UTF-8 encoding for "�"
     outputs[0].set_shape(begins_shape);
     outputs[1].set_shape(begins_shape);
-    
+
     // One byte can be replaced by 3 bytes at most,
     // therefore need to allocate more space
     size_t last_axis = chars_shape.size() - 1;
     chars_shape[last_axis] = chars_shape[last_axis] * 3;
     outputs[2].set_shape(chars_shape);
-    
+
     auto out_begins = outputs[0].data<int32_t>();
     auto out_ends   = outputs[1].data<int32_t>();
     auto out_bytes  = outputs[2].data<uint8_t>();
 
     // UTF-8 code points should not intersect:
-    // if 2 byte object has code point < 0x80 then it's not valid 2 byte utf-8, 
+    // if 2 byte object has code point < 0x80 then it's not valid 2 byte utf-8,
     // even if it has a valid bit mask.
     const uint32_t code_point_starts[4] = {0x0, 0x80, 0x800, 0x10000};
     uint32_t utf_code_point;
@@ -49,7 +49,7 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         // Flag indicating whether UTF8 symbol is complete: true means it's complete, false means we expect continuation.
         // bool new_symbol_flag = true;
         bytes_to_consume = 0;
-        
+
         out_begins[i] = out_idx;
         for (size_t j = begins[i]; j < ends[i]; j += 1) {
             // Beggining of the symbol.
@@ -70,7 +70,7 @@ bool UTF8Validate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 utf_code_point = (0b1111 & bytes[j]) << 6 * bytes_to_consume;
                 continue;
             } else if (!bytes_to_consume && bytes[j] >> 3 == 0b11110) {
-                num_bytes = 4; 
+                num_bytes = 4;
                 bytes_to_consume = 3;
                 utf_code_point = (0b111 & bytes[j]) << 6 * bytes_to_consume;
                 continue;
