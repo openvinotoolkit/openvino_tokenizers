@@ -74,16 +74,16 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     const size_t batch_size = inputs[0].get_size();
     const size_t num_chars = inputs[4].get_size();
 
-    bool * skips;
+    Tensor skips_alternative;
+    const bool *skips;
     bool init_skips = false;
     if (has_skips) {
         skips = inputs[5].data<bool>();
         outputs[5].set_shape(Shape{num_chars});
     } else {
         outputs[5].set_shape(Shape{num_chars});
-        skips = new bool[batch_size];
-        init_skips = true;
-        std::fill(skips, skips + batch_size, false);
+        skips_alternative = Tensor(element::boolean, Shape{num_chars});
+        skips = std::fill_n(skips_alternative.data<bool>(), num_chars, false) - num_chars;
     };
 
     outputs[0].set_shape(inputs[0].get_shape());
@@ -145,8 +145,5 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     outputs[3].set_shape({size_t(ragged_offset)});
     outputs[5].set_shape({size_t(ragged_offset)});
 
-    if (init_skips) {
-        delete[] skips;
-    };
     return true;
 }
