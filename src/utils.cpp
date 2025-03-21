@@ -280,7 +280,8 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     PCRE2_SIZE subject_length = orig_str.size();
     
     // Check if the string matches the pattern
-    int num_matches = pcre2_match(
+    const auto match_func = m_is_jit ? pcre2_jit_match : pcre2_match;
+    int num_matches = match_func(
         m_compiled,
         (PCRE2_SPTR) orig_str.c_str(), subject_length,
         0,
