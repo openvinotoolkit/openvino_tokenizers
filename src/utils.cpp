@@ -251,6 +251,8 @@ PCRE2Wrapper::PCRE2Wrapper(const absl::string_view& pattern) {
     m_compiled = pcre2_compile((PCRE2_SPTR) pattern.data(), 
                                 pattern.size(), PCRE2_UTF | PCRE2_UCP, 
                                 &errorcode, &erroroffset, NULL);
+    auto jit_code = pcre2_jit_compile(m_compiled, PCRE2_JIT_COMPLETE);
+    m_is_jit = (jit_code == 0);
     if (m_compiled == NULL) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
@@ -343,7 +345,8 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
     pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
     PCRE2_SIZE subject_length = str.length();
 
-    int match_result = pcre2_match(
+    const auto match_func = m_is_jit ? pcre2_jit_match : pcre2_match;
+    int match_result = match_func(
         m_compiled,
         (PCRE2_SPTR) str.c_str(), subject_length,
         curr_start,
