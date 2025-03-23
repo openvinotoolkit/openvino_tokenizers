@@ -429,6 +429,7 @@ jobs:
             ${{ env.MANIFEST_PATH }}
           storage_dir: ${{ env.BASE_PRODUCT_TYPE }}_${{ matrix.build_type }}
           storage_root: ${{ env.ARTIFACTS_SHARE }}
+          product_name: ${{ github.event.repository.name }}
 
 
   Overall_Status:
