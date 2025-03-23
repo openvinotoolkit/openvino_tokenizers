@@ -39,10 +39,10 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: aks-linux-2-cores-8gb
+    runs-on: aks-linux-medium
     container:
       image: 'openvinogithubactions.azurecr.io/openvino_provider:0.1.0'
-      volumes: 
+      volumes:
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
 
@@ -86,7 +86,7 @@ jobs:
     runs-on: aks-linux-8-cores-16gb
     container:
       image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
-      volumes: 
+      volumes:
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
       options: -e SCCACHE_AZURE_BLOB_CONTAINER -e SCCACHE_AZURE_CONNECTION_STRING
@@ -155,7 +155,7 @@ jobs:
 
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: openvino_tokenizers_cpack_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.tar.gz
@@ -163,7 +163,7 @@ jobs:
 
       - name: Upload manifest
         if: ${{ always() }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: manifest_${{ matrix.build_type }}
           path: ${{ env.MANIFEST_PATH }}
@@ -183,7 +183,7 @@ jobs:
     runs-on: aks-linux-4-cores-16gb
     container:
       image: openvinogithubactions.azurecr.io/ov_build/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
-      volumes: 
+      volumes:
         - /mount:/mount
         - ${{ github.workspace }}:${{ github.workspace }}
       options: -e SCCACHE_AZURE_BLOB_CONTAINER -e SCCACHE_AZURE_CONNECTION_STRING
@@ -226,7 +226,7 @@ jobs:
 
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.BUILD_DIR }}/*.whl
@@ -373,7 +373,7 @@ jobs:
           TEST_PRECISION: FP16
 
       - name: Upload Test Results
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:
           name: test-results-python-layers
@@ -393,7 +393,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: aks-linux-2-cores-8gb
+    runs-on: aks-linux-medium
     container:
       image: openvinogithubactions.azurecr.io/library/python:3.12-slim
       volumes:

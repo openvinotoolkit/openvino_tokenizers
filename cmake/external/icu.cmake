@@ -76,10 +76,14 @@ set(ICU_INCLUDE_DIRS "${ICU_INSTALL_DIR}/include")
 
 # Compile & link flags
 
+set(ICU_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+set(ICU_C_FLAGS "${CMAKE_C_FLAGS}")
+set(ICU_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
+
 if(NOT WIN32)
-  set(ICU_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
-  set(ICU_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wno-deprecated-declarations")
   set(ICU_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS}")
+  set(ICU_CXX_FLAGS "${ICU_CXX_FLAGS} -fPIC -Wno-deprecated-declarations")
+  set(ICU_C_FLAGS "${ICU_C_FLAGS} -fPIC -Wno-deprecated-declarations")
   if (CMAKE_DL_LIBS)
     set(ICU_LINKER_FLAGS "${ICU_LINKER_FLAGS} -l${CMAKE_DL_LIBS}")
   endif()
@@ -91,12 +95,15 @@ endif()
 get_target_property(OPENVINO_RUNTIME_COMPILE_DEFINITIONS openvino::runtime INTERFACE_COMPILE_DEFINITIONS)
 
 if(OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
-  message(INFO "Propagating OPENVINO_RUNTIME_COMPILE_DEFINITIONS to ICU: ${OPENVINO_RUNTIME_COMPILE_DEFINITIONS}")
   foreach(def IN LISTS OPENVINO_RUNTIME_COMPILE_DEFINITIONS)
     set(ICU_CXX_FLAGS "${ICU_CXX_FLAGS} -D${def}")
     set(ICU_C_FLAGS "${ICU_C_FLAGS} -D${def}")
   endforeach()
 endif()
+
+message(STATUS "ICU_CXX_FLAGS: ${ICU_CXX_FLAGS}")
+message(STATUS "ICU_C_FLAGS: ${ICU_C_FLAGS}")
+message(STATUS "ICU_LINKER_FLAGS: ${ICU_LINKER_FLAGS}")
 
 # Build
 
@@ -187,8 +194,9 @@ function(ov_tokenizer_build_icu)
       SOURCE_DIR ${ICU_SOURCE_DIR}
       BINARY_DIR ${ARG_BUILD_DIR}
       INSTALL_DIR ${ARG_INSTALL_DIR}
+      PATCH_COMMAND powershell -Command "(Get-ChildItem -Path <SOURCE_DIR>/source -Recurse -File -Filter "*.vcxproj" | ForEach-Object { (Get-Content $_.FullName) -replace '<DebugInformationFormat>EditAndContinue</DebugInformationFormat>', '<DebugInformationFormat>ProgramDatabase</DebugInformationFormat>' | Set-Content $_.FullName })"
       CONFIGURE_COMMAND ""
-      BUILD_COMMAND msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata
+      BUILD_COMMAND ${CMAKE_COMMAND} -E env CL=${ICU_CXX_FLAGS} LINK=${ICU_LINKER_FLAGS} msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata
       INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ARG_INSTALL_DIR}/include &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_LIB_SUBDIR} &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_BIN_SUBDIR}
