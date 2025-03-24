@@ -36,8 +36,8 @@ void check_string_input(const Node* node, size_t input_index) {
 void check_string_scalar_input(const Node* node, size_t input_index) {
     auto shape = node->get_input_partial_shape(input_index);
     auto element_type = node->get_input_element_type(input_index);
-    
-    #if false && USE_STRING_TENSORS
+
+#if false && USE_STRING_TENSORS
     // This block is not used when we convert ops to decomposed representation (and we really do)
     OPENVINO_ASSERT(
         (element_type == element::dynamic || element_type == element::string) &&
@@ -117,7 +117,7 @@ void unpack_strings_to_tensors (const std::string* strings, const Shape shape, o
 }
 
 void override_parameter (std::shared_ptr<ov::Node> node, element::Type type, const PartialShape& shape) {
-    if (auto parameter = std::dynamic_pointer_cast<Parameter>(node)) { 
+    if (auto parameter = std::dynamic_pointer_cast<Parameter>(node)) {
         // TODO: Apply this change conditionally based on real Parameter value
         if (getenv_bool("OPENVINO_TOKENIZERS_PRINT_DEBUG_INFO", false)) {
             std::cerr << "Overriding Parameter element_type to " << type << " and shape " << shape << "\n";
@@ -170,10 +170,7 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
 
-    bool * skips;
-    if (has_skips) {
-        skips = inputs[3].data<bool>();
-    };
+    auto skips = has_skips ? inputs[3].data<bool>() : nullptr;
 
     // Set output shapes
     outputs[0].set_shape(inputs[0].get_shape());
@@ -276,7 +273,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     }
     pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
     PCRE2_SIZE subject_length = orig_str.size();
-    
+
     // Check if the string matches the pattern
     int num_matches = pcre2_match(
         m_compiled,
@@ -290,7 +287,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         pcre2_match_data_free(match_data);
         return orig_str;
     }
-    
+
     // Allocate dynamically since lenght depends dynamically on the lenght of input and replace strings.
     // Allocated memory will be freed at the exit from function.
     size_t buffer_length = sizeof(PCRE2_UCHAR) * 4 * (subject_length + num_matches * replace_pattern.size());
@@ -302,7 +299,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
         pcre2_match_data_free(match_data);
         return orig_str;
     }
-    
+
     int rc = pcre2_substitute(
         m_compiled,
         (PCRE2_SPTR) orig_str.c_str(), orig_str.size(),
@@ -332,7 +329,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     }
     auto res = std::string(reinterpret_cast<char*>(buffer), buffer_length);
     std::free(buffer);
-    pcre2_match_data_free(match_data); 
+    pcre2_match_data_free(match_data);
     return res;
 }
 
@@ -353,7 +350,7 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
     );
 
     if (match_result < 0) {
-        pcre2_match_data_free(match_data); 
+        pcre2_match_data_free(match_data);
         return {SIZE_MAX, SIZE_MAX};
     }
 
@@ -363,7 +360,7 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
     std::pair<size_t, size_t> res = {ovector[0], ovector[1]};
 
     // Free only after copying results from match_data to res;
-    pcre2_match_data_free(match_data); 
+    pcre2_match_data_free(match_data);
     return res;
 }
 
