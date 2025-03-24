@@ -129,7 +129,6 @@ jobs:
 
       - name: CMake configure - tokenizers
         run: |
-          source ${INSTALL_DIR}/setupvars.sh
           cmake -DOpenVINODeveloperPackage_DIR=${{ env.INSTALL_DIR }}/developer_package/cmake \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
