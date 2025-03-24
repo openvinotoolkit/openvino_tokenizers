@@ -51,7 +51,7 @@ jobs:
       id: openvino_download
       with:
         platform: 'ubuntu22'
-        commit_packages_to_provide: 'wheels'
+        commit_packages_to_provide: 'wheels,openvino_developer_package.tar.gz'
         revision: latest_available_commit
 
     - name: Clone docker tag from OpenVINO repo
@@ -130,7 +130,8 @@ jobs:
       - name: CMake configure - tokenizers
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          cmake -DOpenVINODeveloperPackage_DIR=${{ env.INSTALL_DIR }}/developer_package/cmake \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
                 -B ${{ env.BUILD_DIR }}
 
