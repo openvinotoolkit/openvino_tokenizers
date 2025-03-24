@@ -200,6 +200,7 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
     set(PCRE2_BUILD_TESTS OFF)
     set(PCRE2_BUILD_PCRE2GREP OFF)
     set(PCRE2_BUILD_TESTS)
+    set(PCRE2_SUPPORT_JIT ON)
 
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
