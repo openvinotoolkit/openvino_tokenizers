@@ -76,14 +76,14 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
 
     Tensor skips_alternative;
     const bool *skips;
-    bool init_skips = false;
     if (has_skips) {
         skips = inputs[5].data<bool>();
         outputs[5].set_shape(Shape{num_chars});
     } else {
         outputs[5].set_shape(Shape{num_chars});
-        skips_alternative = Tensor(element::boolean, Shape{num_chars});
-        skips = std::fill_n(skips_alternative.data<bool>(), num_chars, false) - num_chars;
+        skips_alternative = Tensor(element::boolean, Shape{batch_size});
+        skips = std::fill_n(skips_alternative.data<bool>(), batch_size, false) -
+                batch_size;
     };
 
     outputs[0].set_shape(inputs[0].get_shape());

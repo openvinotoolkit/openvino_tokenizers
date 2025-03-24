@@ -213,7 +213,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     if (has_skips) {
         new_skips = outputs[5].data<bool>();
     } else {
-        new_skips_t = Tensor(element::boolean, Shape{num_rows});
+        new_skips_t = Tensor(element::boolean, Shape{max_shape});
         new_skips = new_skips_t.data<bool>();
     };
     int32_t ragged_offset = 0;

@@ -170,7 +170,7 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
 
-    auto skips = has_skips ? inputs[5].data<bool>() : nullptr;
+    auto skips = has_skips ? inputs[3].data<bool>() : nullptr;
 
     // Set output shapes
     outputs[0].set_shape(inputs[0].get_shape());
@@ -273,7 +273,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     }
     pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
     PCRE2_SIZE subject_length = orig_str.size();
-    
+
     // Check if the string matches the pattern
     int num_matches = pcre2_match(
         m_compiled,
