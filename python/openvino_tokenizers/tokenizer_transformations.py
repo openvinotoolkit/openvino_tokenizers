@@ -3,6 +3,9 @@ from openvino import PartialShape, Type
 from openvino import opset15 as opset
 from openvino.runtime.passes import AnyInput, Manager, Matcher, MatcherPass, WrapType, ModelPass
 from openvino.utils.types import make_constant_node
+import json
+from typing import Iterable
+import numpy as np
 
 from . import _get_factory
 from .constants import (
@@ -12,13 +15,12 @@ from .constants import (
 
 class ModifyCombineSegmentsForPairInput(ModelPass):
     """
-    Concatenate both input and then split them before CombineSegments node.
+    Changes the ov.Model so that it accepts paired input.
 
-    Reshape both begin and end tensors back to [num_batches, 1-2]. Split both begin and end tensors.
-    Use select to zero the end tensor if the input shape was [num_batches, 1].
-    If any constant SpecialToken depends on sequence inputs that are zeroed, zero that
-    constant end tensor as well extend truncation logic for left and right truncation.
-    Connect the modified tensors to CombineSegments node
+    Concatenate both input, process, tokenize and then split them near the end before CombineSegments node.
+    If any constant SpecialToken depends on sequence inputs thay are zeroed.
+    Truncation logic for the inputs is also modified to support max_length. By default, if final length
+    exceeds max_length, it's truncated to max_length/2 for each input and then combined.
     """
     def __init__(self):
         super().__init__()
@@ -40,9 +42,6 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
 
         model.replace_parameter(0, new_parameters[0])
         model.add_parameters([new_parameters[1]])
-        
-        param_1_shape = opset.shape_of(new_parameters[0], output_type="i32", name="param_1_shape")
-        param_2_shape = opset.shape_of(new_parameters[1], output_type="i32", name="param_2_shape")
         
         combine_seg = None
         for op in model.get_ops():
@@ -67,18 +66,17 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
 
         add_trunc_pattern = WrapType("opset15::Add", [AnyInput(), min_pattern])
         add_trunc_matcher = Matcher(add_trunc_pattern, "AddTruncationMatcher")
-        post_processor = model.get_rt_info(ORIGINAL_POST_PROCESSOR_NAME)
-        processed_post_processor = model.get_rt_info(PROCESSED_POST_PROCESSOR_NAME)
+        post_processor = json.loads(model.get_rt_info(PROCESSED_POST_PROCESSOR_NAME).value)
 
         for i in range(num_segments):
             if isinstance(combine_seg.input_value(3 * i).node, ov.op.Constant):
                 # Constant input
                 if not isinstance(combine_seg.input_value(3 * i + 2).node, ov.op.Constant):
                     return False
-                input_signature[i] = ("add_tokens", combine_seg.input_value(3 * i + 2).node.get_data().item(0))
+                input_signature[i] = combine_seg.input_value(3 * i + 2).node.get_data().item(0)
             else:
-                input_signature[i] = "sequence"
                 # Sequence input
+                input_signature[i] = -1
                 num_sequences += 1
 
                 begin = combine_seg.input_value(3 * i)
@@ -96,67 +94,34 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
                 ]
             )
 
-        assert num_sequences == 1
-        # begins, ends
-        # input_1 is slice till the size of parameter_1
-
-        # if parameter_2 is not zero then second input is zero,
-        # else slice it and broadcast to the input_1
+        assert num_sequences == 1, 'Incorrect input signature, extending only singe input is supported'
+        assert post_processor['single']['ids'] == input_signature, 'Input signature from rt_info does not match to the CombineSegments node inputs.'
+        assert post_processor['pair']['ids'][:len(input_signature)] == input_signature, 'Paried inputs are allowed only when it\'s widening the single input'
+        assert len(np.nonzero(np.array(post_processor['pair']['ids']) <= -1)[0]) == 2, "Only 2 inputs are allowed for the paired input"
         
+        
+        param_1_shape = opset.shape_of(new_parameters[0], output_type="i32")
+        param_2_shape = opset.shape_of(new_parameters[1], output_type="i32")
         final_size = opset.shape_of(begin, output_type="i32")
 
+        # For the first input begins_1/ends_1, it's a slice till the Parameter_1 shape.
         begins_1  = opset.slice(begin, start=[0], stop=param_1_shape, step=[1])
-        begins_2  = opset.slice(begin, start=param_1_shape, stop=final_size, step=[1])
-
         ends_1  = opset.slice(end, start=[0], stop=param_1_shape, step=[1])
+        # For the second input begins_2/ends_2, slice till the end.
+        begins_2  = opset.slice(begin, start=param_1_shape, stop=final_size, step=[1])
         ends_2  = opset.slice(end, start=param_1_shape, stop=final_size, step=[1])
-
-        # At the moment, for the second sequence we support only repeating last 2 inputs.
-        # There are 3 options:
-        # 1. [bos_token, sequence_1, eos_token]
-        # 2. [sequence_1, eos_token]
-        # 3. [bos_token, sequence_1]
-        if input_signature[-2:][0] == "sequence":
-            # Would add [sequence_2, eos_token]
-            spec_token_value = input_signature[-2:][1][1]
-        else:
-            spec_token_value = input_signature[-2:][0][1]
-            # We should repeat [bos_token, sequence_2]
-        depends_on_input = input_signature.index("sequence")
-
-        added_spec_begins = make_constant_node(0, Type.i32).output(0)
-        added_spec_ends = make_constant_node(1, Type.i32).output(0)
-        added_spec_data = make_constant_node([spec_token_value], Type.i32).output(0)
-
-        # If ends for the sequence_2 is nullified, we should nullify special_tokens constant as well
-        # eq = opset.equal(inputs[depends_on_input * 3 + 1], make_constant_node([0], Type.i32))
-        # added_spec_ends = opset.multiply(
-        #     added_spec_ends, opset.select(eq, make_constant_node([0], Type.i32), make_constant_node([1], Type.i32))
-        # ).output(0)
-        new_spec_tokens = [added_spec_begins, added_spec_ends, added_spec_data]
         
-        inp_2_shape = opset.shape_of(model.get_parameters()[1], output_type="i32")
-        equal_node = opset.equal(inp_2_shape, make_constant_node([0], Type.i32), name="is_paired_input")
+        equal_node = opset.equal(param_2_shape, make_constant_node([0], Type.i32), name="is_paired_input")
 
         # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
-        # TODO: indeed for ends it should've been 1 but for thix bug CSV-160624 we zeto zero for the moment.
-        begins_2 = opset.select(
-            equal_node, make_constant_node([0], Type.i32), begins_2
-        ).output(0)
-        ends_2 = opset.select(
-            equal_node, make_constant_node([0], Type.i32), ends_2
-        ).output(0)
+        # TODO: indeed for ends it should've been 1 but for thix bug CSV-160624 we set to zero for the moment.
+        begins_2 = opset.select(equal_node, make_constant_node([0], Type.i32), begins_2)
+        ends_2 = opset.select(equal_node, make_constant_node([0], Type.i32), ends_2)
 
-        # For the added inputs segment ids should be 1.
-        new_segment_ids = make_constant_node([0 for i in range(num_segments)] + [1, 1], Type.i32).output(0)
+        first_input = [begins_1.output(0), ends_1.output(0), data]
+        second_input = [begins_2.output(0), ends_2.output(0), data]
 
-        first_input = [
-            begins_1.output(0),
-            ends_1.output(0),
-            data,
-        ]
-        second_input = [begins_2, ends_2, data]
-
+        # Add truncations. Default HF scheme.
         if is_left_trunc or is_right_trunc:
             # This is a common part for both truncations
             max_length_const = (begin if is_left_trunc else end).node.input_value(1).node.input_value(1)
@@ -184,25 +149,41 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
                 gt, opset.add(second_input[0], half_max_length), second_input[1]
             ).output(0)
 
-        if len(input_signature) == 3:
-            new_inputs = [
-                *inputs[0:3],
-                *first_input,
-                *inputs[6:],
-                *second_input,
-                *new_spec_tokens,
-                new_segment_ids,
-            ]
-        if len(input_signature) == 2 and input_signature[0] == "sequence":
-            new_inputs = [*first_input, *inputs[3:6], *second_input, *new_spec_tokens, new_segment_ids]
-        if len(input_signature) == 2 and input_signature[1] == "sequence":
-            new_inputs = [*inputs[0:3], *first_input, *new_spec_tokens, *second_input, new_segment_ids]
+        new_inputs = inputs.copy()
+        first_input_idx = input_signature.index(-1)
+        new_inputs[3*first_input_idx:3*first_input_idx + 3] = first_input
+
+        singature_to_extend = post_processor['pair']['ids'][len(input_signature):]
+        for value in singature_to_extend:
+            if value <= -1:
+                # we ensured previous that only one additional input is possible
+                new_inputs.extend(second_input)
+                continue
+
+            if not isinstance(value, Iterable):
+                value = [value]
+            assert all(map(lambda x: isinstance(x, (int)), value)), 'input signature ids should be value or a list of values'
+
+            added_spec_begins = make_constant_node(0, Type.i32).output(0)
+            added_spec_ends = make_constant_node(len(value), Type.i32).output(0)
+            added_spec_data = make_constant_node(value, Type.i32).output(0)
+
+            # If ends for the sequence_2 is nullified, we should nullify special_tokens constant as well
+            added_spec_ends = opset.multiply(
+                added_spec_ends, opset.select(equal_node, make_constant_node(0, Type.i32), make_constant_node(1, Type.i32))
+            ).output(0)
+            new_spec_tokens = [added_spec_begins, added_spec_ends, added_spec_data]
+            
+            new_inputs.extend(new_spec_tokens)
+
+        # For the added inputs segment ids should be 1.
+        new_segment_ids = make_constant_node(post_processor['pair']['type_ids'], Type.i32).output(0)
+        new_inputs.extend([new_segment_ids])
 
         new_combine_segments = _get_factory().create("CombineSegments", new_inputs)
         ov.utils.replace_node(combine_seg, new_combine_segments)
 
         return True
-
 
 
 def add_second_input(model: ov.Model):
