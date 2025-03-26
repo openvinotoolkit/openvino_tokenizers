@@ -247,9 +247,7 @@ class TransformersTokenizerPipelineParser:
         "Split": parse_split_step,
         "Punctuation": lambda step_dict: RegexSplitStep.punctuation_splitter(step_dict["behavior"]),
         "ByteLevel": parse_byte_level_pretokenization_step,
-        "Digits": lambda step_dict: RegexSplitStep.digits_splitter(
-            "isolate" if step_dict["individual_digits"] else "contiguous"
-        ),
+        "Digits": lambda step_dict: RegexSplitStep.digits_splitter(is_individual=step_dict["individual_digits"]),
         "Metaspace": parse_metaspace,
     }
 

@@ -97,7 +97,7 @@ bpe_models = [
     "stabilityai/stablecode-completion-alpha-3b-4k",
     "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
     "roberta-base",
-    "facebook/opt-66b",
+    "deepseek-ai/DeepSeek-V3-0324",
     "gpt2",
     "ai-forever/rugpt3large_based_on_gpt2",
     "facebook/galactica-120b",
