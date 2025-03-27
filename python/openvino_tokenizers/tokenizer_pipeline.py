@@ -353,8 +353,8 @@ class RegexSplitStep(PreTokenizatinStep):
             raise ValueError("Cannot add two RegexSplitStep instances with different invert attributes")
         if self.behaviour != other.behaviour:
             raise ValueError("Cannot add two RegexSplitStep instances with different behaviour attributes")
-        if self.behaviour != "remove" or self.behaviour != "isolate":
-            raise ValueError('Only "remove" or "isolated" RegexSplit nodes can be merged')
+        if self.behaviour != "remove" and self.behaviour != "isolate":
+            raise ValueError(f'Only "remove" or "isolate" RegexSplit nodes can be merged, got {self.behaviour}')
         if self.max_splits != other.max_splits:
             raise ValueError("Cannot add two RegexSplitStep instances with different max_splits attributes")
 
@@ -431,11 +431,11 @@ class RegexSplitStep(PreTokenizatinStep):
         )
 
     @classmethod
-    def digits_splitter(cls, is_individual: bool = False) -> "RegexSplitStep":
+    def digits_splitter(cls, behaviour="isolate") -> "RegexSplitStep":
         return cls(
-            r"\p{Nd}|\p{Nl}|\p{No}" if is_individual else r"\p{Nd}+|\p{Nl}+|\p{No}+",
+            r"\p{Nd}|\p{Nl}|\p{No}",
             invert=False,
-            behaviour="isolate",
+            behaviour=behaviour,
         )
 
     @classmethod
@@ -1483,8 +1483,8 @@ class TokenizerPipeline:
             idx for idx, step in enumerate(self.steps) if isinstance(step, RegexSplitStep)
         )
         steps_without_pre_tokenization = [step for step in self.steps if not isinstance(step, RegexSplitStep)]
-        old_regex_split_steps = [step for step in self.pre_tokenization_steps if isinstance(step, RegexSplitStep)]
 
+        old_regex_split_steps = [step for step in self.pre_tokenization_steps if isinstance(step, RegexSplitStep)]
         new_regex_split_steps = []
         while any(isinstance(step, RegexSplitStep) for step in old_regex_split_steps):
             step_idx, current_step = next(
@@ -1501,7 +1501,8 @@ class TokenizerPipeline:
                     new_regex_split_steps[-1] = new_regex_split_steps[-1] + step
                     old_regex_split_steps[idx] = None
                 except ValueError:
-                    pass
+                    # If the steps can't be merged, we stop the inner loop
+                    break
 
         steps_without_pre_tokenization[first_step_position:first_step_position] = new_regex_split_steps
         self.steps = steps_without_pre_tokenization
