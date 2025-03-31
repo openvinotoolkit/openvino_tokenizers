@@ -49,7 +49,7 @@ jobs:
       with:
         platform: 'windows'
         commit_packages_to_provide: 'wheels,openvino_developer_package.zip'
-        revision: ffab71e55bf6542ccad5338dfd5666e59e1022f3
+        revision: b5437acd5f135ae14143061ac9848e659c8b46da
         event_name: pull_request
 
   openvino_tokenizers_cpack:
