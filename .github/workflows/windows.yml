@@ -142,7 +142,7 @@ jobs:
         shell: pwsh
         run: |
           ${{ env.OV_INSTALL_DIR }}/setupvars.ps1
-          cmake -DOpenVINODeveloperPackage_DIR=${{ env.INSTALL_DIR }}/openvino_developer_package/developer_package/cmake `
+          cmake -DOpenVINODeveloperPackage_DIR=${{ env.OV_INSTALL_DIR }}/openvino_developer_package/developer_package/cmake `
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
