@@ -48,7 +48,7 @@ jobs:
       id: openvino_download
       with:
         platform: 'windows'
-        commit_packages_to_provide: 'wheels,openvino_developer_package.zip'
+        commit_packages_to_provide: 'wheels,developer_package.zip'
         revision: 9dd9621c7738fcaa9249b2b33c8a16498b468ab4
         event_name: pull_request
 
