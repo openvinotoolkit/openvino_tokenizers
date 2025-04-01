@@ -52,7 +52,7 @@ jobs:
       with:
         platform: 'ubuntu22'
         commit_packages_to_provide: 'wheels,developer_package.tar.gz'
-        revision: 9dd9621c7738fcaa9249b2b33c8a16498b468ab4
+        revision: 31ff43d9d3dca988072116af223d4748c0a338b4
         event_name: pull_request        
 
     - name: Clone docker tag from OpenVINO repo
