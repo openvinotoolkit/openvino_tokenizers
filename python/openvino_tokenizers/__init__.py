@@ -73,7 +73,7 @@ _compatibility_message = (
 )
 
 @functools.lru_cache(1)
-def check_openvino_binary_compatibility() -> None:
+def _check_openvino_binary_compatibility() -> None:
     global is_openvino_tokenizers_compatible, _compatibility_message
     _core = openvino.Core()
     try:
@@ -84,7 +84,7 @@ def check_openvino_binary_compatibility() -> None:
         logger.warning(_compatibility_message)
 
 
-check_openvino_binary_compatibility()
+_check_openvino_binary_compatibility()
 
 # patching openvino
 old_core_init = openvino.Core.__init__
