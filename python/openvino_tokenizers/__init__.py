@@ -63,8 +63,7 @@ is_openvino_tokenizers_compatible = True
 _compatibility_message = (
     "OpenVINO and OpenVINO Tokenizers versions are not binary compatible.\n"
     f"OpenVINO version:            {openvino.get_version()}\n"
-    f"OpenVINO Tokenizers version: {__version__}\n"
-    "First 3 numbers should be the same. Update OpenVINO Tokenizers to compatible version. "
+    f"OpenVINO Tokenizers version: {__version__}\n\n"
     "Try to reinstall OpenVINO Tokenizers with from PyPI:\n"
     "Release version: "
     "pip install -U openvino openvino_tokenizers\n"
