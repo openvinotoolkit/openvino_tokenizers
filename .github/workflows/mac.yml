@@ -47,7 +47,7 @@ jobs:
       with:
         platform: 'macos_12_6'
         commit_packages_to_provide: 'wheels,developer_package.tar.gz'
-        revision: 31ff43d9d3dca988072116af223d4748c0a338b4
+        revision: 665828b64a69431be645fb366eda1388825cf826
         event_name: pull_request
 
   openvino_tokenizers_cpack:
