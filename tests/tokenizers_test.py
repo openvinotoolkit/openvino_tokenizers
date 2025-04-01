@@ -453,12 +453,12 @@ def check_tokenizer_output(
 
     if isinstance(test_string, str):
         test_string = [test_string]
-    
+
     if isinstance(test_string, list) and len(test_string[0]) == 2:
         test_string_ov = [[test_string[0][0]], [test_string[0][1]]]
     else:
         test_string_ov = test_string
-    
+
     # breakpoint()
     hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string_ov)
@@ -1079,6 +1079,7 @@ def ov_hf_tokenizer_pair(request):
         [["Eng... test, string?!", "Multiline\nstring!\nWow!"]],
         [["Eng... test, string?!" * 100, "Multiline\nstring!\nWow!"]],
         [["Eng... test, string?!", "Multiline\nstring!\nWow!" * 100]],
+        [["Eng... test, string?!" * 100, "Multiline\nstring!\nWow!" * 100]],
     ],
 )
 @pytest.mark.parametrize(
