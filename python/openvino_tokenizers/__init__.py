@@ -13,6 +13,8 @@ from typing import Callable, Optional
 import openvino
 from openvino.utils.node_factory import NodeFactory
 
+from .__version__ import __version__
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,34 @@ else:
 
 del _ext_name
 
+is_openvino_tokenizers_compatible = True
+_compatibility_message = (
+    "OpenVINO and OpenVINO Tokenizers versions are not binary compatible.\n"
+    f"OpenVINO version:            {openvino.get_version()}\n"
+    f"OpenVINO Tokenizers version: {__version__}\n\n"
+    "Try to reinstall OpenVINO Tokenizers with from PyPI:\n"
+    "Release version: "
+    "pip install -U openvino openvino_tokenizers\n"
+    "Nightly version: "
+    "pip install --pre -U openvino openvino_tokenizers --extra-index-url "
+    "https://storage.openvinotoolkit.org/simple/wheels/nightly"
+)
+
+
+@functools.lru_cache(1)
+def _check_openvino_binary_compatibility() -> None:
+    global is_openvino_tokenizers_compatible, _compatibility_message
+    _core = openvino.Core()
+    try:
+        _core.add_extension(str(_ext_path))
+        is_openvino_tokenizers_compatible = True
+    except RuntimeError:
+        is_openvino_tokenizers_compatible = False
+        logger.warning(_compatibility_message)
+
+
+_check_openvino_binary_compatibility()
+
 # patching openvino
 old_core_init = openvino.Core.__init__
 old_factory_init = openvino.utils.node_factory.NodeFactory.__init__
@@ -94,8 +124,9 @@ def get_create_wrapper(old_create: Callable) -> Callable:
     return new_create
 
 
-openvino.Core.__init__ = new_core_init
-openvino.frontend.frontend.FrontEnd.__init__ = new_fe_init
+if is_openvino_tokenizers_compatible:
+    openvino.Core.__init__ = new_core_init
+    openvino.frontend.frontend.FrontEnd.__init__ = new_fe_init
 
 
 def _get_factory_callable() -> Callable[[], NodeFactory]:
@@ -104,7 +135,8 @@ def _get_factory_callable() -> Callable[[], NodeFactory]:
     def inner(opset_version: Optional[str] = None) -> NodeFactory:
         nonlocal factory
         if opset_version not in factory:
-            openvino.utils.node_factory.NodeFactory.__init__ = new_factory_init
+            if is_openvino_tokenizers_compatible:
+                openvino.utils.node_factory.NodeFactory.__init__ = new_factory_init
             factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
             if opset_version is None:
                 factory[opset_version].create = get_create_wrapper(factory[opset_version].create)
@@ -133,7 +165,6 @@ _get_factory = _get_factory_callable()
 _get_opset_factory = _get_opset_factory_callable()
 
 # some files uses _get_factory function
-from .__version__ import __version__  # noqa
 from .build_tokenizer import build_rwkv_tokenizer  # noqa
 from .convert_tokenizer import convert_tokenizer  # noqa
 from .utils import add_greedy_decoding, connect_models  # noqa
