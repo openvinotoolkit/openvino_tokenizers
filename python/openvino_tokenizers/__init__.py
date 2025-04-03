@@ -67,10 +67,11 @@ _compatibility_message = (
     "Try to reinstall OpenVINO Tokenizers with from PyPI:\n"
     "Release version: "
     "pip install -U openvino openvino_tokenizers\n"
-    "Nightly version: "            
+    "Nightly version: "
     "pip install --pre -U openvino openvino_tokenizers --extra-index-url "
     "https://storage.openvinotoolkit.org/simple/wheels/nightly"
 )
+
 
 @functools.lru_cache(1)
 def _check_openvino_binary_compatibility() -> None:
