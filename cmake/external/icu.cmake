@@ -268,39 +268,44 @@ if(CMAKE_CXX_COMPILER_LAUNCHER)
   set(cxx_prefix "${CMAKE_CXX_COMPILER_LAUNCHER} ")
 endif()
 
-# propogate current compilers and flags
+# IMPORTANT! use native compilers
 set(host_env_config
-  CFLAGS=${ICU_C_FLAGS}
-  CC=${c_prefix}${CMAKE_C_COMPILER}
-  CXXFLAGS=${ICU_CXX_FLAGS}
-  CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
-  LDFLAGS=${ICU_LINKER_FLAGS})
-  
-foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
-                      CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
-  set(tool ${tool})
-  if(EXISTS ${tool})
-    string(REPLACE "CMAKE_MAKE_PROGRAM" "MAKE" tool_name ${tool})
-    string(REPLACE "CMAKE_LINKER" "LD" tool_name ${tool})
-    string(REPLACE "CMAKE_" "" tool_name ${tool})
-    list(APPEND host_env_config ${tool_name}=${tool})
-  endif()
-endforeach()
-  
+  CC=${c_prefix}cc
+  CXX=${cxx_prefix}c++)
+
+# propogate current compilers and flags
 if(NOT CMAKE_CROSSCOMPILING)
-  set(target_env_config ${host_env_config})
   set(ICU_HOST_TARGET_NAME ${ICU_TARGET_NAME})
   set(ICU_HOST_INSTALL_DIR ${ICU_INSTALL_DIR})
   set(ICU_HOST_BINARY_DIR ${ICU_BINARY_DIR})
+  
+  set(host_env_config
+    CFLAGS=${ICU_C_FLAGS}
+    CC=${c_prefix}${CMAKE_C_COMPILER}
+    CXXFLAGS=${ICU_CXX_FLAGS}
+    CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
+    LDFLAGS=${ICU_LINKER_FLAGS})
 else()
   set(ICU_TARGET_C_FLAGS "${ICU_C_FLAGS} --sysroot=${CMAKE_SYSROOT} --target=${CMAKE_C_COMPILER_TARGET} --gcc-toolchain=${CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN}")
   set(ICU_TARGET_CXX_FLAGS "${ICU_CXX_FLAGS} --sysroot=${CMAKE_SYSROOT} --target=${CMAKE_CXX_COMPILER_TARGET} --gcc-toolchain=${CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN}")
+  
   set(target_env_config
     CFLAGS=${ICU_TARGET_C_FLAGS}
     CC=${c_prefix}${CMAKE_C_COMPILER}
     CXXFLAGS=${ICU_TARGET_CXX_FLAGS}
     CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
     LDFLAGS=${ICU_LINKER_FLAGS})
+    
+  foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
+                      CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
+    set(tool ${tool})
+    if(EXISTS ${tool})
+      string(REPLACE "CMAKE_MAKE_PROGRAM" "MAKE" tool_name ${tool})
+      string(REPLACE "CMAKE_LINKER" "LD" tool_name ${tool})
+      string(REPLACE "CMAKE_" "" tool_name ${tool})
+      list(APPEND target_env_config ${tool_name}=${tool})
+    endif()
+  endforeach()
 endif()
 
 # build for host platform
