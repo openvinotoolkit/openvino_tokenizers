@@ -268,51 +268,45 @@ if(CMAKE_CXX_COMPILER_LAUNCHER)
   set(cxx_prefix "${CMAKE_CXX_COMPILER_LAUNCHER} ")
 endif()
 
-# IMPORTANT! use native compilers
-set(host_env_config
-  CC=${c_prefix}cc
-  CXX=${cxx_prefix}c++)
+# default host env
+set(CC_HOST ${c_prefix}cc)
+set(CXX_HOST ${cxx_prefix}c++)
+set(CFLAGS_HOST "${ICU_C_FLAGS}")
+set(CXXFLAGS_HOST "${ICU_CXX_FLAGS}")
+set(LDFLAGS_HOST "${ICU_LINKER_FLAGS}")
 
-# propogate current compilers and flags
+# default target env
+set(CC_TARGET "${c_prefix}${CMAKE_C_COMPILER}")
+set(CXX_TARGET "${cxx_prefix}${CMAKE_CXX_COMPILER}")
+set(CFLAGS_TARGET "${ICU_C_FLAGS}")
+set(CXXFLAGS_TARGET "${ICU_CXX_FLAGS}")
+set(LDFLAGS_TARGET "${ICU_LINKER_FLAGS}")
+
+# propagate current compilers and flags
 if(NOT CMAKE_CROSSCOMPILING)
   set(ICU_HOST_TARGET_NAME ${ICU_TARGET_NAME})
   set(ICU_HOST_INSTALL_DIR ${ICU_INSTALL_DIR})
   set(ICU_HOST_BINARY_DIR ${ICU_BINARY_DIR})
   
-  if(APPLE)
-    set(host_env_config
-      CFLAGS=${ICU_C_FLAGS}
-      CXXFLAGS=${ICU_CXX_FLAGS}
-      LDFLAGS=${ICU_LINKER_FLAGS})
-  else()
-    set(host_env_config
-      CC=${c_prefix}${CMAKE_C_COMPILER}
-      CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
-      CFLAGS=${ICU_C_FLAGS}
-      CXXFLAGS=${ICU_CXX_FLAGS}
-      LDFLAGS=${ICU_LINKER_FLAGS})
+  if(NOT APPLE)
+    set(CC_HOST "${c_prefix}${CMAKE_C_COMPILER}")
+    set(CXX_HOST "${cxx_prefix}${CMAKE_CXX_COMPILER}")
   endif()
-else()
-  set(ICU_TARGET_C_FLAGS "${ICU_C_FLAGS} --sysroot=${CMAKE_SYSROOT} --target=${CMAKE_C_COMPILER_TARGET} --gcc-toolchain=${CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN}")
-  set(ICU_TARGET_CXX_FLAGS "${ICU_CXX_FLAGS} --sysroot=${CMAKE_SYSROOT} --target=${CMAKE_CXX_COMPILER_TARGET} --gcc-toolchain=${CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN}")
+else()  
+  if(DEFINED CMAKE_SYSROOT)
+    set(CFLAGS_TARGET "${CFLAGS_TARGET} --sysroot=${CMAKE_SYSROOT}")
+    set(CXXFLAGS_TARGET "${CXXFLAGS_TARGET} --sysroot=${CMAKE_SYSROOT}")
+  endif()
   
-  set(target_env_config
-    CFLAGS=${ICU_TARGET_C_FLAGS}
-    CC=${c_prefix}${CMAKE_C_COMPILER}
-    CXXFLAGS=${ICU_TARGET_CXX_FLAGS}
-    CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
-    LDFLAGS=${ICU_LINKER_FLAGS})
-    
-  foreach(tool IN ITEMS CMAKE_AR CMAKE_RANLIB CMAKE_STRIP CMAKE_READELF CMAKE_OBJDUMP CMAKE_OBJCOPY
-                      CMAKE_NM CMAKE_DLLTOOL CMAKE_ADDR2LINE CMAKE_MAKE_PROGRAM)
-    set(tool ${tool})
-    if(EXISTS ${tool})
-      string(REPLACE "CMAKE_MAKE_PROGRAM" "MAKE" tool_name ${tool})
-      string(REPLACE "CMAKE_LINKER" "LD" tool_name ${tool})
-      string(REPLACE "CMAKE_" "" tool_name ${tool})
-      list(APPEND target_env_config ${tool_name}=${tool})
-    endif()
-  endforeach()
+  if(DEFINED CMAKE_C_COMPILER_TARGET AND DEFINED CMAKE_CXX_COMPILER_TARGET)
+    set(CFLAGS_TARGET "${CFLAGS_TARGET} --target=${CMAKE_C_COMPILER_TARGET}")
+    set(CXXFLAGS_TARGET "${CXXFLAGS_TARGET} --target=${CMAKE_CXX_COMPILER_TARGET}")
+  endif()
+  
+  if(DEFINED CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN AND DEFINED CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN)
+    set(CFLAGS_TARGET "${CFLAGS_TARGET} --gcc-toolchain=${CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN}")
+    set(CXXFLAGS_TARGET "${CXXFLAGS_TARGET} --gcc-toolchain=${CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN}")
+  endif()  
 endif()
 
 # build for host platform
@@ -323,7 +317,7 @@ ov_tokenizer_build_icu(
    TARGET_ARCH ${OV_HOST_ARCH}
    BUILD_DIR ${ICU_HOST_BINARY_DIR}
    INSTALL_DIR ${ICU_HOST_INSTALL_DIR}
-   HOST_ENV ${host_env_config})
+   HOST_ENV CC=${CC_HOST} CXX=${CXX_HOST} CFLAGS=${CFLAGS_HOST} CXXFLAGS=${CXXFLAGS_HOST} LDFLAGS=${LDFLAGS_HOST})
 
 if(CMAKE_CROSSCOMPILING)
   # build for target platform
@@ -335,7 +329,7 @@ if(CMAKE_CROSSCOMPILING)
     BUILD_DIR ${ICU_BINARY_DIR}
     INSTALL_DIR ${ICU_INSTALL_DIR}
     EXTRA_CONFIGURE_STEPS --with-cross-build=${ICU_HOST_BINARY_DIR}
-    HOST_ENV ${target_env_config})
+    HOST_ENV CC=${CC_TARGET} CXX=${CXX_TARGET} CFLAGS=${CFLAGS_TARGET} CXXFLAGS=${CXXFLAGS_TARGET} LDFLAGS=${LDFLAGS_TARGET})
 
     add_dependencies(${ICU_TARGET_NAME} ${ICU_HOST_TARGET_NAME})
 endif()
