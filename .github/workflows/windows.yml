@@ -286,7 +286,7 @@ jobs:
         working-directory: ${{ env.INSTALL_DIR }}
         env:
           CMAKE_BUILD_DIR: 'D:\a\b'
-          OpenVINODeveloperPackage_DIR: ${{ env.OV_INSTALL_DIR }}/developer_package/cmake
+          OpenVINODeveloperPackage_DIR: ${{ env.INSTALL_DIR }}/developer_package/cmake
 
       - name: Show ccache stats
         run: ccache --show-stats
