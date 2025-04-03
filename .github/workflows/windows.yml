@@ -283,9 +283,10 @@ jobs:
             ${{ needs.openvino_download.outputs.ov_wheel_source }} `
             --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${env:OPENVINO_TOKENIZERS_REPO}
+        working-directory: ${{ env.INSTALL_DIR }}
         env:
           CMAKE_BUILD_DIR: 'D:\a\b'
-        working-directory: ${{ env.INSTALL_DIR }}
+          OpenVINODeveloperPackage_DIR: ${{ env.OV_INSTALL_DIR }}/developer_package/cmake
 
       - name: Show ccache stats
         run: ccache --show-stats
