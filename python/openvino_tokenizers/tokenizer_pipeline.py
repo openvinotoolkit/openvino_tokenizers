@@ -70,7 +70,7 @@ class BasePipelineStep:
 
     def get_ov_subgraph(self, *input_nodes: List[Output]) -> List[Output]:
         raise NotImplementedError
-
+    
     @staticmethod
     def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
         if isinstance(value, str):
@@ -888,23 +888,14 @@ class TruncationStep(PostTokenizationStep):
         # FIXME: Truncation side (truncate_right) is ignored
         # TODO: Check if axis is the right-most dimension
         self.validate_inputs(input_nodes)
-
-        max_length = opset.minimum(
-            opset.subtract(input_nodes[1], input_nodes[0]),
-            make_constant_node(self.max_length, Type.i32),
-        )
-        if self.truncate_right:
-            return [
-                input_nodes[0],
-                opset.add(input_nodes[0], max_length).output(0),
-                input_nodes[2],
-            ]
-        else:
-            return [
-                opset.subtract(input_nodes[1], max_length).output(0),
-                input_nodes[1],
-                input_nodes[2],
-            ]
+        
+        input_nodes.extend(make_constant_node(self.max_length, Type.i32).outputs())
+        truncation_side = self.create_string_constant_node("right" if self.truncate_right else "left")
+        truncation_mode = self.create_string_constant_node("longest_first")
+        input_nodes.extend(truncation_side)
+        input_nodes.extend(truncation_mode)
+        
+        return _get_factory().create("Truncate", input_nodes).outputs()
 
 
 @dataclass
