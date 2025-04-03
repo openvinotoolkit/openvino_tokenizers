@@ -217,9 +217,10 @@ jobs:
               --config-settings=override=cross.arch="manylinux_2_31_x86_64" \
               ${{ needs.openvino_download.outputs.ov_wheel_source }} \
               ${OPENVINO_TOKENIZERS_REPO}
+        working-directory: ${{ env.INSTALL_DIR }}
         env:
           CMAKE_GENERATOR: 'Unix Makefiles'
-        working-directory: ${{ env.INSTALL_DIR }}
+          OpenVINODeveloperPackage_DIR: ${{ env.INSTALL_DIR }}/developer_package/cmake
 
       #
       # Upload build artifacts
