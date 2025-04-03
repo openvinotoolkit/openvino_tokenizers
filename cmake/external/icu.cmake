@@ -279,12 +279,19 @@ if(NOT CMAKE_CROSSCOMPILING)
   set(ICU_HOST_INSTALL_DIR ${ICU_INSTALL_DIR})
   set(ICU_HOST_BINARY_DIR ${ICU_BINARY_DIR})
   
-  set(host_env_config
-    CFLAGS=${ICU_C_FLAGS}
-    CC=${c_prefix}${CMAKE_C_COMPILER}
-    CXXFLAGS=${ICU_CXX_FLAGS}
-    CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
-    LDFLAGS=${ICU_LINKER_FLAGS})
+  if(APPLE)
+    set(host_env_config
+      CFLAGS=${ICU_C_FLAGS}
+      CXXFLAGS=${ICU_CXX_FLAGS}
+      LDFLAGS=${ICU_LINKER_FLAGS})
+  else()
+    set(host_env_config
+      CC=${c_prefix}${CMAKE_C_COMPILER}
+      CXX=${cxx_prefix}${CMAKE_CXX_COMPILER}
+      CFLAGS=${ICU_C_FLAGS}
+      CXXFLAGS=${ICU_CXX_FLAGS}
+      LDFLAGS=${ICU_LINKER_FLAGS})
+  endif()
 else()
   set(ICU_TARGET_C_FLAGS "${ICU_C_FLAGS} --sysroot=${CMAKE_SYSROOT} --target=${CMAKE_C_COMPILER_TARGET} --gcc-toolchain=${CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN}")
   set(ICU_TARGET_CXX_FLAGS "${ICU_CXX_FLAGS} --sysroot=${CMAKE_SYSROOT} --target=${CMAKE_CXX_COMPILER_TARGET} --gcc-toolchain=${CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN}")
