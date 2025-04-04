@@ -40,8 +40,11 @@ else:
     # extension binary from OpenVINO installation dir has higher priority
     _openvino_path = []
     if _openvino_dir:
-        _system_type = next((Path(_openvino_dir).parent / "lib").iterdir(), Path()).name
-        _openvino_path = [Path(_openvino_dir).parent / "lib" / _system_type / _bin_dir]
+        try:
+            _system_type = next((Path(_openvino_dir).parent / "lib").iterdir(), Path()).name
+            _openvino_path = [Path(_openvino_dir).parent / "lib" / _system_type / _bin_dir]
+        except FileNotFoundError:
+            logger.debug(f"Skip OpenVINO_DIR because is not OpenVINO installation path: {_openvino_dir}")
 
     site_packages = chain(
         _openvino_path, (Path(__file__).parent.parent,), site.getusersitepackages(), site.getsitepackages()
@@ -54,6 +57,8 @@ else:
         ),
         _ext_name,  # Case when the library can be found in the PATH/LD_LIBRAY_PATH
     )
+
+logger.debug(f"OpenVINO Tokenizers extension path: {_ext_path}")
 
 del _ext_name
 
