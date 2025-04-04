@@ -663,7 +663,7 @@ class BPETokenizationStep(TokenizationModelStep):
 
         for token, idx in self.added_tokens.items():
             if isinstance(self.vocab[0], bytes) and not isinstance(token, bytes):
-                token = token.encode()
+                token = apply_unicode_to_bytes(token, return_corrupted_tokens=True)
             self.vocab[idx] = token
 
     @classmethod
@@ -1220,7 +1220,7 @@ class VocabDecoderStep(DecodingStep):
         is_bytes = isinstance(vocab[0], bytes)
         for idx, token in added_tokens.items():
             if is_bytes:
-                token = token.encode()
+                token = apply_unicode_to_bytes(token, return_corrupted_tokens=True)
             if idx < len(vocab):
                 vocab[idx] = token
             else:
