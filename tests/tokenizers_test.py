@@ -109,6 +109,7 @@ bpe_models = [
     "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
     "allenai/OLMo-1B-hf",
     "answerdotai/ModernBERT-base",
+    "tiiuae/Falcon3-7B-Instruct",
 ]
 sentencepiece_models = [
     # bpe
