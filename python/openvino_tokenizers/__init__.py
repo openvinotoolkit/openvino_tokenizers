@@ -37,10 +37,10 @@ if _extension_path and Path(_extension_path).is_file():
     # when the path to the extension set manually
     _ext_path = Path(_extension_path)
 else:
-    # extension binary from OpenVINO installation dir has higher priority
     _openvino_path = []
     if _openvino_dir:
         try:
+            # extension binary from OpenVINO installation dir has higher priority
             _system_type = next((Path(_openvino_dir).parent / "lib").iterdir(), Path()).name
             _openvino_path = [Path(_openvino_dir).parent / "lib" / _system_type / _bin_dir]
         except FileNotFoundError:
