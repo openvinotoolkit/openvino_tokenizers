@@ -32,6 +32,7 @@ public:
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
+        visitor.on_attribute("m_num_inputs", m_num_inputs);
         return true;
     }
 
@@ -40,4 +41,6 @@ public:
     bool has_evaluate() const override {
         return true;
     }
+private:
+    size_t m_num_inputs = 0;
 };

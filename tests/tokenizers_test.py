@@ -454,14 +454,13 @@ def check_tokenizer_output(
     if isinstance(test_string, str):
         test_string = [test_string]
 
-    if isinstance(test_string, list) and len(test_string[0]) == 2:
-        test_string_ov = [[test_string[0][0]], [test_string[0][1]]]
+    if isinstance(test_string, list) and len(test_string) == 2 and isinstance(test_string[0], list):
+        test_string_hf = [[test_string[0][0], test_string[1][0]]]
     else:
-        test_string_ov = test_string
-
-    # breakpoint()
-    hf_tokenized = hf_tokenizer(test_string, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
-    ov_tokenized = ov_tokenizer(test_string_ov)
+        test_string_hf = test_string
+    
+    hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
+    ov_tokenized = ov_tokenizer(test_string)
 
     for output_name, hf_result in hf_tokenized.items():
         if output_name not in ov_tokenized and skip_missing_outputs:
@@ -853,6 +852,7 @@ def test_tiktoken_detokenizer(
     ],
 )
 def test_wordlevel_tokenizers(wordlevel_tokenizers, test_string, do_add_special_tokens):
+    print(test_string)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens, "padding": True}
     result, diff = check_tokenizer_output(
         wordlevel_tokenizers,
@@ -1063,10 +1063,33 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
     check_tokenizer_output((hf_tokenizer, compiled_tokenizer), test_string=test_string)
 
 
-@pytest.fixture(scope="session")
-def ov_hf_tokenizer_pair(request):
-    hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True)
-    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2)
+models_with_pair_input = [
+    "answerdotai/ModernBERT-base",
+    "amberoad/bert-multilingual-passage-reranking-msmarco",
+    "BAAI/bge-reranker-v2.5-gemma2-lightweight",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
+    "deepseek-ai/deepseek-coder-6.7b-instruct",
+    "cointegrated/rubert-tiny2",
+    "google/mobilebert-uncased",
+    "microsoft/deberta-base",
+    # Rerankers with Unigram
+    "BAAI/bge-reranker-v2-m3",
+    # Fail when string exceed max_length
+    # "sentence-transformers/all-MiniLM-L6-v2",
+    # "rasa/LaBSE",
+    # "bert-base-multilingual-cased",
+]
+
+@pytest.fixture(scope="session", params=[7, 10, 100, None])
+# @pytest.fixture(scope="session", params=[10])
+def max_length(request):
+    return request.param
+
+@pytest.fixture(scope="session", params=models_with_pair_input, ids=lambda checkpoint: checkpoint.split("/")[-1])
+def ov_hf_tokenizer_pair_with_pad(request, use_left_padding, max_length):
+    hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
+    ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2, max_length=max_length)
     ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
     return hf_tokenizer, ov_tokenizer
 
@@ -1074,38 +1097,13 @@ def ov_hf_tokenizer_pair(request):
 @pytest.mark.parametrize(
     "test_string",
     [
-        [["hi", "sun in yellow"]],
-        [["hi", "\n\n\n\t\t   A    lot\t\tof\twhitespaces\n!\n\n\n\t\n\n"]],
-        [["Eng... test, string?!", "Multiline\nstring!\nWow!"]],
-        [["Eng... test, string?!" * 100, "Multiline\nstring!\nWow!"]],
-        [["Eng... test, string?!", "Multiline\nstring!\nWow!" * 100]],
-        [["Eng... test, string?!" * 100, "Multiline\nstring!\nWow!" * 100]],
+        [["hi"], ["sun in yellow"]],
+        [["Eng... test, string?!" * 100], ["Multiline\nstring!\nWow!"]],
+        [["Eng... test, string?!"], ["Multiline\nstring!\nWow!" * 100]],
+        [["Eng... test, string?!" * 100], ["Multiline\nstring!\nWow!" * 100]],
+        [['hi' * 20], ['buy' * 90]]
     ],
 )
-@pytest.mark.parametrize(
-    "ov_hf_tokenizer_pair",
-    [
-        "answerdotai/ModernBERT-base",
-        "amberoad/bert-multilingual-passage-reranking-msmarco",
-        "BAAI/bge-reranker-v2.5-gemma2-lightweight",
-        "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-        "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
-        "deepseek-ai/deepseek-coder-6.7b-instruct",
-        "cointegrated/rubert-tiny2",
-        "google/mobilebert-uncased",
-        "microsoft/deberta-base",
-        # Rerankers with Unigram
-        pytest.param(
-            "BAAI/bge-reranker-v2-m3",
-            marks=pytest.mark.xfail(reason="Two special tokens between inputs is not supported yet")
-        ),
-        # Fail when string exceed max_length
-        # "sentence-transformers/all-MiniLM-L6-v2",
-        # "rasa/LaBSE",
-        # "bert-base-multilingual-cased",
-    ],
-    indirect=True,
-)
-def test_pair_input(ov_hf_tokenizer_pair, test_string):
-    result, diff = check_tokenizer_output(ov_hf_tokenizer_pair, test_string=test_string)
+def test_pair_input(ov_hf_tokenizer_pair_with_pad, test_string):
+    result, diff = check_tokenizer_output(ov_hf_tokenizer_pair_with_pad, test_string=test_string)
     assert result, diff

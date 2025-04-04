@@ -32,108 +32,6 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
     exceeds max_length, it's truncated to max_length/2 for each input and then combined.
     """
     
-    def add_truncation(
-            self, combine_seg: ov.Node, 
-            sequence_input_idx: int, 
-            first_input: List[ov.Output], 
-            second_input: List[ov.Output],
-            singature_to_extend: List[int]
-        ) -> Tuple[List[ov.Output], List[ov.Output]]:
-        size_input = WrapType("opset1::Subtract", [AnyInput(), AnyInput()])
-        min_pattern = WrapType("opset1::Minimum", [size_input, WrapType("opset1::Constant")])
-        sub_trunc_matcher = Matcher(WrapType("opset15::Subtract", [AnyInput(), min_pattern]), "SubTruncationMatcher")
-        add_trunc_matcher = Matcher(WrapType("opset15::Add", [AnyInput(), min_pattern]), "AddTruncationMatcher")
-
-        begin = combine_seg.input_value(3 * sequence_input_idx)
-        end = combine_seg.input_value(3 * sequence_input_idx + 1)
-        is_left_trunc = sub_trunc_matcher.match(begin)
-        is_right_trunc = add_trunc_matcher.match(end)
-        if not (is_left_trunc ^ is_right_trunc):
-            return first_input, second_input
-        
-        # To prevent side effects.
-        first_input = first_input.copy()
-        second_input = second_input.copy()
-
-        # Get original begins, ends before truncation.
-        # if is_right_trunc:
-        #     first_input[1] = add_trunc_matcher.get_pattern_value_map()[size_input].node.input_value(1)
-        # else:
-        #     first_input[0] = sub_trunc_matcher.get_pattern_value_map()[size_input].node.input_value(0)
-
-
-        # Get the value of const from pattern CombindeSegmen's begin/end <-- Add/Sub <-- Minimum <-- Constant
-        # By matcher we ensured that graph is correct and we can safely get the value.
-        max_length_const = (begin if is_left_trunc else end).node.input_value(1).node.input_value(1).node
-        
-        # Number of added tokens in paired inputs. 
-        num_added = np.nonzero(np.array(singature_to_extend) > 0)[0]
-        max_length_const = make_constant_node(max_length_const.data - num_added, Type.i32)
-
-        # If max length is odd, we prefer to add remaining 1 to the first half.
-        half_max_length = opset.divide(max_length_const, make_constant_node(2, Type.i32))
-        half_plus_mod = opset.add(half_max_length, opset.mod(max_length_const, make_constant_node(2, Type.i32)))
-
-        # Get original begins and ends before truncation
-        #  of const from pattern CombindeSegmen's begin/end <-- Add/Sub <-- Minimum <-- Constant
-        first_len = first_input[1].node - first_input[0].node
-        second_len = second_input[1].node - second_input[0].node
-        # Whether the sum of the inputs lengths is greater than max_length.
-        is_less_max_length = opset.less_equal(opset.add(first_len, second_len), max_length_const)
-
-        # Whether the first and second inputs are greater than half_max_length
-        first_less_half = opset.less_equal(first_len, half_plus_mod)
-        second_less_half = opset.less_equal(second_len, half_max_length)
-
-        # assume max_lengths = 10
-        # There are 4 cases:
-        # 1. sum is < max_length
-
-        # 2. If first_len, second_len = (8, 3) then resulting should be (7, 3).
-        # We need to shorten first and leave second untouched 
-        # first_len = max_length - second_len
-        # second_len = second_len
-        
-        # 3. If first_len, second_len = (3, 8) then resulting should be (3, 7).
-        # We need to shorten second and leave first untouched
-        # first_len = first_len
-        # second_len = max_length - first_len
-        
-        # 4. If first_len, second_len = (6, 60) then resulting should be (5, 5).
-        # shorten both 
-        # first_len = max_length/2 + max_length % 2
-        # second_len = max_length - first_len
-
-        zero = make_constant_node(0, Type.i32)
-        if is_right_trunc:
-            # At the end we should have a single output with ends for the first and second inputs
-
-            # True if and only if second length is less than half_max_length and sum of lengths is greater than max_length
-            # shorten_first = opset.logical_and(opset.logical_not(is_less_max_length), second_less_half)
-            # shortened_first_end = opset.select(shorten_first, max_length_const - second_len, zero)
-            # original_second_end = opset.select(opset.logical_or(second_less_half, is_less_max_length), second_input[1], zero)
-
-            # True if and only if first length is less than half_max_length and sum of lengths is greater than max_length
-            shorten_second = opset.logical_and(opset.logical_not(is_less_max_length), first_less_half)
-            original_first_end = opset.select(opset.logical_or(first_less_half, is_less_max_length), first_input[1], zero)
-            shortened_second_end = opset.select(shorten_second, max_length_const - first_len + second_input[0].node, zero)
-
-            # True if and only if both first and second lengths are greater than half_max_length
-            # cut_both = opset.logical_and(opset.logical_not(first_less_half), opset.logical_not(second_less_half))
-            # cut_first_end = opset.select(cut_both, first_input[0].node + half_plus_mod, zero)
-            # cut_second_end = opset.select(cut_both, second_input[0].node + half_max_length, zero)
-
-            # first_end = original_first_end + shortened_first_end + cut_first_end
-            # second_end = original_second_end + shortened_second_end + cut_second_end
-            first_end = original_first_end
-            second_end = shortened_second_end + make_constant_node(0, Type.i32)
-            first_input[1] = first_end.output(0)
-            second_input[1] = second_end.output(0)
-        else:
-            pass
-        
-        return first_input, second_input
-
     def run_on_model(self, model: ov.Model):
         parameters = model.get_parameters()
         if len(parameters) != 1:
@@ -165,42 +63,31 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         input_signature = [[]] * num_segments
 
         post_processor = json.loads(model.get_rt_info(PROCESSED_POST_PROCESSOR_NAME).value)
-
+        
         for i in range(num_segments):
             if isinstance(combine_seg.input_value(3 * i).node, ov.op.Constant):
                 # Constant input
                 if not isinstance(combine_seg.input_value(3 * i + 2).node, ov.op.Constant):
                     return False
                 input_signature[i] = combine_seg.input_value(3 * i + 2).node.get_data().item(0)
+                inputs.extend(
+                    [
+                        combine_seg.input_value(3 * i),
+                        combine_seg.input_value(3 * i + 1),
+                        combine_seg.input_value(3 * i + 2),
+                    ]
+                )
             else:
                 # Sequence input
                 input_signature[i] = -1
 
-                size_input = WrapType("opset1::Subtract", [AnyInput(), AnyInput()])
-                min_pattern = WrapType("opset1::Minimum", [size_input, WrapType("opset1::Constant")])
-                sub_trunc_matcher = Matcher(WrapType("opset15::Subtract", [AnyInput(), min_pattern]), "SubTruncationMatcher")
-                add_trunc_matcher = Matcher(WrapType("opset15::Add", [AnyInput(), min_pattern]), "AddTruncationMatcher")
+                trunc_node = combine_seg.input_value(3 * i).node
 
-
-                begin = combine_seg.input_value(3 * i)
-                end = combine_seg.input_value(3 * i + 1)
-                data = combine_seg.input_value(3 * i + 2)
-
-                is_left_trunc = sub_trunc_matcher.match(begin)
-                is_right_trunc = add_trunc_matcher.match(end)
-                # Get original begins, ends before truncation.
-                if is_right_trunc:
-                    end = add_trunc_matcher.get_pattern_value_map()[size_input].node.input_value(0)
-                else:
-                    begin = sub_trunc_matcher.get_pattern_value_map()[size_input].node.input_value(0)
-
-            inputs.extend(
-                [
-                    combine_seg.input_value(3 * i),
-                    combine_seg.input_value(3 * i + 1),
-                    combine_seg.input_value(3 * i + 2),
-                ]
-            )
+                begin = trunc_node.input_value(0)
+                end = trunc_node.input_value(1)
+                data = trunc_node.input_value(2)
+                inputs.extend([begin, end, data])
+                trunc_values = trunc_node.input_values()[3:]
 
         assert post_processor["single"]["ids"] == input_signature, (
             "Input signature from rt_info does not match to the CombineSegments node inputs."
@@ -237,8 +124,13 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         second_input = [begins_2.output(0), ends_2.output(0), data]
 
         first_input_idx = input_signature.index(-1)
-        singature_to_extend = post_processor["pair"]["ids"][len(input_signature):]
-        first_input, second_input = self.add_truncation(combine_seg, first_input_idx, first_input, second_input, singature_to_extend)
+        signature_to_extend = post_processor["pair"]["ids"][len(input_signature):]
+        
+        # Since we add additional special tokens the max_length for truncation should be reduced.
+        trunc_values[0] = make_constant_node(trunc_values[0].node.data - (len(signature_to_extend) - 1), Type.i32).output(0)
+
+        trunc = _get_factory().create("Truncate", [*first_input, *second_input, *trunc_values])
+        first_input, second_input = trunc.outputs()[:3], trunc.outputs()[3:6]
 
         new_inputs = inputs.copy()
         # Replace original input with concatenated Parameter_1, Parameter_2 with only Parameter_1 input.
@@ -248,7 +140,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         #  if original input_signature [bos, sequence_1, eos]
         #  if pair_signature [bos, sequence_1, eos, sequence_2, eos]
         # then singature_to_extend = [sequence_2, eos]
-        for value in singature_to_extend:
+        for value in signature_to_extend:
             if value <= -1:
                 # we ensured previous that only one additional input is possible
                 new_inputs.extend(second_input)
