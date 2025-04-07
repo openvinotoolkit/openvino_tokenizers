@@ -286,7 +286,6 @@ jobs:
         run: |
           python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
             ${{ needs.openvino_download.outputs.ov_wheel_source }} `
-            --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             --config-settings=override=cmake.generator='Ninja' `
             --config-settings=override=cmake.build_path='${{ env.BUILD_DIR }}' `
             ${env:OPENVINO_TOKENIZERS_REPO}
