@@ -197,7 +197,7 @@ function(ov_tokenizer_build_icu)
       INSTALL_DIR ${ARG_INSTALL_DIR}
       PATCH_COMMAND powershell -Command "(Get-ChildItem -Path <SOURCE_DIR>/source -Recurse -File -Filter \"*.vcxproj\" | ForEach-Object { (Get-Content $_.FullName) -replace '<DebugInformationFormat>EditAndContinue</DebugInformationFormat>', '<DebugInformationFormat>ProgramDatabase</DebugInformationFormat>' | Set-Content $_.FullName })"
       CONFIGURE_COMMAND ""
-      BUILD_COMMAND ${CMAKE_COMMAND} -E env CL=${ICU_CXX_FLAGS} LINK=${ICU_LINKER_FLAGS} msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata
+      BUILD_COMMAND ${ARG_HOST_ENV} CL=${ICU_CXX_FLAGS} LINK=${ICU_LINKER_FLAGS} msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata
       INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ARG_INSTALL_DIR}/include &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/lib64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_LIB_SUBDIR} &&
                       ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/bin64 ${ARG_INSTALL_DIR}/${ICU_BUILD_TYPE}/${ICU_INSTALL_BIN_SUBDIR}
