@@ -348,6 +348,23 @@ class RegexSplitStep(PreTokenizatinStep):
                 f"got `{self.max_splits}`"
             )
 
+    def __add__(self, other: "RegexSplitStep") -> "RegexSplitStep":
+        if self.invert != other.invert:
+            raise ValueError("Cannot add two RegexSplitStep instances with different invert attributes")
+        if self.behaviour != other.behaviour:
+            raise ValueError("Cannot add two RegexSplitStep instances with different behaviour attributes")
+        if self.behaviour != "remove" and self.behaviour != "isolate":
+            raise ValueError(f'Only "remove" or "isolate" RegexSplit nodes can be merged, got {self.behaviour}')
+        if self.max_splits != other.max_splits:
+            raise ValueError("Cannot add two RegexSplitStep instances with different max_splits attributes")
+
+        return self.__class__(
+            split_pattern="|".join((self.split_pattern, other.split_pattern)),
+            invert=self.invert,
+            behaviour=self.behaviour,
+            max_splits=self.max_splits,
+        )
+
     @classmethod
     def split_by_chars(cls) -> "RegexSplitStep":
         return cls(split_pattern=".", invert=False, behaviour="isolate")
@@ -646,7 +663,7 @@ class BPETokenizationStep(TokenizationModelStep):
 
         for token, idx in self.added_tokens.items():
             if isinstance(self.vocab[0], bytes) and not isinstance(token, bytes):
-                token = token.encode()
+                token = apply_unicode_to_bytes(token, return_corrupted_tokens=True)
             self.vocab[idx] = token
 
     @classmethod
@@ -725,6 +742,7 @@ class BPETokenizationStep(TokenizationModelStep):
         else:
             special_tokens_outputs = []
 
+        # todo: check if this is still working after bytes-to-chars removal
         if special_tokens_outputs and pipeline.is_byte_level:
             special_tokens_outputs = pipeline.add_ragged_dimension(special_tokens_outputs)
             special_tokens_outputs = BytesToCharsStep().get_ov_subgraph(special_tokens_outputs)[-3:]
@@ -1202,7 +1220,7 @@ class VocabDecoderStep(DecodingStep):
         is_bytes = isinstance(vocab[0], bytes)
         for idx, token in added_tokens.items():
             if is_bytes:
-                token = token.encode()
+                token = apply_unicode_to_bytes(token, return_corrupted_tokens=True)
             if idx < len(vocab):
                 vocab[idx] = token
             else:
@@ -1457,6 +1475,38 @@ class TokenizerPipeline:
 
         self.steps = [step for step in self.steps if not isinstance(step, WhitespaceSplitStep)]
 
+    def merge_regex_split_steps(self) -> None:
+        if not any(isinstance(step, RegexSplitStep) for step in self.pre_tokenization_steps):
+            return
+
+        first_step_position = next(
+            idx for idx, step in enumerate(self.steps) if isinstance(step, RegexSplitStep)
+        )
+        steps_without_pre_tokenization = [step for step in self.steps if not isinstance(step, RegexSplitStep)]
+
+        old_regex_split_steps = [step for step in self.pre_tokenization_steps if isinstance(step, RegexSplitStep)]
+        new_regex_split_steps = []
+        while any(isinstance(step, RegexSplitStep) for step in old_regex_split_steps):
+            step_idx, current_step = next(
+                (idx, step) for idx, step in enumerate(old_regex_split_steps) if step is not None
+            )
+            old_regex_split_steps[step_idx] = None
+            new_regex_split_steps.append(current_step)
+
+            for idx, step in enumerate(old_regex_split_steps):
+                if step is None:
+                    continue
+
+                try:
+                    new_regex_split_steps[-1] = new_regex_split_steps[-1] + step
+                    old_regex_split_steps[idx] = None
+                except ValueError:
+                    # If the steps can't be merged, we stop the inner loop
+                    break
+
+        steps_without_pre_tokenization[first_step_position:first_step_position] = new_regex_split_steps
+        self.steps = steps_without_pre_tokenization
+
     def finalize(self) -> None:
         if self.finalized:
             return
@@ -1466,6 +1516,9 @@ class TokenizerPipeline:
 
         for step in copy(self.steps):
             step.finalize()
+
+        # merge after finalizing steps to make sure that BytesToCharsStep is removed
+        self.merge_regex_split_steps()
         self.finalized = True
 
     def get_tokenizer_ov_subgraph(self) -> Model:

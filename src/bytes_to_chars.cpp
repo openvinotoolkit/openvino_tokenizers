@@ -289,10 +289,7 @@ bool BytesToChars::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto chars  = inputs[4].data<const uint8_t>();
 
     const bool has_skips = inputs.size() == 6;
-    bool * skips;
-    if (has_skips) {
-        skips = inputs[5].data<bool>();
-    };
+    auto skips = has_skips ? inputs[5].data<bool>() : nullptr;
 
     // Set output shapes
     outputs[0] = inputs[0];
@@ -340,4 +337,3 @@ bool BytesToChars::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     outputs[4].set_shape({char_pointer});
     return true;
 }
-
