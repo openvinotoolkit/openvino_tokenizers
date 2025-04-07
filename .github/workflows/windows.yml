@@ -145,11 +145,9 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel $ENV:NUMBER_OF_PROCESSORS --config ${{ matrix.build_type }} --verbose
         env:
           ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
 
