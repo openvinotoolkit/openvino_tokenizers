@@ -223,6 +223,7 @@ jobs:
       INSTALL_DIR: ${{ github.workspace }}\b\ov
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
+      WHEELS_DIR: ${{ github.workspace }}\tk\wheels
       CCACHE_DIR: ${{ github.workspace }}\\ccache
 
     steps:
@@ -284,7 +285,7 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
+          python -m pip wheel -v --no-deps --wheel-dir ${{ env.WHEELS_DIR }} `
             ${{ needs.openvino_download.outputs.ov_wheel_source }} `
             --config-settings=override=cmake.generator='Ninja' `
             --config-settings=override=cmake.build_path='${{ env.BUILD_DIR }}' `
@@ -312,7 +313,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: openvino_tokenizers_wheel
-          path: ${{ env.BUILD_DIR }}/*.whl
+          path: ${{ env.WHEELS_DIR }}/*.whl
           if-no-files-found: 'error'
 
   openvino_tokenizers_tests:
