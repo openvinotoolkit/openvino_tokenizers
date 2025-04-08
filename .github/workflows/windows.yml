@@ -73,7 +73,6 @@ jobs:
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
       CCACHE_DIR: ${{ github.workspace }}\ccache
-      CCACHE_MSVC: 1
       MANIFEST_PATH: ${{ github.workspace }}\manifest.yml
 
     steps:
@@ -120,12 +119,6 @@ jobs:
           Expand-Archive -Path 'ccache.zip' -DestinationPath 'C:\temp\ccache'
           Move-Item -Path 'C:\temp\ccache\*' -Destination 'C:\ccache'
           Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
-          
-          $shim="C:\cl_ccache"
-          New-Item -ItemType Directory -Force -Path $shim | Out-Null
-          $script='@echo off`r`nsetlocal`r`nccache.exe cl.exe %*'
-          Set-Content -Path "$shim\cl.cmd" -Value $script -Encoding ASCII
-          Add-Content -Path $env:GITHUB_PATH -Value $shim
 
       - name: Setup ccache
         id: ccache-restore
@@ -152,14 +145,11 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
-        env:
-          PATH: "C:\\cl_ccache;${{ env.PATH }}"
 
       - name: Cmake build - tokenizers
         run: cmake --build ${{ env.BUILD_DIR }} --parallel $ENV:NUMBER_OF_PROCESSORS --config ${{ matrix.build_type }} --verbose
         env:
           ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
-          PATH: "C:\\cl_ccache;${{ env.PATH }}"
 
       - name: Show ccache stats
         run: ccache --show-stats
@@ -277,12 +267,6 @@ jobs:
           Expand-Archive -Path 'ccache.zip' -DestinationPath 'C:\temp\ccache'
           Move-Item -Path 'C:\temp\ccache\*' -Destination 'C:\ccache'
           Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
-          
-          $shim="C:\cl_ccache"
-          New-Item -ItemType Directory -Force -Path $shim | Out-Null
-          $script='@echo off`r`nsetlocal`r`nccache.exe cl.exe %*'
-          Set-Content -Path "$shim\cl.cmd" -Value $script -Encoding ASCII
-          Add-Content -Path $env:GITHUB_PATH -Value $shim
 
       - name: Setup ccache
         id: ccache-restore
