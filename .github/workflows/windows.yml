@@ -158,6 +158,7 @@ jobs:
         run: cmake --build ${{ env.BUILD_DIR }} --parallel $ENV:NUMBER_OF_PROCESSORS --config ${{ matrix.build_type }} --verbose
         env:
           ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
+          PATH: "C:\\cl_ccache;${{ env.PATH }}"
 
       - name: Show ccache stats
         run: ccache --show-stats
