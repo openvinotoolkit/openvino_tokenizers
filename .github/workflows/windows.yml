@@ -221,11 +221,11 @@ jobs:
     if: |
       always() &&
       (needs.openvino_download.outputs.status == 'success')
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
-    runs-on: windows-2022
+    runs-on: aks-win-8-cores-16gb
     env:
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
       INSTALL_DIR: ${{ github.workspace }}\b\ov
@@ -299,14 +299,13 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          python -m pip wheel -v --no-deps --wheel-dir ${env.WHEELS_DIR} `
+          python -m pip wheel -v --no-deps --wheel-dir ${{ env.WHEELS_DIR }} `
             --config-settings=override=cmake.generator='Ninja' `
-            --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
+            --config-settings=override=cmake.build_path='${{ env.BUILD_DIR }}' `
             ${{ needs.openvino_download.outputs.ov_wheel_source }} `
-            ${env:OPENVINO_TOKENIZERS_REPO}
+            ${{ env.OPENVINO_TOKENIZERS_REPO }}
         working-directory: ${{ env.INSTALL_DIR }}
         env:
-          CMAKE_BUILD_DIR: 'D:\a\b'
           OpenVINODeveloperPackage_DIR: ${{ env.INSTALL_DIR }}/developer_package/cmake
 
       - name: Show ccache stats
