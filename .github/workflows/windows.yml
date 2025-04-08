@@ -152,7 +152,7 @@ jobs:
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
         env:
-          PATH: "${{ env.GITHUB_PATH }};${{ env.PATH }}"
+          PATH: "C:\\cl_ccache;${{ env.PATH }}"
 
       - name: Cmake build - tokenizers
         run: cmake --build ${{ env.BUILD_DIR }} --parallel $ENV:NUMBER_OF_PROCESSORS --config ${{ matrix.build_type }} --verbose
