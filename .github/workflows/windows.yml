@@ -1,4 +1,4 @@
-name: Windows (VS 2019, Python 3.11)
+name: Windows (VS 2022, Python 3.11)
 on:
   workflow_dispatch:
   pull_request:
@@ -72,7 +72,7 @@ jobs:
       OV_TOKENIZERS_INSTALL_DIR: ${{ github.workspace }}\b\ov_tk
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
-      CCACHE_DIR: ${{ github.workspace }}\\ccache
+      CCACHE_DIR: ${{ github.workspace }}\ccache
       MANIFEST_PATH: ${{ github.workspace }}\manifest.yml
 
     steps:
@@ -106,7 +106,7 @@ jobs:
       # Build
       #
 
-      - name: Install build dependencies
+      - name: Download and install ninja
         run: |
           Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja-win.zip -MaximumRetryCount 10
           Expand-Archive -Force ninja-win.zip
@@ -124,9 +124,9 @@ jobs:
         id: ccache-restore
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-cpack-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-cpack
           path: ${{ env.CCACHE_DIR }}
 
       - name: Clean ccache stats
@@ -145,11 +145,9 @@ jobs:
                 -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
                 -S ${{ env.OPENVINO_TOKENIZERS_REPO }} `
                 -B ${{ env.BUILD_DIR }}
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel $ENV:NUMBER_OF_PROCESSORS --config ${{ matrix.build_type }} --verbose
         env:
           ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
 
@@ -215,16 +213,18 @@ jobs:
     if: |
       always() &&
       (needs.openvino_download.outputs.status == 'success')
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
-    runs-on: windows-2022
+    runs-on: aks-win-8-cores-16gb
     env:
+      CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
       INSTALL_DIR: ${{ github.workspace }}\b\ov
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
       BUILD_DIR: ${{ github.workspace }}\b\tk
+      WHEELS_DIR: ${{ github.workspace }}\tk\wheels
       CCACHE_DIR: ${{ github.workspace }}\\ccache
 
     steps:
@@ -254,6 +254,13 @@ jobs:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
+          
+      - name: Download and install ninja
+        run: |
+          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja-win.zip -MaximumRetryCount 10
+          Expand-Archive -Force ninja-win.zip
+          # Add it to the GitHub Path so it would be available in the subsequent steps
+          Add-Content -Path $env:GITHUB_PATH -Value "${{ github.workspace }}/ninja-win"
 
       - name: Download and install ccache
         run: |
@@ -266,26 +273,31 @@ jobs:
         id: ccache-restore
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-wheel-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}
+            ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-wheel
           path: ${{ env.CCACHE_DIR }}
 
+      - name: Configure Developer Command Prompt for Microsoft Visual C++
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          toolset: 14.40 # v2022
+          
       #
       # Build
       #
+      
       - name: Clean ccache stats
         run: ccache --zero-stats --show-config
 
       - name: Build tokenizers wheel
         run: |
-          python -m pip wheel -v --no-deps --wheel-dir ${env:BUILD_DIR} `
+          python -m pip wheel -v --no-deps --wheel-dir ${{ env.WHEELS_DIR }} `
+            --config-settings=override=cmake.build_path='${{ env.BUILD_DIR }}' `
             ${{ needs.openvino_download.outputs.ov_wheel_source }} `
-            --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
-            ${env:OPENVINO_TOKENIZERS_REPO}
+            ${{ env.OPENVINO_TOKENIZERS_REPO }}
         working-directory: ${{ env.INSTALL_DIR }}
         env:
-          CMAKE_BUILD_DIR: 'D:\a\b'
           OpenVINODeveloperPackage_DIR: ${{ env.INSTALL_DIR }}/developer_package/cmake
 
       - name: Show ccache stats
@@ -307,7 +319,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: openvino_tokenizers_wheel
-          path: ${{ env.BUILD_DIR }}/*.whl
+          path: ${{ env.WHEELS_DIR }}/*.whl
           if-no-files-found: 'error'
 
   openvino_tokenizers_tests:
