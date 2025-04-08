@@ -119,6 +119,12 @@ jobs:
           Expand-Archive -Path 'ccache.zip' -DestinationPath 'C:\temp\ccache'
           Move-Item -Path 'C:\temp\ccache\*' -Destination 'C:\ccache'
           Add-Content -Path $env:GITHUB_PATH -Value "C:\ccache"
+          
+          $shim="C:\cl_ccache"
+          New-Item -ItemType Directory -Force -Path $shim | Out-Null
+          $script='@echo off`r`nsetlocal`r`nccache.exe cl.exe %*'
+          Set-Content -Path "$shim\cl.cmd" -Value $script -Encoding ASCII
+          Add-Content -Path $env:GITHUB_PATH -Value $shim
 
       - name: Setup ccache
         id: ccache-restore
