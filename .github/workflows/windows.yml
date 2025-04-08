@@ -219,7 +219,6 @@ jobs:
         shell: pwsh
     runs-on: aks-win-8-cores-16gb
     env:
-      CMAKE_GENERATOR: 'Ninja'
       OPENVINO_REPO: ${{ github.workspace }}\src\ov
       INSTALL_DIR: ${{ github.workspace }}\b\ov
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}\src\tk
@@ -287,6 +286,7 @@ jobs:
       - name: Build tokenizers wheel
         run: |
           python -m pip wheel -v --no-deps --wheel-dir ${{ env.WHEELS_DIR }} `
+            --config-settings=override=cmake.generator='Ninja' `
             --config-settings=override=cmake.build_path='${{ env.BUILD_DIR }}' `
             ${{ needs.openvino_download.outputs.ov_wheel_source }} `
             ${{ env.OPENVINO_TOKENIZERS_REPO }}
