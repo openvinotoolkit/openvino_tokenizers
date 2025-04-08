@@ -297,13 +297,14 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          python -m pip wheel -v --no-deps --wheel-dir ${{ env.WHEELS_DIR }} `
+          python -m pip wheel -v --no-deps --wheel-dir ${env.WHEELS_DIR} `
             --config-settings=override=cmake.generator='Ninja' `
-            --config-settings=override=cmake.build_path='${{ env.BUILD_DIR }}' `
+            --config-settings=override=cmake.build_path="${env:CMAKE_BUILD_DIR}" `
             ${{ needs.openvino_download.outputs.ov_wheel_source }} `
-            ${{ env.OPENVINO_TOKENIZERS_REPO }}
+            ${env:OPENVINO_TOKENIZERS_REPO}
         working-directory: ${{ env.INSTALL_DIR }}
         env:
+          CMAKE_BUILD_DIR: 'D:\a\b'
           OpenVINODeveloperPackage_DIR: ${{ env.INSTALL_DIR }}/developer_package/cmake
 
       - name: Show ccache stats
