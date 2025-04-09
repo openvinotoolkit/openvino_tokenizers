@@ -59,7 +59,7 @@ from .tokenizer_pipeline import (
     WhitespaceSplitStep,
     WordPieceTokenizationStep,
 )
-from .utils import TokenzierConversionParams
+from .utils import TokenzierConversionParams, create_string_constant_node
 
 
 def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:
@@ -812,7 +812,7 @@ def convert_sentencepiece_model_tokenizer(
     if params.handle_special_tokens_with_re:
         tokens, ids = zip(*sorted(((token, id) for id, token in add_tokens.items()), reverse=True))
         added_inputs = [
-            *BasePipelineStep.create_string_constant_node(tokens),
+            create_string_constant_node(tokens),
             make_constant_node(np.array(ids, dtype=np.int32), Type.i32).output(0),
         ]
     else:

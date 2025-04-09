@@ -11,7 +11,7 @@ from openvino_tokenizers.tokenizer_pipeline import (
     TokenizerPipeline,
     TrieTokenizerStep,
 )
-from openvino_tokenizers.utils import change_inputs_type, change_outputs_type
+from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, create_string_constant_node
 
 
 def build_rwkv_tokenizer(
@@ -55,7 +55,7 @@ def build_rwkv_tokenizer(
         _get_factory()
         .create(
             "VocabDecoder",
-            [*detokenizer_input.outputs(), *BasePipelineStep.create_string_constant_node(trie_node.vocab)],
+            [*detokenizer_input.outputs(), *create_string_constant_node(trie_node.vocab)],
         )
         .outputs()
     )
