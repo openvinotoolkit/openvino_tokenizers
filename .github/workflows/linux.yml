@@ -274,10 +274,10 @@ jobs:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
-
+             
       - name: Install OpenVINO Python wheel from pre-built artifacts
         run: |
-          python3 -m pip install openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
+          python3 -m pip install --no-deps openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
         working-directory: ${{ env.INSTALL_DIR }}
 
       - name: Install OpenVINO tokenizers wheel
@@ -285,11 +285,16 @@ jobs:
           # Find and install wheel
           pushd ${INSTALL_DIR}/ov_tokenizers
             wheel_name=$(find . -name 'openvino_tokenizers*.whl')
-            python3 -m pip install $wheel_name[dev]
+            python3 -m pip install --no-deps $wheel_name
           popd
         env:
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
 
+      - name: Install Test dependencies
+        run: |
+          python3 -m pip install poetry~=2.0.0
+          poetry install
+          
       - name: Tokenizers regression tests (using openvino python wheels)
         run: |
           python3 -m pytest layer_tests.py
