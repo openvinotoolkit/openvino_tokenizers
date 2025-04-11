@@ -283,9 +283,9 @@ jobs:
       - name: Install OpenVINO wheel
         run: |
           # Find and add it to poetry
-          wheel_name=$(find . -name 'openvino*.whl')
+          wheel_name=$(find ${{ env.INSTALL_DIR }}/wheels -name 'openvino*.whl')
           poetry add $wheel_name
-        working-directory: ${{ env.INSTALL_DIR }}/wheels
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
         
       - name: Install Test dependencies
         run: |
