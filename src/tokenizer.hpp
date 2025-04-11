@@ -23,6 +23,7 @@
 #include "vocab_encoder.hpp"
 #include "chars_to_bytes.hpp"
 #include "trie_tokenizer.hpp"
+#include "truncate.hpp"
 #include "fuze.hpp"
 #include "byte_fallback.hpp"
 #include "special_tokens_split.hpp"

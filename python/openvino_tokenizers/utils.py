@@ -430,3 +430,13 @@ def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
     chars = np.frombuffer(chars.getvalue(), np.uint8)
 
     return [Constant(Tensor(x)).output(0) for x in [begins, ends, chars]]
+
+def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
+    if isinstance(value, str):
+        # string scalar
+        return Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8)).outputs()
+    elif isinstance(value, Iterable):
+        # support only 1D strings for now
+        return create_unpacked_string(value)
+    else:
+        raise ValueError(f"Unsupported value type {type(value)}")
