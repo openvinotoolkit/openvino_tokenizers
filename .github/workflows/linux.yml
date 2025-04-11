@@ -274,28 +274,37 @@ jobs:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
+          
+      - name: Install poetry
+        run: |
+          python3 -m pip install poetry~=2.0.0
+          poetry config virtualenvs.create false # install in the current environment
              
       - name: Install OpenVINO Python wheel from pre-built artifacts
         run: |
           python3 -m pip install --no-deps openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
         working-directory: ${{ env.INSTALL_DIR }}
+      
+      - name: Install OpenVINO wheel
+        run: |
+          # Find and add it to poetry
+          wheel_name=$(find . -name 'openvino*.whl')
+          poetry add $wheel_name
+        working-directory: ${{ env.INSTALL_DIR }}/wheels
+        
+      - name: Install Test dependencies
+        run: |
+          poetry install --extras=transformers
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Install OpenVINO tokenizers wheel
         run: |
           # Find and install wheel
-          pushd ${INSTALL_DIR}/ov_tokenizers
-            wheel_name=$(find . -name 'openvino_tokenizers*.whl')
-            python3 -m pip install --no-deps $wheel_name
-          popd
+          wheel_name=$(find . -name 'openvino_tokenizers*.whl')
+          python3 -m pip install --no-deps $wheel_name
+        working-directory: ${{ env.INSTALL_DIR }}/ov_tokenizers
         env:
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
-
-      - name: Install Test dependencies
-        run: |
-          python3 -m pip install poetry~=2.0.0
-          poetry config virtualenvs.create false # install in the current environment
-          poetry install --extras=transformers
-        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
       - name: Tokenizers regression tests (using openvino python wheels)
         run: |
