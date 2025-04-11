@@ -39,30 +39,7 @@ dependencies = [
 [project.optional-dependencies]
 transformers = [
     "transformers[sentencepiece] >= 4.36.0",
-    "tiktoken"
-]
-dev = [
-    "ruff",
-    "bandit",
-    "pytest",
-    "pytest_harvest",
-    "pandas",
-    "jinja2",
-    "openvino_tokenizers[transformers]"
-]
-benchmark = [
-    "pandas",
-    "seaborn",
-    "tqdm",
-    "openvino_tokenizers[transformers]"
-]
-#  don't include fuzzing to avoid windows CI issues
-fuzzing = [
-    "atheris",
-    "openvino_tokenizers[transformers]"
-]
-all = [
-    "openvino_tokenizers[dev, transformers]"
+    "tiktoken",
 ]
 
 [project.scripts]
@@ -120,3 +97,30 @@ requires = [
     "openvino~=2025.2.0.dev"
 ]
 build-backend = "py_build_cmake.build"
+
+[tool.poetry]
+package-mode = false
+
+[[tool.poetry.source]]
+name = "openvino-nightly"
+url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
+priority = "supplemental"
+
+[tool.poetry.dependencies]
+openvino = { version = "~=2025.2.0.dev", source = "openvino-nightly" }
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.1.0"
+bandit = ">=1.0.0"
+pytest = ">=6.0.0"
+pytest-harvest = ">=1.0.0"
+pandas = ">=1.0.0"
+jinja2 = ">=3.0.0"
+
+[tool.poetry.group.benchmark.dependencies]
+pandas = ">=1.0.0"
+seaborn = ">=0.10.0"
+tqdm = ">=4.50.0"
+
+[tool.poetry.group.fuzzing.dependencies]
+atheris = ">=2.0.0"
