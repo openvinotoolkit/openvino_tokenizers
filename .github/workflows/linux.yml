@@ -293,7 +293,7 @@ jobs:
       - name: Install Test dependencies
         run: |
           python3 -m pip install poetry~=2.0.0
-          poetry config settings.virtualenvs.create false # install in the current environment
+          poetry config virtualenvs.create false # install in the current environment
           poetry install
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
