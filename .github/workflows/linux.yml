@@ -280,11 +280,6 @@ jobs:
           python3 -m pip install poetry~=2.0.0
           poetry config virtualenvs.create false # install in the current environment
              
-      - name: Install OpenVINO Python wheel from pre-built artifacts
-        run: |
-          python3 -m pip install --no-deps openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
-        working-directory: ${{ env.INSTALL_DIR }}
-      
       - name: Install OpenVINO wheel
         run: |
           # Find and add it to poetry
