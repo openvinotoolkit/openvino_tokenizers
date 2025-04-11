@@ -294,7 +294,7 @@ jobs:
         run: |
           python3 -m pip install poetry~=2.0.0
           poetry config virtualenvs.create false # install in the current environment
-          poetry install
+          poetry install --extras=transformers
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
       - name: Tokenizers regression tests (using openvino python wheels)
