@@ -277,7 +277,7 @@ jobs:
           
       - name: Install poetry
         run: |
-          python3 -m pip install poetry==2.0.13
+          python3 -m pip install poetry==2.1.2
           poetry config virtualenvs.create false # install in the current environment
              
       - name: Install OpenVINO wheel
