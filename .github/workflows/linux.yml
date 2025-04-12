@@ -274,7 +274,6 @@ jobs:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
-          
       - name: Install poetry
         run: |
           python3 -m pip install poetry==2.1.2
