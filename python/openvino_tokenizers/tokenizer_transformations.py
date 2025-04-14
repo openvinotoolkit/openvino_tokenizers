@@ -1,3 +1,6 @@
+# Copyright (C) 2018-2025 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
 import json
 from typing import Iterable, Tuple, List, Optional
 
@@ -20,7 +23,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
     Changes the ov.Model so that it accepts paired input.
 
     Concatenate both input, process, tokenize and then split them near the end before CombineSegments node.
-    If any constant SpecialToken depends on sequence inputs thay are zeroed.
+    If any constant SpecialToken depends on sequence inputs, thay are zeroed.
     Truncation operation is also modified to support max_length.
     """
 
@@ -97,8 +100,10 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         begins_2 = opset.select(self.equal_node, make_constant_node([0], Type.i32), begins_2)
         ends_2 = opset.select(self.equal_node, make_constant_node([0], Type.i32), ends_2)
 
+        # Second input is a candidate input and if there is a batch or queries dimension, we need to
+        # broadcast the begins and ends tensors.        
         first_input = [begins_1.output(0), ends_1.output(0), data]
-        second_input = [begins_2.output(0), ends_2.output(0), data]
+        second_input = [opset.broadcast(begins_2, param_1_shape).output(0), opset.broadcast(ends_2, param_1_shape).output(0), data]
 
         signature_to_extend = self.post_processor["pair"]["ids"][len(input_signature):]
         

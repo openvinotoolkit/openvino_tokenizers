@@ -852,7 +852,6 @@ def test_tiktoken_detokenizer(
     ],
 )
 def test_wordlevel_tokenizers(wordlevel_tokenizers, test_string, do_add_special_tokens):
-    print(test_string)
     hf_tokenizer_kwargs = {"add_special_tokens": do_add_special_tokens, "padding": True}
     result, diff = check_tokenizer_output(
         wordlevel_tokenizers,
@@ -894,7 +893,6 @@ def test_wordlevel_detokenizer(
 
 def test_streaming_detokenizer(sentencepiece_streaming_tokenizers):
     hf_tokenizer, _, ov_detokenizer = sentencepiece_streaming_tokenizers
-
     test_string = "this is a test string"
     tokenized_string = hf_tokenizer(test_string).input_ids
     hf_detokenized = hf_tokenizer.decode(tokenized_string)
@@ -1073,12 +1071,11 @@ models_with_pair_input = [
     "cointegrated/rubert-tiny2",
     "google/mobilebert-uncased",
     "microsoft/deberta-base",
+    "sentence-transformers/all-MiniLM-L6-v2",
+    "rasa/LaBSE",
+    "bert-base-multilingual-cased",
     # Rerankers with Unigram
     "BAAI/bge-reranker-v2-m3",
-    # Fail when string exceed max_length
-    # "sentence-transformers/all-MiniLM-L6-v2",
-    # "rasa/LaBSE",
-    # "bert-base-multilingual-cased",
 ]
 
 @pytest.fixture(scope="session", params=[7, 10, 100, None])
@@ -1087,7 +1084,7 @@ def max_length(request):
     return request.param
 
 @pytest.fixture(scope="session", params=models_with_pair_input, ids=lambda checkpoint: checkpoint.split("/")[-1])
-def ov_hf_tokenizer_pair_with_pad(request, use_left_padding, max_length):
+def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
     ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2, max_length=max_length)
     ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
@@ -1104,6 +1101,6 @@ def ov_hf_tokenizer_pair_with_pad(request, use_left_padding, max_length):
         [['hi' * 20], ['buy' * 90]]
     ],
 )
-def test_pair_input(ov_hf_tokenizer_pair_with_pad, test_string):
-    result, diff = check_tokenizer_output(ov_hf_tokenizer_pair_with_pad, test_string=test_string)
+def test_pair_input(ov_hf_tokenizer_pair_with_trunc, test_string):
+    result, diff = check_tokenizer_output(ov_hf_tokenizer_pair_with_trunc, test_string=test_string)
     assert result, diff
