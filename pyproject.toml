@@ -99,7 +99,6 @@ requires = [
 build-backend = "py_build_cmake.build"
 
 [tool.poetry]
-include = ["LICENSE"]
 package-mode = false
 
 [[tool.poetry.source]]
