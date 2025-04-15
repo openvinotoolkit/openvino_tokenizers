@@ -363,7 +363,7 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
         
-      - uses: .github/actions/install_poetry
+      - uses: ./.github/actions/install_poetry
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       # - name: Install OpenVINO Python wheel from pre-built artifacts
