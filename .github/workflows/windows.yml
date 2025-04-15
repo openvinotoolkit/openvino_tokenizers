@@ -368,7 +368,7 @@ jobs:
       - name: Install OpenVINO wheel
         run: |
           # Find and install wheel
-          $openvino_wheel=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\wheels" -Filter openvino*.whl | % { $_.FullName }
+          $openvino_wheel=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\wheels" -Filter openvino*cp311*.whl | % { $_.FullName }
           poetry add "$openvino_wheel"
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
