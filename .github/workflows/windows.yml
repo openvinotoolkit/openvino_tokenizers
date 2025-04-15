@@ -364,17 +364,13 @@ jobs:
           merge-multiple: true
         
       - uses: ./openvino_tokenizers/.github/actions/install_poetry
-
-      # - name: Install OpenVINO Python wheel from pre-built artifacts
-      #   run: |
-      #     python3 -m pip install openvino==${{ needs.openvino_download.outputs.ov_version }} ${{ needs.openvino_download.outputs.ov_wheel_source }}
-      #   working-directory: ${{ env.INSTALL_DIR }}
         
-      - name: Install OpenVINO tokenizers wheel
+      - name: Install OpenVINO wheel
         run: |
           # Find and install wheel
           $openvino_wheel=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\wheels" -Filter openvino*.whl | % { $_.FullName }
           poetry add "$openvino_wheel"
+        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
       - name: Install OpenVINO tokenizers wheel
         run: |
