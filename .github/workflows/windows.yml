@@ -383,7 +383,7 @@ jobs:
 
       - name: Install Test dependencies
         run: |
-          poetry install --extras=transformers --with dev
+          poetry install --extras=transformers --with dev,benchmark
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
       - name: Tokenizers regression tests (using openvino python modules)
