@@ -114,6 +114,9 @@ priority = "supplemental"
 [tool.poetry.dependencies]
 openvino = { version = "~=2025.2.0.dev", source = "openvino-nightly" }
 
+[tool.poetry.group.dev]
+optional = true
+
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.1.0"
 bandit = ">=1.0.0"
@@ -122,10 +125,16 @@ pytest-harvest = ">=1.0.0"
 pandas = ">=1.0.0"
 jinja2 = ">=3.0.0"
 
+[tool.poetry.group.benchmark]
+optional = true
+
 [tool.poetry.group.benchmark.dependencies]
 pandas = ">=1.0.0"
 seaborn = ">=0.10.0"
 tqdm = ">=4.50.0"
+
+[tool.poetry.group.fuzzing]
+optional = true
 
 [tool.poetry.group.fuzzing.dependencies]
 atheris = ">=2.0.0"
