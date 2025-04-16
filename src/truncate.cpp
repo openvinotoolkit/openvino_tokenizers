@@ -82,8 +82,8 @@ bool Truncate::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
         if (first_length + second_length > max_length) {
             // If bothe lengths are greater than max_length and if max_length is not even,
             // remainder should be added to the longest input to match to HF behavior.
-            int32_t first_remainder = (first_length >= second_length) ? max_length % 2 : 0;
-            int32_t second_remainder = (first_length >= second_length) ? 0 : max_length % 2;
+            const int32_t first_remainder = (max_length % 2) * (first_length >= second_length);
+            const int32_t second_remainder = (max_length % 2) * (first_length < second_length);
 
             if (trunc_side == "right") {
                 // If it's right truncation then we should modify ends.
