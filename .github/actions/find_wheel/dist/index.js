@@ -35789,6 +35789,10 @@ var __webpack_exports__ = {};
 const core = __nccwpck_require__(2186);
 const glob = __nccwpck_require__(8211);
 const path = __nccwpck_require__(1017);
+const util = __nccwpck_require__(3837);
+const { exec } = __nccwpck_require__(2081);
+
+const execAsync = util.promisify(exec);
 
 async function getPythonVersion() {
   const { stdout } = await execAsync('python --version');

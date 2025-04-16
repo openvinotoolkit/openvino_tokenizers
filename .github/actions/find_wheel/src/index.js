@@ -1,6 +1,10 @@
 const core = require('@actions/core');
 const glob = require('glob');
 const path = require('path');
+const util = require('util');
+const { exec } = require('child_process');
+
+const execAsync = util.promisify(exec);
 
 async function getPythonVersion() {
   const { stdout } = await execAsync('python --version');
