@@ -2,15 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import json
-from typing import Iterable, Tuple, List, Optional
+import logging
+from typing import Iterable, List
 
 import numpy as np
 import openvino as ov
 from openvino import PartialShape, Type
 from openvino import opset15 as opset
-from openvino.runtime.passes import AnyInput, Manager, Matcher, ModelPass, WrapType
+from openvino.runtime.passes import Manager, ModelPass
 from openvino.utils.types import make_constant_node
-import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,13 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
                 if not isinstance(combine_seg.input_value(3 * i + 2).node, ov.op.Constant):
                     return False
                 input_signature[i] = combine_seg.input_value(3 * i + 2).node.get_data().item(0)
-                inputs.extend([combine_seg.input_value(3 * i), combine_seg.input_value(3 * i + 1), combine_seg.input_value(3 * i + 2)])
+                inputs.extend(
+                    [
+                        combine_seg.input_value(3 * i),
+                        combine_seg.input_value(3 * i + 1),
+                        combine_seg.input_value(3 * i + 2),
+                    ]
+                )
             else:
                 # Sequence input
                 input_signature[i] = -1
@@ -61,8 +68,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         self.inputs = inputs
         self.input_signature = input_signature
         return True
-    
-    
+
     def insert_splits(self):
         """
         Insert Splits for begins, ends before the CombineSegments node and returns new inputs.
@@ -72,7 +78,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         input_signature = self.input_signature
 
         first_input_idx = input_signature.index(-1)
-        begin, end, data = inputs[3*first_input_idx:3*first_input_idx + 3]
+        begin, end, data = inputs[3 * first_input_idx : 3 * first_input_idx + 3]
 
         # Single parameter will be replaced with a concatenated pair of Parameters.
         new_parameters = [ov.op.Parameter(Type.string, PartialShape([-1])) for i in range(2)]
@@ -85,13 +91,13 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         self.new_parameters = new_parameters
 
         # For the first input begins_1/ends_1, it's a slice till the Parameter_1 shape.
-        begins_1 = opset.slice(begin, start=[0], stop=param_1_shape, step=[1], name='begins_1')
-        ends_1 = opset.slice(end, start=[0], stop=param_1_shape, step=[1], name='ends_1')
-        
+        begins_1 = opset.slice(begin, start=[0], stop=param_1_shape, step=[1], name="begins_1")
+        ends_1 = opset.slice(end, start=[0], stop=param_1_shape, step=[1], name="ends_1")
+
         # For the second input begins_2/ends_2, slice till the end.
-        begins_2 = opset.slice(begin, start=param_1_shape, stop=final_size, step=[1], name='begins_2')
-        ends_2 = opset.slice(end, start=param_1_shape, stop=final_size, step=[1], name='ends_2')
-        
+        begins_2 = opset.slice(begin, start=param_1_shape, stop=final_size, step=[1], name="begins_2")
+        ends_2 = opset.slice(end, start=param_1_shape, stop=final_size, step=[1], name="ends_2")
+
         # data is left unchanged for both inputs
 
         # If inputs_2 is empty, we need to zero the second dimension of the broadcasted begins and ends tensors.
@@ -101,14 +107,20 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         ends_2 = opset.select(self.equal_node, make_constant_node([0], Type.i32), ends_2)
 
         # Second input is a candidate input and if there is a batch or queries dimension, we need to
-        # broadcast the begins and ends tensors.        
+        # broadcast the begins and ends tensors.
         first_input = [begins_1.output(0), ends_1.output(0), data]
-        second_input = [opset.broadcast(begins_2, param_1_shape).output(0), opset.broadcast(ends_2, param_1_shape).output(0), data]
+        second_input = [
+            opset.broadcast(begins_2, param_1_shape).output(0),
+            opset.broadcast(ends_2, param_1_shape).output(0),
+            data,
+        ]
 
-        signature_to_extend = self.post_processor["pair"]["ids"][len(input_signature):]
-        
+        signature_to_extend = self.post_processor["pair"]["ids"][len(input_signature) :]
+
         # Since we add additional special tokens the max_length for truncation should be reduced.
-        self.trunc_values[0] = make_constant_node(self.trunc_values[0].node.data - (len(signature_to_extend) - 1), Type.i32).output(0)
+        self.trunc_values[0] = make_constant_node(
+            self.trunc_values[0].node.data - (len(signature_to_extend) - 1), Type.i32
+        ).output(0)
 
         trunc = _get_factory().create("Truncate", [*first_input, *second_input, *self.trunc_values])
         first_input, second_input = trunc.outputs()[:3], trunc.outputs()[3:6]
@@ -135,7 +147,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         #  if original input_signature [bos, sequence_1, eos]
         #  if pair_signature [bos, sequence_1, eos, sequence_2, eos]
         # then singature_to_extend = [sequence_2, eos]
-        signature_to_extend = self.post_processor["pair"]["ids"][len(input_signature):]
+        signature_to_extend = self.post_processor["pair"]["ids"][len(input_signature) :]
         for value in signature_to_extend:
             if value <= -1:
                 # we ensured previous that only one additional input is possible
@@ -166,21 +178,28 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         new_inputs.extend([new_segment_ids])
         return new_inputs
 
-    def assert_and_get_postprocessor(self, model: ov.Model, ):
+    def assert_and_get_postprocessor(
+        self,
+        model: ov.Model,
+    ):
         if PROCESSED_POST_PROCESSOR_NAME not in model.rt_info:
             logger.info("Could not add second input. Post processor is not present in the model.")
             return False
         post_processor = json.loads(model.get_rt_info(PROCESSED_POST_PROCESSOR_NAME).value)
 
-        if not "pair" in post_processor:
+        if "pair" not in post_processor:
             logger.info("Could not add second input. post_processor does not contain input signature for paired input")
             return False
-        
+
         if post_processor["single"]["ids"] != self.input_signature:
-            logger.info("Could not add second input. Input signature from rt_info does not match to the CombineSegments node inputs.")
-        
-        if post_processor["pair"]["ids"][:len(self.input_signature)] != self.input_signature:
-            logger.info("Could not add second input. Paried inputs are allowed only when it's widening the single input.")
+            logger.info(
+                "Could not add second input. Input signature from rt_info does not match to the CombineSegments node inputs."
+            )
+
+        if post_processor["pair"]["ids"][: len(self.input_signature)] != self.input_signature:
+            logger.info(
+                "Could not add second input. Paried inputs are allowed only when it's widening the single input."
+            )
             return False
 
         if len(np.nonzero(np.array(post_processor["pair"]["ids"]) <= -1)[0]) != 2:
@@ -188,7 +207,9 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
             return False
 
         if len(np.nonzero(np.array(post_processor["single"]["ids"]) <= -1)[0]) != 1:
-            logger.info("Could not add second input. There should be exactly one sequence input in the single signature.")
+            logger.info(
+                "Could not add second input. There should be exactly one sequence input in the single signature."
+            )
             return False
         self.post_processor = post_processor
         return True
@@ -196,7 +217,9 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
     def run_on_model(self, model: ov.Model):
         parameters = model.get_parameters()
         if len(parameters) != 1:
-            logger.info(f"Could not add second input. Original model should have only one input, while it has {len(parameters)}")
+            logger.info(
+                f"Could not add second input. Original model should have only one input, while it has {len(parameters)}"
+            )
             return False
 
         # Find the CombineSegments node in the model
@@ -205,15 +228,15 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
             if op.get_type_name() == "CombineSegments":
                 combine_seg = op
         if not combine_seg:
-            logger.info(f"Could not add second input. Original model does not contain CombineSegments node.")
+            logger.info("Could not add second input. Original model does not contain CombineSegments node.")
             return False
 
-        # Check if the CombineSegments node has the expected input signature 
+        # Check if the CombineSegments node has the expected input signature
         # and save the input signature in self.input_signature.
         # If signature is incorrect we exit the transformation without modifying ov.Model.
         if not self.parse_inputs(combine_seg):
             return False
-        
+
         # Check if the model has a post-processor and if it contains the expected input signature
         if not self.assert_and_get_postprocessor(model):
             return False
@@ -222,7 +245,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         # Also adds a modified Truncate
         self.insert_splits()
 
-        # Get new inputs for the CombineSegments node, which combine 
+        # Get new inputs for the CombineSegments node, which combine
         # the first and second input, and add special tokens for the second input.
         new_inputs = self.get_new_inputs()
         if not new_inputs:

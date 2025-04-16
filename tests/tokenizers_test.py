@@ -458,7 +458,7 @@ def check_tokenizer_output(
         test_string_hf = [[test_string[0][0], test_string[1][0]]]
     else:
         test_string_hf = test_string
-    
+
     hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string)
 
@@ -1078,10 +1078,12 @@ models_with_pair_input = [
     "BAAI/bge-reranker-v2-m3",
 ]
 
+
 @pytest.fixture(scope="session", params=[7, 10, 100, None])
 # @pytest.fixture(scope="session", params=[10])
 def max_length(request):
     return request.param
+
 
 @pytest.fixture(scope="session", params=models_with_pair_input, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
@@ -1098,7 +1100,7 @@ def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
         [["Eng... test, string?!" * 100], ["Multiline\nstring!\nWow!"]],
         [["Eng... test, string?!"], ["Multiline\nstring!\nWow!" * 100]],
         [["Eng... test, string?!" * 100], ["Multiline\nstring!\nWow!" * 100]],
-        [['hi' * 20], ['buy' * 90]]
+        [["hi" * 20], ["buy" * 90]],
     ],
 )
 def test_pair_input(ov_hf_tokenizer_pair_with_trunc, test_string):

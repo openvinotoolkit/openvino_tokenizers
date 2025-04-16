@@ -34,7 +34,6 @@ from .constants import (
 )
 from .utils import (
     apply_unicode_to_bytes,
-    create_unpacked_string,
     create_string_constant_node,
     generate_tokens_with_space_symbols,
     quote_meta,
@@ -71,7 +70,7 @@ class BasePipelineStep:
 
     def get_ov_subgraph(self, *input_nodes: List[Output]) -> List[Output]:
         raise NotImplementedError
-    
+
     def finalize(self) -> None:
         """Called after the entire pipeline has been built"""
         return
@@ -878,13 +877,13 @@ class TruncationStep(PostTokenizationStep):
         # FIXME: Truncation side (truncate_right) is ignored
         # TODO: Check if axis is the right-most dimension
         self.validate_inputs(input_nodes)
-        
+
         input_nodes.extend(make_constant_node(self.max_length, Type.i32).outputs())
         truncation_side = create_string_constant_node("right" if self.truncate_right else "left")
         truncation_mode = create_string_constant_node("longest_first")
         input_nodes.extend(truncation_side)
         input_nodes.extend(truncation_mode)
-        
+
         return _get_factory().create("Truncate", input_nodes).outputs()
 
 
@@ -1460,9 +1459,7 @@ class TokenizerPipeline:
         if not any(isinstance(step, RegexSplitStep) for step in self.pre_tokenization_steps):
             return
 
-        first_step_position = next(
-            idx for idx, step in enumerate(self.steps) if isinstance(step, RegexSplitStep)
-        )
+        first_step_position = next(idx for idx, step in enumerate(self.steps) if isinstance(step, RegexSplitStep))
         steps_without_pre_tokenization = [step for step in self.steps if not isinstance(step, RegexSplitStep)]
 
         old_regex_split_steps = [step for step in self.pre_tokenization_steps if isinstance(step, RegexSplitStep)]

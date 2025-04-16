@@ -31,7 +31,6 @@ from .constants import (
 )
 from .tokenizer_pipeline import (
     AddToken,
-    BasePipelineStep,
     BPETokenizationStep,
     ByteFallbackStep,
     BytesToCharsStep,

@@ -5,10 +5,10 @@ import json
 import logging
 import tempfile
 from dataclasses import dataclass, field, fields
+from enum import Enum
 from functools import lru_cache
 from io import BytesIO
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
-from enum import Enum
 
 import numpy as np
 import openvino
@@ -260,7 +260,7 @@ def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
 
 
 def get_processor_template(
-        hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
 ) -> Optional[Dict[str, Any]]:
     """Gets the JSON representation of the tokenizer post-processor template.
 
@@ -284,8 +284,8 @@ def get_processor_template(
 
 
 def parse_template_processing(
-        post_processor_json: Dict[str, Any],
-        hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+    post_processor_json: Dict[str, Any],
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
 ) -> Dict[str, Dict[str, List[int]]]:
     vocab = hf_tokenizer.get_vocab()
 
@@ -320,12 +320,8 @@ def parse_processor_template(
 ) -> Optional[Dict[str, Any]]:
     if post_processor_json["type"] == "Sequence":
         post_processor_json = next(
-            (
-                processor
-                 for processor in post_processor_json["processors"]
-                 if processor["type"] in processor_parsers
-            ),
-            {}
+            (processor for processor in post_processor_json["processors"] if processor["type"] in processor_parsers),
+            {},
         )
 
     parser = processor_parsers.get(post_processor_json.get("type"), None)
@@ -338,7 +334,7 @@ def update_rt_info_with_processor_template(
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
 ) -> None:
     """Updates the rt_info of the tokenizer model with the post-processor template of the HF.
-    
+
     Saves the original and the processed post-processor templates.
     Processed template uses negative ids for text inputs (A=-1, B=-2) and positive ids for special tokens.
 
@@ -430,6 +426,7 @@ def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
     chars = np.frombuffer(chars.getvalue(), np.uint8)
 
     return [Constant(Tensor(x)).output(0) for x in [begins, ends, chars]]
+
 
 def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
     if isinstance(value, str):

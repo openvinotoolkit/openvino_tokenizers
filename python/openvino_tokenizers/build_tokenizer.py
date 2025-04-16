@@ -6,7 +6,6 @@ from openvino.utils.types import make_constant_node
 
 from openvino_tokenizers.constants import DETOKENIZER_NAME, STRING_OUTPUT_NAME, TOKEN_IDS_INPUT_NAME, TOKENIZER_NAME
 from openvino_tokenizers.tokenizer_pipeline import (
-    BasePipelineStep,
     RegexDecodingStep,
     TokenizerPipeline,
     TrieTokenizerStep,
