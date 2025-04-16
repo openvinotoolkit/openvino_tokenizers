@@ -366,6 +366,7 @@ jobs:
       - uses: ./openvino_tokenizers/.github/actions/install_poetry
          
       - name: Install OpenVINO wheel
+        if: ${{ github.actor != 'dependabot[bot]' }}
         run: |
           # Find and install wheel
           $openvino_wheel=Get-ChildItem -Path "${{ env.INSTALL_DIR }}\\wheels" -Filter openvino*cp311*.whl | % { $_.FullName }
