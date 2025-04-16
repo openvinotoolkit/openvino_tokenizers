@@ -31,8 +31,7 @@ async function run() {
     const wheelsFound = [];
     if (localWheelDir) {
       const pattern = `${packageName}*.whl`;
-      const globber = await glob.create(path.posix.join(localWheelDir, pattern));
-      const wheels = await globber.glob();      
+      const wheels = await glob.execAsync(path.posix.join(localWheelDir, pattern));      
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
