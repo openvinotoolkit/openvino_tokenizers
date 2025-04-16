@@ -281,7 +281,7 @@ jobs:
         if: ${{ github.actor != 'dependabot[bot]' }}
         run: |
           # Find and add it to poetry
-          wheel_name=$(find ${{ env.INSTALL_DIR }}/wheels -name 'openvino*cp${PYTHON_VERSION//.}*.whl')
+          wheel_name=$(find ${{ env.INSTALL_DIR }}/wheels -name "openvino*cp${PYTHON_VERSION//.}*.whl")
           poetry add $wheel_name
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
