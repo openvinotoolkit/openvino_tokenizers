@@ -35795,39 +35795,41 @@ const { exec } = __nccwpck_require__(2081);
 const execAsync = util.promisify(exec);
 
 async function getPythonVersion() {
-  const { stdout } = await execAsync('python --version');
+  const { stdout } = await execAsync("python --version");
   const versionMatch = stdout.match(/Python (\d+)\.(\d+)\.(\d+)/);
   if (versionMatch) {
     return {
       major: versionMatch[1],
       minor: versionMatch[2],
-      patch: versionMatch[3]
+      patch: versionMatch[3],
     };
   } else {
-    throw new Error('Unable to detect Python version');
+    throw new Error("Unable to detect Python version");
   }
 }
 
 async function run() {
   try {
-    const localWheelDir = core.getInput('wheels_dir');
-    const packageName = core.getInput('package_name');
+    const localWheelDir = core.getInput("wheels_dir");
+    const packageName = core.getInput("package_name");
 
     const pythonVersion = await getPythonVersion();
     core.debug(`Detected Python version: ${JSON.stringify(pythonVersion)}`);
-        
+
     const wheelsFound = [];
     if (localWheelDir) {
       const pattern = `${packageName}*.whl`;
-      const wheels = await glob.execAsync(path.posix.join(localWheelDir, pattern));      
+      const globAsync = util.promisify(glob);
+      const wheels = await globAsync(path.posix.join(localWheelDir, pattern));
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
-        const wheelName = path.basename(whl).split('-')[0];
+        const wheelName = path.basename(whl).split("-")[0];
         const wheelPythonVersion = wheelName.match(/cp(\d{2,3})/);
         if (
           !wheelPythonVersion ||
-          wheelPythonVersion[1] === `${pythonVersion.major}${pythonVersion.minor}`
+          wheelPythonVersion[1] ===
+            `${pythonVersion.major}${pythonVersion.minor}`
         ) {
           wheelsFound.push(whl);
         }
@@ -35845,7 +35847,7 @@ async function run() {
       core.info(`Found ${wheelsFound[0]} matching pattern "${pattern}"`);
     }
 
-    core.setOutput('wheel_path', wheelsFound[0]);
+    core.setOutput("wheel_path", wheelsFound[0]);
   } catch (error) {
     core.setFailed(error.message);
   }

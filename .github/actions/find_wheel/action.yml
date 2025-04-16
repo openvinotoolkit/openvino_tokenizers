@@ -14,5 +14,5 @@ outputs:
     description: The path to the matching .whl file
 
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: "node20"
+  main: "dist/index.js"
