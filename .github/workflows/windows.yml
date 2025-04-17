@@ -363,7 +363,8 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
         
-      - uses: ./openvino_tokenizers/.github/actions/install_poetry
+      - name: Configure poetry
+        uses: ./openvino_tokenizers/.github/actions/install_poetry
       
       - name: Find OpenVINO wheel
         uses: ./openvino_tokenizers/.github/actions/find_wheel
@@ -386,12 +387,9 @@ jobs:
         
       - name: Install OpenVINO tokenizers wheel
         run: python3 -m pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
-        env:
-          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu"
 
       - name: Install Test dependencies
-        run: |
-          poetry install --extras=transformers --with dev,benchmark
+        run: poetry install --extras=transformers --with dev,benchmark
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
       - name: Tokenizers regression tests (using openvino python modules)
