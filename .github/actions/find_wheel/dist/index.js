@@ -25961,7 +25961,9 @@ async function run() {
     core.debug(`Looking at ${wheelsDir}`);
     const wheelsFound = [];
     if (wheelsDir) {
-      const wheels = await glob(path.posix.join(wheelsDir, pattern));
+      const wheels = await glob(path.posix.join(wheelsDir, pattern), {
+        absolute: true,
+      });
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
