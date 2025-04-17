@@ -1,10 +1,10 @@
 const core = require("@actions/core");
 const glob = require("glob");
 const path = require("path");
-const util = require("util");
+const { promisify } = require("util");
 const { exec } = require("child_process");
 
-const execAsync = util.promisify(exec);
+const execAsync = promisify(exec);
 
 async function getPythonVersion() {
   const { stdout } = await execAsync("python --version");
@@ -22,17 +22,15 @@ async function getPythonVersion() {
 
 async function run() {
   try {
-    const localWheelDir = core.getInput("wheels_dir");
-    const packageName = core.getInput("package_name");
+    const localWheelDir = core.getInput("wheels_dir", { required: true });
+    const packageName = core.getInput("package_name", { required: true });
 
     const pythonVersion = await getPythonVersion();
     core.debug(`Detected Python version: ${JSON.stringify(pythonVersion)}`);
 
     const wheelsFound = [];
     if (localWheelDir) {
-      const pattern = `${packageName}*.whl`;
-      const globAsync = util.promisify(glob);
-      const wheels = await globAsync(path.posix.join(localWheelDir, pattern));
+      const wheels = glob.sync(path.posix.join(localWheelDir, `${packageName}*.whl`));
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
@@ -56,7 +54,7 @@ async function run() {
       core.setFailed(`Multiple files found matching pattern "${pattern}"`);
       return;
     } else {
-      core.info(`Found ${wheelsFound[0]} matching pattern "${pattern}"`);
+      core.info(`Found "${wheelsFound[0]}"`);
     }
 
     core.setOutput("wheel_path", wheelsFound[0]);
@@ -65,4 +63,6 @@ async function run() {
   }
 }
 
-run();
+module.exports = {
+  run
+};
