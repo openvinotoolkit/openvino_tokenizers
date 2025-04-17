@@ -87,16 +87,21 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
 
         param_1_shape = opset.shape_of(new_parameters[0], output_type="i32")
         param_2_shape = opset.shape_of(new_parameters[1], output_type="i32")
-        final_size = opset.shape_of(begin, output_type="i32")
+        total_size = opset.shape_of(begin, output_type="i32")
         self.new_parameters = new_parameters
 
         # For the first input begins_1/ends_1, it's a slice till the Parameter_1 shape.
         begins_1 = opset.slice(begin, start=[0], stop=param_1_shape, step=[1], name="begins_1")
         ends_1 = opset.slice(end, start=[0], stop=param_1_shape, step=[1], name="ends_1")
 
+        # If the second input is empty we need to slice at least one element.
+        # If we don't do that input with shape [0] could not be specified together with input with shape [1] 
+        # in Select and broadcasted. This garbage values will be zeroed in Select.
+        second_start = opset.minimum(total_size - param_2_shape, total_size - make_constant_node([1], Type.i32), name="start_for_second")
+
         # For the second input begins_2/ends_2, slice till the end.
-        begins_2 = opset.slice(begin, start=param_1_shape, stop=final_size, step=[1], name="begins_2")
-        ends_2 = opset.slice(end, start=param_1_shape, stop=final_size, step=[1], name="ends_2")
+        begins_2 = opset.slice(begin, start=second_start, stop=total_size, step=[1], name="begins_2")
+        ends_2 = opset.slice(end, start=second_start, stop=total_size, step=[1], name="ends_2")
 
         # data is left unchanged for both inputs
 

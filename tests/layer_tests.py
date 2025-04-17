@@ -502,9 +502,9 @@ def test_ragged_to_dense(input_values, expected):
 
     assert input_values["padding_side"] in ["right", "left"]
     pad_right = True if input_values["padding_side"] == "right" else False
-    combine_segments = _get_factory().create("RaggedToDense", input_params, {"pad_right": pad_right}).outputs()
+    ragged_to_dense = _get_factory().create("RaggedToDense", input_params, {"pad_right": pad_right}).outputs()
 
-    ragged_to_dense_model = Model(combine_segments, input_params, "ragged_to_dense")
+    ragged_to_dense_model = Model(ragged_to_dense, input_params, "ragged_to_dense")
     compiled_model = core.compile_model(ragged_to_dense_model)
 
     res = compiled_model(np_input_values)
