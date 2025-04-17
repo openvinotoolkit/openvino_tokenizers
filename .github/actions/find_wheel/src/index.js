@@ -30,7 +30,9 @@ async function run() {
 
     const wheelsFound = [];
     if (localWheelDir) {
-      const wheels = glob.sync(path.posix.join(localWheelDir, `${packageName}*.whl`));
+      const wheels = glob.sync(
+        path.posix.join(localWheelDir, `${packageName}*.whl`),
+      );
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
@@ -63,6 +65,4 @@ async function run() {
   }
 }
 
-module.exports = {
-  run
-};
+run();
