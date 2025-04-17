@@ -35,8 +35,9 @@ async function run() {
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
-        const wheelName = path.basename(whl).split("-")[0];
-        const wheelPythonVersion = wheelName.match(/cp(\d{2,3})/);
+        const wheelPythonVersion = path.basename(whl).match(/cp(\d{2,3})/);
+        core.debug(`wheelName: ${path.basename(whl)}`);
+        core.debug(`wheelPythonVersion: ${wheelPythonVersion}`);
         if (
           !wheelPythonVersion ||
           wheelPythonVersion[1] ===
