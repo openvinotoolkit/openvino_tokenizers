@@ -24,15 +24,14 @@ async function run() {
   try {
     const localWheelDir = core.getInput("wheels_dir", { required: true });
     const packageName = core.getInput("package_name", { required: true });
+    const pattern = `${packageName}*.whl`;
 
     const pythonVersion = await getPythonVersion();
     core.debug(`Detected Python version: ${JSON.stringify(pythonVersion)}`);
 
     const wheelsFound = [];
     if (localWheelDir) {
-      const wheels = glob.sync(
-        path.posix.join(localWheelDir, `${packageName}*.whl`),
-      );
+      const wheels = glob.sync(path.posix.join(localWheelDir, pattern));
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
@@ -64,5 +63,9 @@ async function run() {
     core.setFailed(error.message);
   }
 }
+
+module.exports = {
+  run,
+};
 
 run();
