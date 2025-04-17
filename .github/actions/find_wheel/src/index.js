@@ -38,8 +38,6 @@ async function run() {
 
       for (const whl of wheels) {
         const wheelPythonVersion = path.basename(whl).match(/cp(\d{2,3})/);
-        core.debug(`wheelName: ${path.basename(whl)}`);
-        core.debug(`wheelPythonVersion: ${wheelPythonVersion}`);
         if (
           !wheelPythonVersion ||
           wheelPythonVersion[1] ===
