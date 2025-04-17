@@ -25950,7 +25950,9 @@ async function getPythonVersion() {
 
 async function run() {
   try {
-    const localWheelDir = core.getInput("wheels_dir", { required: true });
+    const wheelsDir = path.normalize(
+      core.getInput("wheels_dir", { required: true }),
+    );
     const packageName = core.getInput("package_name", { required: true });
     const pattern = `${packageName}*.whl`;
 
@@ -25958,8 +25960,8 @@ async function run() {
     core.debug(`Detected Python version: ${JSON.stringify(pythonVersion)}`);
 
     const wheelsFound = [];
-    if (localWheelDir) {
-      const wheels = glob.sync(path.posix.join(localWheelDir, pattern));
+    if (wheelsDir) {
+      const wheels = glob.sync(path.posix.join(wheelsDir, pattern));
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
@@ -25981,7 +25983,9 @@ async function run() {
       core.setFailed(`No files found matching pattern "${pattern}"`);
       return;
     } else if (wheelsFound.length > 1) {
-      core.setFailed(`Multiple files found matching pattern "${pattern}"`);
+      core.setFailed(
+        `Multiple files found matching pattern "${pattern}": ${JSON.stringify(wheelsFound)}`,
+      );
       return;
     } else {
       core.info(`Found "${wheelsFound[0]}"`);
@@ -25995,6 +25999,7 @@ async function run() {
 
 module.exports = {
   run,
+  getPythonVersion,
 };
 
 run();
