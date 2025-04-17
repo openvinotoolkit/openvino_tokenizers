@@ -25927,7 +25927,7 @@ module.exports = {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(2186);
-const glob = __nccwpck_require__(8211);
+const { glob } = __nccwpck_require__(8211);
 const path = __nccwpck_require__(1017);
 const { promisify } = __nccwpck_require__(3837);
 const { exec } = __nccwpck_require__(2081);
@@ -25958,10 +25958,10 @@ async function run() {
 
     const pythonVersion = await getPythonVersion();
     core.debug(`Detected Python version: ${JSON.stringify(pythonVersion)}`);
-
+    core.debug(`Looking at ${wheelsDir}`);
     const wheelsFound = [];
     if (wheelsDir) {
-      const wheels = glob.sync(path.posix.join(wheelsDir, pattern));
+      const wheels = await glob(path.posix.join(wheelsDir, pattern));
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {

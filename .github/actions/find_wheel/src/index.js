@@ -1,5 +1,5 @@
 const core = require("@actions/core");
-const glob = require("glob");
+const { glob } = require("glob");
 const path = require("path");
 const { promisify } = require("util");
 const { exec } = require("child_process");
@@ -30,10 +30,10 @@ async function run() {
 
     const pythonVersion = await getPythonVersion();
     core.debug(`Detected Python version: ${JSON.stringify(pythonVersion)}`);
-
+    core.debug(`Looking at ${wheelsDir}`);
     const wheelsFound = [];
     if (wheelsDir) {
-      const wheels = glob.sync(path.posix.join(wheelsDir, pattern));
+      const wheels = await glob(path.posix.join(wheelsDir, pattern));
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
