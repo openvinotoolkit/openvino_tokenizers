@@ -98,7 +98,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         # If we don't do that input with shape [0] could not be specified together with input with shape [1] 
         # in Select and broadcasted. This garbage values will be zeroed in Select.
         second_start = opset.minimum(total_size - param_2_shape, total_size - make_constant_node([1], Type.i32), name="start_for_second")
-
+        
         # For the second input begins_2/ends_2, slice till the end.
         begins_2 = opset.slice(begin, start=second_start, stop=total_size, step=[1], name="begins_2")
         ends_2 = opset.slice(end, start=second_start, stop=total_size, step=[1], name="ends_2")
@@ -111,12 +111,16 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         begins_2 = opset.select(self.equal_node, make_constant_node([0], Type.i32), begins_2)
         ends_2 = opset.select(self.equal_node, make_constant_node([0], Type.i32), ends_2)
 
-        # Second input is a candidate input and if there is a batch or queries dimension, we need to
-        # broadcast the begins and ends tensors.
-        first_input = [begins_1.output(0), ends_1.output(0), data]
+        # broadcast the begins and ends tensors so that if there is one candidate and 
+        # a batch of query inputs (or vice versa) they are broadcasted to the same shape.
+        broadcasted_shape = opset.maximum(param_1_shape, param_2_shape, name="broadcasted_shape")
+        first_input = [
+            opset.broadcast(begins_1, broadcasted_shape).output(0),
+            opset.broadcast(ends_1, broadcasted_shape).output(0),
+            data]
         second_input = [
-            opset.broadcast(begins_2, param_1_shape).output(0),
-            opset.broadcast(ends_2, param_1_shape).output(0),
+            opset.broadcast(begins_2, broadcasted_shape).output(0),
+            opset.broadcast(ends_2, broadcasted_shape).output(0),
             data,
         ]
 

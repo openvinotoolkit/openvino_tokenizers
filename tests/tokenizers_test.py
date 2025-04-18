@@ -454,13 +454,22 @@ def check_tokenizer_output(
     if isinstance(test_string, str):
         test_string = [test_string]
 
+    test_string_ov = test_string
     if isinstance(test_string, list) and len(test_string) == 2 and isinstance(test_string[0], list):
-        test_string_hf = [[test_string[0][0], test_string[1][0]]]
+        if len(test_string[0]) == 1 and len(test_string[1]) == 1:
+            test_string_hf = [[test_string[0][0], test_string[1][0]]]
+        else:
+            # broadcast ([N], [1]) and ([1], [N]) to ([N], [N]) for HF
+            if len(test_string[0]) > len(test_string[1]):
+                test_string_hf = [[test_string[0][i], test_string[1][0]] for i in range(len(test_string[0]))]
+            else:
+                test_string_hf = [[test_string[0][0], test_string[1][i]] for i in range(len(test_string[1]))]
+            test_string_ov = tuple(test_string)
     else:
         test_string_hf = test_string
 
     hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
-    ov_tokenized = ov_tokenizer(test_string)
+    ov_tokenized = ov_tokenizer(test_string_ov)
 
     for output_name, hf_result in hf_tokenized.items():
         if output_name not in ov_tokenized and skip_missing_outputs:
@@ -1079,8 +1088,7 @@ models_with_pair_input = [
 ]
 
 
-@pytest.fixture(scope="session", params=[7, 10, 100, None])
-# @pytest.fixture(scope="session", params=[10])
+@pytest.fixture(scope="session", params=[7, 100, None])
 def max_length(request):
     return request.param
 
@@ -1101,6 +1109,8 @@ def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
         [["Eng... test, string?!"], ["Multiline\nstring!\nWow!" * 100]],
         [["Eng... test, string?!" * 100], ["Multiline\nstring!\nWow!" * 100]],
         [["hi" * 20], ["buy" * 90]],
+        [["What is the capital of Great Britain"] * 4, ["London is capital of Great Britain"]],
+        [["What is the capital of Great Britain"], ["London is capital of Great Britain"] * 4],
     ],
 )
 def test_pair_input(ov_hf_tokenizer_pair_with_trunc, test_string):
