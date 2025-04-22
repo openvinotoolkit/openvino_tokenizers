@@ -191,6 +191,7 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
       URL https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip
       URL_HASH SHA256=2d87bd1700bd1993ddea7c56aad2b0373ac2b3d52d9cc78842a6d061ffaf0925
   )
+  set(PCRE2_SUPPORT_JIT ON CACHE BOOL "Enable JIT support for PCRE2")
   FetchContent_GetProperties(prce2)
   if(NOT prce2_POPULATED)
     FetchContent_Populate(prce2)
@@ -199,8 +200,7 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
     set(PCRE2_STATIC_PIC ON)
     set(PCRE2_BUILD_TESTS OFF)
     set(PCRE2_BUILD_PCRE2GREP OFF)
-    set(PCRE2_BUILD_TESTS)
-    set(PCRE2_SUPPORT_JIT ON)
+    set(PCRE2_BUILD_TESTS OFF)
 
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
