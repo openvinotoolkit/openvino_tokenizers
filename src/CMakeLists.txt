@@ -196,11 +196,11 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
     FetchContent_Populate(prce2)
 
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+    set(CMAKE_POLICY_DEFAULT_CMP0126 NEW)
+    set(PCRE2_SUPPORT_JIT ON)
     set(PCRE2_STATIC_PIC ON)
     set(PCRE2_BUILD_TESTS OFF)
     set(PCRE2_BUILD_PCRE2GREP OFF)
-    set(PCRE2_BUILD_TESTS)
-    set(PCRE2_SUPPORT_JIT ON)
 
     add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()

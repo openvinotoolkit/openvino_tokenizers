@@ -34,7 +34,7 @@ from .constants import (
 )
 from .utils import (
     apply_unicode_to_bytes,
-    create_unpacked_string,
+    create_string_constant_node,
     generate_tokens_with_space_symbols,
     quote_meta,
     transform_unigram_token_to_bytes,
@@ -70,17 +70,6 @@ class BasePipelineStep:
 
     def get_ov_subgraph(self, *input_nodes: List[Output]) -> List[Output]:
         raise NotImplementedError
-
-    @staticmethod
-    def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
-        if isinstance(value, str):
-            # string scalar
-            return op.Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8)).outputs()
-        elif isinstance(value, Iterable):
-            # support only 1D strings for now
-            return create_unpacked_string(value)
-        else:
-            raise ValueError(f"Unsupported value type {type(value)}")
 
     def finalize(self) -> None:
         """Called after the entire pipeline has been built"""
@@ -150,7 +139,7 @@ class SpecialTokensSplit(BasePipelineStep):
             return list(input_nodes)
 
         split_pattern = "|".join(token.regex_repr() for token in self.special_tokens)
-        input_nodes.extend(self.create_string_constant_node(split_pattern))
+        input_nodes.extend(create_string_constant_node(split_pattern))
 
         return _get_factory().create("SpecialTokensSplit", input_nodes).outputs()
 
@@ -263,8 +252,8 @@ class RegexNormalizationStep(NormalizationStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             [
-                *self.create_string_constant_node(self.regex_search_pattern),
-                *self.create_string_constant_node(self.replace_term),
+                *create_string_constant_node(self.regex_search_pattern),
+                *create_string_constant_node(self.replace_term),
             ]
         )
         return (
@@ -447,7 +436,7 @@ class RegexSplitStep(PreTokenizatinStep):
         )
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
-        input_nodes.extend(self.create_string_constant_node(self.split_pattern))
+        input_nodes.extend(create_string_constant_node(self.split_pattern))
         return (
             _get_factory()
             .create(
@@ -513,7 +502,7 @@ class VocabEncoderStep(TokenizationModelStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
-        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
+        pipeline.vocab_node_outputs = create_string_constant_node(self.vocab)
 
         ragged_dims, other_dims = [], input_nodes
         if len(input_nodes) > 4:
@@ -565,7 +554,7 @@ class TrieTokenizerStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab),
+                *create_string_constant_node(self.vocab),
                 make_constant_node(np.array(self.indices, dtype=np.int32), Type.i32),
             )
         )
@@ -601,7 +590,7 @@ class WordPieceTokenizationStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab),
+                *create_string_constant_node(self.vocab),
                 *as_node(self.unk_token_id).outputs(),
             )
         )
@@ -735,10 +724,10 @@ class BPETokenizationStep(TokenizationModelStep):
 
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         pipeline = self.get_pipeline()
-        pipeline.vocab_node_outputs = self.create_string_constant_node(self.vocab)
+        pipeline.vocab_node_outputs = create_string_constant_node(self.vocab)
 
         if self.added_tokens:
-            special_tokens_outputs = self.create_string_constant_node(self.added_tokens)
+            special_tokens_outputs = create_string_constant_node(self.added_tokens)
         else:
             special_tokens_outputs = []
 
@@ -752,12 +741,12 @@ class BPETokenizationStep(TokenizationModelStep):
             left_merges, right_merges = zip(*self.merges)
             input_nodes.extend(
                 (
-                    *self.create_string_constant_node(left_merges),
-                    *self.create_string_constant_node(right_merges),
+                    *create_string_constant_node(left_merges),
+                    *create_string_constant_node(right_merges),
                 )
             )
         else:
-            input_nodes.extend(self.create_string_constant_node(self.merges))
+            input_nodes.extend(create_string_constant_node(self.merges))
 
         if special_tokens_outputs:
             input_nodes.extend(
@@ -822,7 +811,7 @@ class UnigramModelStep(TokenizationModelStep):
     def get_ov_subgraph(self, input_nodes: List[Output]) -> List[Output]:
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.vocab),
+                *create_string_constant_node(self.vocab),
                 make_constant_node(np.array(self.vocab_logprobs, dtype=np.float32), Type.f32),
             )
         )
@@ -889,22 +878,13 @@ class TruncationStep(PostTokenizationStep):
         # TODO: Check if axis is the right-most dimension
         self.validate_inputs(input_nodes)
 
-        max_length = opset.minimum(
-            opset.subtract(input_nodes[1], input_nodes[0]),
-            make_constant_node(self.max_length, Type.i32),
-        )
-        if self.truncate_right:
-            return [
-                input_nodes[0],
-                opset.add(input_nodes[0], max_length).output(0),
-                input_nodes[2],
-            ]
-        else:
-            return [
-                opset.subtract(input_nodes[1], max_length).output(0),
-                input_nodes[1],
-                input_nodes[2],
-            ]
+        input_nodes.extend(make_constant_node(self.max_length, Type.i32).outputs())
+        truncation_side = create_string_constant_node("right" if self.truncate_right else "left")
+        truncation_mode = create_string_constant_node("longest_first")
+        input_nodes.extend(truncation_side)
+        input_nodes.extend(truncation_mode)
+
+        return _get_factory().create("Truncate", input_nodes).outputs()
 
 
 @dataclass
@@ -1268,7 +1248,7 @@ class VocabDecoderStep(DecodingStep):
         if self.vocab is None:
             vocab_outputs = self.get_vocab_node_outputs()
         else:
-            vocab_outputs = self.create_string_constant_node(self.vocab)
+            vocab_outputs = create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
 
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
@@ -1389,8 +1369,8 @@ class RegexDecodingStep(DecodingStep):
 
         input_nodes.extend(
             (
-                *self.create_string_constant_node(self.regex_search_pattern),
-                *self.create_string_constant_node(self.replace_term),
+                *create_string_constant_node(self.regex_search_pattern),
+                *create_string_constant_node(self.replace_term),
             )
         )
         return ragged_dims + _get_factory().create("RegexNormalization", input_nodes).outputs()
@@ -1479,9 +1459,7 @@ class TokenizerPipeline:
         if not any(isinstance(step, RegexSplitStep) for step in self.pre_tokenization_steps):
             return
 
-        first_step_position = next(
-            idx for idx, step in enumerate(self.steps) if isinstance(step, RegexSplitStep)
-        )
+        first_step_position = next(idx for idx, step in enumerate(self.steps) if isinstance(step, RegexSplitStep))
         steps_without_pre_tokenization = [step for step in self.steps if not isinstance(step, RegexSplitStep)]
 
         old_regex_split_steps = [step for step in self.pre_tokenization_steps if isinstance(step, RegexSplitStep)]

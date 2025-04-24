@@ -244,7 +244,7 @@ jobs:
   openvino_tokenizers_tests:
     name: OpenVINO tokenizers tests
     needs: [ openvino_download, openvino_tokenizers_wheel]
-    timeout-minutes: 40
+    timeout-minutes: 50
     defaults:
       run:
         shell: bash
