@@ -9,7 +9,7 @@ allow-licenses:
   - '0BSD'
   - 'Python-2.0'
   - 'Zlib'
-  - 'MPL-2.0"
+  - 'MPL-2.0'
 fail-on-scopes:
   - 'runtime'
   - 'development'
