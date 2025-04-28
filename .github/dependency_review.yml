@@ -14,3 +14,4 @@ fail-on-scopes:
   - 'runtime'
 license-check: true
 vulnerability-check: true
+comment-summary-in-pr: true
