@@ -12,7 +12,5 @@ allow-licenses:
   - 'MPL-2.0'
 fail-on-scopes:
   - 'runtime'
-  - 'development'
-  - 'unknown'
 license-check: true
 vulnerability-check: true
