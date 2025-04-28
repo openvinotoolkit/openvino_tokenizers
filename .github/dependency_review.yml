@@ -10,6 +10,8 @@ allow-licenses:
   - 'Python-2.0'
   - 'Zlib'
   - 'MPL-2.0'
+  - 'MIT-CMU'
+  - 'ISC'
 fail-on-scopes:
   - 'runtime'
 license-check: true
