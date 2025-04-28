@@ -8,6 +8,8 @@ allow-licenses:
   - 'BlueOak-1.0.0'
   - '0BSD'
   - 'Python-2.0'
+  - 'Zlib'
+  - 'MPL-2.0"
 fail-on-scopes:
   - 'runtime'
   - 'development'
