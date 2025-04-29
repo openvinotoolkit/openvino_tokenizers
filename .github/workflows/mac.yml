@@ -280,9 +280,9 @@ jobs:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
-
-      - name: Configure uv
-        uses: ./openvino_tokenizers/.github/actions/install_uv
+        
+      - name: Install uv
+        uses: astral-sh/setup-uv@vc7f87aa956e4c323abf06d5dec078e358f6b4d04 # v6.0.0
         
       - name: Find OpenVINO wheel
         uses: ./openvino_tokenizers/.github/actions/find_wheel
