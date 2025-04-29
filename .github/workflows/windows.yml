@@ -386,7 +386,9 @@ jobs:
           package_name: 'openvino_tokenizers'
         
       - name: Install OpenVINO tokenizers wheel
-        run: uv run python -m pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+        run: |
+          .venv\Scripts\activate
+          uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
 
       - name: Install Test dependencies
         run: uv sync --extra=transformers --dev --group=benchmark
