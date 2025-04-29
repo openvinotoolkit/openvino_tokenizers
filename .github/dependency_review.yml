@@ -1,4 +1,4 @@
-fail_on_severity: 'low'
+fail_on_severity: 'moderate'
 allow_licenses:
   - 'BSD-2-Clause'
   - 'BSD-3-Clause'
