@@ -1,5 +1,5 @@
-fail-on-severity: 'low'
-allow-licenses:
+fail_on_severity: 'low'
+allow_licenses:
   - 'BSD-2-Clause'
   - 'BSD-3-Clause'
   - 'MIT'
@@ -12,8 +12,8 @@ allow-licenses:
   - 'MPL-2.0'
   - 'MIT-CMU'
   - 'ISC'
-fail-on-scopes:
+fail_on_scopes:
   - 'runtime'
-license-check: true
-vulnerability-check: true
-comment-summary-in-pr: true
+license_check: true
+vulnerability_check: true
+comment_summary_in_pr: true
