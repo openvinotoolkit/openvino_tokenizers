@@ -281,8 +281,8 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
 
-      - name: Configure poetry
-        uses: ./openvino_tokenizers/.github/actions/install_poetry
+      - name: Configure uv
+        uses: ./openvino_tokenizers/.github/actions/install_uv
         
       - name: Find OpenVINO wheel
         uses: ./openvino_tokenizers/.github/actions/find_wheel
@@ -293,7 +293,7 @@ jobs:
           
       - name: Install OpenVINO wheel
         if: ${{ github.actor != 'dependabot[bot]' }}
-        run: poetry add ${{ steps.ov_wheel.outputs.wheel_path }}
+        run: uv add ${{ steps.ov_wheel.outputs.wheel_path }}
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Find Tokenizers wheel
@@ -308,7 +308,7 @@ jobs:
         working-directory: ${{ env.INSTALL_DIR }}/ov_tokenizers
           
       - name: Install Test dependencies
-        run: poetry install --extras=transformers --with dev,benchmark
+        run: uv sync --extra=transformers --dev --group=benchmark
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Tokenizers regression tests (using openvino python wheel)

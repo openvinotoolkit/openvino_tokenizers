@@ -103,38 +103,32 @@ requires = [
 ]
 build-backend = "py_build_cmake.build"
 
-[tool.poetry]
-package-mode = false
+[dependency-groups]
+benchmark = [
+    "pandas>=2.0.0,<=2.2.3",
+    "seaborn>=0.10.0,<=0.13.2",
+    "tqdm>=4.50.0,<=4.67.1",
+]
+dev = [
+    "bandit>=1.7.0,<=1.8.3",
+    "jinja2>=3.0.0,<=3.1.6",
+    "pandas>=2.0.0,<=2.2.3",
+    "pytest>=7.0.0,<=8.3.5",
+    "pytest-harvest>=1.6.0,<=1.10.5",
+    "ruff>=0.1.0,<=0.11.7",
+]
+fuzzing = [
+    "atheris>=2.0.0,<=2.3.0",
+]
 
-[[tool.poetry.source]]
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.uv.sources]
+openvino = { index = "openvino-nightly" }
+
+[[tool.uv.index]]
 name = "openvino-nightly"
 url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
-priority = "supplemental"
-
-[tool.poetry.dependencies]
-openvino = { version = "~=2025.2.0.dev", source = "openvino-nightly" }
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-ruff = ">=0.1.0,<=0.11.7"
-bandit = ">=1.7.0,<=1.8.3"
-pytest = ">=7.0.0,<=8.3.5"
-pytest-harvest = ">=1.6.0,<=1.10.5"
-pandas = ">=2.0.0,<=2.2.3"
-jinja2 = ">=3.0.0,<=3.1.6"
-
-[tool.poetry.group.benchmark]
-optional = true
-
-[tool.poetry.group.benchmark.dependencies]
-pandas = ">=2.0.0,<=2.2.3"
-seaborn = ">=0.10.0,<=0.13.2"
-tqdm = ">=4.50.0,<=4.67.1"
-
-[tool.poetry.group.fuzzing]
-optional = true
-
-[tool.poetry.group.fuzzing.dependencies]
-atheris = ">=2.0.0,<=2.3.0"
+explicit = true
