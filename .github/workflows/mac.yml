@@ -312,7 +312,7 @@ jobs:
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
 
       - name: Tokenizers regression tests (using openvino python wheel)
-        run: python3 -m pytest tokenizers_test.py
+        run: uv run python -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
   Overall_Status:

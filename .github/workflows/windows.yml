@@ -395,7 +395,7 @@ jobs:
       - name: Tokenizers regression tests (using openvino python modules)
         run: |
           . "${{ env.INSTALL_DIR }}/setupvars.ps1"
-          python3 -m pytest tokenizers_test.py
+          uv run python -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
   store_artifacts:

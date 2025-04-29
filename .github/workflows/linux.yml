@@ -307,8 +307,8 @@ jobs:
         
       - name: Tokenizers regression tests (using openvino python wheels)
         run: |
-          python3 -m pytest layer_tests.py
-          python3 -m pytest tokenizers_test.py
+          uv run python -m pytest layer_tests.py
+          uv run python -m pytest tokenizers_test.py
         working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}/tests
 
   openvino_tf_tests:
