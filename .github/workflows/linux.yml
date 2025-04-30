@@ -125,9 +125,7 @@ jobs:
                 -B ${{ env.BUILD_DIR }}
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel $(nproc) --config ${{ matrix.build_type }} --verbose
 
       - name: Cmake install - tokenizers
         run: |
@@ -277,6 +275,9 @@ jobs:
           
       - name: Install uv
         uses: astral-sh/setup-uv@c7f87aa956e4c323abf06d5dec078e358f6b4d04 # v6.0.0
+        
+      - name: Create venv
+        run: uv venv --python ${{ env.PYTHON_VERSION }}
       
       - name: Find OpenVINO wheel
         uses: ./openvino_tokenizers/.github/actions/find_wheel
@@ -298,9 +299,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install OpenVINO tokenizers wheel
-        run: |
-          source .venv/bin/activate
-          uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+        run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
         working-directory: ${{ env.INSTALL_DIR }}/ov_tokenizers
           
       - name: Install Test dependencies

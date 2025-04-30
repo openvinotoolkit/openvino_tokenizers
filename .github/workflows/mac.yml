@@ -111,7 +111,7 @@ jobs:
                 -B ${{ env.BUILD_DIR }}
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        run: cmake --build ${{ env.BUILD_DIR }} --parallel $(nproc) --config ${{ matrix.build_type }} --verbose
 
       - name: Show ccache stats
         run: ccache --show-stats
