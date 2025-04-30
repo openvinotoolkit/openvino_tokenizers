@@ -370,7 +370,7 @@ jobs:
           python3 -m uv pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
 
       - name: TensorFlow 1 Layer Tests
-        run: python3 -m pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests/ -n logical -m precommit  --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
+        run: python3 -m pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests/ -n logical -m precommit --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
         env:
           TEST_DEVICE: CPU
           TEST_PRECISION: FP16
