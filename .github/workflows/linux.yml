@@ -289,7 +289,6 @@ jobs:
       - name: Install OpenVINO wheel
         if: ${{ github.actor != 'dependabot[bot]' }}
         run: uv add ${{ steps.ov_wheel.outputs.wheel_path }}
-        working-directory: ${{ env.OPENVINO_TOKENIZERS_REPO }}
         
       - name: Find Tokenizers wheel
         uses: ./openvino_tokenizers/.github/actions/find_wheel
@@ -300,7 +299,6 @@ jobs:
 
       - name: Install OpenVINO tokenizers wheel
         run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
-        working-directory: ${{ env.INSTALL_DIR }}/ov_tokenizers
           
       - name: Install Test dependencies
         run: uv sync --extra=transformers --dev --group=benchmark
