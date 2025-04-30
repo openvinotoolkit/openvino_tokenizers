@@ -301,9 +301,7 @@ jobs:
         run: uv sync --extra=transformers --dev --group=benchmark
         
       - name: Tokenizers regression tests (using openvino python wheels)
-        run: |
-          uv run python -m pytest layer_tests.py
-          uv run python -m pytest tokenizers_test.py
+        run: uv run python -m pytest tests
 
   openvino_tf_tests:
     name: OpenVINO TensorFlow tests
