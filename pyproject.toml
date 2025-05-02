@@ -126,9 +126,17 @@ package = false
 default-groups = ["dev"]
 
 [tool.uv.sources]
-openvino = { index = "openvino-nightly" }
+openvino = [
+    { index = "openvino-pre-release" },
+    { index = "openvino-nightly" }
+]
 
 [[tool.uv.index]]
 name = "openvino-nightly"
 url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
+explicit = true
+
+[[tool.uv.index]]
+name = "openvino-pre-release"
+url = "https://storage.openvinotoolkit.org/simple/wheels/pre-release"
 explicit = true
