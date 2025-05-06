@@ -382,7 +382,7 @@ void Trie::add(const std::vector<unsigned char>& str, const int value, int idx) 
 }
 
 
-int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) {
+int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) const {
     int token_id = -1;  // no token found
     Trie* current_node = this;
 
@@ -405,7 +405,7 @@ int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) {
     return token_id;
 }
 
-int Trie::find_longest(const std::string_view& str, int& idx) {
+int Trie::find_longest(const std::string_view& str, int& idx) const {
     int token_id = -1;  // no token found
     Trie* current_node = this;
 
