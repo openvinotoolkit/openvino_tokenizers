@@ -235,9 +235,9 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
             OPENVINO_THROW("Unexpected input type during inference. SentencepieceTokenizer accepts element::u8 or element::string.");
         }
     } else {
-        auto begin_ids = inputs[1].data<const int32_t>();
-        auto end_ids = inputs[2].data<const int32_t>();
-        auto data = inputs[3].data<const uint8_t>();
+        begin_ids = inputs[1].data<const int32_t>();
+        end_ids = inputs[2].data<const int32_t>();
+        data = inputs[3].data<const uint8_t>();
         batch_size = shape_size(inputs[1].get_shape());
     };
 
