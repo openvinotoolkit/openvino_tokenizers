@@ -77,8 +77,8 @@ class PCRE2Wrapper {
     public:
         pcre2_code* m_compiled = nullptr;
         PCRE2Wrapper(const absl::string_view& pattern);
-        std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace);
-        std::pair<size_t, size_t> match(const std::string& orig_str, size_t curr_start);
+        std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace) const;
+        std::pair<size_t, size_t> match(const std::string& orig_str, size_t curr_start) const;
         ~PCRE2Wrapper();
     private:
         bool m_is_jit = 0;

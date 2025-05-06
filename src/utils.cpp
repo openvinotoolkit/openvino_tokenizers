@@ -267,9 +267,9 @@ PCRE2Wrapper::~PCRE2Wrapper() {
     }
 }
 
-std::string PCRE2Wrapper::substitute(const std::string& orig_str, 
+std::string PCRE2Wrapper::substitute (const std::string& orig_str,
                                      const absl::string_view& replace_pattern,
-                                     bool global_replace) {
+                                     bool global_replace) const {
     if (m_compiled == nullptr) {
         return orig_str;
     }
@@ -336,7 +336,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     return res;
 }
 
-std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t curr_start) {
+std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t curr_start) const {
     if (m_compiled == nullptr) {
         return {SIZE_MAX, SIZE_MAX};
     }
