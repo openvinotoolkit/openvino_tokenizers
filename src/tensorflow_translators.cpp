@@ -120,7 +120,7 @@ NamedOutputVector translate_ragged_tensor_to_sparse(const NodeContext& node) {
         auto step = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
         auto begins = std::make_shared<Slice>(rt_nested_splits, begins_start, rpt_shape_minus_one, step);
         auto ends = std::make_shared<Slice>(rt_nested_splits, ends_start, rpt_shape, step);
-        auto longest_batch = rpt_shape_minus_one;
+        auto longest_batch = std::move(rpt_shape_minus_one);
 
         // compute the longest row in a tensor
         auto longest_row_size = std::make_shared<Subtract>(ends, begins)->output(0);
