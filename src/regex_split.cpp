@@ -172,7 +172,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
             std::string skip_tokens_pattern;
             for (size_t i = 0; i < inputs[6].get_size(); ++i) {
                 std::string token = std::string(skip_tokens_chars + skip_tokens_begins[i], skip_tokens_chars + skip_tokens_ends[i]);
-                m_skip_tokens->insert(token);
+                m_skip_tokens->insert(std::move(token));
             }
         }
     }
