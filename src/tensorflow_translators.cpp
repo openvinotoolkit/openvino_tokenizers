@@ -319,7 +319,7 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::NodeContext& nod
 }
 
 NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) {
-    auto node_name = node.get_name();
+    const auto& node_name = node.get_name();
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 2, "StringSplitV2 expects two inputs (1D input and separator)");
     auto input = node.get_input(0);
     ov::OutputVector unpacked_input = pre_translate_string_tensor_input(input);
