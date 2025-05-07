@@ -249,11 +249,8 @@ jobs:
       run:
         shell: bash
     runs-on: macos-13
-
     env:
-      OPENVINO_REPO: ${{ github.workspace }}/openvino
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
-      BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
     steps:
       - name: Clone Openvino tokenizers sources and tests
