@@ -26,24 +26,24 @@ async function run() {
       core.getInput("wheels_dir", { required: true }),
     );
     const packageName = core.getInput("package_name", { required: true });
-    const pattern = `${packageName}*.whl`;
-
     const pythonVersion = await getPythonVersion();
     core.debug(`Detected Python version: ${JSON.stringify(pythonVersion)}`);
     core.debug(`Looking at ${wheelsDir}`);
     const wheelsFound = [];
     if (wheelsDir) {
-      const wheels = await glob(path.posix.join(wheelsDir, pattern), {
+      const wheels = await glob(path.posix.join(wheelsDir, "*.whl"), {
         absolute: true,
       });
       core.debug(`Found wheels: ${wheels}`);
 
       for (const whl of wheels) {
+        const wheelName = path.basename(whl).split("-")[0];
         const wheelPythonVersion = path.basename(whl).match(/cp(\d{2,3})/);
         if (
-          !wheelPythonVersion ||
-          wheelPythonVersion[1] ===
-            `${pythonVersion.major}${pythonVersion.minor}`
+          (!wheelPythonVersion ||
+            wheelPythonVersion[1] ===
+              `${pythonVersion.major}${pythonVersion.minor}`) &&
+          wheelName === packageName
         ) {
           wheelsFound.push(whl);
         }
@@ -52,11 +52,11 @@ async function run() {
     core.debug(`Resolved local wheels: ${JSON.stringify(wheelsFound)}`);
 
     if (wheelsFound.length === 0) {
-      core.setFailed(`No files found matching pattern "${pattern}"`);
+      core.setFailed(`No files found matching "${packageName}"`);
       return;
     } else if (wheelsFound.length > 1) {
       core.setFailed(
-        `Multiple files found matching pattern "${pattern}": ${JSON.stringify(wheelsFound)}`,
+        `Multiple files found matching "${packageName}": ${JSON.stringify(wheelsFound)}`,
       );
       return;
     } else {
