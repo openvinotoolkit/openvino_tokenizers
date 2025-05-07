@@ -173,7 +173,7 @@ ov::OutputVector translate_static_regex_replace(const ov::frontend::NodeContext&
     ov::OutputVector inputs = pre_translate_string_tensor_input(node.get_input(0));
     inputs.push_back(string_attribute_to_constant(node, "pattern"));
     inputs.push_back(string_attribute_to_constant(node, "rewrite"));
-    auto string_pack_result = post_translate_string_tensor_output(std::make_shared<RegexNormalization>(inputs, replace_global)->outputs());
+    auto string_pack_result = post_translate_string_tensor_output(std::make_shared<RegexNormalization>(std::move(inputs), replace_global)->outputs());
     set_node_name(node_name, string_pack_result.get_node_shared_ptr());
     return { string_pack_result };
 }

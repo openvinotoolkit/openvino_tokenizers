@@ -197,7 +197,7 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
     if (has_skips) {
         total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> size_t {
             const std::string input_string = std::string(chars + begins[i], chars + ends[i]);
-            const std::string normalized = (skips[i] == 0) ? normalizer(input_string) : input_string;
+            const std::string normalized = (skips[i] == 0) ? normalizer(std::move(input_string)) : input_string;
             buffer[i] = normalized;
             return normalized.size();
         });

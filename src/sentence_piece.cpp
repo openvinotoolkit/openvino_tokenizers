@@ -457,7 +457,7 @@ bool SentencepieceStreamDetokenizer::evaluate(TensorVector& outputs, const Tenso
                 continue;
             };
 
-            const auto token = m_sp->IdToPiece(token_id);
+            const auto& token = m_sp->IdToPiece(token_id);
             if(token.rfind("<") == 0 && token.rfind(">") == 5) {
                 // convert "byte tokens" into bytes
                 int ch = sentencepiece::PieceToByte(token);
