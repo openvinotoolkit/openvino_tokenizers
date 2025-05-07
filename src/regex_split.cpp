@@ -35,7 +35,7 @@ void RegexSplit::compile_pattern_if_necessary(std::string split_pattern) const {
         tmp_stream << "(" << split_pattern << ")+";
         split_pattern = tmp_stream.str();
     }
-    m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(split_pattern);
+    m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(std::move(split_pattern));
 }
 
 
@@ -65,7 +65,7 @@ RegexSplit::RegexSplit(
     auto split_pattern_const = as_type_ptr<Constant>(arguments[5 + has_skips].get_node_shared_ptr());
     auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
     auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
-    compile_pattern_if_necessary(split_pattern);
+    compile_pattern_if_necessary(std::move(split_pattern));
     constructor_validate_and_infer_types();
 }
 
@@ -90,7 +90,7 @@ RegexSplit::RegexSplit(
     auto split_pattern_const = as_type_ptr<Constant>(arguments[5 + has_skips].get_node_shared_ptr());
     auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
     auto split_pattern = std::string(split_pattern_buf, split_pattern_const->get_byte_size());
-    compile_pattern_if_necessary(split_pattern);
+    compile_pattern_if_necessary(std::move(split_pattern));
     constructor_validate_and_infer_types();
 }
 
@@ -144,10 +144,10 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
 
     std::string split_pattern = std::string(inputs[5 + has_skips].data<const char>(), inputs[5 + has_skips].get_size());
 
-    // Write to common trie structures should be protected to prevent race conditions.
+    // Write to common structures should be protected to prevent race conditions.
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        compile_pattern_if_necessary(split_pattern);
+        compile_pattern_if_necessary(std::move(split_pattern));
     }
 
     auto get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
@@ -172,7 +172,7 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
             std::string skip_tokens_pattern;
             for (size_t i = 0; i < inputs[6].get_size(); ++i) {
                 std::string token = std::string(skip_tokens_chars + skip_tokens_begins[i], skip_tokens_chars + skip_tokens_ends[i]);
-                m_skip_tokens->insert(token);
+                m_skip_tokens->insert(std::move(token));
             }
         }
     }

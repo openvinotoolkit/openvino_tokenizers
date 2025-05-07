@@ -120,7 +120,7 @@ NamedOutputVector translate_ragged_tensor_to_sparse(const NodeContext& node) {
         auto step = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
         auto begins = std::make_shared<Slice>(rt_nested_splits, begins_start, rpt_shape_minus_one, step);
         auto ends = std::make_shared<Slice>(rt_nested_splits, ends_start, rpt_shape, step);
-        auto longest_batch = rpt_shape_minus_one;
+        auto longest_batch = std::move(rpt_shape_minus_one);
 
         // compute the longest row in a tensor
         auto longest_row_size = std::make_shared<Subtract>(ends, begins)->output(0);
@@ -173,7 +173,7 @@ ov::OutputVector translate_static_regex_replace(const ov::frontend::NodeContext&
     ov::OutputVector inputs = pre_translate_string_tensor_input(node.get_input(0));
     inputs.push_back(string_attribute_to_constant(node, "pattern"));
     inputs.push_back(string_attribute_to_constant(node, "rewrite"));
-    auto string_pack_result = post_translate_string_tensor_output(std::make_shared<RegexNormalization>(inputs, replace_global)->outputs());
+    auto string_pack_result = post_translate_string_tensor_output(std::make_shared<RegexNormalization>(std::move(inputs), replace_global)->outputs());
     set_node_name(node_name, string_pack_result.get_node_shared_ptr());
     return { string_pack_result };
 }
@@ -319,7 +319,7 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::NodeContext& nod
 }
 
 NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) {
-    auto node_name = node.get_name();
+    const auto& node_name = node.get_name();
     FRONT_END_GENERAL_CHECK(node.get_input_size() == 2, "StringSplitV2 expects two inputs (1D input and separator)");
     auto input = node.get_input(0);
     ov::OutputVector unpacked_input = pre_translate_string_tensor_input(input);

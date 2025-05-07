@@ -48,15 +48,15 @@ public:
     }
 
     void insert(const T& data) {
-        std::shared_ptr<Node> new_node = std::make_shared<Node>(data);
-        if (!head) {
-            head = tail = new_node;
-        } else {
+        auto new_node = std::make_shared<Node>(data);
+        if (tail) {
             tail->next = new_node;
             new_node->prev = tail;
-            tail = new_node;
+        } else {
+            head = new_node;
         }
-        m_size++;
+        tail = new_node;
+        ++m_size;
     }
 
     std::shared_ptr<Node> merge_neighbors(std::shared_ptr<Node> first, std::shared_ptr<Node> second, const T& new_data) {
