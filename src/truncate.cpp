@@ -16,14 +16,14 @@ void Truncate::validate_and_infer_types() {
         check_ragged_input(this, 3*i);
         set_ragged_output(this, 3*i, get_input_partial_shape(3 * i), get_input_element_type(3 * i));
         m_num_inputs++;
-        // max_length sould be a scalar.
+        // max_length should be a scalar.
         if (get_input_element_type(3*(i+1)) == element::i32 && get_input_partial_shape(3*(i+1)).rank().get_length() == 0) {
             max_length_is_set = true;
             break;
         }
     }
     OPENVINO_ASSERT(max_length_is_set, "Expected a scalar tensor as the max_length input");
-    OPENVINO_ASSERT(1 <= m_num_inputs <= 2, "Only single or pair inputs are supported in Truncation op");
+    OPENVINO_ASSERT(m_num_inputs >= 1 && m_num_inputs <= 2, "Only single or pair inputs are supported in Truncation op");
     
     // Truncation mode should be u8 strings.
     check_string_scalar_input(this, m_num_inputs*3 + 1);
