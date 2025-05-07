@@ -298,7 +298,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install OpenVINO tokenizers wheel
-        run: python3 -m pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+        run: poetry run pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
           
       - name: Install Test dependencies
         run: poetry install --extras=transformers --with dev,benchmark
