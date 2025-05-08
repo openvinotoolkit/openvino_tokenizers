@@ -24,6 +24,7 @@ env:
   SCCACHE_AZURE_KEY_PREFIX: tokenizers/ubuntu/22_04/x64
   ARTIFACTS_SHARE: '/mount/build-artifacts'
   BASE_PRODUCT_TYPE: public_linux_ubuntu_22_04_x86_64
+  HF_HOME: /mount/caches/huggingface/lin
 
 permissions: read-all
 

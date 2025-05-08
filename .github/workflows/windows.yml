@@ -21,6 +21,7 @@ env:
   CCACHE_MAXSIZE: 100Mi
   ARTIFACTS_SHARE: '/mount/build-artifacts'
   BASE_PRODUCT_TYPE: public_windows_vs2022
+  HF_HOME: C:/mount/caches/huggingface/win
 
 permissions: read-all
 
@@ -330,7 +331,7 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    runs-on: windows-latest
+    runs-on: aks-win-8-cores-16gb
 
     env:
       OPENVINO_REPO: ${{ github.workspace }}\\openvino
