@@ -243,7 +243,13 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-22.04
+    runs-on: aks-linux-4-cores-16gb
+    container:
+      image: openvinogithubactions.azurecr.io/ov_test/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
+      volumes:
+        - /mount:/mount
+        - ${{ github.workspace }}:${{ github.workspace }}
+      options: -e HF_TOKEN
 
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
@@ -305,7 +311,13 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-22.04
+    runs-on: aks-linux-4-cores-16gb
+    container:
+      image: openvinogithubactions.azurecr.io/ov_test/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
+      volumes:
+        - /mount:/mount
+        - ${{ github.workspace }}:${{ github.workspace }}
+      options: -e HF_TOKEN
 
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
