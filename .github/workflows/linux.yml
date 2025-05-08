@@ -325,7 +325,7 @@ jobs:
         with:
           repository: 'openvinotoolkit/openvino'
           ref: ${{ env.OV_BRANCH }}
-          path: ${{ env.OPENVINO_REPO}}
+          path: ${{ env.OPENVINO_REPO }}
           sparse-checkout: |
             tests/layer_tests/
             tests/requirements_tensorflow
