@@ -197,7 +197,7 @@ bool evaluate_normalization_helper (ov::TensorVector& outputs, const ov::TensorV
     if (has_skips) {
         total_size = ov::parallel_sum(num_elements, total_size, [&](size_t i) -> size_t {
             const std::string input_string = std::string(chars + begins[i], chars + ends[i]);
-            const std::string normalized = (skips[i] == 0) ? normalizer(input_string) : input_string;
+            const std::string normalized = (skips[i] == 0) ? normalizer(std::move(input_string)) : input_string;
             buffer[i] = normalized;
             return normalized.size();
         });
@@ -267,9 +267,9 @@ PCRE2Wrapper::~PCRE2Wrapper() {
     }
 }
 
-std::string PCRE2Wrapper::substitute(const std::string& orig_str, 
+std::string PCRE2Wrapper::substitute (const std::string& orig_str,
                                      const absl::string_view& replace_pattern,
-                                     bool global_replace) {
+                                     bool global_replace) const {
     if (m_compiled == nullptr) {
         return orig_str;
     }
@@ -336,7 +336,7 @@ std::string PCRE2Wrapper::substitute(const std::string& orig_str,
     return res;
 }
 
-std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t curr_start) {
+std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t curr_start) const {
     if (m_compiled == nullptr) {
         return {SIZE_MAX, SIZE_MAX};
     }
@@ -382,15 +382,15 @@ void Trie::add(const std::vector<unsigned char>& str, const int value, int idx) 
 }
 
 
-int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) {
+int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) const {
     int token_id = -1;  // no token found
-    Trie* current_node = this;
+    const Trie* current_node = this;
 
     uint8_t ch = str[idx];
     int end_idx = idx;
 
     while (current_node->m_to.count(ch)) {
-        current_node = current_node->m_to[ch].get();
+        current_node = current_node->m_to.at(ch).get();
         idx++;
         if (current_node->m_value != -1) {
             token_id = current_node->m_value;
@@ -405,15 +405,15 @@ int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) {
     return token_id;
 }
 
-int Trie::find_longest(const std::string_view& str, int& idx) {
+int Trie::find_longest(const std::string_view& str, int& idx) const {
     int token_id = -1;  // no token found
-    Trie* current_node = this;
+    const Trie* current_node = this;
 
     uint8_t ch = str[idx];
     int end_idx = idx;
 
     while (current_node->m_to.count(ch)) {
-        current_node = current_node->m_to[ch].get();
+        current_node = current_node->m_to.at(ch).get();
         idx++;
         if (current_node->m_value != -1) {
             token_id = current_node->m_value;

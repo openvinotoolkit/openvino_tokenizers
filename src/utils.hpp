@@ -77,8 +77,8 @@ class PCRE2Wrapper {
     public:
         pcre2_code* m_compiled = nullptr;
         PCRE2Wrapper(const absl::string_view& pattern);
-        std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace);
-        std::pair<size_t, size_t> match(const std::string& orig_str, size_t curr_start);
+        std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace) const;
+        std::pair<size_t, size_t> match(const std::string& orig_str, size_t curr_start) const;
         ~PCRE2Wrapper();
     private:
         bool m_is_jit = 0;
@@ -89,8 +89,8 @@ class Trie {
         Trie() = default;
 
         void add(const std::vector<unsigned char>& str, const int value, int idx = 0);
-        int find_longest(const std::vector<unsigned char>& str, int& idx);
-        int find_longest(const std::string_view& str, int& idx);
+        int find_longest(const std::vector<unsigned char>& str, int& idx) const;
+        int find_longest(const std::string_view& str, int& idx) const;
 
     private:
         std::unordered_map<unsigned char, std::unique_ptr<Trie>> m_to;
