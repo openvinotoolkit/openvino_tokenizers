@@ -378,7 +378,7 @@ jobs:
         run: poetry install --extras=transformers --with dev
 
       - name: Install Tensorflow tests dependencies
-        run: poetry add $(${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow)
+        run: poetry add $(cat ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow)
 
       - name: TensorFlow 1 Layer Tests
         run: poetry run pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests/ -n logical -m precommit  --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
