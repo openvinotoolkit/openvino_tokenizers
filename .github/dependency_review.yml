@@ -13,10 +13,11 @@ allow_licenses:
   - 'MIT-CMU'
 fail-on-scopes:
   - 'runtime'
-  - 'development'
-  - 'unknown'
 license-check: true
 vulnerability-check: true
 allow-dependencies-licenses:
   - 'pkg:pypi/numpy'
   - 'pkg:pypi/matplotlib'
+  - 'pkg:pypi/ruff'
+  - 'pkg:pypi/regex'
+  - 'pkg:pypi/pandas'
