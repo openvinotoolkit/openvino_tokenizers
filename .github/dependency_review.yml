@@ -2,6 +2,7 @@ fail_on_severity: 'low'
 allow_licenses:
   - 'BSD-2-Clause'
   - 'BSD-3-Clause'
+  - 'BSD-3-Clause-Clear'
   - 'MIT'
   - 'Apache-2.0'
   - 'ISC'
@@ -15,9 +16,3 @@ fail-on-scopes:
   - 'runtime'
 license-check: true
 vulnerability-check: true
-allow-dependencies-licenses:
-  - 'pkg:pypi/numpy'
-  - 'pkg:pypi/matplotlib'
-  - 'pkg:pypi/ruff'
-  - 'pkg:pypi/regex'
-  - 'pkg:pypi/pandas'
