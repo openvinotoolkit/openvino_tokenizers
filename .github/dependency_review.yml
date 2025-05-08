@@ -1,4 +1,4 @@
-fail_on_severity: 'moderate'
+fail_on_severity: 'low'
 allow_licenses:
   - 'BSD-2-Clause'
   - 'BSD-3-Clause'
@@ -11,9 +11,12 @@ allow_licenses:
   - 'Zlib'
   - 'MPL-2.0'
   - 'MIT-CMU'
-  - 'ISC'
-fail_on_scopes:
+fail-on-scopes:
   - 'runtime'
-license_check: true
-vulnerability_check: true
-comment_summary_in_pr: true
+  - 'development'
+  - 'unknown'
+license-check: true
+vulnerability-check: true
+allow-dependencies-licenses:
+  - 'pkg:pypi/numpy'
+  - 'pkg:pypi/matplotlib'
