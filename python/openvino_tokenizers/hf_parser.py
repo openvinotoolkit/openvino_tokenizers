@@ -824,7 +824,8 @@ def convert_sentencepiece_model_tokenizer(
             "add_bos": add_bos_token and not params.handle_special_tokens_with_re,
             "add_eos": add_eos_token and not params.handle_special_tokens_with_re,
             "reverse": do_left_padding,
-            "alpha": 0.0,
+            "alpha": 1,
+            "nbest_size": 1,
         },
     )
 
