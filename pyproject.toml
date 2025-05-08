@@ -2,7 +2,7 @@
 name = "openvino-tokenizers"
 version = "2025.2.0.0"
 description = "Convert tokenizers into OpenVINO models"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<=3.13"
 readme = { file = "README.md", content-type="text/markdown" }
 license = { "text" = "Apache-2.0" }
 license-files = [
@@ -43,8 +43,8 @@ dependencies = [
 
 [project.optional-dependencies]
 transformers = [
-    "transformers[sentencepiece] >= 4.36.0",
-    "tiktoken",
+    "transformers[sentencepiece]>=4.36.0,<=4.51.3",
+    "tiktoken>=0.3.0,<=0.9.0",
 ]
 
 [project.scripts]
@@ -112,7 +112,9 @@ url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
 priority = "supplemental"
 
 [tool.poetry.dependencies]
-openvino = { version = "~=2025.2.0.dev", source = "openvino-nightly" }
+openvino = [
+    { version = "*", source = "openvino-nightly" },
+]
 
 [tool.poetry.group.dev]
 optional = true
@@ -121,6 +123,7 @@ optional = true
 ruff = ">=0.1.0,<=0.11.7"
 bandit = ">=1.7.0,<=1.8.3"
 pytest = ">=7.0.0,<=8.3.5"
+pytest-xdist = ">=3.4.0,<=3.5.0"
 pytest-harvest = ">=1.6.0,<=1.10.0"
 pandas = ">=2.0.0,<=2.2.3"
 jinja2 = ">=3.0.0,<=3.1.6"
