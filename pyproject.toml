@@ -123,7 +123,7 @@ optional = true
 ruff = ">=0.1.0,<=0.11.7"
 bandit = ">=1.7.0,<=1.8.3"
 pytest = ">=7.0.0,<=8.3.5"
-pytest-xdist = ">=3.4.0,<=3.5.0"
+pytest-xdist = ">=3.4.0,<=3.6.1"
 pytest-harvest = ">=1.6.0,<=1.10.0"
 pandas = ">=2.0.0,<=2.2.3"
 jinja2 = ">=3.0.0,<=3.1.6"
