@@ -116,7 +116,7 @@ python_abi = "none"
 [build-system]
 requires = [
     "py-build-cmake==0.4.3",
-    "cmake~=3.14",
+    "cmake~=4.0",
     "openvino~=2025.2.0.dev"
 ]
 build-backend = "py_build_cmake.build"
