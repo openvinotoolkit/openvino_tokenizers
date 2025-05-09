@@ -2,10 +2,15 @@
 name = "openvino-tokenizers"
 version = "2025.2.0.0"
 description = "Convert tokenizers into OpenVINO models"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<=3.13"
 readme = { file = "README.md", content-type="text/markdown" }
-license = { "file" = "LICENSE" }
-
+license = { "text" = "Apache-2.0" }
+license-files = [
+    "LICENSE",
+    "third-party-programs.txt",
+    "SECURITY.md",
+    "README.md"
+]
 authors = [
     { name = "OpenVINO Developers", email = "openvino@intel.com" },
 ]
@@ -38,31 +43,8 @@ dependencies = [
 
 [project.optional-dependencies]
 transformers = [
-    "transformers[sentencepiece] >= 4.36.0",
-    "tiktoken"
-]
-dev = [
-    "ruff",
-    "bandit",
-    "pytest",
-    "pytest_harvest",
-    "pandas",
-    "jinja2",
-    "openvino_tokenizers[transformers]"
-]
-benchmark = [
-    "pandas",
-    "seaborn",
-    "tqdm",
-    "openvino_tokenizers[transformers]"
-]
-#  don't include fuzzing to avoid windows CI issues
-fuzzing = [
-    "atheris",
-    "openvino_tokenizers[transformers]"
-]
-all = [
-    "openvino_tokenizers[dev, transformers]"
+    "transformers[sentencepiece]>=4.36.0,<=4.51.3",
+    "tiktoken>=0.3.0,<=0.9.0",
 ]
 
 [project.scripts]
@@ -120,3 +102,40 @@ requires = [
     "openvino~=2025.2.0.dev"
 ]
 build-backend = "py_build_cmake.build"
+
+[tool.poetry]
+package-mode = false
+
+[[tool.poetry.source]]
+name = "openvino-nightly"
+url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
+priority = "supplemental"
+
+[tool.poetry.dependencies]
+openvino = { version = "*", source = "openvino-nightly" }
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+ruff = ">=0.1.0,<=0.11.7"
+bandit = ">=1.7.0,<=1.8.3"
+pytest = ">=7.0.0,<=8.3.5"
+pytest-xdist = ">=3.4.0,<=3.5.0"
+pytest-harvest = ">=1.6.0,<=1.10.0"
+pandas = ">=2.0.0,<=2.2.3"
+jinja2 = ">=3.0.0,<=3.1.6"
+
+[tool.poetry.group.benchmark]
+optional = true
+
+[tool.poetry.group.benchmark.dependencies]
+pandas = ">=2.0.0,<=2.2.3"
+seaborn = ">=0.10.0,<=0.13.2"
+tqdm = ">=4.50.0,<=4.67.1"
+
+[tool.poetry.group.fuzzing]
+optional = true
+
+[tool.poetry.group.fuzzing.dependencies]
+atheris = ">=2.0.0,<=2.3.0"
