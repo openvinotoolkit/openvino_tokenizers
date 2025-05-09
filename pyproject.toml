@@ -4,8 +4,13 @@ version = "2025.2.0.0"
 description = "Convert tokenizers into OpenVINO models"
 requires-python = ">=3.9"
 readme = { file = "README.md", content-type="text/markdown" }
-license = { "file" = "LICENSE" }
-
+license = { "text" = "Apache-2.0" }
+license-files = [
+    "LICENSE",
+    "third-party-programs.txt",
+    "SECURITY.md",
+    "README.md"
+]
 authors = [
     { name = "OpenVINO Developers", email = "openvino@intel.com" },
 ]
@@ -39,30 +44,7 @@ dependencies = [
 [project.optional-dependencies]
 transformers = [
     "transformers[sentencepiece] >= 4.36.0",
-    "tiktoken"
-]
-dev = [
-    "ruff",
-    "bandit",
-    "pytest",
-    "pytest_harvest",
-    "pandas",
-    "jinja2",
-    "openvino_tokenizers[transformers]"
-]
-benchmark = [
-    "pandas",
-    "seaborn",
-    "tqdm",
-    "openvino_tokenizers[transformers]"
-]
-#  don't include fuzzing to avoid windows CI issues
-fuzzing = [
-    "atheris",
-    "openvino_tokenizers[transformers]"
-]
-all = [
-    "openvino_tokenizers[dev, transformers]"
+    "tiktoken",
 ]
 
 [project.scripts]
@@ -120,3 +102,33 @@ requires = [
     "openvino~=2025.2.0.dev"
 ]
 build-backend = "py_build_cmake.build"
+
+[dependency-groups]
+benchmark = [
+    "pandas>=2.0.0,<=2.2.3",
+    "seaborn>=0.10.0,<=0.13.2",
+    "tqdm>=4.50.0,<=4.67.1",
+]
+dev = [
+    "bandit>=1.7.0,<=1.8.3",
+    "jinja2>=3.0.0,<=3.1.6",
+    "pandas>=2.0.0,<=2.2.3",
+    "pytest>=7.0.0,<=8.3.5",
+    "pytest-harvest>=1.6.0,<=1.10.5",
+    "ruff>=0.1.0,<=0.11.7",
+]
+fuzzing = [
+    "atheris>=2.0.0,<=2.3.0",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.uv.sources]
+openvino = { index = "openvino-nightly" }
+
+[[tool.uv.index]]
+name = "openvino-nightly"
+url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
+explicit = true
