@@ -9,7 +9,7 @@ import numpy as np
 import openvino as ov
 from openvino import PartialShape, Type
 from openvino import opset15 as opset
-from openvino.runtime.passes import Manager, ModelPass
+from openvino.passes import Manager, ModelPass
 from openvino.utils.types import make_constant_node
 
 
