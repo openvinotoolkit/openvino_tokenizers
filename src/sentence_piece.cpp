@@ -210,8 +210,18 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
             }
             m_special_tokens_re = std::make_shared<re2::RE2>("(" + special_tokens + ")");
         }
-}
+    }
 
+    std::function<void(absl::string_view, std::vector<int32_t>*)> encode_fn;
+    if (m_nbest_size == 1 || m_nbest_size == 0) {
+        encode_fn = [this](absl::string_view sentence, std::vector<int32_t>* ids) {
+            CHECK_OK(m_sp->Encode(sentence, ids));
+        };
+    } else {
+        encode_fn = [this](absl::string_view sentence, std::vector<int32_t>* ids) {
+            CHECK_OK(m_sp->SampleEncode(sentence, m_nbest_size, m_alpha, ids));
+        };
+    };
     std::vector<int64_t> sparse_indices;
     std::vector<int32_t> sparse_values;
     std::vector<int64_t> sparse_dense_shape;
@@ -243,7 +253,7 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
 
     size_t max_token_id = 0;
     for (size_t batch_ind = 0; batch_ind < batch_size; ++batch_ind) {
-        std::string sentence;
+        absl::string_view sentence;
         if (input_size == 2 || input_size == 6) {
             sentence = strings[batch_ind];
         } else {
@@ -254,7 +264,7 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
 
         std::vector<int32_t> ids;
         if (input_size < 5) {
-            CHECK_OK(m_sp->SampleEncode(sentence, m_nbest_size, m_alpha, &ids));
+            encode_fn(sentence, &ids);
         } else {
             std::string special_token;
             std::vector<int32_t> part_ids;
@@ -264,7 +274,7 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
             while (cursor != input.end()) {
                 if (re2::RE2::FindAndConsume(&input, *m_special_tokens_re, &special_token)) {
                     auto before_special_token = absl::string_view(cursor, input.begin() - cursor - special_token.size());
-                    CHECK_OK(m_sp->SampleEncode(before_special_token, m_nbest_size, m_alpha, &part_ids));
+                    encode_fn(before_special_token, &part_ids);
                     ids.insert(ids.end(), part_ids.begin(), part_ids.end());
                     cursor = input.begin();
 
@@ -273,12 +283,12 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
                         ids.push_back(token_and_id->second);
                     } else {
                         // fallback to regular tokenization if no special tokens found the map
-                        CHECK_OK(m_sp->SampleEncode(before_special_token, m_nbest_size, m_alpha, &part_ids));
+                        encode_fn(before_special_token, &part_ids);
                         ids.insert(ids.end(), part_ids.begin(), part_ids.end());
                         cursor = input.begin();
                     };
                 } else {
-                    CHECK_OK(m_sp->SampleEncode(input, m_nbest_size, m_alpha, &part_ids));
+                    encode_fn(input, &part_ids);
                     ids.insert(ids.end(), part_ids.begin(), part_ids.end());
                     cursor = input.end();
                 };
@@ -458,7 +468,7 @@ bool SentencepieceStreamDetokenizer::evaluate(TensorVector& outputs, const Tenso
             };
 
             const auto& token = m_sp->IdToPiece(token_id);
-            if(token.rfind("<") == 0 && token.rfind(">") == 5) {
+            if (token.size() == 6 && token[0] == '<' && token[1] == '0' && token[2] == 'x' && token[token.size() - 1] == '>') {
                 // convert "byte tokens" into bytes
                 int ch = sentencepiece::PieceToByte(token);
                 buffer.insert(buffer.end(), ch);
