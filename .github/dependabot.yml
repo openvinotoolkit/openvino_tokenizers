@@ -31,3 +31,18 @@ updates:
       - "mryzhov"
       - "ilya-lavrenov"
     open-pull-requests-limit: 3
+  
+  #
+  # Enable version updates for npm
+  #
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "09:00"
+      timezone: "Europe/Dublin"
+    open-pull-requests-limit: 3
+    assignees:
+      - "apaniukov"
+      - "mryzhov"
+    versioning-strategy: increase-if-necessary
