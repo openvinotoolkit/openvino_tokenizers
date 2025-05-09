@@ -112,9 +112,7 @@ url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
 priority = "supplemental"
 
 [tool.poetry.dependencies]
-openvino = [
-    { version = "*", source = "openvino-nightly" },
-]
+openvino = { version = "*", source = "openvino-nightly" }
 
 [tool.poetry.group.dev]
 optional = true
