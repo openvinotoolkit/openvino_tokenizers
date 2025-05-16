@@ -11,8 +11,21 @@ allow_licenses:
   - 'Python-2.0'
   - 'Zlib'
   - 'MPL-2.0'
+  - 'MPL-1.1'
   - 'MIT-CMU'
+  - 'LGPL-2.1-only'
+  - 'CC-BY-SA-4.0'
 fail-on-scopes:
   - 'runtime'
 license-check: true
 vulnerability-check: true
+allow-dependencies-licenses:
+  - 'pkg:pypi/matplotlib@3'
+  - 'pkg:pypi/pillow@11.2.1'
+  - 'pkg:pypi/protobuf@6.30.2'
+  - 'pkg:pypi/pytz@2025.2'
+  - 'pkg:pypi/regex@2024.11.6'
+  - 'pkg:pypi/filelock@3.18.0'
+  - 'pkg:pypi/charset-normalizer@80.3.1'
+  - 'pkg:pypi/packaging@25.0'
+  - 'pkg:pypi/python-dateutil@2.9.0'

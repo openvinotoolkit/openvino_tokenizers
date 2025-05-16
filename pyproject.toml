@@ -112,15 +112,13 @@ url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
 priority = "supplemental"
 
 [tool.poetry.dependencies]
-openvino = [
-    { version = "*", source = "openvino-nightly" },
-]
+openvino = { version = "*", source = "openvino-nightly" }
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-ruff = ">=0.1.0,<=0.11.7"
+ruff = ">=0.1.0,<=0.11.9"
 bandit = ">=1.7.0,<=1.8.3"
 pytest = ">=7.0.0,<=8.3.5"
 pytest-xdist = ">=3.4.0,<=3.5.0"

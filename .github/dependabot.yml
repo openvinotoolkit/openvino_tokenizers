@@ -11,11 +11,10 @@ updates:
       interval: "daily"
       time: "09:00"
       timezone: "Europe/Dublin"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     assignees:
       - "apaniukov"
       - "mryzhov"
-    versioning-strategy: increase-if-necessary
 
   #
   # Github actions - CI
@@ -29,8 +28,7 @@ updates:
     assignees:
       - "apaniukov"
       - "mryzhov"
-      - "ilya-lavrenov"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
   
   #
   # Enable version updates for npm
@@ -41,7 +39,7 @@ updates:
       interval: "daily"
       time: "09:00"
       timezone: "Europe/Dublin"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     assignees:
       - "apaniukov"
       - "mryzhov"
