@@ -93,12 +93,22 @@ jobs:
           merge-multiple: true
       - run: ls -l ${{ env.INSTALL_DIR }}
 
-      - name: Download coverity tool
+      - name: Download & install coverity tool
         run: |
-          wget -q https://scan.coverity.com/download/linux64 --post-data "token=${{ secrets.COVERITY_SECRET_TOKEN }}&project=openvino-tokenizers" -O coverity_tool.tgz
-          tar -I pigz -xf coverity_tool.tgz
-          echo "ENV_COV_TOOL_DIR=$(tar -tzf coverity_tool.tgz | head -1 | cut -f1 -d'/')" >> $GITHUB_ENV
-          rm coverity_tool.tgz
+          wget https://ubit-artifactory-or.intel.com/artifactory/coverity-or-local/Enterprise/license.dat -O license.dat
+          wget https://ubit-artifactory-or.intel.com/artifactory/coverity-or-local/Enterprise/cov-analysis-linux64-2024.6.1.sh -O cov-analysis-2024.6.1.sh
+          chmod u+x cov-analysis-2024.6.1.sh
+          ./cov-analysis-2024.6.1.sh \
+            -q \
+            --installation.dir=${ENV_COV_TOOL_DIR} \
+            --license.agreement=agree \
+            --license.region=0 \
+            --license.type.choice=0 \
+            --license.cov.path=${ENV_COV_TOOL_DIR}/license.dat \
+            --component.sdk=false \
+            --component.skip.documentation=true
+          rm cov-analysis-2024.6.1.sh
+          export PATH=$PATH:${ENV_COV_TOOL_DIR}/bin/
 
       - name: Create build.sh
         run: |
@@ -108,42 +118,45 @@ jobs:
           CMAKE_BUILD_PARALLEL_LEVEL=4 cmake --build ${{ env.BUILD_DIR }} --parallel --config ${BUILD_TYPE}
           """ > build.sh
 
+      - name: Create config file for coverity
+        run: |
+          cov-configure --template --compiler cc --comptype gcc --config coverity_config.xml
+          cov-configure --template --compiler c++ --comptype g++ --config coverity_config.xml
+          cov-configure --template --compiler python --comptype python --config coverity_config.xml
+          cov-configure --template --compiler javascript --comptype javascript --config coverity_config.xml
+
       - name: Build for coverity
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          ${ENV_COV_TOOL_DIR}/bin/cov-build --config ${ENV_COV_TOOL_DIR}/config/coverity_config.xml --tmpdir cov_temp --dir ${BUILD_DIR}/cov-int --fs-capture-search ${OPENVINO_TOKENIZERS_REPO} sh build.sh
+          cov-build --config coverity_config.xml --tmpdir cov_temp --dir ${BUILD_DIR}/cov-int --fs-capture-search ${OPENVINO_TOKENIZERS_REPO} sh build.sh
 
-      - name: Pack for analysis submission
-        run: tar -cvf - cov-int | pigz > openvino-tokenizers.tgz
-        working-directory: ${{ env.BUILD_DIR }}
+      - name: Coverity - exclude from analysis
+        run: |
+          cov-manage-emit --dir cov-int --tu-pattern "file('$INTEL_OPENVINO_DIR/.*')" delete
+
+      - name: Coverity - analyze
+        run: |
+          cov-analyze \
+            --dir ${BUILD_DIR}/cov-int \
+            --concurrency \
+            --security \
+            --rule --enable-constraint-fpp --enable-fnptr --enable-virtual --enable-default --webapp-security --enable-audit-checkers --enable-audit-mode \
+            --strip-path ${{ env.OPENVINO_REPO }}
 
       - name: Submit to coverity
         run: |
-          apt-get update && apt-get install -y curl jq
-          pushd ${BUILD_DIR}
-            curl -X POST -d token=${{ secrets.COVERITY_SECRET_TOKEN }} \
-              -d email=${{ secrets.COVERITY_USER }} \
-              -d file_name="openvino-tokenizers.tgz" \
-              -d version="${{ github.sha }}" \
-              -d description="https://github.com/openvinotoolkit/openvino_tokenizers/actions/runs/${{ github.run_id }}" \
-              https://scan.coverity.com/projects/30137/builds/init | tee response
-
-            upload_url=$(jq -r '.url' response)
-            build_id=$(jq -r '.build_id' response)
-
-            curl -X PUT \
-              --header 'Content-Type: application/json' \
-              --upload-file openvino-tokenizers.tgz \
-              $upload_url
-
-            curl -X PUT \
-              -d token=${{ secrets.COVERITY_SECRET_TOKEN }} \
-            https://scan.coverity.com/projects/30137/builds/$build_id/enqueue
-          popd
+          cov-commit-defects \
+            --dir cov-int \
+            --stream OpenVINO-master-stream \
+            --url  https://coverityent.devtools.intel.com/prod3 \
+            --version "${{ github.sha }}" \
+            --user <user> \
+            --password <coverity> \
+            --strip-path ${{ env.OPENVINO_REPO }} --noxrefs
 
       - name: Show Coverity configure logs
         continue-on-error: true
-        run: cov-analysis*/bin/cov-configure -c ${ENV_COV_TOOL_DIR}/config/coverity_config.xml -lscc text
+        run: cov-configure -c ${ENV_COV_TOOL_DIR}/config/coverity_config.xml -lscc text
 
       - name: Upload Coverity build log
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -151,12 +164,4 @@ jobs:
         with:
           name: coverity_logs
           path: ${{ env.BUILD_DIR }}/cov-int/build-log.txt
-          if-no-files-found: 'error'
-
-      - name: Upload Coverity build archive
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: coverity_archive
-          path: ${{ env.BUILD_DIR }}/openvino-tokenizers.tgz
           if-no-files-found: 'error'
