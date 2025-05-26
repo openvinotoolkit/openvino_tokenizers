@@ -4,10 +4,21 @@
 
 #include "tokenizers_factory.hpp"
 
+#include "openvino/core/except.hpp"
 #include "tokenizer.hpp"
 
 namespace ov {
 namespace tokenizers {
+
+namespace {
+template <typename T>
+T get_attribute_value(const ov::AnyMap& attributes, const std::string& attribute_name, const T& default_value) {
+    return attributes.count(attribute_name) && attributes.at(attribute_name).is<T>()
+               ? attributes.at(attribute_name).as<T>()
+               : default_value;
+}
+
+}  // namespace
 
 ov::OutputVector create_tokenizer_node(const std::string& op_type,
                                        const ov::OutputVector& inputs,
@@ -17,12 +28,12 @@ ov::OutputVector create_tokenizer_node(const std::string& op_type,
     } else if (op_type == "SpecialTokensSplit") {
         return std::make_shared<SpecialTokensSplit>(inputs)->outputs();
     } else if (op_type == "RegexSplit") {
-        auto behaviour = attributes.at("behaviour").as<std::string>();
-        auto invert = attributes.at("invert").as<bool>();
+        auto behaviour = get_attribute_value<std::string>(attributes, "behaviour", "remove");
+        auto invert = get_attribute_value<bool>(attributes, "invert", false);
         return std::make_shared<RegexSplit>(inputs, behaviour, invert)->outputs();
     } else if (op_type == "RaggedToDense") {
-        auto pad_right = attributes.at("pad_right").as<bool>();
-        auto pad_max_length = attributes.at("pad_max_length").as<bool>();
+        auto pad_right = get_attribute_value<bool>(attributes, "pad_right", true);
+        auto pad_max_length = get_attribute_value<bool>(attributes, "pad_max_length", false);
         return std::make_shared<RaggedToDense>(inputs, pad_right, pad_max_length)->outputs();
     } else if (op_type == "VocabDecoder") {
         return std::make_shared<VocabDecoder>(inputs, std::vector<int32_t>{})->outputs();
@@ -31,16 +42,15 @@ ov::OutputVector create_tokenizer_node(const std::string& op_type,
     } else if (op_type == "StringTensorPack") {
         return std::make_shared<StringTensorPack>(inputs)->outputs();
     } else if (op_type == "BPETokenizer") {
-        auto unk_token = attributes.at("unk_token").as<std::string>();
-        auto fuse_unk = attributes.at("fuse_unk").as<bool>();
-        auto suffix_indicator = attributes.at("suffix_indicator").as<std::string>();
-        auto end_suffix = attributes.at("end_suffix").as<std::string>();
-        auto byte_fallback = attributes.at("byte_fallback").as<bool>();
-
+        auto unk_token = get_attribute_value<std::string>(attributes, "unk_token", "");
+        auto fuse_unk = get_attribute_value<bool>(attributes, "fuse_unk", false);
+        auto suffix_indicator = get_attribute_value<std::string>(attributes, "suffix_indicator", "");
+        auto end_suffix = get_attribute_value<std::string>(attributes, "end_suffix", "");
+        auto byte_fallback = get_attribute_value<bool>(attributes, "byte_fallback", false);
         return std::make_shared<BPETokenizer>(inputs, unk_token, fuse_unk, suffix_indicator, end_suffix, byte_fallback)
             ->outputs();
     }
-    return ov::OutputVector{};
+    OPENVINO_THROW("Unsupported operation type: `", op_type, "`");
 }
 
 }  // namespace tokenizers
