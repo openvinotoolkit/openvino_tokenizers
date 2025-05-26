@@ -4,13 +4,13 @@ from openvino import Model, PartialShape, Type, op
 from openvino import opset12 as opset
 from openvino.utils.types import make_constant_node
 
-from openvino_tokenizers.constants import DETOKENIZER_NAME, STRING_OUTPUT_NAME, TOKEN_IDS_INPUT_NAME, TOKENIZER_NAME
-from openvino_tokenizers.tokenizer_pipeline import (
+from .constants import DETOKENIZER_NAME, STRING_OUTPUT_NAME, TOKEN_IDS_INPUT_NAME, TOKENIZER_NAME
+from .tokenizer_pipeline import (
     RegexDecodingStep,
     TokenizerPipeline,
     TrieTokenizerStep,
 )
-from openvino_tokenizers.utils import change_inputs_type, change_outputs_type, create_string_constant_node
+from .utils import change_inputs_type, change_outputs_type, create_string_constant_node
 
 
 def build_rwkv_tokenizer(
