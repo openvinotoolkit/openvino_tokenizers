@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-
 #include "tokenizers_factory.hpp"
 
 #include "openvino/core/except.hpp"
