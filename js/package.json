@@ -8,6 +8,7 @@
   },
   "license": "Apache-2.0",
   "main": "openvino-tokenizers.js",
+  "types": "openvino-tokenizers.d.ts",
   "os": [
     "win32",
     "darwin",
