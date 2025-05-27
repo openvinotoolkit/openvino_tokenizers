@@ -1246,37 +1246,37 @@ files = [
 
 [[package]]
 name = "openvino"
-version = "2025.2.0.dev20250507"
+version = "2025.3.0.dev20250523"
 description = "OpenVINO(TM) Runtime"
 optional = false
-python-versions = "*"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "openvino-2025.2.0.dev20250507-18940-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:3bdbc97116aa67b04fe2a9f1374a8b6e278fc30dcfe7f7f599b69a95fa13a54e"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:a8de65365b4dbee139a333b107c870fe7a30db843936ec5adadb27204f992d18"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:46138bc311dab1845f4dd917979ee6d5c1eb4a0a1373907b2be9cf0af6b1064f"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp310-cp310-manylinux_2_31_aarch64.whl", hash = "sha256:e6b0074552c526b112588dcb62aaeda4e99ff781e7b70ddfe85fe2d7cfa9dcea"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp310-cp310-win_amd64.whl", hash = "sha256:a5c4220e751cebfaa932741c881e2b9a0be2fb2299fdcd07bf2e43160c789a22"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:ba91cff90707a631614c401b10832ee6c3e3a425cd1c6cdb76c73b009a86b9c8"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:d4c2f145ee88f5ce0a205b17aa94e1497e7ba3bff0bfeee3a54ffb216cd390c4"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:f8fe2687bc4cef890f3b57e8a2fec24e9df454faaa79f8073e0ca6542e52c193"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:681ff43d35da847e631c78f00b802b0c3086a58fd50caf5012ee63f05826a157"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp311-cp311-win_amd64.whl", hash = "sha256:77d4a58adcd3e33dccfa432c56f4ac55cf6a154a8f0de9899c8e8f36022e4683"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:a056295d3dc0c2befb5131e9dfc27bd7ea1ae4be159875a98d26abeca9451780"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:dae82fb27d1634a18da61e13357a809a765140b0d0f4c695511a8b93232ae877"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:f9f690dce5c21c7d123339df02bbb5ccc37d82c2e91851531f93dcda66f484d6"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:8252fe2beae7678c140d8da03c941464ae952c333334fb956f58c133605e1122"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp312-cp312-win_amd64.whl", hash = "sha256:6bb2e3c4e9ad6082a58c654b15230b3cf358d4e774b89285e5a29dc61a248f47"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp313-cp313-macosx_10_15_x86_64.whl", hash = "sha256:9e7f182a90e872a403efaaf28cb0f53ab64dd68c1c7ba9c5e0e26ee6b6bb50eb"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:51eab17a9eccdff2d9f75bc5096f0a1d4cccc21e44cce6d89bf6cdc784cff30b"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp313-cp313-manylinux2014_x86_64.whl", hash = "sha256:48e81d9fd38aa8077268b535f7f9e9bf3a0f1157323a19a5380c936606692733"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp313-cp313-manylinux_2_31_aarch64.whl", hash = "sha256:0f5a9fc337d6f718dd7bc67d0589f5fea669e48497a7450df6bd5826ad9c82eb"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp313-cp313-win_amd64.whl", hash = "sha256:34fc41c6387f611b4a5b2ceeff86a6261279709279f3bd5e8bd4086ef2c9dc5a"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:c337e8b9dac1d7d0da7e52727d3d9eb26b30b12dfbfcc8f83752bae80f3efc39"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:5517f10522b288d8ce14ec0561a7cb3a8a3045f90c66109b168c64d79167a81a"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:028d1ca76ac936698d161a84fd44956b770b1abc012b2a3b622a93c04b9bb6db"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp39-cp39-manylinux_2_31_aarch64.whl", hash = "sha256:72ad8d7324833a7c1af2af762d40460ac7d844c766e22bb0e1d2492d663d80d8"},
-    {file = "openvino-2025.2.0.dev20250507-18940-cp39-cp39-win_amd64.whl", hash = "sha256:37def500ad1d700c821e447020985591313c8fc4b1fb79f06669f2da643deeb1"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:a4e06fadbc82d01cf80930aa0f8bd62353ce105ce754c74df7b8eadd041aae9e"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:9327521d722f898db11e1a088204c730d06efe6803e1f13516f5dfdec398c438"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:8afa70e81ecbf7b2cd1dc5c70428b78e8fee590adab97f4485434e12a11eaf8a"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp310-cp310-manylinux_2_31_aarch64.whl", hash = "sha256:1977d29162528672b9fae5686b1e1420a3a15660e07eac3819393a6ea3cf7b4d"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp310-cp310-win_amd64.whl", hash = "sha256:bb4824af45e40ae50e07140919c6b5293e2d822934d62917f34b6bbe46f00fe4"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp311-cp311-macosx_10_15_x86_64.whl", hash = "sha256:e931383eb24b919ab39b48f590ff61b746eb2be7e867b506a8615f607772e4a3"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:ee30bed20128dbc4fd8f0c2f22a4cb8728a4dbf8c800aedbf3dac8a75473fa8e"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:e9a26675c7e21c427444a60a8fd04306ccf9c0d591037666cacffaeb892199da"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:1090b46d6c2f04713e28d30c8890e8532c0165329adaca557167f7d64ff12e94"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp311-cp311-win_amd64.whl", hash = "sha256:8fa189d480bb33d6ad0c998dd45d4df6d348073937a218727448fe48403c014c"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:20a37a04cbe018f4126f506ea5faa960ec4c277c10a13cd59f76aa886121500d"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4936fbc9c8b1c00e525f6d96ad1f798bbb4150fdf8244fb799fafb4bf5fc341b"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:cde2471d212ce7cf09810c3445df20d724952b1757e79715b06132f1cf109a0e"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:c06b05b6dfb0fa50e8537b2387507b868b93d393bcdbd81130be4b0c34eeaf9a"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp312-cp312-win_amd64.whl", hash = "sha256:b84696ef8e5a6fe7b73609090372a32bc102ce6f02b85ebe963cc2820d70e5fe"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp313-cp313-macosx_10_15_x86_64.whl", hash = "sha256:30d01ab016dfaf98b531d2c051ca401a01bfba946d1a751e0181f45e40848b21"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:bc71fb5bd841777c49a5374fcac51c4b2e9fbfb4ce5c40d2154d8868fec38b05"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp313-cp313-manylinux2014_x86_64.whl", hash = "sha256:e99c484a89b7ff6367352c03746a1683ec1bacac2e50d429a330dcd4db297781"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp313-cp313-manylinux_2_31_aarch64.whl", hash = "sha256:5bec1cc246b2f5f80785c36f1c29ebfffd366696628b72d7ad361b2701f90c55"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp313-cp313-win_amd64.whl", hash = "sha256:601215371cdd70ef959703ce6bddce5220881213a8258b3d7f347cf72c408e61"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp39-cp39-macosx_10_15_x86_64.whl", hash = "sha256:2249b3d476f8ed429fe723b61628f0bf81116a3b5f70ad3335e09edb6f111b48"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:28e5e245360c1db8288044958c1cae9d0ead5a557de5a5f12929f209dfcd35e5"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:f4d0af436e89304236e7b8e27e59d2632fedd74517f74469a3e37584947a726d"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp39-cp39-manylinux_2_31_aarch64.whl", hash = "sha256:d3e997248ed6b6d34d65ebeba1d4bb7b96291b022e62dec3bc517f43c4de8a3d"},
+    {file = "openvino-2025.3.0.dev20250523-19131-cp39-cp39-win_amd64.whl", hash = "sha256:2e6708b3707fbdbb64b114090759dd5046e87e287f1cd3dc0ff34701b3062665"},
 ]
 
 [package.dependencies]
@@ -2377,4 +2377,4 @@ transformers = ["tiktoken", "transformers"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<=3.13"
-content-hash = "3ee3fabecd116401882ce2345a09423927de3e878eb215bdd1100e4078c08395"
+content-hash = "1222ba17d975623c77667358ff093dc48a1a72d75bbcdbdadaa3eabdfdbcf878"
