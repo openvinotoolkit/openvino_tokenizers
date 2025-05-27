@@ -118,7 +118,7 @@ jobs:
         with:
           repos: |
             ${{ env.OPENVINO_TOKENIZERS_REPO }}
-          product_type: ${{ env.BASE_PRODUCT_TYPE }}_${{ matrix.build_type }})
+          product_type: ${{ env.BASE_PRODUCT_TYPE }}_${{ matrix.build_type }}
           target_arch: 'x86_64'
           build_type: ${{ matrix.build_type }}
           save_to: ${{ env.MANIFEST_PATH }}
