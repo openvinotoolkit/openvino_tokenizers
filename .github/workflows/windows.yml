@@ -49,8 +49,7 @@ jobs:
       with:
         platform: 'windows'
         commit_packages_to_provide: 'wheels,developer_package.zip'
-        revision: fa6fb88d792dae93d735e37fbc2bd42cc68404e6
-        event_name: pull_request
+        revision: latest_available_commit
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_TYPE=${{ matrix.build_type }})
@@ -105,7 +104,7 @@ jobs:
           
       - name: Generate product manifest
         id: create_manifest
-        uses: openvinotoolkit/openvino/.github/actions/create_manifest@refs/pull/30742/head
+        uses: openvinotoolkit/openvino/.github/actions/create_manifest@master
         with:
           repos: |
             ${{ env.OPENVINO_TOKENIZERS_REPO }}
@@ -286,7 +285,7 @@ jobs:
           
       - name: Generate product manifest
         id: create_manifest
-        uses: openvinotoolkit/openvino/.github/actions/create_manifest@refs/pull/30742/head
+        uses: openvinotoolkit/openvino/.github/actions/create_manifest@master
         with:
           repos: |
             ${{ env.OPENVINO_TOKENIZERS_REPO }}
