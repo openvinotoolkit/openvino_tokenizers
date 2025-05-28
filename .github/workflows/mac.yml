@@ -20,7 +20,7 @@ env:
   CMAKE_CXX_COMPILER_LAUNCHER: ccache
   CMAKE_C_COMPILER_LAUNCHER: ccache
   CCACHE_MAXSIZE: 100Mi
-  BASE_PRODUCT_TYPE: public_macos_x86_64
+  BASE_PRODUCT_TYPE: private_darwin
 
 permissions: read-all
 
@@ -48,8 +48,7 @@ jobs:
       with:
         platform: 'macos_12_6'
         commit_packages_to_provide: 'wheels,developer_package.tar.gz'
-        revision: fa6fb88d792dae93d735e37fbc2bd42cc68404e6
-        event_name: pull_request
+        revision: latest_available_commit
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_TYPE=${{ matrix.build_type }})
@@ -211,7 +210,7 @@ jobs:
         with:
           repos: |
             ${{ env.OPENVINO_TOKENIZERS_REPO }}
-          product_type: ${{ env.BASE_PRODUCT_TYPE }}_Release
+          product_type: ${{ env.BASE_PRODUCT_TYPE }}_release
           target_arch: 'x86_64'
           build_type: Release
           save_to: ${{ env.MANIFEST_PATH }}
