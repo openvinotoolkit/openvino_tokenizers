@@ -48,7 +48,8 @@ jobs:
       with:
         platform: 'macos_12_6'
         commit_packages_to_provide: 'wheels,developer_package.tar.gz'
-        revision: latest_available_commit
+        revision: fa6fb88d792dae93d735e37fbc2bd42cc68404e6
+        event_name: pull_request
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_TYPE=${{ matrix.build_type }})
