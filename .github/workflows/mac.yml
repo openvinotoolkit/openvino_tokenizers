@@ -242,6 +242,7 @@ jobs:
         run: |
           python3 -m pip wheel -v \
             --no-deps --wheel-dir ${BUILD_DIR} \
+            --config-settings='override=wheel.build_tag="${{ github.run_number }}"' \
             --config-settings=override=cross.arch="macosx_10_12_x86_64" \
             ${{ needs.openvino_download.outputs.ov_wheel_source }} \
             ${OPENVINO_TOKENIZERS_REPO}
