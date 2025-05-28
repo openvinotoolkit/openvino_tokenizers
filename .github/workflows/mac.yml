@@ -20,6 +20,7 @@ env:
   CMAKE_CXX_COMPILER_LAUNCHER: ccache
   CMAKE_C_COMPILER_LAUNCHER: ccache
   CCACHE_MAXSIZE: 100Mi
+  BASE_PRODUCT_TYPE: public_macos_x86_64
 
 permissions: read-all
 
@@ -82,13 +83,23 @@ jobs:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
+          
+      - name: Generate product manifest
+        id: create_manifest
+        uses: openvinotoolkit/openvino/.github/actions/create_manifest@refs/pull/30742/head
+        with:
+          repos: |
+            ${{ env.OPENVINO_TOKENIZERS_REPO }}
+          product_type: ${{ env.BASE_PRODUCT_TYPE }}_${{ matrix.build_type }}
+          target_arch: 'x86_64'
+          build_type: ${{ matrix.build_type }}
+          save_to: ${{ env.MANIFEST_PATH }}
 
       #
       # Build
       #
       - name: Install build dependencies
         run: brew install coreutils ccache
-
 
       - name: Setup ccache
         id: ccache-restore
@@ -134,11 +145,19 @@ jobs:
           path: ${{ env.CCACHE_DIR }}
 
       - name: Upload openvino tokenizers package
-        if: ${{ always() }}
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: openvino_tokenizers_cpack_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.tar.gz
+          if-no-files-found: 'error'
+          
+      - name: Upload manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: manifest_${{ matrix.build_type }}
+          path: ${{ env.MANIFEST_PATH }}
           if-no-files-found: 'error'
 
   openvino_tokenizers_wheel:
@@ -184,6 +203,17 @@ jobs:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
+          
+      - name: Generate product manifest
+        id: create_manifest
+        uses: openvinotoolkit/openvino/.github/actions/create_manifest@refs/pull/30742/head
+        with:
+          repos: |
+            ${{ env.OPENVINO_TOKENIZERS_REPO }}
+          product_type: ${{ env.BASE_PRODUCT_TYPE }}_Release
+          target_arch: 'x86_64'
+          build_type: Release
+          save_to: ${{ env.MANIFEST_PATH }}
 
       #
       # Dependencies
@@ -191,7 +221,6 @@ jobs:
 
       - name: Install build dependencies
         run: brew install coreutils ccache
-
 
       - name: Setup ccache
         id: ccache-restore
