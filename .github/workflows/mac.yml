@@ -70,6 +70,7 @@ jobs:
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
       CCACHE_DIR: ${{ github.workspace }}/ccache
+      MANIFEST_PATH: ${{ github.workspace }}/manifest.yml
 
     steps:
       - name: Clone Openvino tokenizers
@@ -174,6 +175,7 @@ jobs:
       OPENVINO_TOKENIZERS_REPO: ${{ github.workspace }}/openvino_tokenizers
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
       CCACHE_DIR: ${{ github.workspace }}/ccache
+      MANIFEST_PATH: ${{ github.workspace }}/manifest.yml
 
     steps:
       - name: Clone Openvino tokenizers
