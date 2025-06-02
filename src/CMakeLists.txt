@@ -224,6 +224,7 @@ add_library(${TARGET_NAME} SHARED ${SRCS})
 
 if(WIN32)
   add_vs_version_resource(${TARGET_NAME})
+endif()
 
 #
 # Target include dirs, link libraries and other properties
