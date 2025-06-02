@@ -49,6 +49,7 @@ project(openvino_tokenizers
 
 include(cmake/platforms.cmake)
 include(cmake/version.cmake)
+include(cmake/vs_version.cmake)
 
 option(BUILD_CPP_EXTENSION "Builds C++ extension for OpenVINO Tokenizers" ON)
 
