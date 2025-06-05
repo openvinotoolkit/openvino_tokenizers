@@ -123,14 +123,14 @@ bandit = ">=1.7.0,<=1.8.3"
 pytest = ">=7.0.0,<=8.3.5"
 pytest-xdist = ">=3.4.0,<=3.5.0"
 pytest-harvest = ">=1.6.0,<=1.10.0"
-pandas = ">=2.0.0,<=2.2.3"
+pandas = ">=2.0.0,<=2.3.0"
 jinja2 = ">=3.0.0,<=3.1.6"
 
 [tool.poetry.group.benchmark]
 optional = true
 
 [tool.poetry.group.benchmark.dependencies]
-pandas = ">=2.0.0,<=2.2.3"
+pandas = ">=2.0.0,<=2.3.0"
 seaborn = ">=0.10.0,<=0.13.2"
 tqdm = ">=4.50.0,<=4.67.1"
 
