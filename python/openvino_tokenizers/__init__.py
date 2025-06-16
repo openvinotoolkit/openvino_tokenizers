@@ -85,7 +85,9 @@ def _check_openvino_binary_compatibility() -> None:
     try:
         _core.add_extension(str(_ext_path))
         is_openvino_tokenizers_compatible = True
+        print("OpenVINO Tokenizers and OpenVINO are compatible, setting the flag true is_openvino_tokenizers_compatible=True!!!!")
     except RuntimeError:
+        print("OpenVINO Tokenizers and OpenVINO are NOT compatible, setting the flag is_openvino_tokenizers_compatible=False!!!!")
         is_openvino_tokenizers_compatible = False
         logger.warning(_compatibility_message)
 
@@ -141,7 +143,11 @@ def _get_factory_callable() -> Callable[[], NodeFactory]:
         nonlocal factory
         if opset_version not in factory:
             if is_openvino_tokenizers_compatible:
+                print("OpenVINO Tokenizers and OpenVINO are compatible, using extension factory!!!!")
                 openvino.utils.node_factory.NodeFactory.__init__ = new_factory_init
+            else:
+                print("OpenVINO Tokenizers and OpenVINO NOT compatible!!!!!")
+
             factory[opset_version] = NodeFactory() if opset_version is None else NodeFactory(opset_version)
             if opset_version is None:
                 factory[opset_version].create = get_create_wrapper(factory[opset_version].create)
