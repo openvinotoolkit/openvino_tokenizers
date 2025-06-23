@@ -29,3 +29,4 @@ allow-dependencies-licenses:
   - 'pkg:pypi/charset-normalizer@80.3.1'
   - 'pkg:pypi/packaging@25.0'
   - 'pkg:pypi/python-dateutil@2.9.0'
+  - 'pkg:pypi/fonttools@4.58.4'
