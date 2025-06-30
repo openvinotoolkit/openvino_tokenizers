@@ -371,7 +371,6 @@ jobs:
         uses: ./.github/actions/install_poetry
       
       - name: Find OpenVINO wheel
-        if: ${{ github.actor != 'dependabot[bot]' }}
         uses: ./.github/actions/find_wheel
         id: ov_wheel
         with:
@@ -379,7 +378,6 @@ jobs:
           package_name: 'openvino'
          
       - name: Install OpenVINO wheel
-        if: ${{ github.actor != 'dependabot[bot]' }}
         run: poetry add ${{ steps.ov_wheel.outputs.wheel_path }}
       
       - name: Find Tokenizers wheel
