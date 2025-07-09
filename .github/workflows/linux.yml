@@ -24,6 +24,7 @@ env:
   SCCACHE_AZURE_KEY_PREFIX: tokenizers/ubuntu/22_04/x64
   ARTIFACTS_SHARE: '/mount/build-artifacts'
   BASE_PRODUCT_TYPE: public_linux_ubuntu_22_04_x86_64
+  HF_HOME: /mount/caches/huggingface/lin
 
 permissions: read-all
 
@@ -251,7 +252,13 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-22.04
+    runs-on: aks-linux-4-cores-16gb
+    container:
+      image: openvinogithubactions.azurecr.io/ov_test/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
+      volumes:
+        - /mount:/mount
+        - ${{ github.workspace }}:${{ github.workspace }}
+      options: -e HF_TOKEN
     env:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
 
@@ -315,7 +322,13 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: ubuntu-22.04
+    runs-on: aks-linux-4-cores-16gb
+    container:
+      image: openvinogithubactions.azurecr.io/ov_test/ubuntu_22_04_x64:${{ needs.openvino_download.outputs.docker_tag }}
+      volumes:
+        - /mount:/mount
+        - ${{ github.workspace }}:${{ github.workspace }}
+      options: -e HF_TOKEN
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
