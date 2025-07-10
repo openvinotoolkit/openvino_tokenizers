@@ -308,9 +308,36 @@ def parse_template_processing(
     }
 
 
-# todo: add BertProcessing and RobertaProcessing parsers
+def parse_roberta_processing(
+    post_processor_json: Dict[str, Any],
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+) -> Dict[str, Dict[str, List[int]]]:
+    cls_id = post_processor_json["cls"][1]
+    sep_id = post_processor_json["sep"][1]
+    return {
+        "single": {"ids": [cls_id, -1, sep_id], "type_ids": [0, 0, 0]},
+        # roberta processor only uses 0 for type_id:
+        # https://github.com/huggingface/tokenizers/blob/dd4fc3df1a8a7cd135eecca2158db018d85f94f1/tokenizers/src/processors/roberta.rs#L81
+        "pair": {"ids": [cls_id, -1, sep_id, sep_id, -1, sep_id], "type_ids": [0, 0, 0, 0, 0, 0]},
+    }
+
+
+def parse_bert_processing(
+    post_processor_json: Dict[str, Any],
+    hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
+) -> Dict[str, Dict[str, List[int]]]:
+    cls_id = post_processor_json["cls"][1]
+    sep_id = post_processor_json["sep"][1]
+    return {
+        "single": {"ids": [cls_id, -1, sep_id], "type_ids": [0, 0, 0]},
+        "pair": {"ids": [cls_id, -1, sep_id, -1, sep_id], "type_ids": [0, 0, 0, 1, 1]},
+    }
+
+
 processor_parsers = {
     "TemplateProcessing": parse_template_processing,
+    "RobertaProcessing": parse_roberta_processing,
+    "BertProcessing": parse_bert_processing,
 }
 
 

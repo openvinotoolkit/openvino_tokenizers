@@ -232,10 +232,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
             return False
 
         # Find the CombineSegments node in the model
-        combine_seg = None
-        for op in model.get_ops():
-            if op.get_type_name() == "CombineSegments":
-                combine_seg = op
+        combine_seg = next((op for op in model.get_ops() if op.get_type_name() == "CombineSegments"), None)
         if not combine_seg:
             logger.info("Could not add second input. Original model does not contain CombineSegments node.")
             return False
