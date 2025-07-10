@@ -1027,9 +1027,6 @@ class CombineSegmentsStep(PostTokenizationStep):
     def from_hf_json_roberta_processor(
         cls, post_processor_dict: Dict[str, Any], number_of_inputs: int = 1, add_special_tokens: bool = True
     ) -> "CombineSegmentsStep":
-        if number_of_inputs == 2:
-            raise UserInputError("Two inputs not supported for RoBERTa processor")
-
         inputs: List[TokenWithTypeId] = [Sequence(token_type_id=0)]
 
         inputs.insert(

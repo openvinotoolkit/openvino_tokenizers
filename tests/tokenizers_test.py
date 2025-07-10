@@ -1088,6 +1088,10 @@ models_with_pair_input = [
     "bert-base-multilingual-cased",
     # Rerankers with Unigram
     "BAAI/bge-reranker-v2-m3",
+    # model with RobertaProcessing
+    "FacebookAI/roberta-base",
+    # model with BertProcessing
+    "shay681/HeBERT_finetuned_Legal_Clauses",
 ]
 
 
