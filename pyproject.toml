@@ -2,7 +2,7 @@
 name = "openvino-tokenizers"
 version = "2025.3.0.0"
 description = "Convert tokenizers into OpenVINO models"
-requires-python = ">=3.9,<=3.13"
+requires-python = ">=3.9"
 readme = { file = "README.md", content-type="text/markdown" }
 license = { "text" = "Apache-2.0" }
 license-files = [
@@ -118,19 +118,19 @@ openvino = { version = "*", source = "openvino-nightly" }
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-ruff = ">=0.1.0,<=0.11.10"
-bandit = ">=1.7.0,<=1.8.3"
+ruff = ">=0.1.0,<=0.12.2"
+bandit = ">=1.7.0,<=1.8.6"
 pytest = ">=7.0.0,<=8.3.5"
-pytest-xdist = ">=3.4.0,<=3.5.0"
+pytest-xdist = ">=3.4.0,<=3.8.0"
 pytest-harvest = ">=1.6.0,<=1.10.0"
-pandas = ">=2.0.0,<=2.2.3"
+pandas = ">=2.0.0,<=2.3.1"
 jinja2 = ">=3.0.0,<=3.1.6"
 
 [tool.poetry.group.benchmark]
 optional = true
 
 [tool.poetry.group.benchmark.dependencies]
-pandas = ">=2.0.0,<=2.2.3"
+pandas = ">=2.0.0,<=2.3.1"
 seaborn = ">=0.10.0,<=0.13.2"
 tqdm = ">=4.50.0,<=4.67.1"
 
