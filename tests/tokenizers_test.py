@@ -127,9 +127,8 @@ sentencepiece_models = [
     "microsoft/deberta-v3-base",  # byte fallback
     "facebook/musicgen-small",
     "rinna/bilingual-gpt-neox-4b",  # t5-tokenizer
-
     # chars
-    "microsoft/speecht5_tts"
+    "microsoft/speecht5_tts",
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",

@@ -12,11 +12,11 @@ from openvino import opset15 as opset
 from openvino.passes import Manager, ModelPass
 from openvino.utils.types import make_constant_node
 
-
-logger = logging.getLogger(__name__)
-
 from . import _get_factory
 from .constants import PROCESSED_POST_PROCESSOR_NAME
+
+
+logger = logging.getLogger(__name__)
 
 
 class ModifyCombineSegmentsForPairInput(ModelPass):
@@ -97,7 +97,9 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         # If the second input is empty we need to slice at least one element.
         # If we don't do that input with shape [0] could not be specified together with input with shape [1]
         # in Select and broadcasted. This garbage values will be zeroed in Select.
-        second_start = opset.minimum(total_size - param_2_shape, total_size - make_constant_node([1], Type.i32), name="start_for_second")
+        second_start = opset.minimum(
+            total_size - param_2_shape, total_size - make_constant_node([1], Type.i32), name="start_for_second"
+        )
 
         # For the second input begins_2/ends_2, slice till the end.
         begins_2 = opset.slice(begin, start=second_start, stop=total_size, step=[1], name="begins_2")
@@ -117,7 +119,8 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         first_input = [
             opset.broadcast(begins_1, broadcasted_shape).output(0),
             opset.broadcast(ends_1, broadcasted_shape).output(0),
-            data]
+            data,
+        ]
         second_input = [
             opset.broadcast(begins_2, broadcasted_shape).output(0),
             opset.broadcast(ends_2, broadcasted_shape).output(0),
@@ -165,7 +168,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
 
             if not isinstance(value, Iterable):
                 value = [value]
-            if not all(map(lambda x: isinstance(x, (int)), value)):
+            if not all(isinstance(item, int) for item in value):
                 # input signature ids should be value or a list of values
                 return False
 
