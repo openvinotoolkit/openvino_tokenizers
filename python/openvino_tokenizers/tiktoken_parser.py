@@ -1,9 +1,9 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from tiktoken import Encoding
 
 
-def bpe(mergeable_ranks: Dict[bytes, int], token: bytes, max_rank: Optional[int] = None) -> List[bytes]:
+def bpe(mergeable_ranks: dict[bytes, int], token: bytes, max_rank: Optional[int] = None) -> list[bytes]:
     parts = [bytes([b]) for b in token]
     while True:
         min_idx = None
@@ -23,7 +23,7 @@ def bpe(mergeable_ranks: Dict[bytes, int], token: bytes, max_rank: Optional[int]
 
 def generate_vocab_and_merges(
     encoding: Encoding,
-) -> Tuple[Dict[bytes, int], List[Tuple[bytes, bytes]], Dict[str, int]]:
+) -> tuple[dict[bytes, int], list[tuple[bytes, bytes]], dict[str, int]]:
     mergeable_ranks = encoding._mergeable_ranks
 
     vocab = {}

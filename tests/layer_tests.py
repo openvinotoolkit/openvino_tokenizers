@@ -2,7 +2,7 @@ import json
 import re
 import tempfile
 from pathlib import Path
-from typing import List, NamedTuple, Union
+from typing import NamedTuple, Union
 
 import numpy as np
 import openvino as ov
@@ -359,7 +359,7 @@ def test_regex_split(test_string, expected, layer):
     assert (res_ov == expected).all()
 
 
-def create_special_tokens_split(special_tokens: List[SpecialToken]) -> ov.CompiledModel:
+def create_special_tokens_split(special_tokens: list[SpecialToken]) -> ov.CompiledModel:
     layer = SpecialTokensSplit(special_tokens)
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))

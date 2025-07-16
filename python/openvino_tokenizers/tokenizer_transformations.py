@@ -3,7 +3,7 @@
 
 import json
 import logging
-from typing import Iterable, List
+from collections.abc import Iterable
 
 import numpy as np
 import openvino as ov
@@ -95,10 +95,10 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         ends_1 = opset.slice(end, start=[0], stop=param_1_shape, step=[1], name="ends_1")
 
         # If the second input is empty we need to slice at least one element.
-        # If we don't do that input with shape [0] could not be specified together with input with shape [1] 
+        # If we don't do that input with shape [0] could not be specified together with input with shape [1]
         # in Select and broadcasted. This garbage values will be zeroed in Select.
         second_start = opset.minimum(total_size - param_2_shape, total_size - make_constant_node([1], Type.i32), name="start_for_second")
-        
+
         # For the second input begins_2/ends_2, slice till the end.
         begins_2 = opset.slice(begin, start=second_start, stop=total_size, step=[1], name="begins_2")
         ends_2 = opset.slice(end, start=second_start, stop=total_size, step=[1], name="ends_2")
@@ -111,7 +111,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         begins_2 = opset.select(self.equal_node, make_constant_node([0], Type.i32), begins_2)
         ends_2 = opset.select(self.equal_node, make_constant_node([0], Type.i32), ends_2)
 
-        # broadcast the begins and ends tensors so that if there is one candidate and 
+        # broadcast the begins and ends tensors so that if there is one candidate and
         # a batch of query inputs (or vice versa) they are broadcasted to the same shape.
         broadcasted_shape = opset.maximum(param_1_shape, param_2_shape, name="broadcasted_shape")
         first_input = [
@@ -136,9 +136,9 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         self.first_input = first_input
         self.second_input = second_input
 
-    def get_new_inputs(self) -> List:
+    def get_new_inputs(self) -> list:
         """
-        This part of the code is responsible for creating new inputs for the CombineSegments node.
+        Creates new inputs for the CombineSegments node.
         It combines inputs for the first and second input, and adds special tokens for the second input.
         The new inputs are then returned as a list.
         """
@@ -184,7 +184,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
 
         # For the added inputs segment ids should be 1.
         new_segment_ids = make_constant_node(self.post_processor["pair"]["type_ids"], Type.i32).output(0)
-        new_inputs.extend([new_segment_ids])
+        new_inputs.append(new_segment_ids)
         return new_inputs
 
     def assert_and_get_postprocessor(

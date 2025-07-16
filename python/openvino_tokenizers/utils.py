@@ -4,11 +4,12 @@
 import json
 import logging
 import tempfile
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, fields
 from enum import Enum
 from functools import lru_cache
 from io import BytesIO
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import openvino
@@ -96,7 +97,7 @@ logger = logging.getLogger(__name__)
 def connect_models(
     first: Model,
     second: Model,
-    name_map: Optional[Union[Sequence[Tuple[str, str]], Dict[str, str]]] = None,
+    name_map: Optional[Union[Sequence[tuple[str, str]], dict[str, str]]] = None,
     by_indices: bool = False,
     keep_second_model_unaligned_inputs: bool = True,
     keep_remaining_first_model_outputs: bool = False,
@@ -192,7 +193,7 @@ def change_outputs_type(model: Model, output_type: Type) -> Model:
 
 # from transformers.models.gpt2.tokenization_gpt2
 @lru_cache()
-def unicode_to_bytes() -> Dict[str, int]:
+def unicode_to_bytes() -> dict[str, int]:
     bs = (
         list(range(ord("!"), ord("~") + 1)) + list(range(ord("¡"), ord("¬") + 1)) + list(range(ord("®"), ord("ÿ") + 1))
     )
@@ -228,7 +229,7 @@ def transform_unigram_token_to_bytes(token: str, byte_fallback: bool = False) ->
 
 def get_hf_tokenizer_attribute(
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
-    attributes: Tuple[str],
+    attributes: tuple[str],
 ) -> Any:
     return next((value for attr in attributes if (value := getattr(hf_tokenizer, attr, None)) is not None), None)
 
@@ -261,13 +262,13 @@ def update_rt_info_with_environment(ov_tokenizer: Model) -> None:
 
 def get_processor_template(
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
-) -> Optional[Dict[str, Any]]:
+) -> Optional[dict[str, Any]]:
     """Gets the JSON representation of the tokenizer post-processor template.
 
     :param hf_tokenizer: The Huggingface tokenizer object.
     :type hf_tokenizer: transformers.tokenization_utils_base.PreTrainedTokenizerBase
     :return: The JSON representation of the Huggingface tokenizer.
-    :rtype: Dict[str, Any]
+    :rtype: dict[str, Any]
     """
     if not getattr(hf_tokenizer, "is_fast", False):
         return
@@ -284,12 +285,12 @@ def get_processor_template(
 
 
 def parse_template_processing(
-    post_processor_json: Dict[str, Any],
+    post_processor_json: dict[str, Any],
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
-) -> Dict[str, Dict[str, List[int]]]:
+) -> dict[str, dict[str, list[int]]]:
     vocab = hf_tokenizer.get_vocab()
 
-    def parse_one_template(template: List[Dict[str, Any]]) -> Dict[str, List[int]]:
+    def parse_one_template(template: list[dict[str, Any]]) -> dict[str, list[int]]:
         ids, type_ids = [], []
         sequence_id = -1
         for element_type, element_dict in (next(iter(el.items())) for el in template):
@@ -342,9 +343,9 @@ processor_parsers = {
 
 
 def parse_processor_template(
-    post_processor_json: Dict[str, Any],
+    post_processor_json: dict[str, Any],
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
-) -> Optional[Dict[str, Any]]:
+) -> Optional[dict[str, Any]]:
     if post_processor_json["type"] == "Sequence":
         post_processor_json = next(
             (processor for processor in post_processor_json["processors"] if processor["type"] in processor_parsers),
@@ -430,7 +431,7 @@ def to_bytes(number: int) -> bytes:
     return number.to_bytes(4, "little")
 
 
-def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
+def create_unpacked_string(strings: Iterable[str]) -> list[Output]:
     """
     Convert any list of strings to U8/1D numpy array with begins, ends, and chars
     """
@@ -455,7 +456,7 @@ def create_unpacked_string(strings: Iterable[str]) -> List[Output]:
     return [Constant(Tensor(x)).output(0) for x in [begins, ends, chars]]
 
 
-def create_string_constant_node(value: Union[str, Iterable[str]]) -> List[Output]:
+def create_string_constant_node(value: Union[str, Iterable[str]]) -> list[Output]:
     if isinstance(value, str):
         # string scalar
         return Constant(np.frombuffer(bytes(value, "utf-8"), dtype=np.uint8)).outputs()
