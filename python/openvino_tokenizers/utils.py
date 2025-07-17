@@ -310,9 +310,9 @@ def parse_template_processing(
 
 
 def parse_roberta_processing(
-    post_processor_json: Dict[str, Any],
+    post_processor_json: dict[str, Any],
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
-) -> Dict[str, Dict[str, List[int]]]:
+) -> dict[str, dict[str, list[int]]]:
     cls_id = post_processor_json["cls"][1]
     sep_id = post_processor_json["sep"][1]
     return {
@@ -324,9 +324,9 @@ def parse_roberta_processing(
 
 
 def parse_bert_processing(
-    post_processor_json: Dict[str, Any],
+    post_processor_json: dict[str, Any],
     hf_tokenizer: "PreTrainedTokenizerBase",  # noqa
-) -> Dict[str, Dict[str, List[int]]]:
+) -> dict[str, dict[str, list[int]]]:
     cls_id = post_processor_json["cls"][1]
     sep_id = post_processor_json["sep"][1]
     return {
