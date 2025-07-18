@@ -6,9 +6,10 @@ import logging
 import os
 import site
 import sys
+from collections.abc import Callable
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 import openvino
 from openvino.utils.node_factory import NodeFactory

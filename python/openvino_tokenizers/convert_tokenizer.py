@@ -6,7 +6,7 @@ import logging
 import sys
 from dataclasses import fields
 from functools import wraps
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 from openvino import Model, Type
 from openvino.exceptions import OVTypeError
@@ -76,7 +76,7 @@ def convert_tokenizer(
     utf8_replace_mode: Optional[UTF8ReplaceMode] = UTF8ReplaceMode.REPLACE,
     max_length: Optional[int] = None,
     number_of_inputs: int = 1,
-) -> Union[Model, Tuple[Model, Model]]:
+) -> Union[Model, tuple[Model, Model]]:
     """
     Converts a given tokenizer object into an OpenVINO-compatible model.
 
