@@ -6,7 +6,7 @@ import os
 import sys
 from collections import namedtuple
 from dataclasses import fields
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import pytest
@@ -127,9 +127,8 @@ sentencepiece_models = [
     "microsoft/deberta-v3-base",  # byte fallback
     "facebook/musicgen-small",
     "rinna/bilingual-gpt-neox-4b",  # t5-tokenizer
-
     # chars
-    "microsoft/speecht5_tts"
+    "microsoft/speecht5_tts",
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
@@ -445,12 +444,12 @@ def print_diff(left, right) -> str:
 
 
 def check_tokenizer_output(
-    tokenizers: Tuple,
-    test_string: Union[str, List[str]],
+    tokenizers: tuple,
+    test_string: Union[str, list[str]],
     skip_missing_outputs: bool = False,
-    hf_tokenizer_kwargs: Optional[Dict[str, Any]] = None,
+    hf_tokenizer_kwargs: Optional[dict[str, Any]] = None,
     calculate_diff: bool = False,
-) -> Tuple[bool, str]:
+) -> tuple[bool, str]:
     hf_tokenizer, ov_tokenizer = tokenizers
     hf_tokenizer_kwargs = {} if hf_tokenizer_kwargs is None else hf_tokenizer_kwargs
 
@@ -493,9 +492,9 @@ def check_tokenizer_output(
 
 
 def check_detokenizer_output(
-    detokenizers: Tuple,
-    test_string: Union[str, List[str]],
-    hf_detokenizer_kwargs: Optional[Dict[str, Any]] = None,
+    detokenizers: tuple,
+    test_string: Union[str, list[str]],
+    hf_detokenizer_kwargs: Optional[dict[str, Any]] = None,
 ) -> None:
     hf_tokenizer, _, ov_detokenizer = detokenizers
     hf_detokenizer_kwargs = {} if hf_detokenizer_kwargs is None else hf_detokenizer_kwargs
@@ -1088,6 +1087,10 @@ models_with_pair_input = [
     "bert-base-multilingual-cased",
     # Rerankers with Unigram
     "BAAI/bge-reranker-v2-m3",
+    # model with RobertaProcessing
+    "FacebookAI/roberta-base",
+    # model with BertProcessing
+    "shay681/HeBERT_finetuned_Legal_Clauses",
 ]
 
 

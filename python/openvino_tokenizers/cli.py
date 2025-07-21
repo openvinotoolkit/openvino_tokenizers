@@ -104,9 +104,7 @@ def get_parser() -> ArgumentParser:
         required=False,
         default=1,
         action=TrueOrPositiveIntAction,
-        help=(
-            "The number of inputs for the model. Default is 1."
-        ),
+        help=("The number of inputs for the model. Default is 1."),
     )
     parser.add_argument(
         "--max_padding",

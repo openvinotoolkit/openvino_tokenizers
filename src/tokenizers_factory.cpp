@@ -49,6 +49,10 @@ ov::OutputVector create_tokenizer_node(const std::string& op_type,
         auto byte_fallback = get_attribute_value<bool>(attributes, "byte_fallback", false);
         return std::make_shared<BPETokenizer>(inputs, unk_token, fuse_unk, suffix_indicator, end_suffix, byte_fallback)
             ->outputs();
+    } else if (op_type == "Truncate") {
+        return std::make_shared<Truncate>(inputs)->outputs();
+    } else if (op_type == "CombineSegments") {
+        return std::make_shared<CombineSegments>(inputs)->outputs();
     }
     OPENVINO_THROW("Unsupported operation type: `", op_type, "`");
 }
