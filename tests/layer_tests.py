@@ -489,16 +489,50 @@ def test_unigram_model(test_string, hf_charsmap_sentencepiece_tokenizer):
                 [30, 40],
             ],
         ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "pad_right": False,
+                "padding_side": "right",  # input value "pad_right": False has priority, therefore despite the attribute value will be padded left
+            },
+            [
+                [42, 42, 42, 42, 42, 42, 42, 10, 20, 100],
+                [42, 42, 42, 42, 42, 30, 40, 50, 200, 300],
+            ],
+        ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "pad_right": True,
+                "padding_side": "left",  # input value "pad_right": True has priority, therefore despite the attribute value will be padded right
+            },
+            [
+                [10, 20, 100, 42, 42, 42, 42, 42, 42, 42],
+                [30, 40, 50, 200, 300, 42, 42, 42, 42, 42],
+            ],
+        ),
     ],
 )
 def test_ragged_to_dense(input_values, expected):
     numeric_input_names = "begins", "ends", "data", "padding_size", "value"
     np_input_values = [np.array(input_values[key], dtype=np.int32) for key in numeric_input_names]
+    
+    if "pad_right" in input_values:
+        np_input_values.append(np.array(input_values["pad_right"], dtype=np.bool))
+    
 
     # Parameter for all inputs except value
     input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(numeric_input_names) - 1)]
     # Parameter for value
-    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([]))]
+    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([])), *([op.Parameter(Type.boolean, PartialShape([]))] if "pad_right" in input_values else [])]
 
     assert input_values["padding_side"] in ["right", "left"]
     pad_right = True if input_values["padding_side"] == "right" else False
