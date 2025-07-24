@@ -52,7 +52,6 @@ void RaggedToDense::validate_and_infer_types() {
 
         OPENVINO_ASSERT(get_input_element_type(5).is_integral(),
                       "RaggedToDense: pad_right should be a boolean value.");
-        m_is_padding_side_input_enabled = true;
     }
 }
 
@@ -78,7 +77,7 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
     auto out_mask_orig = out_mask;
     
     bool pad_right = m_pad_right;
-    if (m_is_padding_side_input_enabled) {
+    if (get_input_size() == 6) {
         pad_right = inputs[5].data<bool>()[0];
     }
 
