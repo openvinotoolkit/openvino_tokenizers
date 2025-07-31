@@ -43,7 +43,7 @@ dependencies = [
 
 [project.optional-dependencies]
 transformers = [
-    "transformers[sentencepiece]>=4.36.0,<=4.52.1",
+    "transformers[sentencepiece]>=4.36.0,<4.53.0",
     "tiktoken>=0.3.0,<=0.9.0",
 ]
 
