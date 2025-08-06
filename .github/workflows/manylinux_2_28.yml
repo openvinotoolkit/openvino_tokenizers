@@ -147,15 +147,14 @@ jobs:
 
             echo "Configuring cmake for python$py_version"
             /usr/bin/cmake -DOpenVINODeveloperPackage_DIR=${{ env.INSTALL_DIR }}/developer_package/cmake \
-                  -DENABLE_PYTHON=ON \
                   -DPython3_EXECUTABLE=${python_exec_path} \
                   -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                   -S ${{ env.OPENVINO_TOKENIZERS_REPO }} \
                   -B ${{ env.BUILD_DIR }}
             echo "Configuring cmake done for python$py_version"
             
-            /usr/bin/cmake --build ${{ env.BUILD_DIR }} --config ${{ matrix.build-type }} --parallel $(nproc) --verbose
-            /usr/bin/cmake --install ${{ env.BUILD_DIR }} --config ${{ matrix.build-type }} --prefix ${{ env.OV_TOKENIZERS_INSTALL_DIR }}
+            /usr/bin/cmake --build ${{ env.BUILD_DIR }} --config ${{ matrix.build_type }} --parallel $(nproc) --verbose
+            /usr/bin/cmake --install ${{ env.BUILD_DIR }} --config ${{ matrix.build_type }} --prefix ${{ env.OV_TOKENIZERS_INSTALL_DIR }}
           done
 
       - name: Pack Artifacts
