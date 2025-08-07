@@ -214,14 +214,10 @@ jobs:
 
       - name: Build tokenizers Wheel
         run: |
-          for py_version in "3.9" "3.10" "3.11" "3.12" "3.13"
-          do
-            python_exec_path=$(python$py_version -c "import sys; print(sys.executable)")
-            $python_exec_path -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
-                --config-settings='override=wheel.build_tag="${{ github.run_number }}"' \
-                ${{ needs.openvino_download.outputs.ov_wheel_source }} \
-                ${OPENVINO_TOKENIZERS_REPO}
-          done
+          python${{ env.PYTHON_VERSION }} -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
+              --config-settings='override=wheel.build_tag="${{ github.run_number }}"' \
+              ${{ needs.openvino_download.outputs.ov_wheel_source }} \
+              ${OPENVINO_TOKENIZERS_REPO}
         working-directory: ${{ env.INSTALL_DIR }}
         env:
           CMAKE_GENERATOR: 'Unix Makefiles'
@@ -243,7 +239,7 @@ jobs:
     name: Store build artifacts
     strategy:
       matrix:
-        build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
+        build_type: [Release]
     needs: [openvino_download, openvino_tokenizers_wheel, openvino_tokenizers_cpack]
     timeout-minutes: 10
     defaults:
