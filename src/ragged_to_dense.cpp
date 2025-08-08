@@ -83,11 +83,13 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
     // which was defined during model conversion, but we don't know that value during the transformation
     // therefore we have to have a value in pad_right input which will indicate what default value from the attribute 
     // should be taken, and we decided that to be number 2.
-    int32_t pad_val_from_input = inputs[5].data<int32_t>()[0];
-    OPENVINO_ASSERT(pad_val_from_input >= 0 && pad_val_from_input <= 2,
-        "RaggedToDense: pad_right should be 0 (left), 1 (right), or 2 (use attribute).");
-    if (get_input_size() == 6 && pad_val_from_input != 2) {
-        pad_right = pad_val_from_input;
+    if (get_input_size() == 6) {
+        int32_t pad_val_from_input = inputs[5].data<int32_t>()[0];
+        OPENVINO_ASSERT(pad_val_from_input >= 0 && pad_val_from_input <= 2,
+            "RaggedToDense: pad_right should be 0 (left), 1 (right), or 2 (use attribute).");
+        if (pad_val_from_input != 2){
+            pad_right = pad_val_from_input;
+        }
     }
 
     if (pad_right) {
