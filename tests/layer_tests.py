@@ -519,6 +519,36 @@ def test_unigram_model(test_string, hf_charsmap_sentencepiece_tokenizer):
                 [30, 40, 50, 200, 300, 42, 42, 42, 42, 42],
             ],
         ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "pad_right": 2, # 2 indicates that padding side should be take from the attribute value
+                "padding_side": "right", # input value of pad_right is 2 which means that padding value is taken from this Op attribute
+            },
+            [
+                [10, 20, 100, 42, 42, 42, 42, 42, 42, 42],
+                [30, 40, 50, 200, 300, 42, 42, 42, 42, 42],
+            ],
+        ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "pad_right": 2, # 2 indicates that padding side should be take from the attribute value
+                "padding_side": "left",  # input value of pad_right is 2 which means that padding value is taken from this Op attribute
+            },
+            [
+                [42, 42, 42, 42, 42, 42, 42, 10, 20, 100],
+                [42, 42, 42, 42, 42, 30, 40, 50, 200, 300],
+            ],
+        ),
     ],
 )
 def test_ragged_to_dense(input_values, expected):
@@ -526,13 +556,13 @@ def test_ragged_to_dense(input_values, expected):
     np_input_values = [np.array(input_values[key], dtype=np.int32) for key in numeric_input_names]
     
     if "pad_right" in input_values:
-        np_input_values.append(np.array(input_values["pad_right"], dtype=np.bool))
+        np_input_values.append(np.array(input_values["pad_right"], dtype=np.int32))
     
 
     # Parameter for all inputs except value
     input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(numeric_input_names) - 1)]
     # Parameter for value
-    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([])), *([op.Parameter(Type.boolean, PartialShape([]))] if "pad_right" in input_values else [])]
+    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([])), *([op.Parameter(Type.i32, PartialShape([]))] if "pad_right" in input_values else [])]
 
     assert input_values["padding_side"] in ["right", "left"]
     pad_right = True if input_values["padding_side"] == "right" else False
