@@ -77,8 +77,17 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
     auto out_mask_orig = out_mask;
     
     bool pad_right = m_pad_right;
-    if (get_input_size() == 6) {
-        pad_right = inputs[5].data<bool>()[0];
+    // Input value of 2 corresponds to undefined value.
+    // If model is used in ov::genai::Tokenizer then additional input for padding is always added by transformation
+    // and if user called encode without explicitly stating padding side, then we should pad it to the side
+    // which was defined during model conversion, but we don't know that value during the transformation
+    // therefore we have to have a value in pad_right input which will indicate what default value from the attribute 
+    // should be taken, and we decided that to be number 2.
+    int32_t pad_val_from_input = inputs[5].data<int32_t>()[0];
+    OPENVINO_ASSERT(pad_val_from_input >= 0 && pad_val_from_input <= 2,
+        "RaggedToDense: pad_right should be 0 (left), 1 (right), or 2 (use attribute).");
+    if (get_input_size() == 6 && pad_val_from_input != 2) {
+        pad_right = pad_val_from_input;
     }
 
     if (pad_right) {

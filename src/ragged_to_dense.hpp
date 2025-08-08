@@ -25,7 +25,7 @@ public:
      * - data The data of the ragged tensor.
      * - padding_size The size of the padding to be applied.
      * - value The value to be used for padding.
-     * - pad_right  This input has priority over the attribute "padding_side". If true, padding is applied to the right side of the tensor.
+     * - pad_right pad_right should be 0 (left), 1 (right), or 2 (use attribute). This input has priority over the attribute unless input value is 2.
      * @param pad_right If true, padding is applied to the right side of the tensor. Default is true.
      * @param pad_max_length If true, padding is applied to the maximum length of the tensor. Default is false.
      *
