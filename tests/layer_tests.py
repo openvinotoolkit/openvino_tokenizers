@@ -526,13 +526,13 @@ def test_ragged_to_dense(input_values, expected):
     np_input_values = [np.array(input_values[key], dtype=np.int32) for key in numeric_input_names]
     
     if "pad_right" in input_values:
-        np_input_values.append(np.array(input_values["pad_right"], dtype=np.bool))
+        np_input_values.append(np.array(input_values["pad_right"], dtype=np.int32))
     
 
     # Parameter for all inputs except value
     input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(numeric_input_names) - 1)]
     # Parameter for value
-    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([])), *([op.Parameter(Type.boolean, PartialShape([]))] if "pad_right" in input_values else [])]
+    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([])), *([op.Parameter(Type.i32, PartialShape([]))] if "pad_right" in input_values else [])]
 
     assert input_values["padding_side"] in ["right", "left"]
     pad_right = True if input_values["padding_side"] == "right" else False
@@ -540,7 +540,7 @@ def test_ragged_to_dense(input_values, expected):
 
     ragged_to_dense_model = Model(ragged_to_dense, input_params, "ragged_to_dense")
     compiled_model = core.compile_model(ragged_to_dense_model)
-
+    breakpoint()
     res = compiled_model(np_input_values)
     assert np.all(res[0] == np.array(expected, dtype=np.int32))
 
