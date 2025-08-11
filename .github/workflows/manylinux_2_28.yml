@@ -130,8 +130,6 @@ jobs:
 
       - name: Cmake build - tokenizers
         run: /usr/bin/cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
-        env:
-          CMAKE_BUILD_PARALLEL_LEVEL: '4'
 
       - name: Cmake install - tokenizers
         run: /usr/bin/cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
