@@ -70,7 +70,7 @@ jobs:
         echo "docker_tag=$docker_tag" >> $GITHUB_OUTPUT
 
   openvino_tokenizers_cpack:
-    name: OpenVINO tokenizers cpack, BUILD_TYPE=${{ matrix.build_type }})
+    name: OpenVINO tokenizers cpack, BUILD_TYPE=${{ matrix.build_type }}
     strategy:
       matrix:
         build_type: [Release]
