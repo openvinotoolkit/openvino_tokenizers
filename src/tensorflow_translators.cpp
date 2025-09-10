@@ -387,19 +387,18 @@ NamedOutputVector translate_string_split(const ov::frontend::NodeContext& node) 
 ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeContext& node) {
     auto node_name = node.get_name();
     auto node_input_size = node.get_input_size();
-    FRONT_END_GENERAL_CHECK(node_input_size == 4 || node_input_size == 5,
-        "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only with one row partition tensor");
     auto shape = node.get_input(0);
     auto values = node.get_input(1);
     auto default_value = node.get_input(2);
     auto row_partition_types = node.get_attribute<std::vector<std::string>>("row_partition_types");
-    FRONT_END_GENERAL_CHECK((row_partition_types == std::vector<std::string>{"ROW_SPLITS"}) ||
-        (row_partition_types == std::vector<std::string>{"FIRST_DIM_SIZE", "VALUE_ROWIDS"}),
-        "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for ROW_SPLITS type");
-    // currently we support only shape for 2D tensor in output
-    // for example, shape can be equal to [2, 5] or [-1, 8]
-    FRONT_END_GENERAL_CHECK(shape.get_partial_shape().is_static() && shape.get_shape() == ov::Shape{ 2 },
-        "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for 2D ragged tensor on input");
+
+    FRONT_END_GENERAL_CHECK((row_partition_types == std::vector<std::string>{"ROW_SPLITS"} && node_input_size == 4) ||
+        (row_partition_types == std::vector<std::string>{"FIRST_DIM_SIZE", "VALUE_ROWIDS"} && node_input_size == 5),
+        "[TensorFlow Frontend] internal error: RaggedTensorToTensor  is supported only for 2D tensor "
+        "with ROW_SPLITS or {FIRST_DIM_SIZE, VALUE_ROWIDS} type");
+
+    // shape can be undefined (with -1 value) or defined with positive values
+    // in this case replace_shape will be selected below
 
     // since begins, ends and target shape are expected to be of int32 type
     shape = std::make_shared<Convert>(shape, ov::element::i32);
