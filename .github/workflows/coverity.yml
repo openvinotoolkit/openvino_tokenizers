@@ -111,7 +111,7 @@ jobs:
       - name: Build for coverity
         run: |
           source ${INSTALL_DIR}/setupvars.sh
-          ${ENV_COV_TOOL_DIR}/bin/cov-build --config ${ENV_COV_TOOL_DIR}/config/coverity_config.xml --tmpdir cov_temp --dir ${BUILD_DIR}/cov-int ${OPENVINO_TOKENIZERS_REPO} sh build.sh
+          ${ENV_COV_TOOL_DIR}/bin/cov-build --config ${ENV_COV_TOOL_DIR}/config/coverity_config.xml --tmpdir cov_temp --dir ${BUILD_DIR}/cov-int sh build.sh
 
       - name: Pack for analysis submission
         run: tar -cvf - cov-int | pigz > openvino-tokenizers.tgz
