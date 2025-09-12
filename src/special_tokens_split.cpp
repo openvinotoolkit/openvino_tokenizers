@@ -129,7 +129,7 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
                     const size_t match_start = match_group->first.first;
                     const size_t match_end = match_group->first.second;
                     const size_t group_start = match_group->second.first == SIZE_MAX || match_group->second.first == match_group->second.second ? match_start : match_group->second.first;
-                    const size_t group_end = match_group->second.second == SIZE_MAX || match_group->second.first == match_group->second.second ? match_start : match_group->second.second;
+                    const size_t group_end = match_group->second.second == SIZE_MAX || match_group->second.first == match_group->second.second ? match_end : match_group->second.second;
                     if (curr_start < match_start) {
                         new_begins[ragged_offset] = begins[ragged_col] + curr_start;
                         new_skips[ragged_offset] = false;
