@@ -24,7 +24,6 @@ from .constants import (
     ORIGINAL_POST_PROCESSOR_NAME,
     ORIGINAL_TOKENIZER_CLASS_NAME,
     PROCESSED_POST_PROCESSOR_NAME,
-    SPACE_SYMBOLS,
     TOKEN_IDS_OUTPUT_NAME,
     UTF8ReplaceMode,
     rt_info_to_hf_attribute_map,
@@ -406,14 +405,6 @@ def update_rt_info_with_params(
         attribute = get_hf_tokenizer_attribute(hf_tokenizer, hf_attributes)
         if attribute is not None:
             ov_tokenizer.set_rt_info(attribute, rt_field_name)
-
-
-def generate_tokens_with_space_symbols(token: str, depth: int = 1):
-    for symbol_1 in SPACE_SYMBOLS:
-        new_token = token + symbol_1
-        yield new_token
-        if depth > 1:
-            yield from generate_tokens_with_space_symbols(new_token, depth - 1)
 
 
 def quote_meta(unquoted: Union[str, bytes]) -> str:

@@ -32,8 +32,6 @@ GREEDY_DECODER_NAME = "greedy_decoder"
 TOKENIZER_NAME = "tokenizer"
 DETOKENIZER_NAME = "detokenizer"
 
-SPACE_SYMBOLS = (" ", "\t", "\n", "\r", "\v", "\f")
-
 MIN_CACHE_CAPACITY = 20_000
 VOCAB_SIZE_CACHE_PROPORTION = 0.2
 
