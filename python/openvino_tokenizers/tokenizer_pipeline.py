@@ -36,7 +36,6 @@ from .constants import (
 from .utils import (
     apply_unicode_to_bytes,
     create_string_constant_node,
-    generate_tokens_with_space_symbols,
     quote_meta,
     transform_unigram_token_to_bytes,
 )
@@ -660,10 +659,6 @@ class BPETokenizationStep(TokenizationModelStep):
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "BPETokenizationStep":
         vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
         added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
-        for token_json in tokenizer_json["added_tokens"]:
-            if token_json["rstrip"]:
-                for new_token in generate_tokens_with_space_symbols(token_json["content"], depth=2):
-                    added_tokens[new_token] = token_json["id"]
 
         # TODO: CVS-150387 Implement suffix_indicator.
         if tokenizer_json["model"]["continuing_subword_prefix"]:
