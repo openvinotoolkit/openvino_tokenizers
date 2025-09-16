@@ -64,7 +64,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
             m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
             for (size_t i = 0; i < added_tokens_size; ++i) {
-                const std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
+                std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
                 m_added_tokens->insert(std::pair{std::move(token), added_tokens_values[i]});
             };
         };
