@@ -395,8 +395,11 @@ std::pair<std::pair<size_t,size_t>, std::pair<size_t,size_t>> PCRE2Wrapper::matc
     const std::pair<size_t,size_t> full_match = std::make_pair(ovector[0], ovector[1]);
     std::pair<size_t, size_t> group_match = std::make_pair(SIZE_MAX, SIZE_MAX);
 
-    // there is # special tokens == # capture groups, find the one that is inside full match
-    ov::parallel_for(pcre2_get_ovector_count(match_data), [&](size_t group){
+    // in the old tokenizers #special tokens == #capture groups, find the only one that is inside full match
+    // optimize for hundreds of tokens by using parallel_for
+    // newer tokenizers (>2025.3.0) has <= 4 capture groups
+    ov::parallel_for(pcre2_get_ovector_count(match_data) - 1, [&](size_t group){
+        ++group;  // group 0 is full match
         if (full_match.first <= ovector[2*group] && ovector[2*group] <= full_match.second && ovector[2*group + 1] <= full_match.second) {
             group_match = {ovector[2*group], ovector[2*group + 1]};
         }
