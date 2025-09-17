@@ -76,8 +76,8 @@ endif()
 
 FetchContent_Declare(
   sentencepiece
-  URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
-  URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
+  URL      https://github.com/google/sentencepiece/releases/download/v0.2.1/sentencepiece-0.2.1.tar.gz
+  URL_HASH SHA256=8138cec27c2f2282f4a34d9a016e3374cd40e5c6e9cb335063db66a0a3b71fad
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
@@ -103,7 +103,32 @@ if(NOT sentencepiece_POPULATED)
   set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
 
   FetchContent_Populate(sentencepiece)
-  add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+  # handle archives that add an extra top-level directory (e.g. .../sentencepiece/...)
+  set(_sp_src "${sentencepiece_SOURCE_DIR}")
+  if(NOT EXISTS "${_sp_src}/CMakeLists.txt")
+    if(EXISTS "${_sp_src}/sentencepiece/CMakeLists.txt")
+      set(_sp_src "${_sp_src}/sentencepiece")
+    else()
+      file(GLOB _sp_children RELATIVE "${sentencepiece_SOURCE_DIR}" "${sentencepiece_SOURCE_DIR}/*")
+      foreach(_c ${_sp_children})
+        if(IS_DIRECTORY "${sentencepiece_SOURCE_DIR}/${_c}" AND EXISTS "${sentencepiece_SOURCE_DIR}/${_c}/CMakeLists.txt")
+          set(_sp_src "${sentencepiece_SOURCE_DIR}/${_c}")
+          break()
+        endif()
+      endforeach()
+    endif()
+  endif()
+
+  if(EXISTS "${_sp_src}/CMakeLists.txt")
+    if(NOT _sp_src STREQUAL sentencepiece_SOURCE_DIR)
+      message(STATUS "Adjusted sentencepiece source dir to: ${_sp_src}")
+      # don't rely on changing the cached FetchContent variable; use _sp_src directly
+    endif()
+    add_subdirectory("${_sp_src}" "${sentencepiece_BINARY_DIR}" EXCLUDE_FROM_ALL)
+  else()
+    message(WARNING "SentencePiece source does not contain CMakeLists.txt; skipping add_subdirectory().")
+  endif()
 
   if(TARGET ${ICU_TARGET_NAME})
     foreach(sp_target sentencepiece sentencepiece_train)
@@ -134,17 +159,17 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       endif()
 
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
-        "${sentencepiece_SOURCE_DIR}/src/builtin_pb" # for "sentencepiece_model.pb.h"
-        "${sentencepiece_SOURCE_DIR}/src" # for "normalizer.h"
-        "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite" # for "google/protobuf/port_def.inc"
-        "${sentencepiece_SOURCE_DIR}/third_party/" # for "absl/strings/string_view.h" and "darts_clone/darts.h"
-        "${sentencepiece_SOURCE_DIR}" # for "third_party/absl/strings/string_view.h"
+        "${_sp_src}/src/builtin_pb" # for "sentencepiece_model.pb.h"
+        "${_sp_src}/src" # for "normalizer.h"
+        "${_sp_src}/third_party/protobuf-lite" # for "google/protobuf/port_def.inc"
+        "${_sp_src}/third_party/" # for "absl/strings/string_view.h" and "darts_clone/darts.h"
+        "${_sp_src}" # for "third_party/absl/strings/string_view.h"
         )
     else()
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
-        "${sentencepiece_SOURCE_DIR}/src" # for "normalizer.h"
-        "${sentencepiece_SOURCE_DIR}" # for "third_party/absl/strings/string_view.h"
-        "${sentencepiece_BINARY_DIR}/src" # for "sentencepiece_model.pb.h"
+        "${_sp_src}/src" # for "normalizer.h"
+        "${_sp_src}" # for "third_party/absl/strings/string_view.h"
+        "${_sp_src}/src" # for "sentencepiece_model.pb.h"
         )
       endif()
 
