@@ -120,14 +120,16 @@ def benchmark_tokenizers(
         ov_input_ids.append(ov_res["input_ids"])
 
     equal_ids_count = 0
-    for (res, ov_input_id) in tqdm(zip_longest(results, ov_input_ids), total=len(results), desc="HF benchmark"):
+    for res, ov_input_id in tqdm(zip_longest(results, ov_input_ids), total=len(results), desc="HF benchmark"):
         prompt, *_ = res
         hf_start = perf_counter()
         hf_res = hf_tokenizer(res[0], return_tensors="np", padding=True)
         res.append(perf_counter() - hf_start)
 
-        equal_ids_count += ((hf_res["input_ids"].shape == ov_input_id.shape) and (hf_res["input_ids"] == ov_input_id).all())
-    
+        equal_ids_count += (hf_res["input_ids"].shape == ov_input_id.shape) and (
+            hf_res["input_ids"] == ov_input_id
+        ).all()
+
     if ov_perf_counters:
         df = pd.DataFrame(ov_perf_counters)
         model_name = hf_tokenizer.name_or_path.rsplit("/")[-1]
@@ -159,8 +161,8 @@ def print_stats(
     ov_fps = data_size / results["OV"].sum()
     hf_fps = data_size / results["HF"].sum()
 
-    print(f"Sync  OV: {ov_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {ov_fps/hf_fps}")
-    print(f"Async OV: {async_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {async_fps/hf_fps}")
+    print(f"Sync  OV: {ov_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {ov_fps / hf_fps}")
+    print(f"Async OV: {async_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {async_fps / hf_fps}")
     print("Latency and prompt stats:")
     stats = results.describe().drop("count")
     print(stats)
