@@ -164,27 +164,6 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
   endif()
 endfunction()
 
-function(ov_tokenizers_build_static_re2)
-  FetchContent_Declare(
-    re2
-    URL      https://github.com/google/re2/archive/refs/tags/2022-04-01.tar.gz
-    URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
-  )
-  set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-  set(BUILD_SHARED_LIBS OFF)
-  set(RE2_BUILD_TESTING OFF)
-  FetchContent_GetProperties(re2)
-  if(NOT re2_POPULATED)
-    FetchContent_Populate(re2)
-    add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
-  endif()
-
-  # to propogate _GLIBCXX_USE_CXX11_ABI value
-  target_compile_definitions(re2 PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-endfunction()
-
-ov_tokenizers_build_static_re2()
-
 function(ov_tokenizers_link_pcre2 TARGET_NAME)
   FetchContent_Declare(
       prce2
@@ -210,9 +189,6 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
 
-function(ov_tokenizers_link_re2 TARGET_NAME)
-    target_link_libraries(${TARGET_NAME} PRIVATE re2)
-endfunction()
 
 #
 # Build library
@@ -232,7 +208,6 @@ endif()
 
 ov_tokenizers_link_sentencepiece(${TARGET_NAME})
 ov_tokenizers_link_pcre2(${TARGET_NAME})
-ov_tokenizers_link_re2(${TARGET_NAME})
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
