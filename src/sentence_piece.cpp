@@ -226,7 +226,7 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
 
                 m_special_tokens_map->insert(std::pair{token, special_tokens_ids[i]});
             }
-            m_special_tokens_re = std::make_shared<PCRE2Wrapper>(std::string_view(special_tokens));
+            m_special_tokens_re = std::make_shared<PCRE2Wrapper>(special_tokens);
         }
     }
 
@@ -286,28 +286,27 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
         } else {
             std::string special_token;
             std::vector<int32_t> part_ids;
-            const std::string s = std::string(sentence);
             size_t cursor = 0;
             const auto num_tokens_before = ids.size();
             while (true) {
-                auto match = m_special_tokens_re->match(s, cursor);
+                const auto match = m_special_tokens_re->match(sentence, cursor);
                 const size_t match_start = match.first;
                 const size_t match_end = match.second;
                 if (match_start == SIZE_MAX || match_start == match_end) {
                     // no more matches
-                    if (cursor < s.size()) {
-                        encode_fn(absl::string_view(s.data() + cursor, s.size() - cursor), &part_ids);
+                    if (cursor < sentence.size()) {
+                        encode_fn(absl::string_view(sentence.data() + cursor, sentence.size() - cursor), &part_ids);
                         ids.insert(ids.end(), part_ids.begin(), part_ids.end());
                     }
                     break;
                 }
 
                 if (cursor < match_start) {
-                    encode_fn(absl::string_view(s.data() + cursor, match_start - cursor), &part_ids);
+                    encode_fn(absl::string_view(sentence.data() + cursor, match_start - cursor), &part_ids);
                     ids.insert(ids.end(), part_ids.begin(), part_ids.end());
                 }
 
-                special_token = s.substr(match_start, match_end - match_start);
+                special_token = sentence.substr(match_start, match_end - match_start);
                 auto token_and_id = m_special_tokens_map->find(special_token);
                 if (token_and_id != m_special_tokens_map->end()) {
                     ids.push_back(token_and_id->second);

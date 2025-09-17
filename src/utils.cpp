@@ -368,6 +368,38 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
     return res;
 }
 
+std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string_view& str, size_t curr_start) const {
+        if (m_compiled == nullptr) {
+        return {SIZE_MAX, SIZE_MAX};
+    }
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
+    PCRE2_SIZE subject_length = str.size();
+
+    const auto match_func = m_is_jit ? pcre2_jit_match : pcre2_match;
+    int match_result = match_func(
+        m_compiled,
+        (PCRE2_SPTR) str.data(), subject_length,
+        static_cast<PCRE2_SIZE>(curr_start),
+        0,
+        match_data,
+        NULL
+    );
+
+    if (match_result < 0) {
+        pcre2_match_data_free(match_data);
+        return {SIZE_MAX, SIZE_MAX};
+    }
+
+    // At this point there is at least one match, no out of bound can happen here.
+    // If ovector do not contain values early return is done and the code below is not run.
+    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
+    std::pair<size_t, size_t> res = {ovector[0], ovector[1]};
+
+    // Free only after copying results from match_data to res;
+    pcre2_match_data_free(match_data);
+    return res;
+}
+
 // Return both full-match offsets and capture-group offsets in one call
 std::pair<std::pair<size_t,size_t>, std::pair<size_t,size_t>> PCRE2Wrapper::match_and_find_group(const std::string& str, size_t curr_start) const {
     if (m_compiled == nullptr) {
