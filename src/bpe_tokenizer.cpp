@@ -226,9 +226,10 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     // When merges have the same position prefer replaces which occured earlier.
     int32_t i = 0;
     while (next_node) {
-        auto pair = std::make_pair(curr_node->data, next_node->data);
-        if (m_merges.count(pair)) {
-            auto [idx, rank] = m_merges.at(pair);
+        const auto pair = std::make_pair(curr_node->data, next_node->data);
+        const auto it = m_merges.find(pair);
+        if (it != m_merges.end()) {
+            const auto [idx, rank] = it->second;
             pq.emplace(idx, rank, curr_node, next_node, i);
         }
         curr_node = next_node;
@@ -243,7 +244,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         pq.pop();
 
         // Check that pair is still valid, if not, then continue.
-        if (invalid_pairs.count({first_it, second_it})) {
+        if (invalid_pairs.find({first_it, second_it}) != invalid_pairs.end()) {
             continue;
         }
 
@@ -260,28 +261,29 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         
         // Need to update the priority queue for the pairs which appeared after merge.
         if (first_it->prev) {
-            auto prev_pair = std::make_pair(first_it->prev->data, new_node->data);
-            
-            if (m_merges.count(prev_pair)) {
-                auto [idx, rank] = m_merges.at(prev_pair);
+            const auto prev_pair = std::make_pair(first_it->prev->data, new_node->data);
+            const auto it = m_merges.find(prev_pair);
+            if (it != m_merges.end()) {
+                const auto [idx, rank] = it->second;
                 pq.emplace(idx, rank, first_it->prev, new_node, i);
             }
         }
 
         if (second_it->next) {
-            auto next_pair = std::make_pair(new_node->data, second_it->next->data);
-            
-            if (m_merges.count(next_pair)) {
-                auto [idx, rank] = m_merges.at(next_pair);
+            const auto next_pair = std::make_pair(new_node->data, second_it->next->data);
+            const auto it = m_merges.find(next_pair);
+            if (it != m_merges.end()) {
+                const auto [idx, rank] = it->second;
                 pq.emplace(idx, rank, new_node, second_it->next, i);
             }
         }
         i++;
     }
 
-    auto last_pair = std::make_pair(256, 260);
-    if (m_merges.count(last_pair)) {
-        auto last_found_rank = m_merges.at(last_pair).second;
+    const auto last_pair = std::make_pair(256, 260);
+    const auto it = m_merges.find(last_pair);
+    if (it != m_merges.end()) {
+        const auto last_found_rank = it->second.second;
     }
     std::vector<int32_t> res_vec;
     res_vec.reserve(res.size());
@@ -296,7 +298,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         std::lock_guard<std::mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-            m_cache.insert({text, res_vec});
+            m_cache.emplace(std::make_pair(std::move(text), res_vec));
         }
     }
     return res_vec;
