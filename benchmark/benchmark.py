@@ -97,29 +97,31 @@ def benchmark_tokenizers(
         hf_tokenizer(["test " * repeat])
 
     ov_perf_counters = []
+
     for prompt in tqdm(
         batch_iter(chain.from_iterable(dataset), batch), total=len(dataset) * 2 / batch, desc="Sync benchmark"
     ):
         res = [prompt]
 
         ov_start = perf_counter()
-        ov_res = ov_tokenizer(prompt)
+        ov_res = ov_tokenizer(res[0])
         res.append(perf_counter() - ov_start)
-
-        hf_start = perf_counter()
-        hf_tokenizer(prompt)
-        res.append(perf_counter() - hf_start)
-
-        results.append(res)
 
         if per_layer_stats:
             stats = {
-                "Prompt Length": sum(len(text) for text in prompt),
+                "Prompt Length": sum(len(text) for text in res[0]),
                 "# Tokens": ov_res["input_ids"].shape[-1],
             }
             stats = construct_pc_series(ov_tokenizer._infer_request.profiling_info, stats)
 
             ov_perf_counters.append(stats)
+
+        results.append(res)
+
+    for res in tqdm(results, total=len(results), desc="HF benchmark"):
+        hf_start = perf_counter()
+        hf_tokenizer(res[0])
+        res.append(perf_counter() - hf_start)
 
     if ov_perf_counters:
         df = pd.DataFrame(ov_perf_counters)
@@ -151,8 +153,8 @@ def print_stats(
     ov_fps = data_size / results["OV"].sum()
     hf_fps = data_size / results["HF"].sum()
 
-    print(f"Sync:  OV: {ov_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {ov_fps/hf_fps}")
-    print(f"Async: OV: {async_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {async_fps/hf_fps}")
+    print(f"Sync  OV: {ov_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {ov_fps/hf_fps}")
+    print(f"Async OV: {async_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {async_fps/hf_fps}")
     print("Latency and prompt stats:")
     stats = results.describe().drop("count")
     print(stats)
