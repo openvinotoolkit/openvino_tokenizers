@@ -123,7 +123,7 @@ def benchmark_tokenizers(
     for res, ov_input_id in tqdm(zip_longest(results, ov_input_ids), total=len(results), desc="HF benchmark"):
         prompt, *_ = res
         hf_start = perf_counter()
-        hf_res = hf_tokenizer(res[0], return_tensors="np", padding=True)
+        hf_res = hf_tokenizer(prompt, return_tensors="np", padding=True)
         res.append(perf_counter() - hf_start)
 
         equal_ids_count += (hf_res["input_ids"].shape == ov_input_id.shape) and (
