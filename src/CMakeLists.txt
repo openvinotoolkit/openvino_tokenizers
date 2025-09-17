@@ -191,13 +191,13 @@ endfunction()
 
 function(ov_tokenizers_link_pcre2 TARGET_NAME)
   FetchContent_Declare(
-      prce2
-      URL https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip
-      URL_HASH SHA256=2d87bd1700bd1993ddea7c56aad2b0373ac2b3d52d9cc78842a6d061ffaf0925
+      pcre2
+      URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.46/pcre2-10.46.zip
+      URL_HASH SHA256=d872153b2d2338f7bc7b6e9bcc2f7f0c8a529c34fe48c538fea0b3a4e062f046
   )
-  FetchContent_GetProperties(prce2)
-  if(NOT prce2_POPULATED)
-    FetchContent_Populate(prce2)
+  FetchContent_GetProperties(pcre2)
+  if(NOT pcre2_POPULATED)
+    FetchContent_Populate(pcre2)
 
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(CMAKE_POLICY_DEFAULT_CMP0126 NEW)
@@ -206,7 +206,7 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
     set(PCRE2_BUILD_TESTS OFF)
     set(PCRE2_BUILD_PCRE2GREP OFF)
 
-    add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
+    add_subdirectory(${pcre2_SOURCE_DIR} ${pcre2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
   target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${pcre2_BINARY_DIR})
