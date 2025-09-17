@@ -65,7 +65,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
             for (size_t i = 0; i < added_tokens_size; ++i) {
                 std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
-                m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
+                m_added_tokens->insert(std::pair{std::move(token), added_tokens_values[i]});
             };
         };
 
@@ -78,7 +78,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
             Vocab vocab;
             for(size_t id = 0; id < vocab_size; ++id) {
-                auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
+                const auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
                 vocab[token] = int32_t(id); // TODO: Check range
             }
 
@@ -163,18 +163,10 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            if (input_size == 15) {
-                auto results = m_tokenizer->tokenize(str);
-                for (const auto& token : results) {
-                    OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                    new_elems[ragged_offset++] = token;
-                }
-            } else {
-                auto results = m_tokenizer->tokenize(str);
-                for (const auto& token : results) {
-                    OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                    new_elems[ragged_offset++] = token;
-                };
+            auto results = m_tokenizer->tokenize(str);
+            for (const auto& token : results) {
+                OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                new_elems[ragged_offset++] = token;
             }
         }
         new_ends[seq] = ragged_offset;
@@ -203,9 +195,9 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
     TokensList res;
-    const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
+    const auto text_view = std::string_view(text);
     for (int idx = 0; idx < text.size();) {
-        auto r = m_trie->find_longest(text_vec, idx);
+        auto r = m_trie->find_longest(text_view, idx);
         if (r != -1) {
             res.insert(r);
         } else if (m_byte_fallback) {

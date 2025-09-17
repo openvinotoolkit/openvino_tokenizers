@@ -4,17 +4,17 @@
 
 #include "special_tokens_split.hpp"
 #include "openvino/opsets/opset13.hpp"
+#include <optional>
 
 using namespace ov;
 using namespace ov::opset13;
 
 
 void SpecialTokensSplit::compile_pattern_if_necessary(std::string split_pattern) const {
-    if (m_split_pattern == nullptr) {
-        auto options = re2::RE2::Options();
-        options.set_log_errors(false);
-        m_split_pattern = std::make_shared<re2::RE2>(split_pattern, options);
+    if (m_search_pattern_pcre2) {
+        return;
     }
+    m_search_pattern_pcre2 = std::make_shared<PCRE2Wrapper>(std::move(split_pattern));
 }
 
 
@@ -26,10 +26,10 @@ SpecialTokensSplit::SpecialTokensSplit(const ov::OutputVector& arguments) :
 
 SpecialTokensSplit::SpecialTokensSplit(
     const ov::OutputVector& arguments,
-    const std::shared_ptr<re2::RE2>& m_split_pattern
+    const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2
 ) :
     ov::op::Op(arguments),
-    m_split_pattern(m_split_pattern) {
+    m_search_pattern_pcre2(search_pattern_pcre2) {
 
     auto split_pattern_const = as_type_ptr<Constant>(arguments[5].get_node_shared_ptr());
     auto split_pattern_buf = static_cast<const char*>(split_pattern_const->get_data_ptr());
@@ -63,7 +63,10 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     const bool has_skips = (input_size == 7);
 
     auto split_pattern = std::string(inputs[5 + has_skips].data<const char>(), inputs[5 + has_skips].get_size());
-    compile_pattern_if_necessary(std::move(split_pattern));
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        compile_pattern_if_necessary(std::move(split_pattern));
+    }
 
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
@@ -111,24 +114,34 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
                 new_ends[ragged_offset++] = ends[ragged_col];
             } else {
                 auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-
-                re2::StringPiece special_token;
-                re2::StringPiece input(str);
                 size_t curr_start = 0;
-                while (m_split_pattern->Match(str, curr_start, str.length(), RE2::UNANCHORED, &special_token, 1)) {
-                    const size_t match_start = special_token.data() - str.data();
-                    const size_t match_end = match_start + special_token.length();
+                auto get_next_match = [this](const std::string& s, size_t start) -> std::optional<std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>>> {
+                    auto [match, group] = this->m_search_pattern_pcre2->match_and_find_group(s, start);
+                    if (match.first != SIZE_MAX && match.first != match.second) {
+                        return std::make_pair(match, group);
+                    } else {
+                        return std::nullopt;
+                    }
+                };
+
+                std::optional<std::pair<std::pair<size_t, size_t>, std::pair<size_t, size_t>>> match_group;
+                while ((match_group = get_next_match(str, curr_start)) != std::nullopt) {
+                    const size_t match_start = match_group->first.first;
+                    const size_t match_end = match_group->first.second;
+                    const bool is_empty_group = match_group->second.first == SIZE_MAX || match_group->second.first == match_group->second.second; 
+                    const size_t group_start = is_empty_group ? match_start : match_group->second.first;
+                    const size_t group_end = match_group->second.second == SIZE_MAX || is_empty_group ? match_end : match_group->second.second;
+                    
                     if (curr_start < match_start) {
                         new_begins[ragged_offset] = begins[ragged_col] + curr_start;
                         new_skips[ragged_offset] = false;
                         new_ends[ragged_offset++] = begins[ragged_col] + match_start;
-                    };
-                    new_begins[ragged_offset] = begins[ragged_col] + match_start;
+                    }
+                    new_begins[ragged_offset] = begins[ragged_col] + group_start;
                     new_skips[ragged_offset] = true;
-                    new_ends[ragged_offset++] = begins[ragged_col] + match_end;
-
+                    new_ends[ragged_offset++] = begins[ragged_col] + group_end;
                     curr_start = match_end;
-                };
+                }
                 if (curr_start < str.length()) {
                     new_begins[ragged_offset] = begins[ragged_col] + curr_start;
                     new_skips[ragged_offset] = false;

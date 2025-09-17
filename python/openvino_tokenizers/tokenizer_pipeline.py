@@ -7,6 +7,7 @@ from __future__ import annotations
 import base64
 import logging
 import weakref
+from collections import defaultdict
 from collections.abc import Iterable
 from copy import copy
 from dataclasses import dataclass, field
@@ -36,7 +37,6 @@ from .constants import (
 from .utils import (
     apply_unicode_to_bytes,
     create_string_constant_node,
-    generate_tokens_with_space_symbols,
     quote_meta,
     transform_unigram_token_to_bytes,
 )
@@ -139,7 +139,21 @@ class SpecialTokensSplit(BasePipelineStep):
         if not self.special_tokens:
             return list(input_nodes)
 
-        split_pattern = "|".join(token.regex_repr() for token in self.special_tokens)
+        grouped_tokens = defaultdict(list)
+
+        for token in self.special_tokens:
+            grouped_tokens[(token.strip_left, token.strip_right)].append(token)
+
+        split_pattern = "|".join(
+            (
+                r"(?:\s*)" * strip_left
+                + "("
+                + "|".join(quote_meta(token.text) for token in tokens)
+                + ")"
+                + r"(?:\s*)" * strip_right
+            )
+            for (strip_left, strip_right), tokens in grouped_tokens.items()
+        )
         input_nodes.extend(create_string_constant_node(split_pattern))
 
         return _get_factory().create("SpecialTokensSplit", input_nodes).outputs()
@@ -660,10 +674,6 @@ class BPETokenizationStep(TokenizationModelStep):
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "BPETokenizationStep":
         vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
         added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
-        for token_json in tokenizer_json["added_tokens"]:
-            if token_json["rstrip"]:
-                for new_token in generate_tokens_with_space_symbols(token_json["content"], depth=2):
-                    added_tokens[new_token] = token_json["id"]
 
         # TODO: CVS-150387 Implement suffix_indicator.
         if tokenizer_json["model"]["continuing_subword_prefix"]:
