@@ -2,7 +2,7 @@ import argparse
 import json
 import random
 from collections.abc import Iterable
-from itertools import chain, islice
+from itertools import chain, islice, zip_longest
 from pathlib import Path
 from random import sample, shuffle
 from time import perf_counter
@@ -96,6 +96,7 @@ def benchmark_tokenizers(
         ov_tokenizer(["test " * repeat])
         hf_tokenizer(["test " * repeat])
 
+    ov_input_ids = []
     ov_perf_counters = []
     for prompt in tqdm(
         batch_iter(chain.from_iterable(dataset), batch), total=len(dataset) * 2 / batch, desc="Sync benchmark"
@@ -116,12 +117,17 @@ def benchmark_tokenizers(
             ov_perf_counters.append(stats)
 
         results.append(res)
+        ov_input_ids.append(ov_res["input_ids"])
 
-    for res in tqdm(results, total=len(results), desc="HF benchmark"):
+    equal_ids_count = 0
+    for (res, ov_input_id) in tqdm(zip_longest(results, ov_input_ids), total=len(results), desc="HF benchmark"):
+        prompt, *_ = res
         hf_start = perf_counter()
-        hf_tokenizer(res[0])
+        hf_res = hf_tokenizer(res[0], return_tensors="np", padding=True)
         res.append(perf_counter() - hf_start)
 
+        equal_ids_count += ((hf_res["input_ids"].shape == ov_input_id.shape) and (hf_res["input_ids"] == ov_input_id).all())
+    
     if ov_perf_counters:
         df = pd.DataFrame(ov_perf_counters)
         model_name = hf_tokenizer.name_or_path.rsplit("/")[-1]
@@ -134,6 +140,7 @@ def benchmark_tokenizers(
             )
         )
 
+    print(f"input_ids matched for {equal_ids_count}/{len(results)} samples")
     return pd.DataFrame(results, columns=columns)
 
 
