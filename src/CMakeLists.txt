@@ -76,8 +76,8 @@ endif()
 
 FetchContent_Declare(
   sentencepiece
-  URL      https://github.com/google/sentencepiece/archive/d8f741853847553169444afc12c00f4bbff3e9ce.tar.gz
-  URL_HASH SHA256=1cf6e0713ecd04d1dd3328fdd388aa89c8ebab518a15e0886b54eadd8d228886
+  URL      https://github.com/google/sentencepiece/releases/download/v0.2.1/sentencepiece-0.2.1.tar.gz
+  URL_HASH SHA256=8138cec27c2f2282f4a34d9a016e3374cd40e5c6e9cb335063db66a0a3b71fad
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
@@ -103,7 +103,32 @@ if(NOT sentencepiece_POPULATED)
   set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
 
   FetchContent_Populate(sentencepiece)
-  add_subdirectory(${sentencepiece_SOURCE_DIR} ${sentencepiece_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+  # handle archives that add an extra top-level directory (e.g. .../sentencepiece/...)
+  set(_sp_src "${sentencepiece_SOURCE_DIR}")
+  if(NOT EXISTS "${_sp_src}/CMakeLists.txt")
+    if(EXISTS "${_sp_src}/sentencepiece/CMakeLists.txt")
+      set(_sp_src "${_sp_src}/sentencepiece")
+    else()
+      file(GLOB _sp_children RELATIVE "${sentencepiece_SOURCE_DIR}" "${sentencepiece_SOURCE_DIR}/*")
+      foreach(_c ${_sp_children})
+        if(IS_DIRECTORY "${sentencepiece_SOURCE_DIR}/${_c}" AND EXISTS "${sentencepiece_SOURCE_DIR}/${_c}/CMakeLists.txt")
+          set(_sp_src "${sentencepiece_SOURCE_DIR}/${_c}")
+          break()
+        endif()
+      endforeach()
+    endif()
+  endif()
+
+  if(EXISTS "${_sp_src}/CMakeLists.txt")
+    if(NOT _sp_src STREQUAL sentencepiece_SOURCE_DIR)
+      message(STATUS "Adjusted sentencepiece source dir to: ${_sp_src}")
+      # don't rely on changing the cached FetchContent variable; use _sp_src directly
+    endif()
+    add_subdirectory("${_sp_src}" "${sentencepiece_BINARY_DIR}" EXCLUDE_FROM_ALL)
+  else()
+    message(WARNING "SentencePiece source does not contain CMakeLists.txt; skipping add_subdirectory().")
+  endif()
 
   if(TARGET ${ICU_TARGET_NAME})
     foreach(sp_target sentencepiece sentencepiece_train)
@@ -134,16 +159,16 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       endif()
 
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
-        "${sentencepiece_SOURCE_DIR}/src/builtin_pb" # for "sentencepiece_model.pb.h"
-        "${sentencepiece_SOURCE_DIR}/src" # for "normalizer.h"
-        "${sentencepiece_SOURCE_DIR}/third_party/protobuf-lite" # for "google/protobuf/port_def.inc"
-        "${sentencepiece_SOURCE_DIR}/third_party/" # for "absl/strings/string_view.h" and "darts_clone/darts.h"
-        "${sentencepiece_SOURCE_DIR}" # for "third_party/absl/strings/string_view.h"
+        "${_sp_src}/src/builtin_pb" # for "sentencepiece_model.pb.h"
+        "${_sp_src}/src" # for "normalizer.h"
+        "${_sp_src}/third_party/protobuf-lite" # for "google/protobuf/port_def.inc"
+        "${_sp_src}/third_party/" # for "absl/strings/string_view.h" and "darts_clone/darts.h"
+        "${_sp_src}" # for "third_party/absl/strings/string_view.h"
         )
     else()
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
-        "${sentencepiece_SOURCE_DIR}/src" # for "normalizer.h"
-        "${sentencepiece_SOURCE_DIR}" # for "third_party/absl/strings/string_view.h"
+        "${_sp_src}/src" # for "normalizer.h"
+        "${_sp_src}" # for "third_party/absl/strings/string_view.h"
         "${sentencepiece_BINARY_DIR}/src" # for "sentencepiece_model.pb.h"
         )
       endif()
@@ -164,36 +189,15 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
   endif()
 endfunction()
 
-function(ov_tokenizers_build_static_re2)
-  FetchContent_Declare(
-    re2
-    URL      https://github.com/google/re2/archive/refs/tags/2022-04-01.tar.gz
-    URL_HASH SHA256=1ae8ccfdb1066a731bba6ee0881baad5efd2cd661acd9569b689f2586e1a50e9
-  )
-  set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-  set(BUILD_SHARED_LIBS OFF)
-  set(RE2_BUILD_TESTING OFF)
-  FetchContent_GetProperties(re2)
-  if(NOT re2_POPULATED)
-    FetchContent_Populate(re2)
-    add_subdirectory(${re2_SOURCE_DIR} ${re2_BINARY_DIR} EXCLUDE_FROM_ALL)
-  endif()
-
-  # to propogate _GLIBCXX_USE_CXX11_ABI value
-  target_compile_definitions(re2 PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-endfunction()
-
-ov_tokenizers_build_static_re2()
-
 function(ov_tokenizers_link_pcre2 TARGET_NAME)
   FetchContent_Declare(
-      prce2
-      URL https://github.com/PCRE2Project/pcre2/archive/refs/tags/pcre2-10.44.zip
-      URL_HASH SHA256=2d87bd1700bd1993ddea7c56aad2b0373ac2b3d52d9cc78842a6d061ffaf0925
+      pcre2
+      URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.46/pcre2-10.46.zip
+      URL_HASH SHA256=d872153b2d2338f7bc7b6e9bcc2f7f0c8a529c34fe48c538fea0b3a4e062f046
   )
-  FetchContent_GetProperties(prce2)
-  if(NOT prce2_POPULATED)
-    FetchContent_Populate(prce2)
+  FetchContent_GetProperties(pcre2)
+  if(NOT pcre2_POPULATED)
+    FetchContent_Populate(pcre2)
 
     set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(CMAKE_POLICY_DEFAULT_CMP0126 NEW)
@@ -202,7 +206,7 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
     set(PCRE2_BUILD_TESTS OFF)
     set(PCRE2_BUILD_PCRE2GREP OFF)
 
-    add_subdirectory(${prce2_SOURCE_DIR} ${prce2_BINARY_DIR} EXCLUDE_FROM_ALL)
+    add_subdirectory(${pcre2_SOURCE_DIR} ${pcre2_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
 
   target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${pcre2_BINARY_DIR})
@@ -210,9 +214,6 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
 
-function(ov_tokenizers_link_re2 TARGET_NAME)
-    target_link_libraries(${TARGET_NAME} PRIVATE re2)
-endfunction()
 
 #
 # Build library
@@ -232,7 +233,6 @@ endif()
 
 ov_tokenizers_link_sentencepiece(${TARGET_NAME})
 ov_tokenizers_link_pcre2(${TARGET_NAME})
-ov_tokenizers_link_re2(${TARGET_NAME})
 
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")

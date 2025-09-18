@@ -7,12 +7,13 @@
 #include <openvino/op/op.hpp>
 #include "absl/strings/str_format.h"
 #include "absl/container/flat_hash_map.h"
-#include "re2/re2.h"
+#include <string_view>
+#include "utils.hpp"
 
 namespace sentencepiece {
 
 class SentencePieceProcessor;
-int PieceToByte(absl::string_view piece);
+int PieceToByte(std::string_view piece);
 
 } // sentencepiece
 
@@ -25,7 +26,7 @@ public:
     SentencepieceTokenizer(
         const ov::OutputVector& args,
         const std::shared_ptr<sentencepiece::SentencePieceProcessor>& sp,
-        const std::shared_ptr<re2::RE2>& special_tokens_re,
+        const std::shared_ptr<PCRE2Wrapper>& special_tokens_re,
         const std::shared_ptr<absl::flat_hash_map<std::string, int32_t>>& special_tokens_map,
         int32_t nbest_size,
         float alpha,
@@ -46,7 +47,7 @@ public:
 
 private:
     mutable std::shared_ptr<sentencepiece::SentencePieceProcessor> m_sp;
-    mutable std::shared_ptr<re2::RE2> m_special_tokens_re;
+    mutable std::shared_ptr<PCRE2Wrapper> m_special_tokens_re;
     mutable std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> m_special_tokens_map;
     mutable std::mutex m_mutex;
     int32_t m_nbest_size;

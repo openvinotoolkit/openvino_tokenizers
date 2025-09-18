@@ -72,6 +72,24 @@ std::string form_extra_options(bool add_bos, bool add_eos, bool reverse) {
     return extra_options;
 }
 
+// Escape regex metacharacters so a literal token can be safely embedded in a regex
+static std::string quote_meta(const std::string& s) {
+    std::string out;
+    out.reserve(s.size() * 2);
+    for (unsigned char c : s) {
+        switch (c) {
+            case '.': case '^': case '$': case '*': case '+': case '?': case '(':
+            case ')': case '[': case ']': case '{': case '}': case '|': case '\\':
+                out.push_back('\\');
+                out.push_back(static_cast<char>(c));
+                break;
+            default:
+                out.push_back(static_cast<char>(c));
+        }
+    }
+    return out;
+}
+
 void init_sp_model(const OutputVector& args, std::shared_ptr<SentencePieceProcessor>& sp) {
     auto sp_model_const = as_type_ptr<Constant>(args[0].get_node_shared_ptr());
     OPENVINO_ASSERT(sp_model_const, "SentencepieceTokenizer expects SentencePiece model to be constant.");
@@ -105,7 +123,7 @@ SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, int32_t
 SentencepieceTokenizer::SentencepieceTokenizer(
     const OutputVector& args,
     const std::shared_ptr<SentencePieceProcessor>& sp,
-    const std::shared_ptr<re2::RE2>& special_tokens_re,
+    const std::shared_ptr<PCRE2Wrapper>& special_tokens_re,
     const std::shared_ptr<absl::flat_hash_map<std::string, int32_t>>& special_tokens_map,
     int32_t nbest_size,
     float alpha,
@@ -199,16 +217,16 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
                 if (std::all_of(token.begin(), token.end(), [](char c) { return std::isalpha(c); })) {
                     // have to check if special token is not a part of some word
                     // chatglm2/3 has "sop" and "eop" special tokens that will split words like "people" otherwise
-                    special_tokens += ("\\b" + re2::RE2::QuoteMeta(token));
+                    special_tokens += ("\\b" + quote_meta(token));
                     special_tokens += "|";
-                    special_tokens += (re2::RE2::QuoteMeta(token) + "\\b");
+                    special_tokens += (quote_meta(token) + "\\b");
                 } else {
-                    special_tokens += re2::RE2::QuoteMeta(token);
+                    special_tokens += quote_meta(token);
                 };
 
                 m_special_tokens_map->insert(std::pair{token, special_tokens_ids[i]});
             }
-            m_special_tokens_re = std::make_shared<re2::RE2>("(" + special_tokens + ")");
+            m_special_tokens_re = std::make_shared<PCRE2Wrapper>(special_tokens);
         }
     }
 
@@ -268,31 +286,39 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
         } else {
             std::string special_token;
             std::vector<int32_t> part_ids;
-            re2::StringPiece input(sentence);
-            auto cursor = input.begin();
+            size_t cursor = 0;
             const auto num_tokens_before = ids.size();
-            while (cursor != input.end()) {
-                if (re2::RE2::FindAndConsume(&input, *m_special_tokens_re, &special_token)) {
-                    auto before_special_token = absl::string_view(cursor, input.begin() - cursor - special_token.size());
-                    encode_fn(before_special_token, &part_ids);
-                    ids.insert(ids.end(), part_ids.begin(), part_ids.end());
-                    cursor = input.begin();
-
-                    auto token_and_id = m_special_tokens_map->find(special_token);
-                    if (token_and_id != m_special_tokens_map->end()) {
-                        ids.push_back(token_and_id->second);
-                    } else {
-                        // fallback to regular tokenization if no special tokens found the map
-                        encode_fn(before_special_token, &part_ids);
+            while (true) {
+                const auto match = m_special_tokens_re->match(sentence, cursor);
+                const size_t match_start = match.first;
+                const size_t match_end = match.second;
+                if (match_start == SIZE_MAX || match_start == match_end) {
+                    // no more matches
+                    if (cursor < sentence.size()) {
+                        encode_fn(absl::string_view(sentence.data() + cursor, sentence.size() - cursor), &part_ids);
                         ids.insert(ids.end(), part_ids.begin(), part_ids.end());
-                        cursor = input.begin();
-                    };
-                } else {
-                    encode_fn(input, &part_ids);
+                    }
+                    break;
+                }
+
+                if (cursor < match_start) {
+                    encode_fn(absl::string_view(sentence.data() + cursor, match_start - cursor), &part_ids);
                     ids.insert(ids.end(), part_ids.begin(), part_ids.end());
-                    cursor = input.end();
-                };
-            };
+                }
+
+                special_token = sentence.substr(match_start, match_end - match_start);
+                auto token_and_id = m_special_tokens_map->find(special_token);
+                if (token_and_id != m_special_tokens_map->end()) {
+                    ids.push_back(token_and_id->second);
+                } else {
+                    // fallback to regular tokenization if no special token found in the map
+                    // tokenize the matched span as normal
+                    encode_fn(absl::string_view(sentence.data() + cursor, match_start - cursor), &part_ids);
+                    ids.insert(ids.end(), part_ids.begin(), part_ids.end());
+                }
+
+                cursor = match_end;
+            }
 
             if (m_reverse && ids.size() - num_tokens_before > 1) {
                 std::reverse(ids.begin() + num_tokens_before, ids.end());

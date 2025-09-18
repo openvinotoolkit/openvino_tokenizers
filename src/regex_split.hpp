@@ -7,7 +7,6 @@
 #include <openvino/op/op.hpp>
 #include "openvino/opsets/opset13.hpp"
 #include "utils.hpp"
-#include <re2/re2.h>
 
 using namespace ov;
 
