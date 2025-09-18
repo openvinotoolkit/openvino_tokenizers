@@ -279,12 +279,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         }
         i++;
     }
-
-    const auto last_pair = std::make_pair(256, 260);
-    const auto it = m_merges.find(last_pair);
-    if (it != m_merges.end()) {
-        const auto last_found_rank = it->second.second;
-    }
+    
     std::vector<int32_t> res_vec;
     res_vec.reserve(res.size());
     TokenNode node = res.head;
