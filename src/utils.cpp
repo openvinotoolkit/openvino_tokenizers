@@ -369,7 +369,7 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
 }
 
 std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string_view& str, size_t curr_start) const {
-        if (m_compiled == nullptr) {
+    if (m_compiled == nullptr) {
         return {SIZE_MAX, SIZE_MAX};
     }
     pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);

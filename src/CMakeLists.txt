@@ -167,9 +167,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
         )
     else()
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
-        "${_sp_src}/src" # for "normalizer.h"
-        "${_sp_src}" # for "third_party/absl/strings/string_view.h"
-        "${_sp_src}/src" # for "sentencepiece_model.pb.h"
+        "${sentencepiece_BINARY_DIR}/src" # for "normalizer.h"
+        "${sentencepiece_BINARY_DIR}" # for "third_party/absl/strings/string_view.h"
+        "${sentencepiece_BINARY_DIR}/src" # for "sentencepiece_model.pb.h"
         )
       endif()
 
