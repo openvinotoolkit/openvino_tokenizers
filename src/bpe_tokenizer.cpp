@@ -293,7 +293,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         std::lock_guard<std::mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-            m_cache.emplace(std::make_pair(std::move(text), res_vec));
+            m_cache.emplace(std::move(text), res_vec);
         }
     }
     return res_vec;
