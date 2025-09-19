@@ -15,6 +15,7 @@ updates:
     assignees:
       - "apaniukov"
       - "mryzhov"
+      - "akashchi"
 
   #
   # Github actions - CI
@@ -28,6 +29,7 @@ updates:
     assignees:
       - "apaniukov"
       - "mryzhov"
+      - "akashchi"
     open-pull-requests-limit: 5
   
   #
@@ -43,4 +45,5 @@ updates:
     assignees:
       - "apaniukov"
       - "mryzhov"
+      - "akashchi"
     versioning-strategy: increase-if-necessary
