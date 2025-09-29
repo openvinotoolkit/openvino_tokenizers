@@ -1516,6 +1516,10 @@ class TokenizerPipeline:
         for input_node in string_inputs:
             input_node = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
 
+            if isinstance(self.steps[0], RegexNormalizationStep):
+                prepend_metaspace_step = self.steps.pop(0)
+                input_node = prepend_metaspace_step.get_ov_subgraph(input_node)
+
             ragged = []
             if isinstance(self.steps[0], SpecialTokensSplit):
                 input_node = self.add_ragged_dimension(input_node)
