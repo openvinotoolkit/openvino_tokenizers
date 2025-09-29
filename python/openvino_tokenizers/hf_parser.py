@@ -136,8 +136,10 @@ def parse_metaspace(pretokenizer_dict: dict[str, Any]) -> list[Union[Normalizati
 
     # new prefix adder
     prepend_scheme = pretokenizer_dict.get("prepend_scheme", "never")
-    if prepend_scheme != "never":
+    if prepend_scheme == "always":
         steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement, replacement))
+    elif prepend_scheme == "first":
+        steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement, " "))
 
     if pretokenizer_dict.get("split", False):
         steps.append(RegexSplitStep.metaspace_splitter(replacement))
@@ -255,7 +257,11 @@ class TransformersTokenizerPipelineParser:
 
     def parse_pre_tokenization_step(self, step_dict: dict[str, Any]) -> None:
         try:
-            self.pipeline.add_steps(self.pre_tokenization_map[step_dict["type"]](step_dict))
+            steps = self.pre_tokenization_map[step_dict["type"]](step_dict)
+            if step_dict["type"] == "Metaspace" and step_dict.get("prepend_scheme", "never") == "first":
+                first_prepend = steps.pop()
+                self.pipeline.steps.insert(0, first_prepend)
+            self.pipeline.add_steps(steps)
         except KeyError as error:
             raise OVTypeError(f"Pre-tokenizer type '{step_dict['type']}' is not supported: {error}")
 
