@@ -139,7 +139,7 @@ def parse_metaspace(pretokenizer_dict: dict[str, Any]) -> list[Union[Normalizati
     if prepend_scheme == "always":
         steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement, replacement))
     elif prepend_scheme == "first":
-        steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement,  " "))
+        steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement, " "))
 
     if pretokenizer_dict.get("split", False):
         steps.append(RegexSplitStep.metaspace_splitter(replacement))
