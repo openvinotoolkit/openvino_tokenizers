@@ -259,7 +259,7 @@ class TransformersTokenizerPipelineParser:
         try:
             steps = self.pre_tokenization_map[step_dict["type"]](step_dict)
             if step_dict["type"] == "Metaspace" and step_dict.get("prepend_scheme", "never") == "first":
-                *steps, first_prepend = steps
+                first_prepend = steps.pop()
                 self.pipeline.steps.insert(0, first_prepend)
             self.pipeline.add_steps(steps)
         except KeyError as error:
