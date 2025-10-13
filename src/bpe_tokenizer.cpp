@@ -201,7 +201,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         if (r != -1) {
             res.insert(r);
         } else if (m_byte_fallback) {
-            res.insert(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text[idx]))));
+            res.insert(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text_view[idx]))));
             idx++;
         } else {
             if (!m_fuse_unk || (res.tail->data) != -1) {
