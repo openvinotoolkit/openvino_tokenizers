@@ -99,7 +99,7 @@ bpe_models = [
     "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
     "roberta-base",
     "deepseek-ai/DeepSeek-V3-0324",
-    "gpt2",
+    "Qwen/Qwen3-Reranker-0.6B",
     "ai-forever/rugpt3large_based_on_gpt2",
     "facebook/galactica-120b",
     "microsoft/deberta-base",
@@ -134,7 +134,6 @@ sentencepiece_models = [
 ]
 tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
-    # "Salesforce/xgen-7b-8k-base",  # not compatible with transformers 4.44.0
     "THUDM/glm-4-9b-chat",
 ]
 wordlevel_models = ["cisco-ai/mini-bart-g2p"]
