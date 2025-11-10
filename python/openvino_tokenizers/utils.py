@@ -378,6 +378,13 @@ def update_rt_info_with_processor_template(
     parsed_post_processor = parse_processor_template(post_processor_json, hf_tokenizer)
     if parsed_post_processor is not None:
         ov_tokenizer.set_rt_info(json.dumps(parsed_post_processor), PROCESSED_POST_PROCESSOR_NAME)
+    else:
+        ov_tokenizer.set_rt_info(
+            json.dumps(
+                {"single": {"ids": [-1], "type_ids": [0]}, "pair": {"ids": [-1, -2], "type_ids": [0, 0]}}
+            ),
+            PROCESSED_POST_PROCESSOR_NAME
+        )
 
 
 def update_rt_info_with_params(
