@@ -211,24 +211,6 @@ class TransformersTokenizerPipelineParser:
         except KeyError:
             raise OVTypeError(f"Normalizer type '{step_dict['type']}' is not supported")
 
-    @staticmethod
-    def check_metaspace_normalizer(normalizer_dict: dict[str, Any]) -> bool:
-        if normalizer_dict.get("type") == "Sequence":
-            normalizers = normalizer_dict["normalizers"]
-
-            if len(normalizers) != 2:
-                return False
-            first, second = normalizers
-            first_prerend = bool(first.get("type") == "Prepend" and first.get("prepend") == "▁")
-            second_replace = bool(
-                second.get("type") == "Replace"
-                and second.get("pattern", {}).get("String") == " "
-                and second.get("content") == "▁"
-            )
-            return first_prerend and second_replace
-
-        return False
-
     def normalization(self) -> None:
         if self.tokenizer_json["normalizer"] is None:
             return
