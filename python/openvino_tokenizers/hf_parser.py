@@ -378,6 +378,7 @@ class TransformersTokenizerPipelineParser:
         "Fuse": lambda decode_dict: FuseStep(),
         "Strip": RegexDecodingStep.parse_strip_dict,
         "ByteFallback": lambda decode_dict: ByteFallbackStep(),
+        "ByteLevel": lambda decode_dict: CharsToBytesStep(),
     }
 
     def decoding(self) -> None:
