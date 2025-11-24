@@ -2,3 +2,4 @@ build*/
 __pycache__
 .py-build-cmake_cache
 .idea
+venv/

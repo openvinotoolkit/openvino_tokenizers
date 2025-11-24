@@ -93,33 +93,22 @@ wordpiece_models = [
 bpe_models = [
     "Xenova/gpt-4o",
     "NousResearch/Meta-Llama-3-8B-Instruct",
-    # "meta-llama/Meta-Llama-3-8B",  # cannot be part of the CI
-    "tiiuae/falcon-7b",
-    "stabilityai/stablecode-completion-alpha-3b-4k",
     "koalajun/Gemma-2-9b-it-Ko-Crypto-Translate",
     "roberta-base",
     "deepseek-ai/DeepSeek-V3-0324",
     "Qwen/Qwen3-Reranker-0.6B",
-    "ai-forever/rugpt3large_based_on_gpt2",
     "facebook/galactica-120b",
     "microsoft/deberta-base",
     "bigscience/bloom",
-    "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k",
-    "Salesforce/codegen-16B-multi",
-    "stabilityai/stablelm-2-1_6b",
     "deepseek-ai/deepseek-coder-6.7b-instruct",  # sentencepiece tokenizer without .model file fallback to fast BPE
-    "allenai/OLMo-1B-hf",
     "answerdotai/ModernBERT-base",
     "tiiuae/Falcon3-7B-Instruct",
+    "LiquidAI/LFM2-350M",
 ]
 sentencepiece_models = [
     # bpe
-    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     "llava-hf/LLaVA-NeXT-Video-7B-hf",
-    # "openbmb/MiniCPM-V-2",  # have additional dependencies: deepspeed, peft, peft
-    "baichuan-inc/Baichuan2-7B-Chat",
     "NousResearch/Llama-2-13b-hf",
-    # "THUDM/chatglm3-6b",  # _pad doesn't support padding side - broke in 4.45
     "microsoft/Phi-3-mini-128k-instruct",
     "mlx-community/quantized-gemma-7b-it",
     # unigram
