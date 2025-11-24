@@ -53,6 +53,8 @@ ov::OutputVector create_tokenizer_node(const std::string& op_type,
         return std::make_shared<Truncate>(inputs)->outputs();
     } else if (op_type == "CombineSegments") {
         return std::make_shared<CombineSegments>(inputs)->outputs();
+    } else if (op_type == "UTF8Validate") {
+        return std::make_shared<UTF8Validate>(inputs)->outputs();
     }
     OPENVINO_THROW("Unsupported operation type: `", op_type, "`");
 }
