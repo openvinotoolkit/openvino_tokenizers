@@ -212,6 +212,9 @@ def main(
 ) -> None:
     hf_tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=trust)
 
+    if hf_tokenizer.pad_token is None:
+        hf_tokenizer.pad_token = hf_tokenizer.eos_token
+
     hint = properties.hint.PerformanceMode.THROUGHPUT if tput else properties.hint.PerformanceMode.LATENCY
     config = {properties.hint.performance_mode(): hint}
     if per_layer_stats:

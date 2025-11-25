@@ -1493,12 +1493,32 @@ class TokenizerPipeline:
         steps_without_pre_tokenization[first_step_position:first_step_position] = new_regex_split_steps
         self.steps = steps_without_pre_tokenization
 
+    def update_metaspace_step_with_special_tokens(self) -> None:
+        """
+        No metaspace insertion when input starts with special token.
+        """
+        if not self.is_metaspace_prepend_first:
+            return
+        special_tokens_split = next(
+            (step for step in self.steps if isinstance(step, SpecialTokensSplit)),
+            None,
+        )
+        if not special_tokens_split:
+            return
+        metaspace_step, special_tokens_split = self.steps[:2]
+
+        metaspace_step.regex_search_pattern = r"(^)((?!{}| |$)|(?=[\r\n\t\f\v]))".format(
+            "|".join(quote_meta(token.text) for token in special_tokens_split.special_tokens)
+        )
+        metaspace_step.global_replace = False
+
     def finalize(self) -> None:
         if self.finalized:
             return
 
         self.merge_normalization_steps()
         self.del_duplicated_split_steps()
+        self.update_metaspace_step_with_special_tokens()
 
         for step in copy(self.steps):
             step.finalize()
@@ -1506,6 +1526,10 @@ class TokenizerPipeline:
         # merge after finalizing steps to make sure that BytesToCharsStep is removed
         self.merge_regex_split_steps()
         self.finalized = True
+
+    @property
+    def is_metaspace_prepend_first(self) -> bool:
+        return isinstance(self.steps[0], RegexNormalizationStep)
 
     def get_tokenizer_ov_subgraph(self) -> Model:
         self.finalize()
@@ -1516,7 +1540,7 @@ class TokenizerPipeline:
         for input_node in string_inputs:
             input_node = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
 
-            if isinstance(self.steps[0], RegexNormalizationStep):
+            if self.is_metaspace_prepend_first:
                 prepend_metaspace_step = self.steps.pop(0)
                 input_node = prepend_metaspace_step.get_ov_subgraph(input_node)
 
