@@ -28,7 +28,8 @@ def sample_texts(
     dataset = [data for data in dataset if len(data["conversations"]) >= 2]
     # Keep the first two turns of each conversation
     dataset = [
-        (data["conversations"][0]["value"], data["conversations"][1]["value"]) for data in sample(dataset, k=num_texts)
+        (data["conversations"][0]["value"], data["conversations"][1]["value"]) 
+        for data in sample(dataset, k=num_texts)  # nosec
     ]
     shuffle(dataset)
     return dataset
