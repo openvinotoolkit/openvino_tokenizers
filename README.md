@@ -174,7 +174,7 @@ from openvino_tokenizers import convert_tokenizer
 hf_tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 ov_tokenizer = convert_tokenizer(hf_tokenizer)
 
-compiled_tokenzier = compile_model(ov_tokenizer)
+compiled_tokenzier = compile_model(ov_tokenizer, "CPU")
 text_input = ["Test string"]
 
 hf_output = hf_tokenizer(text_input, return_tensors="np")
@@ -193,7 +193,7 @@ for output_name in hf_output:
 # save tokenizer for later use
 save_model(ov_tokenizer, "openvino_tokenizer.xml")
 
-loaded_tokenizer = compile_model("openvino_tokenizer.xml")
+loaded_tokenizer = compile_model("openvino_tokenizer.xml", "CPU")
 loaded_ov_output = loaded_tokenizer(text_input)
 for output_name in hf_output:
     assert np.all(loaded_ov_output[output_name] == ov_output[output_name])
@@ -219,7 +219,7 @@ hf_output = hf_model(**hf_input)
 ov_tokenizer = convert_tokenizer(hf_tokenizer)
 ov_model = convert_model(hf_model, example_input=hf_input.data)
 combined_model = connect_models(ov_tokenizer, ov_model)
-compiled_combined_model = compile_model(combined_model)
+compiled_combined_model = compile_model(combined_model, "CPU")
 
 openvino_output = compiled_combined_model(text_input)
 
@@ -242,7 +242,7 @@ from openvino import Core
 core = Core()
 
 # detokenizer from codellama sentencepiece model
-compiled_detokenizer = core.compile_model("detokenizer.xml")
+compiled_detokenizer = core.compile_model("detokenizer.xml", "CPU")
 
 token_ids = np.random.randint(100, 1000, size=(3, 5))
 openvino_output = compiled_detokenizer(token_ids)
@@ -267,7 +267,7 @@ hf_model = AutoModelForCausalLM.from_pretrained(model_checkpoint, use_cache=Fals
 # convert hf tokenizer
 text_input = ["Quick brown fox jumped "]
 ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
-compiled_tokenizer = compile_model(ov_tokenizer)
+compiled_tokenizer = compile_model(ov_tokenizer, "CPU")
 
 # transform input text into tokens
 ov_input = compiled_tokenizer(text_input)
@@ -276,7 +276,7 @@ hf_input = hf_tokenizer(text_input, return_tensors="pt")
 # convert Pytorch model to OpenVINO IR and add greedy decoding pipeline to it
 ov_model = convert_model(hf_model, example_input=hf_input.data)
 ov_model_with_greedy_decoding = add_greedy_decoding(ov_model)
-compiled_model = compile_model(ov_model_with_greedy_decoding)
+compiled_model = compile_model(ov_model_with_greedy_decoding, "CPU")
 
 # generate new tokens
 new_tokens_size = 10
@@ -299,7 +299,7 @@ hf_token_ids = hf_model.generate(
 )
 
 # decode model output
-compiled_detokenizer = compile_model(ov_detokenizer)
+compiled_detokenizer = compile_model(ov_detokenizer, "CPU")
 ov_output = compiled_detokenizer(ov_token_ids)["string_output"]
 hf_output = hf_tokenizer.batch_decode(hf_token_ids, skip_special_tokens=True)
 print(f"OpenVINO output string: `{ov_output}`")
@@ -354,7 +354,7 @@ with urlopen(rwkv_vocab_url) as vocab_file:
     vocab = map(bytes.decode, vocab_file)
     tokenizer, detokenizer = build_rwkv_tokenizer(vocab)
 
-tokenizer, detokenizer = compile_model(tokenizer), compile_model(detokenizer)
+tokenizer, detokenizer = compile_model(tokenizer, "CPU"), compile_model(detokenizer, "CPU")
 
 print(tokenized := tokenizer(["Test string"])["input_ids"])  # [[24235 47429]]
 print(detokenizer(tokenized)["string_output"])  # ['Test string']
@@ -373,7 +373,7 @@ filename = "DeepSeek-R1-Distill-Qwen-1.5B-Q2_K.gguf"
 hf_tokenizer = AutoTokenizer.from_pretrained(model_id, gguf_file=filename)
 
 ov_tokenizer, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
-ov_tokenizer, ov_detokenizer = ov.compile_model(ov_tokenizer), ov.compile_model(ov_detokenizer)
+ov_tokenizer, ov_detokenizer = ov.compile_model(ov_tokenizer, "CPU"), ov.compile_model(ov_detokenizer, "CPU")
 
 print(ov_res := ov_tokenizer(["Test string"])["input_ids"])  # [[2271  914]]
 print(ov_detokenizer(ov_res)["string_output"])  # ['Test string']
