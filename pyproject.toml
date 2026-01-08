@@ -1,6 +1,6 @@
 [project]
 name = "openvino-tokenizers"
-version = "2025.4.1.0"
+version = "2025.4.2.0"
 description = "Convert tokenizers into OpenVINO models"
 requires-python = ">=3.10"
 readme = { file = "README.md", content-type="text/markdown" }
@@ -37,7 +37,7 @@ classifiers = [
 
 dependencies = [
     # support of nightly openvino packages with dev suffix
-    "openvino~=2025.4.1.dev"
+    "openvino~=2025.4.2.dev"
 ]
 
 [project.optional-dependencies]
@@ -98,7 +98,7 @@ python_abi = "none"
 requires = [
     "py-build-cmake==0.4.3",
     "cmake~=3.14",
-    "openvino~=2025.4.1.dev"
+    "openvino~=2025.4.2.dev"
 ]
 build-backend = "py_build_cmake.build"
 
