@@ -269,6 +269,11 @@ endif()
 find_package(ICU COMPONENTS i18n data uc REQUIRED)
 target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ICU::i18n ICU::data ICU::uc)
 
+# On Linux, ICU may need libdl for dynamic loading
+if(UNIX AND NOT APPLE AND NOT ANDROID)
+  target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
 # On Windows, copy ICU DLLs to the generator's directory so it can run
 if(WIN32 AND TARGET ${ICU_TARGET_NAME})
   if(GENERATOR_IS_MULTI_CONFIG_VAR)
