@@ -283,6 +283,7 @@ if(REGENERATE_PRECOMPILED_CHARSMAP)
 
   # The generator needs ICU at build time to generate the maps
   find_package(ICU COMPONENTS i18n data uc REQUIRED)
+  target_include_directories(${CHARSMAP_GENERATOR_NAME} SYSTEM PRIVATE ${ICU_INCLUDE_DIRS})
   target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ICU::i18n ICU::data ICU::uc)
 
   # On Linux, ICU may need libdl for dynamic loading
@@ -292,28 +293,10 @@ if(REGENERATE_PRECOMPILED_CHARSMAP)
 
   # On Windows, copy ICU DLLs to the generator's directory so it can run
   if(WIN32 AND TARGET ${ICU_TARGET_NAME})
-    if(GENERATOR_IS_MULTI_CONFIG_VAR)
-      # Multi-config generator (Visual Studio)
-      set(ICU_UC_DLL $<IF:$<CONFIG:Debug>,${ICU_UC_SHARED_LIB_DEBUG},${ICU_UC_SHARED_LIB_RELEASE}>)
-      set(ICU_DATA_DLL $<IF:$<CONFIG:Debug>,${ICU_DATA_SHARED_LIB_DEBUG},${ICU_DATA_SHARED_LIB_RELEASE}>)
-      set(ICU_I18N_DLL $<IF:$<CONFIG:Debug>,${ICU_I18N_SHARED_LIB_DEBUG},${ICU_I18N_SHARED_LIB_RELEASE}>)
-    else()
-      # Single-config generator (Ninja, NMake)
-      if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(ICU_UC_DLL "${ICU_UC_SHARED_LIB_DEBUG}")
-        set(ICU_DATA_DLL "${ICU_DATA_SHARED_LIB_DEBUG}")
-        set(ICU_I18N_DLL "${ICU_I18N_SHARED_LIB_DEBUG}")
-      else()
-        set(ICU_UC_DLL "${ICU_UC_SHARED_LIB_RELEASE}")
-        set(ICU_DATA_DLL "${ICU_DATA_SHARED_LIB_RELEASE}")
-        set(ICU_I18N_DLL "${ICU_I18N_SHARED_LIB_RELEASE}")
-      endif()
-    endif()
-    
     add_custom_command(TARGET ${CHARSMAP_GENERATOR_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_UC_DLL} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_DATA_DLL} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_I18N_DLL} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_UC_SHARED_LIB} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_DATA_SHARED_LIB} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_I18N_SHARED_LIB} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
       COMMENT "Copying ICU DLLs for generator executable"
     )
   endif()
