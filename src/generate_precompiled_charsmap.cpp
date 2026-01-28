@@ -2,7 +2,36 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Build-time tool to generate precompiled charsmaps
-// This eliminates the need for ICU runtime dependency
+//
+// This tool generates a header file containing precompiled Unicode normalization
+// tables (charsmaps) for various normalization forms (NFC, NFD, NFKC, NFKD) with
+// and without case folding. The generated header eliminates the need for ICU as
+// a runtime dependency.
+//
+// USAGE:
+// ------
+// This tool is NOT built during normal builds. The precompiled_charsmap.hpp header
+// is pre-generated and committed to the repository. This simplifies the build process
+// by removing ICU as a build-time dependency for most users.
+//
+// To regenerate the charsmap header (e.g., when updating Unicode tables or SentencePiece):
+//
+//   1. Configure with regeneration enabled:
+//      cmake -DREGENERATE_PRECOMPILED_CHARSMAP=ON ..
+//
+//   2. Build the generator and run it:
+//      make generate_charsmap_header
+//
+//   3. Update the source file (optional, for committing):
+//      make update_precompiled_charsmap
+//
+// Additional options when REGENERATE_PRECOMPILED_CHARSMAP=ON:
+//   - ENABLE_SYSTEM_ICU=ON: Use system-installed ICU instead of building from source
+//
+// The regeneration process requires:
+//   - ICU library (built from source by default, or system-installed)
+//   - SentencePiece with NFKC compile support (automatically enabled)
+//
 
 #include <iostream>
 #include <fstream>
