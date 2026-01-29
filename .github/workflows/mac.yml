@@ -78,7 +78,14 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-          
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: openvinotoolkit/openvino/.github/actions/setup_python@master
+        with:
+          version: ${{ env.PYTHON_VERSION }}
+          should-setup-pip-paths: 'false'
+          self-hosted-runner: 'false'
+
       - name: Generate product manifest
         id: create_manifest
         uses: openvinotoolkit/openvino/.github/actions/create_manifest@master
