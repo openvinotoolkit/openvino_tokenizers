@@ -820,10 +820,14 @@ class UnigramModelStep(TokenizationModelStep):
         )
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
+        # Keep precision and not compress to f16 on ARM devices.
+        const_vocab_logprobs_node =  make_constant_node(np.array(self.vocab_logprobs, dtype=np.float32), Type.f32)
+        const_vocab_logprobs_node.get_rt_info()["precise_0"] = ""
+
         input_nodes.extend(
             (
                 *create_string_constant_node(self.vocab),
-                make_constant_node(np.array(self.vocab_logprobs, dtype=np.float32), Type.f32),
+               const_vocab_logprobs_node,
             )
         )
         return (
