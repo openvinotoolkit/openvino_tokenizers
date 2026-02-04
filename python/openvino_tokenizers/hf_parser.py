@@ -414,14 +414,8 @@ class TransformersTokenizerPipelineParser:
         if self.utf8_replace_mode is not None and (self.utf8_replace_mode != UTF8ReplaceMode.DISABLE):
             self.pipeline.add_steps(UTF8ValidateStep(mode=self.utf8_replace_mode))
 
-        # check whether indeed cleanup tokenization spaces
-        test_str = 'hi hello ,'
-        res_str = self.original_tokenizer.encode(test_str)
-        decoded_str = self.original_tokenizer.decode(res_str)
-        if decoded_str.find('hello,'):
-            self.clean_up_tokenization_spaces = True
-        else:
-            self.clean_up_tokenization_spaces = False
+        if self.clean_up_tokenization_spaces is None:
+            self.clean_up_tokenization_spaces = self.original_tokenizer.clean_up_tokenization_spaces
 
         if suffix := self.tokenizer_json["model"].get("end_of_word_suffix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_end_of_word_suffix(suffix=suffix))
