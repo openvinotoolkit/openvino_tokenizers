@@ -610,12 +610,10 @@ class WordPieceTokenizationStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "WordPieceTokenizationStep":
-        vocab = TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"])
-
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"],
             suffix_indicator=tokenizer_json["model"]["continuing_subword_prefix"],
-            vocab=vocab,
+            vocab=TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"]),
         )
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
@@ -1246,6 +1244,7 @@ class VocabDecoderStep(DecodingStep):
         is_byte_level: bool = False,
     ) -> "VocabDecoderStep":
         model_type = tokenizer_json["model"]["type"]
+
         if pipeline_vocab is not None and model_type == "WordLevel":
             vocab = [f" {token}" for token in pipeline_vocab]
         elif pipeline_vocab is not None and model_type == "WordPiece":
