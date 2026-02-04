@@ -72,6 +72,9 @@ misc_strings = [
     " " * 256,  # from llama3/stablecode vocab
     "\n",
     " \t\n",
+    "`",
+    "a",
+    "`a",
 ]
 chat_messages = [
     [

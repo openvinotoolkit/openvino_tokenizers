@@ -507,7 +507,17 @@ class VocabEncoderStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "VocabEncoderStep":
-        vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        vocab = []
+        for token, token_id in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1]):
+            # Fill gaps up to token_id
+            while len(vocab) < token_id:
+                vocab.append("")
+
+            if len(vocab) == token_id:  # place token at its id position
+                vocab.append(token)
+            else:
+                # token_id < len(vocab) means duplicate/out-of-order id
+                vocab[token_id] = token
         unk_token = tokenizer_json["model"].get("unk_token")
         unk_token_id = next((index for index, token in enumerate(vocab) if token == unk_token), -1)
         return cls(vocab, default_value=unk_token_id)
@@ -596,10 +606,22 @@ class WordPieceTokenizationStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "WordPieceTokenizationStep":
+        vocab = []
+        for token, token_id in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1]):
+            # Fill gaps up to token_id
+            while len(vocab) < token_id:
+                vocab.append("")
+
+            if len(vocab) == token_id:  # place token at its id position
+                vocab.append(token)
+            else:
+                # token_id < len(vocab) means duplicate/out-of-order id
+                vocab[token_id] = token
+
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"],
             suffix_indicator=tokenizer_json["model"]["continuing_subword_prefix"],
-            vocab=[token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])],
+            vocab=vocab,
         )
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
@@ -672,7 +694,19 @@ class BPETokenizationStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "BPETokenizationStep":
-        vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        # vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        vocab = []
+        for token, token_id in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1]):
+            # Fill gaps up to token_id
+            while len(vocab) < token_id:
+                vocab.append("")
+
+            if len(vocab) == token_id:  # place token at its id position
+                vocab.append(token)
+            else:
+                # token_id < len(vocab) means duplicate/out-of-order id
+                vocab[token_id] = token
+
         added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
 
         # TODO: CVS-150387 Implement suffix_indicator.
@@ -1229,7 +1263,6 @@ class VocabDecoderStep(DecodingStep):
         is_byte_level: bool = False,
     ) -> "VocabDecoderStep":
         model_type = tokenizer_json["model"]["type"]
-
         if pipeline_vocab is not None and model_type == "WordLevel":
             vocab = [f" {token}" for token in pipeline_vocab]
         elif pipeline_vocab is not None and model_type == "WordPiece":
@@ -1258,6 +1291,8 @@ class VocabDecoderStep(DecodingStep):
         else:
             vocab_outputs = create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
+        # import pickle
+        # pickle.dump(self.vocab, open("vocab_transformers_v4.pkl", "wb"))
 
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
         # Slice through all skip tokens if flag is true, else slice to get an empty tensor.
