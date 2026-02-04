@@ -492,7 +492,20 @@ class BytesToCharsStep(PreTokenizatinStep):
 
 @dataclass
 class TokenizationModelStep(BasePipelineStep):
-    pass
+    @staticmethod
+    def get_vocab_as_list(vocab: dict[str, int]) -> list[str]:
+        vocab_list = []
+        for token, token_id in sorted(vocab.items(), key=lambda x: x[1]):
+            # Fill gaps up to token_id
+            while len(vocab_list) < token_id:
+                vocab_list.append("")
+
+            if len(vocab_list) == token_id:  # place token at its id position
+                vocab_list.append(token)
+            else:
+                # token_id < len(vocab) means duplicate/out-of-order id
+                vocab_list[token_id] = token
+        return vocab_list
 
 
 @dataclass
@@ -507,17 +520,8 @@ class VocabEncoderStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "VocabEncoderStep":
-        vocab = []
-        for token, token_id in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1]):
-            # Fill gaps up to token_id
-            while len(vocab) < token_id:
-                vocab.append("")
+        vocab = TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"])
 
-            if len(vocab) == token_id:  # place token at its id position
-                vocab.append(token)
-            else:
-                # token_id < len(vocab) means duplicate/out-of-order id
-                vocab[token_id] = token
         unk_token = tokenizer_json["model"].get("unk_token")
         unk_token_id = next((index for index, token in enumerate(vocab) if token == unk_token), -1)
         return cls(vocab, default_value=unk_token_id)
@@ -606,17 +610,7 @@ class WordPieceTokenizationStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "WordPieceTokenizationStep":
-        vocab = []
-        for token, token_id in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1]):
-            # Fill gaps up to token_id
-            while len(vocab) < token_id:
-                vocab.append("")
-
-            if len(vocab) == token_id:  # place token at its id position
-                vocab.append(token)
-            else:
-                # token_id < len(vocab) means duplicate/out-of-order id
-                vocab[token_id] = token
+        vocab = TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"])
 
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"],
@@ -694,18 +688,7 @@ class BPETokenizationStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "BPETokenizationStep":
-        # vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
-        vocab = []
-        for token, token_id in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1]):
-            # Fill gaps up to token_id
-            while len(vocab) < token_id:
-                vocab.append("")
-
-            if len(vocab) == token_id:  # place token at its id position
-                vocab.append(token)
-            else:
-                # token_id < len(vocab) means duplicate/out-of-order id
-                vocab[token_id] = token
+        vocab = TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"])
 
         added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
 
@@ -1291,8 +1274,6 @@ class VocabDecoderStep(DecodingStep):
         else:
             vocab_outputs = create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
-        # import pickle
-        # pickle.dump(self.vocab, open("vocab_transformers_v4.pkl", "wb"))
 
         # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
         # Slice through all skip tokens if flag is true, else slice to get an empty tensor.
