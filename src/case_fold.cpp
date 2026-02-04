@@ -37,9 +37,8 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
             m_spec->set_remove_extra_whitespaces(false);
             m_spec->set_escape_whitespaces(false);
 
-            // Use precompiled charsmap from generated header
-            std::string precompiled_charsmap = get_precompiled_casefold_charsmap();
-            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+            const std::string precompiled_charsmap = get_precompiled_charsmap("identity", true);
+            m_spec->set_precompiled_charsmap(std::move(precompiled_charsmap));
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
         });

@@ -45,16 +45,14 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
 
             std::string precompiled_charsmap;
             if (m_normalization_form != "") {
-                // Use precompiled charsmap from generated header
                 precompiled_charsmap = get_precompiled_charsmap(m_normalization_form, m_case_fold);
                 OPENVINO_ASSERT(!precompiled_charsmap.empty(), 
                     "Unsupported normalization form: `", m_normalization_form, 
                     "` with case_fold=", m_case_fold);
             } else {
-                // Use custom precompiled charsmap from input tensor
                 precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
             };
-            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+            m_spec->set_precompiled_charsmap(std::move(precompiled_charsmap));
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
         });

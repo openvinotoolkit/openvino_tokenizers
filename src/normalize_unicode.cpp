@@ -42,11 +42,10 @@ bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
             m_spec->set_remove_extra_whitespaces(false);
             m_spec->set_escape_whitespaces(false);
 
-            // Use precompiled charsmap from generated header
-            std::string precompiled_charsmap = get_precompiled_unicode_normalization_charsmap(m_normalization_form);
+            const std::string precompiled_charsmap = get_precompiled_charsmap(m_normalization_form, false);
             OPENVINO_ASSERT(!precompiled_charsmap.empty(), 
                 "Unsupported normalization form: `", m_normalization_form, "`");
-            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+            m_spec->set_precompiled_charsmap(std::move(precompiled_charsmap));
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
         });
