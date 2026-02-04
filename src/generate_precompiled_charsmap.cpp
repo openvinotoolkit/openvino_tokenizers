@@ -98,8 +98,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Define all normalization form and case_fold combinations we need to support
+    // Note: We only generate lowercase forms; lookup functions handle case-insensitivity
     CharsmapConfig configs[] = {
-        // For CharsMapNormalization (lowercase forms)
         {"identity", true, "identity_case"},
         {"nfc", false, "nfc_nocase"},
         {"nfc", true, "nfc_case"},
@@ -109,11 +109,6 @@ int main(int argc, char* argv[]) {
         {"nfkc", true, "nfkc_case"},
         {"nfkd", false, "nfkd_nocase"},
         {"nfkd", true, "nfkd_case"},
-        // For NormalizeUnicode (uppercase forms)
-        {"NFC", false, "NFC_nocase"},
-        {"NFD", false, "NFD_nocase"},
-        {"NFKC", false, "NFKC_nocase"},
-        {"NFKD", false, "NFKD_nocase"},
         // For CaseFold (only case folding, no normalization)
         {"identity", true, "casefold_only"},
     };
@@ -187,29 +182,14 @@ int main(int argc, char* argv[]) {
     header_file << "    return \"\";\n";
     header_file << "}\n\n";
 
-    // Generate lookup function for NormalizeUnicode (uppercase)
+    // Generate lookup function for NormalizeUnicode (case-insensitive, uses same data as lowercase)
     header_file << "inline std::string get_precompiled_unicode_normalization_charsmap(const std::string& normalization_form) {\n";
-    header_file << "    static const std::map<std::string, std::string> precompiled_maps = {\n";
-    
-    first = true;
-    for (const auto& config : configs) {
-        // Only include uppercase normalization forms (NFC, NFD, NFKC, NFKD) in this map
-        if (config.normalization_form[0] >= 'A' && config.normalization_form[0] <= 'Z') {
-            if (!first) header_file << ",\n";
-            header_file << "        {\"" << config.normalization_form << "\", "
-                        << "std::string(reinterpret_cast<const char*>(precompiled_charsmap_" 
-                        << config.identifier << "), precompiled_charsmap_" << config.identifier 
-                        << "_size)}";
-            first = false;
-        }
-    }
-    
-    header_file << "\n    };\n\n";
-    header_file << "    auto it = precompiled_maps.find(normalization_form);\n";
-    header_file << "    if (it != precompiled_maps.end()) {\n";
-    header_file << "        return it->second;\n";
+    header_file << "    // Convert to lowercase and reuse the existing maps\n";
+    header_file << "    std::string norm_lower = normalization_form;\n";
+    header_file << "    for (auto& c : norm_lower) {\n";
+    header_file << "        c = std::tolower(c);\n";
     header_file << "    }\n";
-    header_file << "    return \"\";\n";
+    header_file << "    return get_precompiled_charsmap(norm_lower, false);\n";
     header_file << "}\n\n";
 
     // Generate lookup function for CaseFold
