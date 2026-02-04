@@ -137,14 +137,12 @@ endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
   if(sentencepiece_FOUND)
-    foreach(sp_target sentencepiece sentencepiece_train)
-      if(TARGET ${sp_target}-static)
-        # on Windows conda-forge builds sentencepiece as static library
-        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target}-static)
-      else()
-        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-      endif()
-    endforeach()
+    if(TARGET sentencepiece-static)
+      # on Windows conda-forge builds sentencepiece as static library
+      target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+    else()
+      target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece)
+    endif()
     target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
   else()
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
@@ -167,14 +165,12 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
         )
       endif()
 
-    foreach(sp_target sentencepiece-static sentencepiece_train-static)
-      if(CMAKE_CL_64)
-        target_compile_definitions(${sp_target} PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
-      endif()
-      # to propogate _GLIBCXX_USE_CXX11_ABI value
-      target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-      target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-    endforeach()
+    if(CMAKE_CL_64)
+      target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+    endif()
+    # to propogate _GLIBCXX_USE_CXX11_ABI value
+    target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+    target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
 
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
@@ -275,6 +271,12 @@ if(REGENERATE_PRECOMPILED_CHARSMAP)
     
     # Link with both sentencepiece libraries - the generator needs the builder from train library
     target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE sentencepiece-static sentencepiece_train-static)
+    
+    # Set compile definitions for sentencepiece_train-static (same as we do for sentencepiece-static)
+    if(CMAKE_CL_64)
+      target_compile_definitions(sentencepiece_train-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+    endif()
+    target_compile_definitions(sentencepiece_train-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     
     if(ANDROID)
       target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE log)
