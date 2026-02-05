@@ -520,7 +520,7 @@ class VocabEncoderStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "VocabEncoderStep":
-        vocab = TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"])
+        vocab = cls.get_vocab_as_list(tokenizer_json["model"]["vocab"])
 
         unk_token = tokenizer_json["model"].get("unk_token")
         unk_token_id = next((index for index, token in enumerate(vocab) if token == unk_token), -1)
@@ -613,7 +613,7 @@ class WordPieceTokenizationStep(TokenizationModelStep):
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"],
             suffix_indicator=tokenizer_json["model"]["continuing_subword_prefix"],
-            vocab=TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"]),
+            vocab=cls.get_vocab_as_list(tokenizer_json["model"]["vocab"]),
         )
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
@@ -686,7 +686,7 @@ class BPETokenizationStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "BPETokenizationStep":
-        vocab = TokenizationModelStep.get_vocab_as_list(tokenizer_json["model"]["vocab"])
+        vocab = cls.get_vocab_as_list(tokenizer_json["model"]["vocab"])
 
         added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
 
