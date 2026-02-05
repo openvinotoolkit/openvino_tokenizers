@@ -57,8 +57,6 @@ def build_coverege_report(session: pytest.Session) -> None:
             return "Tiktoken"
         if not pd.isnull(row["hf_tiktoken_tokenizers_with_padding_sides_param"]):
             return "Tiktoken"
-        if not pd.isnull(row["hf_wordlevel_tokenizers_param"]):
-            return "WordLevel"
 
     results_df = get_session_results_df(session)
     results_df["Tokenizer Type"] = results_df.apply(add_tokenizer_type, axis=1)
@@ -66,7 +64,6 @@ def build_coverege_report(session: pytest.Session) -> None:
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_bpe_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_sentencepiece_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_tiktoken_tokenizers_param, inplace=True)
-    results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_wordlevel_tokenizers_param, inplace=True)
     results_df.hf_wordpiece_tokenizers_param.fillna(
         results_df.hf_wordpiece_tokenizers_with_padding_sides_param, inplace=True
     )
