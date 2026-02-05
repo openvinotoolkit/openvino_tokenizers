@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
         write_string_literal(header_file, "precompiled_charsmap_" + config.identifier, precompiled_charsmap);
     }
 
-    // Generate lookup function for CharsMapNormalization (case-insensitive)
+    // lookup function for CharsMapNormalization
     header_file << "inline std::string get_precompiled_charsmap(const std::string& normalization_form, bool case_fold) {\n";
     header_file << "    // Convert to lowercase for case-insensitive lookup\n";
     header_file << "    std::string norm_lower = normalization_form;\n";
@@ -164,7 +164,6 @@ int main(int argc, char* argv[]) {
     
     bool first = true;
     for (const auto& config : configs) {
-        // Only include lowercase normalization forms in this map
         if (config.normalization_form[0] >= 'a' && config.normalization_form[0] <= 'z') {
             if (!first) header_file << ",\n";
             header_file << "        {{\"" << config.normalization_form << "\", " 
