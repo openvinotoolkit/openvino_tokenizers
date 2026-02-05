@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2025 Intel Corporation
+# Copyright (C) 2018-2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
@@ -820,10 +820,14 @@ class UnigramModelStep(TokenizationModelStep):
         )
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
+        # Keep precision and not compress to f16 on ARM devices.
+        const_vocab_logprobs_node =  make_constant_node(np.array(self.vocab_logprobs, dtype=np.float32), Type.f32)
+        const_vocab_logprobs_node.get_rt_info()["precise_0"] = ""
+
         input_nodes.extend(
             (
                 *create_string_constant_node(self.vocab),
-                make_constant_node(np.array(self.vocab_logprobs, dtype=np.float32), Type.f32),
+               const_vocab_logprobs_node,
             )
         )
         return (

@@ -1,4 +1,4 @@
-name: macOS (13, Python 3.11)
+name: macOS ARM64 (mac-14, Python 3.11)
 on:
   workflow_dispatch:
   pull_request:
@@ -20,7 +20,7 @@ env:
   CMAKE_CXX_COMPILER_LAUNCHER: ccache
   CMAKE_C_COMPILER_LAUNCHER: ccache
   CCACHE_MAXSIZE: 100Mi
-  BASE_PRODUCT_TYPE: public_darwin
+  BASE_PRODUCT_TYPE: public_macos_arm64
 
 permissions: read-all
 
@@ -46,7 +46,8 @@ jobs:
     - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       id: openvino_download
       with:
-        platform: 'macos_12_6'
+        platform: macos_14_7
+        arch: 'arm64'
         commit_packages_to_provide: 'wheels,developer_package.tar.gz'
         revision: latest_available_commit
 
@@ -60,7 +61,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-13
+    runs-on: macos-14
 
     env:
       CMAKE_GENERATOR: 'Ninja'
@@ -77,14 +78,21 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
-          
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: openvinotoolkit/openvino/.github/actions/setup_python@master
+        with:
+          version: ${{ env.PYTHON_VERSION }}
+          should-setup-pip-paths: 'false'
+          self-hosted-runner: 'false'
+
       - name: Generate product manifest
         id: create_manifest
         uses: openvinotoolkit/openvino/.github/actions/create_manifest@master
         with:
           repos: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           product_type: ${{ env.BASE_PRODUCT_TYPE }}_${{ matrix.build_type }}
-          target_arch: 'x86_64'
+          target_arch: 'arm64'
           build_type: ${{ matrix.build_type }}
           save_to: ${{ env.MANIFEST_PATH }}
 
@@ -167,7 +175,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-13
+    runs-on: macos-14
 
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
@@ -204,7 +212,7 @@ jobs:
         with:
           repos: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           product_type: ${{ env.BASE_PRODUCT_TYPE }}_release
-          target_arch: 'x86_64'
+          target_arch: 'arm64'
           build_type: Release
           save_to: ${{ env.MANIFEST_PATH }}
 
@@ -243,7 +251,6 @@ jobs:
           python3 -m pip wheel -v \
             --no-deps --wheel-dir ${BUILD_DIR} \
             --config-settings='override=wheel.build_tag="${{ github.run_number }}"' \
-            --config-settings=override=cross.arch="macosx_10_12_x86_64" \
             ${{ needs.openvino_download.outputs.ov_wheel_source }} \
             ${OPENVINO_TOKENIZERS_REPO}
         working-directory: ${{ env.INSTALL_DIR }}
@@ -278,7 +285,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-13
+    runs-on: macos-14
     env:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
 
