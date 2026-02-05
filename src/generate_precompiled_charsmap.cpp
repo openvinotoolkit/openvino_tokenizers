@@ -70,19 +70,18 @@ void init_sentencepiece_normalizer_chars_map(
     }
 }
 
-void write_byte_array(std::ofstream& out, const std::string& var_name, const std::string& data) {
-    out << "const unsigned char " << var_name << "[] = {";
+void write_string_literal(std::ofstream& out, const std::string& var_name, const std::string& data) {
+    out << "const std::string " << var_name << " = std::string(\"";
     
     for (size_t i = 0; i < data.size(); ++i) {
-        if (i % 16 == 0) {
-            out << "\n    ";
+        if (i % 16 == 0 && i > 0) {
+            out << "\"\n    \"";
         }
-        out << "0x" << std::hex << std::setw(2) << std::setfill('0') 
-            << (static_cast<unsigned int>(static_cast<unsigned char>(data[i]))) << ",";
+        out << "\\x" << std::hex << std::setw(2) << std::setfill('0') 
+            << (static_cast<unsigned int>(static_cast<unsigned char>(data[i])));
     }
     
-    out << "\n};\n\n";
-    out << "const size_t " << var_name << "_size = sizeof(" << var_name << ");\n\n";
+    out << "\", " << std::dec << data.size() << ");\n\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -100,17 +99,15 @@ int main(int argc, char* argv[]) {
     // Define all normalization form and case_fold combinations we need to support
     // Note: We only generate lowercase forms; lookup functions handle case-insensitivity
     CharsmapConfig configs[] = {
-        {"identity", true, "identity_case"},
-        {"nfc", false, "nfc_nocase"},
-        {"nfc", true, "nfc_case"},
-        {"nfd", false, "nfd_nocase"},
-        {"nfd", true, "nfd_case"},
-        {"nfkc", false, "nfkc_nocase"},
-        {"nfkc", true, "nfkc_case"},
-        {"nfkd", false, "nfkd_nocase"},
-        {"nfkd", true, "nfkd_case"},
-        // For CaseFold (only case folding, no normalization)
-        {"identity", true, "casefold_only"},
+        {"identity", true, "casefold"},
+        {"nfc", false, "nfc"},
+        {"nfc", true, "nfc_casefold"},
+        {"nfd", false, "nfd"},
+        {"nfd", true, "nfd_casefold"},
+        {"nfkc", false, "nfkc"},
+        {"nfkc", true, "nfkc_casefold"},
+        {"nfkd", false, "nfkd"},
+        {"nfkd", true, "nfkd_casefold"},
     };
 
     // Write header guard and includes
@@ -142,7 +139,7 @@ int main(int argc, char* argv[]) {
         std::string precompiled_charsmap;
         sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
         
-        write_byte_array(header_file, "precompiled_charsmap_" + config.identifier, precompiled_charsmap);
+        write_string_literal(header_file, "precompiled_charsmap_" + config.identifier, precompiled_charsmap);
     }
 
     // Generate lookup function for CharsMapNormalization (case-insensitive)
@@ -163,7 +160,7 @@ int main(int argc, char* argv[]) {
     header_file << "        }\n";
     header_file << "    };\n\n";
     
-    header_file << "    static const std::map<CharsmapKey, const std::string> precompiled_maps = {\n";
+    header_file << "    static const std::map<CharsmapKey, std::string> precompiled_maps = {\n";
     
     bool first = true;
     for (const auto& config : configs) {
@@ -172,9 +169,7 @@ int main(int argc, char* argv[]) {
             if (!first) header_file << ",\n";
             header_file << "        {{\"" << config.normalization_form << "\", " 
                         << (config.case_fold ? "true" : "false") << "}, "
-                        << "std::string(reinterpret_cast<const char*>(precompiled_charsmap_" 
-                        << config.identifier << "), precompiled_charsmap_" << config.identifier 
-                        << "_size)}";
+                        << "precompiled_charsmap_" << config.identifier << "}";
             first = false;
         }
     }
