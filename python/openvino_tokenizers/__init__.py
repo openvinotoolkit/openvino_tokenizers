@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2025 Intel Corporation
+# Copyright (C) 2018-2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 import functools
 import logging
 import os
 import site
 import sys
+from collections.abc import Callable
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Optional
 
 import openvino
 from openvino.utils.node_factory import NodeFactory

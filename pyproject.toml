@@ -1,8 +1,8 @@
 [project]
 name = "openvino-tokenizers"
-version = "2025.2.0.0"
+version = "2026.1.0.0"
 description = "Convert tokenizers into OpenVINO models"
-requires-python = ">=3.9,<=3.13"
+requires-python = ">=3.10"
 readme = { file = "README.md", content-type="text/markdown" }
 license = { "text" = "Apache-2.0" }
 license-files = [
@@ -22,7 +22,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -38,13 +37,13 @@ classifiers = [
 
 dependencies = [
     # support of nightly openvino packages with dev suffix
-    "openvino~=2025.2.0.dev"
+    "openvino~=2026.1.0.dev"
 ]
 
 [project.optional-dependencies]
 transformers = [
-    "transformers[sentencepiece]>=4.36.0,<=4.51.3",
-    "tiktoken>=0.3.0,<=0.9.0",
+    "transformers[sentencepiece]>=4.36.0",
+    "tiktoken>=0.3.0",
 ]
 
 [project.scripts]
@@ -55,7 +54,7 @@ line-length = 119
 
 [tool.ruff.lint]
 ignore = ["C901", "E501", "E741", "W605"]
-select = ["C", "E", "F", "I", "W"]
+select = ["C", "E", "F", "I", "W", "UP006"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
@@ -99,7 +98,7 @@ python_abi = "none"
 requires = [
     "py-build-cmake==0.4.3",
     "cmake~=3.14",
-    "openvino~=2025.2.0.dev"
+    "openvino~=2026.1.0.dev"
 ]
 build-backend = "py_build_cmake.build"
 
@@ -118,19 +117,19 @@ openvino = { version = "*", source = "openvino-nightly" }
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-ruff = ">=0.1.0,<=0.11.9"
-bandit = ">=1.7.0,<=1.8.3"
+ruff = ">=0.1.0,<=0.12.8"
+bandit = ">=1.7.0,<=1.8.6"
 pytest = ">=7.0.0,<=8.3.5"
-pytest-xdist = ">=3.4.0,<=3.5.0"
+pytest-xdist = ">=3.4.0,<=3.8.0"
 pytest-harvest = ">=1.6.0,<=1.10.0"
-pandas = ">=2.0.0,<=2.2.3"
+pandas = ">=2.0.0,<=2.3.1"
 jinja2 = ">=3.0.0,<=3.1.6"
 
 [tool.poetry.group.benchmark]
 optional = true
 
 [tool.poetry.group.benchmark.dependencies]
-pandas = ">=2.0.0,<=2.2.3"
+pandas = ">=2.0.0,<=2.3.1"
 seaborn = ">=0.10.0,<=0.13.2"
 tqdm = ">=4.50.0,<=4.67.1"
 

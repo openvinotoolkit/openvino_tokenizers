@@ -42,13 +42,14 @@ else()
 endif()
 
 project(openvino_tokenizers
-        VERSION 2025.2.0.0
+        VERSION 2026.1.0.0
         DESCRIPTION "OpenVINO Tokenizers"
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
         LANGUAGES CXX C)
 
 include(cmake/platforms.cmake)
 include(cmake/version.cmake)
+include(cmake/vs_version.cmake)
 
 option(BUILD_CPP_EXTENSION "Builds C++ extension for OpenVINO Tokenizers" ON)
 
@@ -74,11 +75,12 @@ if(BUILD_CPP_EXTENSION)
     endif()
 
     # Find OpenVINODeveloperPackage first to compile with SDL flags
-    find_package(OpenVINODeveloperPackage ${openvino_tokenizers_VERSION} QUIET
+    set(OV_COMPATIBILITY_VERSION ${openvino_tokenizers_VERSION_MAJOR}.${openvino_tokenizers_VERSION_MINOR}.${openvino_tokenizers_VERSION_PATCH})
+    find_package(OpenVINODeveloperPackage ${OV_COMPATIBILITY_VERSION} QUIET
                  COMPONENTS Runtime Threading
                  PATHS "${OpenVINO_DIR}")
     if(NOT OpenVINODeveloperPackage_FOUND)
-        find_package(OpenVINO ${openvino_tokenizers_VERSION} REQUIRED
+        find_package(OpenVINO ${OV_COMPATIBILITY_VERSION} REQUIRED
                      COMPONENTS Runtime Threading
                      PATHS "${OpenVINO_DIR_PY}")
     endif()

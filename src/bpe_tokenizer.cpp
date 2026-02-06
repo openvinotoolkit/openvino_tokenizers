@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2025 Intel Corporation
+// Copyright (C) 2018-2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -65,7 +65,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             m_added_tokens = std::make_shared<std::map<std::string, int32_t>>();
             for (size_t i = 0; i < added_tokens_size; ++i) {
                 std::string token = std::string(added_tokens_chars + added_tokens_begins[i], added_tokens_chars + added_tokens_ends[i]);
-                m_added_tokens->insert(std::pair{token, added_tokens_values[i]});
+                m_added_tokens->insert(std::pair{std::move(token), added_tokens_values[i]});
             };
         };
 
@@ -78,7 +78,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 
             Vocab vocab;
             for(size_t id = 0; id < vocab_size; ++id) {
-                auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
+                const auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
                 vocab[token] = int32_t(id); // TODO: Check range
             }
 
@@ -163,18 +163,10 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            if (input_size == 15) {
-                auto results = m_tokenizer->tokenize(str);
-                for (const auto& token : results) {
-                    OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                    new_elems[ragged_offset++] = token;
-                }
-            } else {
-                auto results = m_tokenizer->tokenize(str);
-                for (const auto& token : results) {
-                    OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                    new_elems[ragged_offset++] = token;
-                };
+            auto results = m_tokenizer->tokenize(str);
+            for (const auto& token : results) {
+                OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
+                new_elems[ragged_offset++] = token;
             }
         }
         new_ends[seq] = ragged_offset;
@@ -203,13 +195,13 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
     TokensList res;
-    const auto text_vec = std::vector<unsigned char>(text.begin(), text.end());
+    const auto text_view = std::string_view(text);
     for (int idx = 0; idx < text.size();) {
-        auto r = m_trie->find_longest(text_vec, idx);
+        auto r = m_trie->find_longest(text_view, idx);
         if (r != -1) {
             res.insert(r);
         } else if (m_byte_fallback) {
-            res.insert(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text[idx]))));
+            res.insert(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text_view[idx]))));
             idx++;
         } else {
             if (!m_fuse_unk || (res.tail->data) != -1) {
@@ -234,9 +226,10 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     // When merges have the same position prefer replaces which occured earlier.
     int32_t i = 0;
     while (next_node) {
-        auto pair = std::make_pair(curr_node->data, next_node->data);
-        if (m_merges.count(pair)) {
-            auto [idx, rank] = m_merges.at(pair);
+        const auto pair = std::make_pair(curr_node->data, next_node->data);
+        const auto it = m_merges.find(pair);
+        if (it != m_merges.end()) {
+            const auto [idx, rank] = it->second;
             pq.emplace(idx, rank, curr_node, next_node, i);
         }
         curr_node = next_node;
@@ -251,7 +244,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         pq.pop();
 
         // Check that pair is still valid, if not, then continue.
-        if (invalid_pairs.count({first_it, second_it})) {
+        if (invalid_pairs.find({first_it, second_it}) != invalid_pairs.end()) {
             continue;
         }
 
@@ -268,29 +261,25 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         
         // Need to update the priority queue for the pairs which appeared after merge.
         if (first_it->prev) {
-            auto prev_pair = std::make_pair(first_it->prev->data, new_node->data);
-            
-            if (m_merges.count(prev_pair)) {
-                auto [idx, rank] = m_merges.at(prev_pair);
+            const auto prev_pair = std::make_pair(first_it->prev->data, new_node->data);
+            const auto it = m_merges.find(prev_pair);
+            if (it != m_merges.end()) {
+                const auto [idx, rank] = it->second;
                 pq.emplace(idx, rank, first_it->prev, new_node, i);
             }
         }
 
         if (second_it->next) {
-            auto next_pair = std::make_pair(new_node->data, second_it->next->data);
-            
-            if (m_merges.count(next_pair)) {
-                auto [idx, rank] = m_merges.at(next_pair);
+            const auto next_pair = std::make_pair(new_node->data, second_it->next->data);
+            const auto it = m_merges.find(next_pair);
+            if (it != m_merges.end()) {
+                const auto [idx, rank] = it->second;
                 pq.emplace(idx, rank, new_node, second_it->next, i);
             }
         }
         i++;
     }
-
-    auto last_pair = std::make_pair(256, 260);
-    if (m_merges.count(last_pair)) {
-        auto last_found_rank = m_merges.at(last_pair).second;
-    }
+    
     std::vector<int32_t> res_vec;
     res_vec.reserve(res.size());
     TokenNode node = res.head;
@@ -304,7 +293,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         std::lock_guard<std::mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-            m_cache.insert({text, res_vec});
+            m_cache.emplace(std::move(text), res_vec);
         }
     }
     return res_vec;

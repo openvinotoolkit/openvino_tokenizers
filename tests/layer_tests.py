@@ -2,7 +2,7 @@ import json
 import re
 import tempfile
 from pathlib import Path
-from typing import List, NamedTuple, Union
+from typing import NamedTuple, Union
 
 import numpy as np
 import openvino as ov
@@ -359,7 +359,7 @@ def test_regex_split(test_string, expected, layer):
     assert (res_ov == expected).all()
 
 
-def create_special_tokens_split(special_tokens: List[SpecialToken]) -> ov.CompiledModel:
+def create_special_tokens_split(special_tokens: list[SpecialToken]) -> ov.CompiledModel:
     layer = SpecialTokensSplit(special_tokens)
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
@@ -386,18 +386,23 @@ def create_special_tokens_split(special_tokens: List[SpecialToken]) -> ov.Compil
         (
             [SpecialToken("<｜begin▁of▁sentence｜>", strip_right=True)],
             "<｜begin▁of▁sentence｜>   the user's <</SYS>>",
-            ("<｜begin▁of▁sentence｜>   ", "the user's <</SYS>>"),
+            ("<｜begin▁of▁sentence｜>", "the user's <</SYS>>"),
             [1, 0],
         ),
         (
             [SpecialToken("<|eot_id|>", strip_left=True)],
             "    the user's <</SYS>>    <|eot_id|>",
-            ("    the user's <</SYS>>", "    <|eot_id|>"),
+            ("    the user's <</SYS>>", "<|eot_id|>"),
             [0, 1],
         ),
         ([SpecialToken("    ")], "    def", ("    ", "def"), [1, 0]),
         ([SpecialToken("    ")], "    def  ", ("    ", "def  "), [1, 0]),
         ([SpecialToken("    ")], "    def    ", ("    ", "def", "    "), [1, 0, 1]),
+        ([SpecialToken("def", strip_left=True)], "_    def  _", ("_", "def", "  _"), [0, 1, 0]),
+        ([SpecialToken("def", strip_right=True)], "_    def  _", ("_    ", "def", "_"), [0, 1, 0]),
+        ([SpecialToken("def", strip_left=True, strip_right=True)], "_    def  _def", ("_", "def", "_", "def"), [0, 1, 0, 1]),
+        ([SpecialToken("def", strip_left=True, strip_right=True)], "def_    def  _def", ("def", "_", "def", "_", "def"), [1, 0, 1, 0, 1]),
+        ([SpecialToken("def", strip_left=True, strip_right=True)], "defdef_    def  _def", ("def", "def", "_", "def", "_", "def"), [1, 1, 0, 1, 0, 1]),
     ],
 )
 def test_special_tokens_split(special_tokens, text, expected, expected_skips):
@@ -489,16 +494,53 @@ def test_unigram_model(test_string, hf_charsmap_sentencepiece_tokenizer):
                 [30, 40],
             ],
         ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "pad_right": False,
+                "padding_side": "right",  # input value "pad_right": False has priority, therefore despite the attribute value will be padded left
+            },
+            [
+                [42, 42, 42, 42, 42, 42, 42, 10, 20, 100],
+                [42, 42, 42, 42, 42, 30, 40, 50, 200, 300],
+            ],
+        ),
+        (
+            {
+                "begins": [0, 3],
+                "ends": [3, 8],
+                "data": [10, 20, 100, 30, 40, 50, 200, 300],
+                "padding_size": 10,
+                "value": 42,
+                "pad_right": True,
+                "padding_side": "left",  # input value "pad_right": True has priority, therefore despite the attribute value will be padded right
+            },
+            [
+                [10, 20, 100, 42, 42, 42, 42, 42, 42, 42],
+                [30, 40, 50, 200, 300, 42, 42, 42, 42, 42],
+            ],
+        ),
     ],
 )
 def test_ragged_to_dense(input_values, expected):
     numeric_input_names = "begins", "ends", "data", "padding_size", "value"
     np_input_values = [np.array(input_values[key], dtype=np.int32) for key in numeric_input_names]
 
+    if "pad_right" in input_values:
+        np_input_values.append(np.array(input_values["pad_right"], dtype=np.bool))
+
     # Parameter for all inputs except value
     input_params = [op.Parameter(Type.i32, PartialShape(["?"])) for _ in range(len(numeric_input_names) - 1)]
     # Parameter for value
-    input_params = [*input_params, op.Parameter(Type.i32, PartialShape([]))]
+    input_params = [
+        *input_params,
+        op.Parameter(Type.i32, PartialShape([])),
+        *([op.Parameter(Type.boolean, PartialShape([]))] if "pad_right" in input_values else []),
+    ]
 
     assert input_values["padding_side"] in ["right", "left"]
     pad_right = True if input_values["padding_side"] == "right" else False

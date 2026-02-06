@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2018-2022 Intel Corporation
+# Copyright (C) 2018-2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 import functools
 import json
 import sys
 import tempfile
+from collections.abc import Callable
 from copy import deepcopy
 from itertools import zip_longest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import openvino.opset14 as opset
@@ -61,7 +62,7 @@ from .tokenizer_pipeline import (
 from .utils import TokenzierConversionParams, create_string_constant_node
 
 
-def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNormalizationStep]:
+def parse_replace_normalizer(normalizer_dict: dict[str, Any]) -> list[RegexNormalizationStep]:
     return [
         RegexNormalizationStep(
             regex_search_pattern=normalizer_dict["pattern"].get("String") or normalizer_dict["pattern"]["Regex"],
@@ -70,8 +71,8 @@ def parse_replace_normalizer(normalizer_dict: Dict[str, Any]) -> List[RegexNorma
     ]
 
 
-def parse_bert_normalizer(normalizer_dict: Dict[str, Any]) -> List[NormalizationStep]:
-    steps: List[NormalizationStep] = []
+def parse_bert_normalizer(normalizer_dict: dict[str, Any]) -> list[NormalizationStep]:
+    steps: list[NormalizationStep] = []
 
     if normalizer_dict["clean_text"] is True:
         steps.append(RegexNormalizationStep.del_control_chars_regex())
@@ -87,7 +88,7 @@ def parse_bert_normalizer(normalizer_dict: Dict[str, Any]) -> List[Normalization
     return steps
 
 
-def parse_split_step(pretokenizer_dict: Dict[str, Any]) -> RegexSplitStep:
+def parse_split_step(pretokenizer_dict: dict[str, Any]) -> RegexSplitStep:
     split_pattern = pretokenizer_dict["pattern"].get("String")
     if split_pattern is None:
         split_pattern = pretokenizer_dict["pattern"]["Regex"]
@@ -108,8 +109,8 @@ def parse_split_step(pretokenizer_dict: Dict[str, Any]) -> RegexSplitStep:
 
 
 def parse_byte_level_pretokenization_step(
-    pretokenizer_dict: Dict[str, Any],
-) -> List[Union[NormalizationStep, PreTokenizatinStep]]:
+    pretokenizer_dict: dict[str, Any],
+) -> list[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
     if pretokenizer_dict.get("add_prefix_space"):
         # todo: do not add whitespace if it is already is whitespace
@@ -123,7 +124,7 @@ def parse_byte_level_pretokenization_step(
     return steps
 
 
-def parse_metaspace(pretokenizer_dict: Dict[str, Any]) -> List[Union[NormalizationStep, PreTokenizatinStep]]:
+def parse_metaspace(pretokenizer_dict: dict[str, Any]) -> list[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
 
     # old prefix adder
@@ -135,8 +136,10 @@ def parse_metaspace(pretokenizer_dict: Dict[str, Any]) -> List[Union[Normalizati
 
     # new prefix adder
     prepend_scheme = pretokenizer_dict.get("prepend_scheme", "never")
-    if prepend_scheme != "never":
+    if prepend_scheme == "always":
         steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement, replacement))
+    elif prepend_scheme == "first":
+        steps.append(RegexNormalizationStep.prepend_with_check_regex(replacement, " "))
 
     if pretokenizer_dict.get("split", False):
         steps.append(RegexSplitStep.metaspace_splitter(replacement))
@@ -183,9 +186,9 @@ class TransformersTokenizerPipelineParser:
     def special_tokens_split(self) -> None:
         self.pipeline.add_steps(SpecialTokensSplit.from_hf_tokenizer(self.original_tokenizer))
 
-    normalizers_map: Dict[
+    normalizers_map: dict[
         str,
-        Callable[[Dict[str, Any]], Union[NormalizationStep, List[NormalizationStep]]],
+        Callable[[dict[str, Any]], Union[NormalizationStep, list[NormalizationStep]]],
     ] = {
         "NFC": lambda step_dict: NormalizeUnicode("NFC"),
         "NFD": lambda step_dict: NormalizeUnicode("NFD"),
@@ -202,29 +205,11 @@ class TransformersTokenizerPipelineParser:
         ),
     }
 
-    def parse_normalizer_step(self, step_dict: Dict[str, Any]) -> None:
+    def parse_normalizer_step(self, step_dict: dict[str, Any]) -> None:
         try:
             self.pipeline.add_steps(self.normalizers_map[step_dict["type"]](step_dict))
         except KeyError:
             raise OVTypeError(f"Normalizer type '{step_dict['type']}' is not supported")
-
-    @staticmethod
-    def check_metaspace_normalizer(normalizer_dict: Dict[str, Any]) -> bool:
-        if normalizer_dict.get("type") == "Sequence":
-            normalizers = normalizer_dict["normalizers"]
-
-            if len(normalizers) != 2:
-                return False
-            first, second = normalizers
-            first_prerend = bool(first.get("type") == "Prepend" and first.get("prepend") == "▁")
-            second_replace = bool(
-                second.get("type") == "Replace"
-                and second.get("pattern", {}).get("String") == " "
-                and second.get("content") == "▁"
-            )
-            return first_prerend and second_replace
-
-        return False
 
     def normalization(self) -> None:
         if self.tokenizer_json["normalizer"] is None:
@@ -236,9 +221,9 @@ class TransformersTokenizerPipelineParser:
         else:
             self.parse_normalizer_step(self.tokenizer_json["normalizer"])
 
-    pre_tokenization_map: Dict[
+    pre_tokenization_map: dict[
         str,
-        Callable[[Dict[str, Any]], Union[PreTokenizatinStep, List[PreTokenizatinStep]]],
+        Callable[[dict[str, Any]], Union[PreTokenizatinStep, list[PreTokenizatinStep]]],
     ] = {
         "BertPreTokenizer": lambda step_dict: RegexSplitStep.bert_splitter(),
         "Whitespace": lambda step_dict: RegexSplitStep.whitespace_splitter(),
@@ -252,9 +237,13 @@ class TransformersTokenizerPipelineParser:
         "Metaspace": parse_metaspace,
     }
 
-    def parse_pre_tokenization_step(self, step_dict: Dict[str, Any]) -> None:
+    def parse_pre_tokenization_step(self, step_dict: dict[str, Any]) -> None:
         try:
-            self.pipeline.add_steps(self.pre_tokenization_map[step_dict["type"]](step_dict))
+            steps = self.pre_tokenization_map[step_dict["type"]](step_dict)
+            if step_dict["type"] == "Metaspace" and step_dict.get("prepend_scheme", "never") == "first":
+                first_prepend = steps.pop()
+                self.pipeline.steps.insert(0, first_prepend)
+            self.pipeline.add_steps(steps)
         except KeyError as error:
             raise OVTypeError(f"Pre-tokenizer type '{step_dict['type']}' is not supported: {error}")
 
@@ -282,9 +271,9 @@ class TransformersTokenizerPipelineParser:
 
         self.pipeline.vocab = self.pipeline[-1].vocab
 
-    post_tokenization_map: Dict[
+    post_tokenization_map: dict[
         str,
-        Callable[[Dict[str, Any]], Union[PreTokenizatinStep, List[PreTokenizatinStep]]],
+        Callable[[dict[str, Any]], Union[PreTokenizatinStep, list[PreTokenizatinStep]]],
     ] = {
         "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
         "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
@@ -299,6 +288,9 @@ class TransformersTokenizerPipelineParser:
             or post_processor_json["type"] == "ByteLevel"
         ):
             self.add_truncation()
+            self.pipeline.add_steps(
+                CombineSegmentsStep([Sequence() for _ in range(self.number_of_inputs)], add_special_tokens=False)
+            )
             self.add_padding(use_max_padding=self.use_max_padding)
             return
 
@@ -378,14 +370,15 @@ class TransformersTokenizerPipelineParser:
                 )
             )
 
-    decoding_map: Dict[
+    decoding_map: dict[
         str,
-        Callable[[Dict[str, Any]], Union[DecodingStep, List[DecodingStep]]],
+        Callable[[dict[str, Any]], Union[DecodingStep, list[DecodingStep]]],
     ] = {
         "Replace": RegexDecodingStep.parse_replace_dict,
         "Fuse": lambda decode_dict: FuseStep(),
         "Strip": RegexDecodingStep.parse_strip_dict,
         "ByteFallback": lambda decode_dict: ByteFallbackStep(),
+        "ByteLevel": lambda decode_dict: CharsToBytesStep(),
     }
 
     def decoding(self) -> None:
@@ -436,7 +429,7 @@ class TransformersTokenizerPipelineParser:
         return
 
 
-def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> Dict[int, str]:
+def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tokens: bool = True) -> dict[int, str]:
     # the order matters
     result = {}
     result.update(
@@ -460,7 +453,7 @@ def parse_special_tokens(hf_tokenizer: PreTrainedTokenizerBase, only_special_tok
 
 def convert_fast_tokenizer(
     hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams, number_of_inputs: int = 1
-) -> Union[Model, Tuple[Model, Model]]:
+) -> Union[Model, tuple[Model, Model]]:
     pipeline = TransformersTokenizerPipelineParser(hf_tokenizer, params).parse()
     ov_tokenizer = pipeline.get_tokenizer_ov_subgraph()
     output_names = hf_tokenizer.model_input_names
@@ -539,7 +532,7 @@ def is_sentencepiece_bpe_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
 def align_model_file(
     model: "ModelProto",  # noqa
     hf_tokenizer: PreTrainedTokenizerBase,
-    added_tokens: Optional[Dict[int, str]] = None,
+    added_tokens: Optional[dict[int, str]] = None,
 ) -> None:
     if added_tokens is None:
         added_tokens = hf_tokenizer.added_tokens_decoder
@@ -615,7 +608,7 @@ def align_model_file(
 
 def modify_sentencepiece_model(
     sp_model_path: Path,
-    add_tokens: Dict[int, str],
+    add_tokens: dict[int, str],
     hf_tokenizer: PreTrainedTokenizerBase,
     skip_special_tokens: bool = False,
     add_prefix_space: Optional[bool] = None,
@@ -692,7 +685,7 @@ def modify_sentencepiece_model(
 
 def convert_sentencepiece_model_tokenizer(
     hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams, add_attention_mask: bool = True
-) -> Union[Model, Tuple[Model, Model]]:
+) -> Union[Model, tuple[Model, Model]]:
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
@@ -909,7 +902,7 @@ def convert_sentencepiece_model_tokenizer(
 
 def add_prefix_tokens(
     prefix_tokens, dense_shape, indices, values, attention_mask=None, do_left_padding=False
-) -> Tuple:
+) -> tuple:
     if do_left_padding is True and attention_mask is None:
         raise ValueError("You must pass attention_mask when add prefix with left padding.")
 
@@ -1037,7 +1030,7 @@ def is_tiktoken_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
 
 def convert_tiktoken_model_tokenizer(
     hf_tokenizer: PreTrainedTokenizerBase, params: TokenzierConversionParams
-) -> Union[Model, Tuple[Model, Model]]:
+) -> Union[Model, tuple[Model, Model]]:
     encoding = getattr(hf_tokenizer, "tokenizer", None) or hf_tokenizer.encoder
     split_pattern = encoding._pat_str
 

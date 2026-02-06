@@ -1,4 +1,4 @@
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 from openvino import Model, PartialShape, Type, op
 from openvino import opset12 as opset
@@ -18,7 +18,7 @@ def build_rwkv_tokenizer(
     clean_up_tokenization_spaces: bool = False,
     tokenizer_output_type: Type = Type.i64,
     detokenizer_input_type: Type = Type.i64,
-) -> Tuple[Model, Model]:
+) -> tuple[Model, Model]:
     from openvino_tokenizers import _get_factory, _get_opset_factory
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))

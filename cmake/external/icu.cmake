@@ -195,7 +195,8 @@ function(ov_tokenizer_build_icu)
       SOURCE_DIR ${ICU_SOURCE_DIR}
       BINARY_DIR ${ARG_BUILD_DIR}
       INSTALL_DIR ${ARG_INSTALL_DIR}
-      PATCH_COMMAND powershell -Command "(Get-ChildItem -Path <SOURCE_DIR>/source -Recurse -File -Filter \"*.vcxproj\" | ForEach-Object { (Get-Content $_.FullName) -replace '<DebugInformationFormat>EditAndContinue</DebugInformationFormat>', '<DebugInformationFormat>ProgramDatabase</DebugInformationFormat>' | Set-Content $_.FullName })"
+      PATCH_COMMAND powershell -Command "(Get-ChildItem -Path <SOURCE_DIR>/source -Recurse -File -Filter \"*.vcxproj\" | ForEach-Object { (Get-Content $_.FullName) -replace '<DebugInformationFormat>EditAndContinue</DebugInformationFormat>', '<DebugInformationFormat>ProgramDatabase</DebugInformationFormat>' | Set-Content $_.FullName })" &&
+                    powershell -Command "(Get-ChildItem -Path <SOURCE_DIR>/source -Recurse -File -Filter \"*.mak\" | ForEach-Object { (Get-Content $_.FullName) -replace 'py\\s*-3', 'python' | Set-Content $_.FullName })"
       CONFIGURE_COMMAND ""
       BUILD_COMMAND ${CMAKE_COMMAND} -E env CL=${ICU_CXX_FLAGS} LINK=${ICU_LINKER_FLAGS} msbuild ${ICU_SOURCE_DIR}\\source\\allinone\\allinone.sln /p:Configuration=${ICU_BUILD_TYPE} /p:Platform=x64 /t:i18n /t:uconv /t:makedata
       INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory ${ICU_SOURCE_DIR}/include ${ARG_INSTALL_DIR}/include &&

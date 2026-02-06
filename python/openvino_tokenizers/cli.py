@@ -99,6 +99,14 @@ def get_parser() -> ArgumentParser:
         help="Tokenizer will add padding tokens to the left side. Not supported for Sentencepiece-based tokenizers.",
     )
     parser.add_argument(
+        "--number_of_inputs",
+        "--number-of-inputs",
+        required=False,
+        default=1,
+        action=TrueOrPositiveIntAction,
+        help=("The number of inputs for the model. Default is 1."),
+    )
+    parser.add_argument(
         "--max_padding",
         "--max-padding",
         required=False,
@@ -294,6 +302,7 @@ def convert_hf_tokenizer() -> None:
         use_sentencepiece_backend=args.use_sentencepiece_backend,
         utf8_replace_mode=args.utf8_replace_mode,
         max_length=args.max_length,
+        number_of_inputs=args.number_of_inputs,
     )
     if not isinstance(converted, tuple):
         converted = (converted,)

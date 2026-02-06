@@ -1,18 +1,18 @@
 import argparse
 import json
 import random
-from itertools import chain, islice
+from collections.abc import Iterable
+from itertools import chain, islice, zip_longest
 from pathlib import Path
 from random import sample, shuffle
 from time import perf_counter
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import openvino as ov
 import pandas as pd
 import seaborn as sns
-from openvino import AsyncInferQueue, CompiledModel, InferRequest
-from openvino import ProfilingInfo, properties
+from openvino import AsyncInferQueue, CompiledModel, InferRequest, ProfilingInfo, properties
 from openvino_tokenizers import convert_tokenizer
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
@@ -21,14 +21,15 @@ from transformers import AutoTokenizer, PreTrainedTokenizerBase
 def sample_texts(
     dataset_path: str,
     num_texts: int = 1000,
-) -> List[Tuple[str, str]]:
+) -> list[tuple[str, str]]:
     with open(dataset_path) as f:
         dataset = json.load(f)
     # Filter out the conversations with less than 2 turns.
     dataset = [data for data in dataset if len(data["conversations"]) >= 2]
     # Keep the first two turns of each conversation
     dataset = [
-        (data["conversations"][0]["value"], data["conversations"][1]["value"]) for data in sample(dataset, k=num_texts)
+        (data["conversations"][0]["value"], data["conversations"][1]["value"]) 
+        for data in sample(dataset, k=num_texts)  # nosec
     ]
     shuffle(dataset)
     return dataset
@@ -41,11 +42,11 @@ def batch_iter(dataset: Iterable, batch: int = 1):
 
 
 def benchmark_tokenizer_async(
-    ov_tokenizer: CompiledModel, dataset: List[Tuple[str, str]], batch: int = 1
-) -> Tuple[pd.Series, float]:
+    ov_tokenizer: CompiledModel, dataset: list[tuple[str, str]], batch: int = 1
+) -> tuple[pd.Series, float]:
     def callback(
         ir: InferRequest,
-        user_data: Tuple[List[int], float, int],
+        user_data: tuple[list[int], float, int],
     ) -> None:
         end = perf_counter()
         times, start, idx = user_data
@@ -70,7 +71,7 @@ def benchmark_tokenizer_async(
     return results, iterations * batch / elapsed
 
 
-def construct_pc_series(perf_counts: List[ProfilingInfo], stats: Dict[str, Any]) -> Dict[str, Any]:
+def construct_pc_series(perf_counts: list[ProfilingInfo], stats: dict[str, Any]) -> dict[str, Any]:
     for pi in perf_counts:
         if pi.status == pi.NOT_RUN:
             continue
@@ -84,7 +85,7 @@ def construct_pc_series(perf_counts: List[ProfilingInfo], stats: Dict[str, Any])
 def benchmark_tokenizers(
     ov_tokenizer: CompiledModel,
     hf_tokenizer: PreTrainedTokenizerBase,
-    dataset: List[Tuple[str, str]],
+    dataset: list[tuple[str, str]],
     per_layer_stats: bool = False,
     batch: int = 1,
 ) -> pd.DataFrame:
@@ -96,6 +97,7 @@ def benchmark_tokenizers(
         ov_tokenizer(["test " * repeat])
         hf_tokenizer(["test " * repeat])
 
+    ov_input_ids = []
     ov_perf_counters = []
     for prompt in tqdm(
         batch_iter(chain.from_iterable(dataset), batch), total=len(dataset) * 2 / batch, desc="Sync benchmark"
@@ -106,12 +108,6 @@ def benchmark_tokenizers(
         ov_res = ov_tokenizer(prompt)
         res.append(perf_counter() - ov_start)
 
-        hf_start = perf_counter()
-        hf_tokenizer(prompt)
-        res.append(perf_counter() - hf_start)
-
-        results.append(res)
-
         if per_layer_stats:
             stats = {
                 "Prompt Length": sum(len(text) for text in prompt),
@@ -120,6 +116,20 @@ def benchmark_tokenizers(
             stats = construct_pc_series(ov_tokenizer._infer_request.profiling_info, stats)
 
             ov_perf_counters.append(stats)
+
+        results.append(res)
+        ov_input_ids.append(ov_res["input_ids"])
+
+    equal_ids_count = 0
+    for res, ov_input_id in tqdm(zip_longest(results, ov_input_ids), total=len(results), desc="HF benchmark"):
+        prompt, *_ = res
+        hf_start = perf_counter()
+        hf_res = hf_tokenizer(prompt, return_tensors="np", padding=True)
+        res.append(perf_counter() - hf_start)
+
+        equal_ids_count += (hf_res["input_ids"].shape == ov_input_id.shape) and (
+            hf_res["input_ids"] == ov_input_id
+        ).all()
 
     if ov_perf_counters:
         df = pd.DataFrame(ov_perf_counters)
@@ -133,6 +143,7 @@ def benchmark_tokenizers(
             )
         )
 
+    print(f"input_ids matched for {equal_ids_count}/{len(results)} samples")
     return pd.DataFrame(results, columns=columns)
 
 
@@ -146,13 +157,13 @@ def dump_latency_stats(results: pd.DataFrame, model_name: str) -> None:
 
 def print_stats(
     results: pd.DataFrame, async_fps: Optional[float] = None, batch: int = 1
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
     data_size = len(results) * batch
     ov_fps = data_size / results["OV"].sum()
     hf_fps = data_size / results["HF"].sum()
 
-    print(f"Sync:  OV: {ov_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {ov_fps/hf_fps}")
-    print(f"Async: OV: {async_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {async_fps/hf_fps}")
+    print(f"Sync  OV: {ov_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {ov_fps / hf_fps}")
+    print(f"Async OV: {async_fps:.3f} FPS, HF: {hf_fps:.3f} FPS, OV/HF: {async_fps / hf_fps}")
     print("Latency and prompt stats:")
     stats = results.describe().drop("count")
     print(stats)
@@ -201,6 +212,9 @@ def main(
     converted_tokenizer: Optional[str] = None,
 ) -> None:
     hf_tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=trust)
+
+    if hf_tokenizer.pad_token is None:
+        hf_tokenizer.pad_token = hf_tokenizer.eos_token
 
     hint = properties.hint.PerformanceMode.THROUGHPUT if tput else properties.hint.PerformanceMode.LATENCY
     config = {properties.hint.performance_mode(): hint}

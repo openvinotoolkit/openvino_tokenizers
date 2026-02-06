@@ -1,6 +1,6 @@
 {
   "name": "openvino-tokenizers-node",
-  "version": "2025.2.0",
+  "version": "2026.0.0",
   "description": "OpenVINO™ Tokenizers adds text processing operations to openvino-node package",
   "repository": {
     "url": "https://github.com/openvinotoolkit/openvino_tokenizers.git",
@@ -8,6 +8,7 @@
   },
   "license": "Apache-2.0",
   "main": "openvino-tokenizers.js",
+  "types": "openvino-tokenizers.d.ts",
   "os": [
     "win32",
     "darwin",
@@ -20,7 +21,7 @@
     "test": "node --test ./tests/*.test.js"
   },
   "binary": {
-    "version": "2025.2.0.0",
+    "version": "2026.0.0.0",
     "module_path": "./bin/",
     "remote_path": "./repositories/openvino_tokenizers/packages/{version}/",
     "package_name": "openvino_tokenizers_{platform}_{version}_{arch}.{extension}",
@@ -41,6 +42,6 @@
   ],
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "openvino-node": "2025.2.0"
+    "openvino-node": "2026.0.0"
   }
 }

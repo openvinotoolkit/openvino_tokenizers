@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2025 Intel Corporation
+// Copyright (C) 2018-2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -79,6 +79,10 @@ class PCRE2Wrapper {
         PCRE2Wrapper(const absl::string_view& pattern);
         std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace) const;
         std::pair<size_t, size_t> match(const std::string& orig_str, size_t curr_start) const;
+        std::pair<size_t, size_t> match(const std::string_view& str, size_t curr_start) const;
+        // Return both full-match offsets and capture-group offsets in one call.
+        // Returns {{full_begin, full_end}, {group_begin, group_end}} or {{SIZE_MAX,SIZE_MAX},{SIZE_MAX,SIZE_MAX}} on failure.
+        std::pair<std::pair<size_t,size_t>, std::pair<size_t,size_t>> match_and_find_group(const std::string& orig_str, size_t curr_start) const;
         ~PCRE2Wrapper();
     private:
         bool m_is_jit = 0;

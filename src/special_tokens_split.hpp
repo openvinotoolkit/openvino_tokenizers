@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2025 Intel Corporation
+// Copyright (C) 2018-2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -6,7 +6,7 @@
 
 #include <openvino/op/op.hpp>
 #include "utils.hpp"
-#include <re2/re2.h>
+#include <mutex>
 
 using namespace ov;
 
@@ -18,13 +18,13 @@ public:
     SpecialTokensSplit(const ov::OutputVector& arguments);
     SpecialTokensSplit(
         const ov::OutputVector& arguments,
-        const std::shared_ptr<re2::RE2>& split_pattern
+        const std::shared_ptr<PCRE2Wrapper>& search_pattern_pcre2
     );
 
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
-        return std::make_shared<SpecialTokensSplit>(inputs, std::move(m_split_pattern));
+    return std::make_shared<SpecialTokensSplit>(inputs, std::move(m_search_pattern_pcre2));
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -39,7 +39,8 @@ public:
 
 
 private:
-    mutable std::shared_ptr<re2::RE2> m_split_pattern;
+    mutable std::shared_ptr<PCRE2Wrapper> m_search_pattern_pcre2;
+    mutable std::mutex m_mutex;
 
     void compile_pattern_if_necessary(std::string split_pattern) const;
 };

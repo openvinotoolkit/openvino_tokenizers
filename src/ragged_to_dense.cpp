@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2025 Intel Corporation
+// Copyright (C) 2018-2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -11,7 +11,8 @@ using namespace ov;
 using op::v0::Constant;
 
 void RaggedToDense::validate_and_infer_types() {
-    OPENVINO_ASSERT(get_input_size() == 3 + 1 + 1);
+    OPENVINO_ASSERT(get_input_size() == 3 + 1 + 1 ||  get_input_size() == 3 + 1 + 1 + 1,
+                    "RaggedToDense requires 5 inputs (begins, ends, data, padding_size, value) and 1 optional input (pad_right).");
 
     // Input ragged tensor
     check_ragged_input(this, 0);
@@ -45,6 +46,13 @@ void RaggedToDense::validate_and_infer_types() {
             set_output_type(0, get_input_element_type(2), shape);
             set_output_type(1, element::boolean, shape);
     }
+    if (get_input_size() == 3 + 1 + 1 + 1) {
+        OPENVINO_ASSERT(get_input_partial_shape(5).is_dynamic() || get_input_partial_shape(5).is_static() && get_input_partial_shape(5).rank().get_length() == 0,
+                        "RaggedToDense: pad_right should be a boolean scalar.");
+
+        OPENVINO_ASSERT(get_input_element_type(5).is_integral(),
+                      "RaggedToDense: pad_right should be a boolean value.");
+    }
 }
 
 
@@ -67,8 +75,13 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
 
     auto out_elem_orig = out_elems;
     auto out_mask_orig = out_mask;
+    
+    bool pad_right = m_pad_right;
+    if (get_input_size() == 6) {
+        pad_right = inputs[5].data<bool>()[0];
+    }
 
-    if (m_pad_right) {
+    if (pad_right) {
         for(size_t i = 0; i < nelems; ++i) {
             auto begin = elems + elem_size * begins[i];
             auto target_len = (

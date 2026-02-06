@@ -28,7 +28,7 @@ class TokenizersBinaryManager extends BinaryManager {
       case 'win32':
         return 'windows';
       case 'linux':
-        return 'centos7';
+        return 'rhel8';
       case 'darwin':
         return 'macos_12_6';
     }

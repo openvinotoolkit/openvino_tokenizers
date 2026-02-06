@@ -1,4 +1,4 @@
-// Copyright (C) 2018-2025 Intel Corporation
+// Copyright (C) 2018-2026 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -366,6 +366,79 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t cur
     // Free only after copying results from match_data to res;
     pcre2_match_data_free(match_data);
     return res;
+}
+
+std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string_view& str, size_t curr_start) const {
+    if (m_compiled == nullptr) {
+        return {SIZE_MAX, SIZE_MAX};
+    }
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
+    PCRE2_SIZE subject_length = str.size();
+
+    const auto match_func = m_is_jit ? pcre2_jit_match : pcre2_match;
+    int match_result = match_func(
+        m_compiled,
+        (PCRE2_SPTR) str.data(), subject_length,
+        static_cast<PCRE2_SIZE>(curr_start),
+        0,
+        match_data,
+        NULL
+    );
+
+    if (match_result < 0) {
+        pcre2_match_data_free(match_data);
+        return {SIZE_MAX, SIZE_MAX};
+    }
+
+    // At this point there is at least one match, no out of bound can happen here.
+    // If ovector do not contain values early return is done and the code below is not run.
+    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
+    std::pair<size_t, size_t> res = {ovector[0], ovector[1]};
+
+    // Free only after copying results from match_data to res;
+    pcre2_match_data_free(match_data);
+    return res;
+}
+
+// Return both full-match offsets and capture-group offsets in one call
+std::pair<std::pair<size_t,size_t>, std::pair<size_t,size_t>> PCRE2Wrapper::match_and_find_group(const std::string& str, size_t curr_start) const {
+    if (m_compiled == nullptr) {
+        return {{SIZE_MAX, SIZE_MAX}, {SIZE_MAX, SIZE_MAX}};
+    }
+    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
+    PCRE2_SIZE subject_length = str.length();
+
+    const auto match_func = m_is_jit ? pcre2_jit_match : pcre2_match;
+    int match_result = match_func(
+        m_compiled,
+        (PCRE2_SPTR) str.c_str(), subject_length,
+        curr_start,
+        0,
+        match_data,
+        NULL
+    );
+
+    if (match_result < 0) {
+        pcre2_match_data_free(match_data);
+        return {{SIZE_MAX, SIZE_MAX}, {SIZE_MAX, SIZE_MAX}};
+    }
+
+    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
+    const std::pair<size_t,size_t> full_match = std::make_pair(ovector[0], ovector[1]);
+    std::pair<size_t, size_t> group_match = std::make_pair(SIZE_MAX, SIZE_MAX);
+
+    // in the old tokenizers #special tokens == #capture groups, find the only one that is inside full match
+    // optimize for hundreds of tokens by using parallel_for
+    // newer tokenizers (>2025.3.0) has <= 4 capture groups
+    ov::parallel_for(pcre2_get_ovector_count(match_data) - 1, [&](size_t group){
+        ++group;  // group 0 is full match
+        if (full_match.first <= ovector[2*group] && ovector[2*group] <= full_match.second && ovector[2*group + 1] <= full_match.second) {
+            group_match = {ovector[2*group], ovector[2*group + 1]};
+        }
+    });
+
+    pcre2_match_data_free(match_data);
+    return {full_match, group_match};
 }
 
 
