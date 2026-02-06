@@ -4,7 +4,7 @@
 
 #include "case_fold.hpp"
 #include "utils.hpp"
-#include "builder.h"  // for making normalizer spec
+#include "precompiled_charsmap.hpp"  // generated header with precompiled charsmaps
 
 using namespace ov;
 
@@ -37,11 +37,8 @@ bool CaseFold::evaluate(ov::TensorVector& outputs, const ov::TensorVector& input
             m_spec->set_remove_extra_whitespaces(false);
             m_spec->set_escape_whitespaces(false);
 
-            sentencepiece::normalizer::Builder::CharsMap chars_map;
-            sentencepiece::normalizer::Builder::MergeUnicodeCaseFoldMap(&chars_map);
-            std::string precompiled_charsmap;
-            sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
-            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+            std::string precompiled_charsmap = get_precompiled_charsmap("identity", true);
+            m_spec->set_precompiled_charsmap(std::move(precompiled_charsmap));
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
         });
