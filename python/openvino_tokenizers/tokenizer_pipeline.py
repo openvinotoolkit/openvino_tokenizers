@@ -492,7 +492,20 @@ class BytesToCharsStep(PreTokenizatinStep):
 
 @dataclass
 class TokenizationModelStep(BasePipelineStep):
-    pass
+    @staticmethod
+    def get_vocab_as_list(vocab: dict[str, int]) -> list[str]:
+        vocab_list = []
+        for token, token_id in sorted(vocab.items(), key=lambda x: x[1]):
+            # Fill gaps up to token_id
+            while len(vocab_list) < token_id:
+                vocab_list.append("")
+
+            if len(vocab_list) == token_id:  # place token at its id position
+                vocab_list.append(token)
+            else:
+                # token_id < len(vocab) means duplicate/out-of-order id
+                vocab_list[token_id] = token
+        return vocab_list
 
 
 @dataclass
@@ -507,7 +520,8 @@ class VocabEncoderStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "VocabEncoderStep":
-        vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        vocab = cls.get_vocab_as_list(tokenizer_json["model"]["vocab"])
+
         unk_token = tokenizer_json["model"].get("unk_token")
         unk_token_id = next((index for index, token in enumerate(vocab) if token == unk_token), -1)
         return cls(vocab, default_value=unk_token_id)
@@ -599,7 +613,7 @@ class WordPieceTokenizationStep(TokenizationModelStep):
         return cls(
             unk_token=tokenizer_json["model"]["unk_token"],
             suffix_indicator=tokenizer_json["model"]["continuing_subword_prefix"],
-            vocab=[token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])],
+            vocab=cls.get_vocab_as_list(tokenizer_json["model"]["vocab"]),
         )
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
@@ -672,7 +686,8 @@ class BPETokenizationStep(TokenizationModelStep):
 
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "BPETokenizationStep":
-        vocab = [token for token, index in sorted(tokenizer_json["model"]["vocab"].items(), key=lambda x: x[1])]
+        vocab = cls.get_vocab_as_list(tokenizer_json["model"]["vocab"])
+
         added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
 
         # TODO: CVS-150387 Implement suffix_indicator.
