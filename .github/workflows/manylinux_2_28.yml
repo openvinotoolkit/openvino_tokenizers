@@ -55,7 +55,7 @@ jobs:
         revision: latest_available_commit
 
     - name: Clone docker tag from OpenVINO repo
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         repository: 'openvinotoolkit/openvino'
         path: 'openvino'
@@ -99,7 +99,7 @@ jobs:
       MANIFEST_PATH: ${{ github.workspace }}/manifest.yml
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
@@ -185,7 +185,7 @@ jobs:
 
     steps:
       - name: Clone Openvino tokenizers
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: ${{ env.OPENVINO_TOKENIZERS_REPO }}
           
