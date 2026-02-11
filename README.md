@@ -148,6 +148,21 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
+#### CMake Build Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `REGENERATE_PRECOMPILED_CHARSMAP` | `OFF` | Regenerate Unicode normalization tables. Requires ICU. |
+| `ENABLE_SYSTEM_ICU` | `OFF` | Use system ICU instead of building from source (only when regenerating). |
+
+The `precompiled_charsmap.hpp` header containing Unicode normalization tables is pre-generated and committed to the repository. Most users don't need to regenerate it. To update these tables (e.g., after updating SentencePiece):
+
+```bash
+cmake -DCMAKE_BUILD_TYPE=Release -DREGENERATE_PRECOMPILED_CHARSMAP=ON ..
+make update_precompiled_charsmap
+# Commit the updated src/precompiled_charsmap.hpp
+```
+
 After that, you can transfer all binaries from `build/src` to `<openvino_dir>` as described in the C++ installation instruction above.
 
 ## Usage
