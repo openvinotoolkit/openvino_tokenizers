@@ -289,7 +289,7 @@ class TransformersTokenizerPipelineParser:
         ):
             self.add_truncation()
             self.pipeline.add_steps(
-                CombineSegmentsStep([Sequence() for _ in range(self.number_of_inputs)], add_special_tokens=False)
+                CombineSegmentsStep([Sequence()], add_special_tokens=False)
             )
             self.add_padding(use_max_padding=self.use_max_padding)
             return
