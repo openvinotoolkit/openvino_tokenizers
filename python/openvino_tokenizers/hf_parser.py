@@ -792,7 +792,7 @@ def convert_sentencepiece_model_tokenizer(
             add_prefix_space=params.add_prefix_space,
             byte_fallback=byte_fallback,
         )
-        sp_detokenizer_model = np.fromstring(sp_detokenizer_model_string, dtype=np.uint8)
+        sp_detokenizer_model = np.frombuffer(sp_detokenizer_model_string, dtype=np.uint8)
         sp_detokenizer_model_node = as_node(sp_detokenizer_model)
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
