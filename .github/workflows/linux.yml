@@ -307,6 +307,12 @@ jobs:
       - name: Tokenizers regression tests (using openvino python wheels)
         run: poetry run pytest tests
 
+      - name: Install transformers v4
+        run: poetry add transformers@^4.0.0
+
+      - name: Tokenizers regression tests (with transformers v4)
+        run: poetry run pytest tests
+        
   openvino_tf_tests:
     name: OpenVINO TensorFlow tests
     needs: [ openvino_download, openvino_tokenizers_wheel]
