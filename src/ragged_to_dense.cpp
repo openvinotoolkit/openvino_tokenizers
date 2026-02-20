@@ -14,8 +14,8 @@ void RaggedToDense::validate_and_infer_types() {
     OPENVINO_ASSERT(get_input_size() == 3 + 1 + 1 ||  get_input_size() == 3 + 1 + 1 + 1,
                     "RaggedToDense requires 5 inputs (begins, ends, data, padding_size, value) and 1 optional input (pad_right).");
 
-    // Input ragged tensor
-    check_ragged_input(this, 0);
+    // Input ragged tensor (begins, ends, data)
+    check_ragged_input_any_rank_data(this, 0);
 
     // Target size along ragged dimension
     OPENVINO_ASSERT(get_input_element_type(3).is_integral_number());
@@ -33,18 +33,29 @@ void RaggedToDense::validate_and_infer_types() {
 
     set_input_is_relevant_to_shape(3);
 
-    if(get_input_partial_shape(0).rank().is_dynamic()) {
+    const auto begins_shape = get_input_partial_shape(0);
+    const auto data_shape = get_input_partial_shape(2);
+    const auto begins_rank = begins_shape.rank();
+    const auto data_rank = data_shape.rank();
+
+    if (begins_rank.is_dynamic() || data_rank.is_dynamic()) {
         set_output_type(0, get_input_element_type(2), PartialShape::dynamic());
         set_output_type(1, element::boolean, PartialShape::dynamic());
     } else {
-        auto shape = get_input_partial_shape(0);
-        if(auto target_dim = dynamic_cast<Constant*>(get_input_node_ptr(3))) {
-            shape.push_back(target_dim->cast_vector<int64_t>()[0]);
+        auto out_shape = begins_shape;
+        if (auto target_dim = dynamic_cast<Constant*>(get_input_node_ptr(3))) {
+            out_shape.push_back(target_dim->cast_vector<int64_t>()[0]);
         } else {
-            shape.push_back(Dimension());
+            out_shape.push_back(Dimension());
         }
-            set_output_type(0, get_input_element_type(2), shape);
-            set_output_type(1, element::boolean, shape);
+
+        const auto data_rank_len = static_cast<size_t>(data_rank.get_length());
+        for (size_t idx = 1; idx < data_rank_len; ++idx) {
+            out_shape.push_back(data_shape[idx]);
+        }
+
+        set_output_type(0, get_input_element_type(2), out_shape);
+        set_output_type(1, element::boolean, out_shape);
     }
     if (get_input_size() == 3 + 1 + 1 + 1) {
         OPENVINO_ASSERT(get_input_partial_shape(5).is_dynamic() || get_input_partial_shape(5).is_static() && get_input_partial_shape(5).rank().get_length() == 0,
@@ -60,15 +71,36 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
     // FIXME: Works for POD types only (not for strings!)
     // FIXME: Output mask is calculated even if there are no consumers
     auto begins = inputs[0].data<const int32_t>();
-    auto ends   = inputs[1].data<const int32_t>();
-    auto nelems = inputs[0].get_size();
-    auto elems  = reinterpret_cast<const char*>(inputs[2].data());
-    auto elem_size = inputs[2].get_element_type().size();
-    auto default_value = reinterpret_cast<const char*>(inputs[4].data());
+    auto ends = inputs[1].data<const int32_t>();
+    const auto nelems = inputs[0].get_size();
 
-    // Suppose validate was called and set correct output shape
+    const auto elems = reinterpret_cast<const char*>(inputs[2].data());
+    const auto elem_size = inputs[2].get_element_type().size();
+    const auto default_value = reinterpret_cast<const char*>(inputs[4].data());
+
     // Take a target shape value for ragged dimension
-    size_t target_dim = inputs[3].data<const int32_t>()[0];
+    const size_t target_dim = static_cast<size_t>(inputs[3].data<const int32_t>()[0]);
+
+    // If output shape is dynamic at compile-time (e.g. target_dim is not constant),
+    // set it at runtime based on actual input values.
+    {
+        ov::Shape out_shape = inputs[0].get_shape();
+        out_shape.push_back(target_dim);
+        const auto& data_shape = inputs[2].get_shape();
+        for (size_t idx = 1; idx < data_shape.size(); ++idx) {
+            out_shape.push_back(data_shape[idx]);
+        }
+        outputs[0].set_shape(out_shape);
+        outputs[1].set_shape(out_shape);
+    }
+
+    // Number of dense elements per one ragged element (trailing dense dimensions).
+    // For 1D data, this equals 1.
+    const auto& data_shape = inputs[2].get_shape();
+    size_t inner_elems = 1;
+    for (size_t idx = 1; idx < data_shape.size(); ++idx) {
+        inner_elems *= data_shape[idx];
+    }
 
     auto out_elems = reinterpret_cast<char*>(outputs[0].data());
     auto out_mask = outputs[1].data<char>();
@@ -81,44 +113,49 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
         pad_right = inputs[5].data<bool>()[0];
     }
 
+    auto fill_default_block = [&](char*& dst) {
+        for (size_t k = 0; k < inner_elems; ++k) {
+            dst = std::copy(default_value, default_value + elem_size, dst);
+        }
+    };
+
     if (pad_right) {
-        for(size_t i = 0; i < nelems; ++i) {
-            auto begin = elems + elem_size * begins[i];
-            auto target_len = (
-                std::min(size_t(ends[i] - begins[i]), target_dim) * (1 - m_pad_max_length) // truncation
-                + target_dim * m_pad_max_length  // pad to max length
-            );
-            auto end = begin + elem_size * target_len;
+        for (size_t i = 0; i < nelems; ++i) {
+            const size_t data_len = static_cast<size_t>(ends[i] - begins[i]);
+            size_t target_len = (std::min(data_len, target_dim) * (1 - m_pad_max_length) +
+                                 target_dim * m_pad_max_length);
+
+            const auto begin = elems + elem_size * inner_elems * static_cast<size_t>(begins[i]);
+            const auto end = begin + elem_size * inner_elems * target_len;
             out_elems = std::copy(begin, end, out_elems);
-            out_mask = std::fill_n(out_mask, target_len, char(1));
-            if(target_len < target_dim)
-                out_mask = std::fill_n(out_mask, target_dim - target_len, char(0));
-            while(target_len < target_dim) {
-                out_elems = std::copy(default_value, default_value + elem_size, out_elems);
+
+            out_mask = std::fill_n(out_mask, target_len * inner_elems, char(1));
+            if (target_len < target_dim) {
+                out_mask = std::fill_n(out_mask, (target_dim - target_len) * inner_elems, char(0));
+            }
+
+            while (target_len < target_dim) {
+                fill_default_block(out_elems);
                 ++target_len;
             }
         }
     } else {
-        for(size_t i = 0; i < nelems; ++i) {
-            const size_t data_len = ends[i] - begins[i];
-            auto target_len = (
-                std::min(data_len, target_dim) * (1 - m_pad_max_length) // truncation
-                + target_dim * m_pad_max_length  // pad to max length
-            );
-            auto pad_len = target_dim - target_len;
+        for (size_t i = 0; i < nelems; ++i) {
+            const size_t data_len = static_cast<size_t>(ends[i] - begins[i]);
+            size_t target_len = (std::min(data_len, target_dim) * (1 - m_pad_max_length) +
+                                 target_dim * m_pad_max_length);
+            const size_t pad_len = target_dim - target_len;
 
-            // fill padding values
             for (size_t j = 0; j < pad_len; ++j) {
-                out_elems = std::copy(default_value, default_value + elem_size, out_elems);
+                fill_default_block(out_elems);
             }
-            // fill actual values
-            auto begin = elems + elem_size * begins[i];
-            auto end = begin + elem_size * target_len;
+
+            const auto begin = elems + elem_size * inner_elems * static_cast<size_t>(begins[i]);
+            const auto end = begin + elem_size * inner_elems * target_len;
             out_elems = std::copy(begin, end, out_elems);
 
-            // construct padding mask
-            out_mask = std::fill_n(out_mask, pad_len, char(0));
-            out_mask = std::fill_n(out_mask, target_dim - pad_len, char(1));
+            out_mask = std::fill_n(out_mask, pad_len * inner_elems, char(0));
+            out_mask = std::fill_n(out_mask, (target_dim - pad_len) * inner_elems, char(1));
         }
     }
 

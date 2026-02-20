@@ -392,16 +392,22 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
     auto default_value = node.get_input(2);
     auto row_partition_types = node.get_attribute<std::vector<std::string>>("row_partition_types");
 
-    FRONT_END_GENERAL_CHECK((row_partition_types == std::vector<std::string>{"ROW_SPLITS"} && node_input_size == 4) ||
-        (row_partition_types == std::vector<std::string>{"FIRST_DIM_SIZE", "VALUE_ROWIDS"} && node_input_size == 5),
-        "[TensorFlow Frontend] internal error: RaggedTensorToTensor  is supported only for 2D tensor "
-        "with ROW_SPLITS or {FIRST_DIM_SIZE, VALUE_ROWIDS} type");
+    FRONT_END_GENERAL_CHECK(
+        (row_partition_types == std::vector<std::string>{"ROW_SPLITS"} && node_input_size == 4) ||
+        (row_partition_types == std::vector<std::string>{"FIRST_DIM_SIZE", "VALUE_ROWIDS"} && node_input_size == 5) ||
+        (row_partition_types == std::vector<std::string>{"ROW_SPLITS", "VALUE_ROWIDS"} && node_input_size == 5),
+        "[TensorFlow Frontend] internal error: RaggedTensorToTensor is supported only for 2D tensor "
+        "with ROW_SPLITS or {FIRST_DIM_SIZE, VALUE_ROWIDS} type, or for 3D tensor with {ROW_SPLITS, VALUE_ROWIDS} type");
 
     // shape can be undefined (with -1 value) or defined with positive values
     // in this case replace_shape will be selected below
 
     // since begins, ends and target shape are expected to be of int32 type
     shape = std::make_shared<Convert>(shape, ov::element::i32);
+
+    // ensure pad value is a scalar
+    auto scalar_shape = std::make_shared<Constant>(ov::element::i32, Shape{ 0 }, std::vector<int32_t>{});
+    default_value = std::make_shared<Reshape>(default_value, scalar_shape, false);
 
     ov::Output<ov::Node> begins, ends;
     ov::Output<ov::Node> longest_batch, longest_row_size;
@@ -427,7 +433,7 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
         auto reduce_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
         longest_row_size = std::make_shared<ReduceMax>(longest_row_size, reduce_axis, true);
     }
-    else {
+    else if (row_partition_types == std::vector<std::string>{"FIRST_DIM_SIZE", "VALUE_ROWIDS"}) {
         auto first_dim_size = node.get_input(3);
         auto value_rowids = node.get_input(4);
 
@@ -459,6 +465,66 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
         longest_row_size = std::make_shared<ReduceMax>(longest_row_size, reduce_axis, true);
     }
 
+    if (row_partition_types == std::vector<std::string>{"ROW_SPLITS", "VALUE_ROWIDS"}) {
+        // Two ragged dimensions:
+        // - outer: ROW_SPLITS
+        // - inner: VALUE_ROWIDS
+        auto row_splits = node.get_input(3);
+        row_splits = std::make_shared<Convert>(row_splits, ov::element::i32);
+
+        // Outer begins/ends and outer batch size
+        auto row_splits_shape = std::make_shared<ShapeOf>(row_splits, ov::element::i32)->output(0);
+        auto const_one = std::make_shared<Constant>(ov::element::i32, Shape{}, 1);
+        auto outer_batch = std::make_shared<Subtract>(row_splits_shape, const_one)->output(0);
+        auto begins_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+        auto ends_start = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
+        auto step = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 1);
+        auto outer_begins = std::make_shared<Slice>(row_splits, begins_start, outer_batch, step);
+        auto outer_ends = std::make_shared<Slice>(row_splits, ends_start, row_splits_shape, step);
+
+        auto reduce_axis0 = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+        auto outer_max_len = std::make_shared<ReduceMax>(
+            std::make_shared<Subtract>(outer_ends, outer_begins)->output(0), reduce_axis0, true);
+
+        // Inner rows total = row_splits[last]
+        auto gather_axis0 = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
+        auto last_index = std::make_shared<Subtract>(row_splits_shape, const_one)->output(0);
+        auto inner_rows_total = std::make_shared<Gather>(row_splits, last_index, gather_axis0)->output(0);
+
+        auto value_rowids = node.get_input(4);
+        value_rowids = std::make_shared<Convert>(value_rowids, ov::element::i32);
+
+        // Build begins/ends for inner rows from value_rowids
+        auto inner_r2r = std::make_shared<RaggedToRagged>(ov::OutputVector{ value_rowids, inner_rows_total });
+        auto inner_begins = inner_r2r->output(0);
+        auto inner_ends = inner_r2r->output(1);
+        auto inner_max_len = std::make_shared<ReduceMax>(
+            std::make_shared<Subtract>(inner_ends, inner_begins)->output(0), reduce_axis0, true);
+
+        // First densify inner ragged dimension -> [inner_rows_total, inner_max_len]
+        auto inner_dense =
+            std::make_shared<RaggedToDense>(ov::OutputVector{ inner_begins, inner_ends, values, inner_max_len, default_value })->output(0);
+
+        // Then densify outer ragged dimension over the inner-dense tensor
+        auto outer_dense =
+            std::make_shared<RaggedToDense>(ov::OutputVector{ outer_begins, outer_ends, inner_dense, outer_max_len, default_value })->output(0);
+
+        auto replace_shape_3d =
+            std::make_shared<Concat>(ov::OutputVector{ outer_batch, outer_max_len, inner_max_len }, 0)->output(0);
+        auto const_zero = std::make_shared<Constant>(ov::element::i32, Shape{}, 0);
+        auto shape_less_zero = std::make_shared<Less>(shape, const_zero);
+        shape = std::make_shared<Select>(shape_less_zero, replace_shape_3d, shape);
+
+        auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 3 }, std::vector<int32_t>{0, 0, 0});
+        auto pads_end = std::make_shared<Subtract>(shape, replace_shape_3d);
+        auto result_dense_tensor =
+            std::make_shared<Pad>(outer_dense, pads_begin, pads_end, default_value, ov::op::PadMode::CONSTANT)->output(0);
+
+        result_dense_tensor.get_node_shared_ptr()->set_friendly_name(node_name);
+        result_dense_tensor.set_names({ node_name + ":0" });
+        return { result_dense_tensor };
+    }
+
     auto ragged_to_dense = std::make_shared<RaggedToDense>(ov::OutputVector{ begins, ends, values, longest_row_size, default_value })->output(0);
 
     // adjust shape value since it can contain -1 value that means a dimension must be deduced based on minimal dimension size
@@ -472,9 +538,7 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
     // note that replace_shape to be equal a shape of ragged_to_dense
     // Pad operation removes (or crops) if padding number is negative
     auto pads_end = std::make_shared<Subtract>(shape, replace_shape);
-    auto squeeze_axis = std::make_shared<Constant>(ov::element::i32, Shape{ 1 }, 0);
-    auto pad_value = std::make_shared<Squeeze>(default_value, squeeze_axis);
-    auto result_dense_tensor = std::make_shared<Pad>(ragged_to_dense, pads_begin, pads_end, pad_value, ov::op::PadMode::CONSTANT)->output(0);
+    auto result_dense_tensor = std::make_shared<Pad>(ragged_to_dense, pads_begin, pads_end, default_value, ov::op::PadMode::CONSTANT)->output(0);
 
     result_dense_tensor.get_node_shared_ptr()->set_friendly_name(node_name);
     result_dense_tensor.set_names({ node_name + ":0" });
