@@ -307,8 +307,10 @@ jobs:
       - name: Tokenizers regression tests (using openvino python wheels)
         run: poetry run pytest tests
 
-      - name: Install transformers v4
-        run: poetry add transformers@^4.0.0
+      - name: Install transformers v4 + clean HF cache to avoid picking up incompatible tokenizer versions
+        run: |
+          poetry add transformers@^4.0.0
+          rm -rf ~/.cache/huggingface/transformers
 
       - name: Tokenizers regression tests (with transformers v4)
         run: poetry run pytest tests
