@@ -49,7 +49,7 @@ jobs:
       with:
         platform: 'windows'
         commit_packages_to_provide: 'wheels,developer_package.zip'
-        revision: latest_available_commit
+        revision: latest_nightly
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_TYPE=${{ matrix.build_type }})
