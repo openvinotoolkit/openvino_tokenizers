@@ -116,7 +116,7 @@ jobs:
           save_to: ${{ env.MANIFEST_PATH }}
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
@@ -209,7 +209,7 @@ jobs:
           save_to: ${{ github.workspace }}
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
@@ -266,13 +266,13 @@ jobs:
           cache: 'pip'
 
       - name: Download tokenizers package
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
@@ -344,13 +344,13 @@ jobs:
           cache: 'pip'
 
       - name: Download tokenizers package
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.INSTALL_DIR }}/ov_tokenizers
 
       - name: Download OpenVINO package
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
           path: ${{ env.INSTALL_DIR }}
@@ -431,14 +431,14 @@ jobs:
 
     steps:
       - name: Download tokenizers package & manifest
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           pattern: "{openvino_tokenizers_cpack_${{ matrix.build_type }},manifest_${{ matrix.build_type }}}"
           path: ${{ github.workspace }}
           merge-multiple: true
 
       - name: Download tokenizers wheels
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.WHEEL_PACKAGE }}
