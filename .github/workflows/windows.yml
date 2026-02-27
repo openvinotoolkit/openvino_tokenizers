@@ -191,7 +191,7 @@ jobs:
 
       - name: Upload openvino tokenizers package
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: openvino_tokenizers_cpack_${{ matrix.build_type }}
           path: ${{ env.BUILD_DIR }}/*.zip
@@ -199,7 +199,7 @@ jobs:
 
       - name: Upload manifest
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: manifest_${{ matrix.build_type }}
           path: ${{ env.MANIFEST_PATH }}
@@ -326,7 +326,7 @@ jobs:
 
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: openvino_tokenizers_wheel
           path: ${{ env.WHEELS_DIR }}/*.whl
