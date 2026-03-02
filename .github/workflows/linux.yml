@@ -309,7 +309,7 @@ jobs:
 
       - name: Install transformers v4 + clean HF cache to avoid picking up incompatible tokenizer versions
         run: |
-          poetry add transformers@^4.0.0
+          poetry add "transformers@^4.0.0[sentencepiece]"
           rm -rf ~/.cache/huggingface/transformers
 
       - name: Tokenizers regression tests (with transformers v4)
