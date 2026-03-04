@@ -304,7 +304,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip_missing_outputs",
         action="store_true",
         default=False,
-        help="Ignore OV outputs that are absent in the HF result (e.g. token_type_ids).",
+        help="Ignore HF outputs that are absent in the OV result (e.g. token_type_ids).",
     )
     return parser
 
