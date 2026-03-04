@@ -428,18 +428,7 @@ def step_test_genai_advanced(hf_tokenizer, saved_dir: str) -> int:
 
 # ── CLI entry point ───────────────────────────────────────────────────────────
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="check_tokenizer",
-        description=(
-            "Quick sanity-check for a HuggingFace tokenizer:\n"
-            "  [1] Load HF tokenizer\n"
-            "  [2] Convert to OpenVINO\n"
-            "  [3] Compare outputs on the standard test suite\n\n"
-            "Exit code: 0 = all steps succeeded, 1 = any step failed."
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
+def _configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("repo_id", help="HuggingFace model id or local path to a tokenizer directory.")
     parser.add_argument(
         "--use-fast-false",
@@ -491,13 +480,25 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Ignore HF outputs that are absent in the OV result (e.g. token_type_ids).",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="openvino_tokenizers check",
+        description=(
+            "Quick sanity-check for a HuggingFace tokenizer:\n"
+            "  [1] Load HF tokenizer\n"
+            "  [2] Convert to OpenVINO\n"
+            "  [3] Compare outputs on the standard test suite\n\n"
+            "Exit code: 0 = all steps succeeded, 1 = any step failed."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    _configure_parser(parser)
     return parser
 
 
-def check_tokenizer() -> None:
-    parser = build_parser()
-    args = parser.parse_args()
-
+def run(args) -> None:
     has_genai = _has_openvino_genai()
     total_steps = 5 if has_genai else 3
     exit_code = 0
@@ -596,3 +597,7 @@ def check_tokenizer() -> None:
 
     print()
     sys.exit(exit_code)
+
+
+def check_tokenizer() -> None:
+    run(build_parser().parse_args())

@@ -43,11 +43,7 @@ class TrueOrPositiveIntAction(Action):
         raise ValueError(f'Value for {self.dest} must be positive integer or "True", got: {values}')
 
 
-def get_parser() -> ArgumentParser:
-    parser = ArgumentParser(
-        prog="convert_tokenizer",
-        description="Converts tokenizers from Huggingface Hub to OpenVINO Tokenizer model.",
-    )
+def _configure_parser(parser: ArgumentParser) -> None:
     parser.add_argument(
         "name",
         type=str,
@@ -255,10 +251,17 @@ def get_parser() -> ArgumentParser:
             f"if mode is '{UTF8ReplaceMode.IGNORE}' then invalid character are skipped and instead of them empty substring is added."
         ),
     )
+
+def get_parser() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="openvino_tokenizers convert",
+        description="Converts tokenizers from Huggingface Hub to OpenVINO Tokenizer model.",
+    )
+    _configure_parser(parser)
     return parser
 
 
-def convert_hf_tokenizer() -> None:
+def run(args) -> None:
     try:
         from transformers import AutoTokenizer
     except (ImportError, ModuleNotFoundError):
@@ -267,8 +270,6 @@ def convert_hf_tokenizer() -> None:
             "1. pip install openvino-tokenizers[transformers]\n"
             "2. pip install transformers[sentencepiece] tiktoken\n"
         )
-
-    args = get_parser().parse_args()
 
     tokenizer_init_kwargs = {
         "subfolder": args.subfolder,
@@ -311,3 +312,7 @@ def convert_hf_tokenizer() -> None:
         save_path = args.output / f"openvino_{name}.xml"
         save_model(converted_model, save_path)
         print(f"Saved OpenVINO {name.capitalize()}: {save_path}, {save_path.with_suffix('.bin')}")
+
+
+def convert_hf_tokenizer() -> None:
+    run(get_parser().parse_args())
