@@ -477,9 +477,9 @@ Steps performed:
 |------|-------------|----------|
 | 1 | Load the HuggingFace tokenizer | `transformers` |
 | 2 | Convert to OpenVINO (tokenizer + detokenizer) | `openvino_tokenizers` |
-| 3 | Encode/decode a built-in suite of 31 strings and compare outputs | |
+| 3 | Encode/decode a built-in suite of 31 strings and compare outputs | `openvino_tokenizers` |
 | 4 | Run `openvino_genai.Tokenizer` encode/decode checks (hard failure) | `openvino_genai` |
-| 5 | Test padding and pair-input handling (soft warnings only) | `openvino_genai` |
+| 5 | Test padding and pair-input handling (warnings only) | `openvino_genai` |
 
 Exit code is `0` if all hard steps pass, `1` otherwise. Step 5 warnings never affect the exit code.
 
