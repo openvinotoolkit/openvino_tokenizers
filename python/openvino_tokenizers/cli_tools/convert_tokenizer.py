@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2023-2025 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-# Backward-compatibility shim – the actual implementation lives in cli_tools/.
-from openvino_tokenizers.cli_tools.convert_tokenizer import (  # noqa: F401
-    StringToTypeAction,
-    TrueOrPositiveIntAction,
-    check_positive_int,
-    convert_hf_tokenizer,
-    get_parser,
-)
+
+from argparse import Action, ArgumentError, ArgumentParser
+from pathlib import Path
+
+from openvino import Type, save_model
+
+from openvino_tokenizers import convert_tokenizer
+from openvino_tokenizers.constants import UTF8ReplaceMode
 
 
 class StringToTypeAction(Action):
@@ -251,7 +251,7 @@ def get_parser() -> ArgumentParser:
             "If specified then resulting strings during decoding are checked if sequence of bytes is a valid UTF-8 sequence. "
             f"If mode is '{UTF8ReplaceMode.DISABLE}' then UTF8 validation is not performed at all. "
             f"Two other regimes are identical to python decode method error handling parameter. "
-            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with �. "
+            f"If mode is '{UTF8ReplaceMode.REPLACE}' then invalid characters are replaced with \N{REPLACEMENT CHARACTER}. "
             f"if mode is '{UTF8ReplaceMode.IGNORE}' then invalid character are skipped and instead of them empty substring is added."
         ),
     )

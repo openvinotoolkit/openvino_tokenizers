@@ -47,7 +47,8 @@ transformers = [
 ]
 
 [project.scripts]
-convert_tokenizer = "openvino_tokenizers.cli:convert_hf_tokenizer"
+convert_tokenizer = "openvino_tokenizers.cli_tools:convert_hf_tokenizer"
+check_tokenizer = "openvino_tokenizers.cli_tools:check_tokenizer"
 
 [tool.ruff]
 line-length = 119
