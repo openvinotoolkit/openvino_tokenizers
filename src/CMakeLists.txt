@@ -26,6 +26,10 @@ endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 include(CMakeDependentOption)
 
 #
@@ -65,14 +69,8 @@ endif()
 
 include(FetchContent)
 
-option(ENABLE_SYSTEM_ICU "Enables use of system ICU" OFF)
-
-if(ENABLE_SYSTEM_ICU)
-  message(STATUS "Using system-installed ICU.")
-else()
-  message(STATUS "ICU is not found and will be built from source.")
-  include(${PROJECT_SOURCE_DIR}/cmake/external/icu.cmake)
-endif()
+# This option must be defined early because it affects SentencePiece configuration
+option(REGENERATE_PRECOMPILED_CHARSMAP "Regenerate the precompiled charsmap header (requires ICU at build time)" OFF)
 
 FetchContent_Declare(
   sentencepiece
@@ -100,7 +98,12 @@ if(NOT sentencepiece_POPULATED)
 
   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
   set(SPM_ENABLE_TCMALLOC OFF CACHE BOOL "")
-  set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
+  # NFKC compile requires ICU and is only needed for charsmap generation
+  if(REGENERATE_PRECOMPILED_CHARSMAP)
+    set(SPM_ENABLE_NFKC_COMPILE ON CACHE BOOL "Enable NFKC compile")
+  else()
+    set(SPM_ENABLE_NFKC_COMPILE OFF CACHE BOOL "Enable NFKC compile")
+  endif()
 
   FetchContent_Populate(sentencepiece)
 
@@ -130,27 +133,16 @@ if(NOT sentencepiece_POPULATED)
     message(WARNING "SentencePiece source does not contain CMakeLists.txt; skipping add_subdirectory().")
   endif()
 
-  if(TARGET ${ICU_TARGET_NAME})
-    foreach(sp_target sentencepiece sentencepiece_train)
-      if(TARGET ${sp_target}-static)
-        set(sp_target ${sp_target}-static)
-        add_dependencies(${sp_target} ${ICU_TARGET_NAME})
-      endif()
-    endforeach()
-  endif()
-
 endif()
 
 function(ov_tokenizers_link_sentencepiece TARGET_NAME)
   if(sentencepiece_FOUND)
-    foreach(sp_target sentencepiece sentencepiece_train)
-      if(TARGET ${sp_target}-static)
-        # on Windows conda-forge builds sentencepiece as static library
-        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target}-static)
-      else()
-        target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-      endif()
-    endforeach()
+    if(TARGET sentencepiece-static)
+      # on Windows conda-forge builds sentencepiece as static library
+      target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+    else()
+      target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece)
+    endif()
     target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
   else()
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
@@ -173,14 +165,12 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
         )
       endif()
 
-    foreach(sp_target sentencepiece-static sentencepiece_train-static)
-      if(CMAKE_CL_64)
-        target_compile_definitions(${sp_target} PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
-      endif()
-      # to propogate _GLIBCXX_USE_CXX11_ABI value
-      target_compile_definitions(${sp_target} PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
-      target_link_libraries(${TARGET_NAME} PRIVATE ${sp_target})
-    endforeach()
+    if(CMAKE_CL_64)
+      target_compile_definitions(sentencepiece-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+    endif()
+    # to propogate _GLIBCXX_USE_CXX11_ABI value
+    target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+    target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
 
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
@@ -214,14 +204,170 @@ function(ov_tokenizers_link_pcre2 TARGET_NAME)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
 
+#
+# Precompiled charsmap header
+#
+# The precompiled_charsmap.hpp header contains Unicode normalization tables that are
+# pre-generated and committed to the repository. This eliminates the need to build
+# and run the generator tool during normal builds, which significantly simplifies
+# the build process and removes the ICU build-time dependency for most users.
+#
+# To regenerate the header (e.g., when updating Unicode tables or SentencePiece),
+# set REGENERATE_PRECOMPILED_CHARSMAP=ON and ensure ICU is available.
+#
+
+set(PRECOMPILED_CHARSMAP_HEADER_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/precompiled_charsmap.hpp")
+
+if(REGENERATE_PRECOMPILED_CHARSMAP)
+  message(STATUS "REGENERATE_PRECOMPILED_CHARSMAP is ON - will build generator and regenerate charsmap header")
+  
+  # ICU is only needed for regenerating the charsmap header
+  option(ENABLE_SYSTEM_ICU "Use system-installed ICU instead of building from source" OFF)
+  
+  if(ENABLE_SYSTEM_ICU)
+    message(STATUS "Using system-installed ICU for charsmap generation.")
+  else()
+    message(STATUS "Building ICU from source for charsmap generation.")
+    include(${PROJECT_SOURCE_DIR}/cmake/external/icu.cmake)
+  endif()
+  
+  set(CHARSMAP_GENERATOR_NAME "generate_precompiled_charsmap")
+  set(PRECOMPILED_CHARSMAP_HEADER_GENERATED "${CMAKE_CURRENT_BINARY_DIR}/precompiled_charsmap.hpp")
+
+  # Build the generator tool as a host executable
+  add_executable(${CHARSMAP_GENERATOR_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/generate_precompiled_charsmap.cpp)
+
+  # The generator needs special configuration to access sentencepiece builder
+  if(sentencepiece_FOUND)
+    # Using system sentencepiece - link with both libraries
+    foreach(sp_target sentencepiece sentencepiece_train)
+      if(TARGET ${sp_target}-static)
+        target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${sp_target}-static)
+      else()
+        target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${sp_target})
+      endif()
+    endforeach()
+    target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE absl::string_view absl::flat_hash_set)
+  else()
+    # Using built sentencepiece - need access to builder.h and config.h
+    if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
+      target_include_directories(${CHARSMAP_GENERATOR_NAME} SYSTEM PRIVATE
+        "${_sp_src}/src/builtin_pb"
+        "${_sp_src}/src"
+        "${_sp_src}/third_party/protobuf-lite"
+        "${_sp_src}/third_party/"
+        "${_sp_src}"
+        "${sentencepiece_BINARY_DIR}/src"  # For config.h
+        "${sentencepiece_BINARY_DIR}"      # For config.h in root
+      )
+    else()
+      target_include_directories(${CHARSMAP_GENERATOR_NAME} SYSTEM PRIVATE
+        "${_sp_src}/src"
+        "${_sp_src}"
+        "${sentencepiece_BINARY_DIR}/src"
+        "${sentencepiece_BINARY_DIR}"
+      )
+    endif()
+    
+    # Link with both sentencepiece libraries - the generator needs the builder from train library
+    target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE sentencepiece-static sentencepiece_train-static)
+    
+    # Set compile definitions for sentencepiece_train-static (same as we do for sentencepiece-static)
+    if(CMAKE_CL_64)
+      target_compile_definitions(sentencepiece_train-static PRIVATE _CRT_SECURE_NO_WARNINGS _SCL_SECURE_NO_WARNINGS)
+    endif()
+    target_compile_definitions(sentencepiece_train-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
+    
+    if(ANDROID)
+      target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE log)
+    endif()
+  endif()
+
+  # The generator needs ICU at build time to generate the maps
+  find_package(ICU COMPONENTS i18n data uc REQUIRED)
+  target_include_directories(${CHARSMAP_GENERATOR_NAME} SYSTEM PRIVATE ${ICU_INCLUDE_DIRS})
+  target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ICU::i18n ICU::data ICU::uc)
+
+  # On Linux, ICU may need libdl for dynamic loading
+  if(UNIX AND NOT APPLE AND NOT ANDROID)
+    target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${CMAKE_DL_LIBS})
+  endif()
+
+  # On Windows, copy ICU DLLs to the generator's directory so it can run
+  if(WIN32 AND TARGET ${ICU_TARGET_NAME})
+    add_custom_command(TARGET ${CHARSMAP_GENERATOR_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_UC_SHARED_LIB} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_DATA_SHARED_LIB} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_I18N_SHARED_LIB} $<TARGET_FILE_DIR:${CHARSMAP_GENERATOR_NAME}>
+      COMMENT "Copying ICU DLLs for generator executable"
+    )
+  endif()
+
+  # Ensure sentencepiece is built before the generator
+  if(NOT sentencepiece_FOUND)
+    if(TARGET sentencepiece-static)
+      add_dependencies(${CHARSMAP_GENERATOR_NAME} sentencepiece-static)
+    endif()
+    if(TARGET sentencepiece_train-static)
+      add_dependencies(${CHARSMAP_GENERATOR_NAME} sentencepiece_train-static)
+    endif()
+  endif()
+
+  # If building ICU from source, ensure it's built before sentencepiece_train
+  # (sentencepiece_train uses ICU for normalization during charsmap generation)
+  if(TARGET ${ICU_TARGET_NAME})
+    if(TARGET sentencepiece_train-static)
+      add_dependencies(sentencepiece_train-static ${ICU_TARGET_NAME})
+    endif()
+    add_dependencies(${CHARSMAP_GENERATOR_NAME} ${ICU_TARGET_NAME})
+  endif()
+
+  # Run the generator to create the precompiled charsmap header
+  add_custom_command(
+      OUTPUT ${PRECOMPILED_CHARSMAP_HEADER_GENERATED}
+      COMMAND ${CHARSMAP_GENERATOR_NAME} ${PRECOMPILED_CHARSMAP_HEADER_GENERATED}
+      DEPENDS ${CHARSMAP_GENERATOR_NAME}
+      COMMENT "Generating precompiled charsmap header"
+      VERBATIM
+  )
+
+  # Create a custom target to ensure the header is generated
+  add_custom_target(generate_charsmap_header DEPENDS ${PRECOMPILED_CHARSMAP_HEADER_GENERATED})
+
+  # Add a convenience target to update the source file
+  add_custom_target(update_precompiled_charsmap
+      COMMAND ${CMAKE_COMMAND} -E copy ${PRECOMPILED_CHARSMAP_HEADER_GENERATED} ${PRECOMPILED_CHARSMAP_HEADER_SOURCE}
+      DEPENDS ${PRECOMPILED_CHARSMAP_HEADER_GENERATED}
+      COMMENT "Updating precompiled_charsmap.hpp in source directory"
+  )
+
+  set(PRECOMPILED_CHARSMAP_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+else()
+  # Use the pre-committed header from the source directory
+  if(NOT EXISTS "${PRECOMPILED_CHARSMAP_HEADER_SOURCE}")
+    message(FATAL_ERROR "Pre-committed precompiled_charsmap.hpp not found at ${PRECOMPILED_CHARSMAP_HEADER_SOURCE}. "
+                        "Either commit this file or set REGENERATE_PRECOMPILED_CHARSMAP=ON to generate it.")
+  endif()
+  message(STATUS "Using pre-committed precompiled_charsmap.hpp from source directory")
+  set(PRECOMPILED_CHARSMAP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
 
 #
 # Build library
 #
 
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+list(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/generate_precompiled_charsmap.cpp)
 
 add_library(${TARGET_NAME} SHARED ${SRCS})
+
+# Ensure the precompiled charsmap header is generated before building the library (only when regenerating)
+if(REGENERATE_PRECOMPILED_CHARSMAP)
+  add_dependencies(${TARGET_NAME} generate_charsmap_header)
+endif()
+
+# Add the appropriate directory to include path for the precompiled charsmap header
+target_include_directories(${TARGET_NAME} PRIVATE ${PRECOMPILED_CHARSMAP_INCLUDE_DIR})
 
 if(WIN32)
   add_vs_version_resource(${TARGET_NAME})
@@ -239,10 +385,6 @@ set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}"
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
-
-# sentencepiece uses ICU libraries and is linked as INTERFACE, which is why we need to manually link tokenizers with ICU
-find_package(ICU COMPONENTS i18n data uc REQUIRED)
-target_link_libraries(${TARGET_NAME} PRIVATE ICU::i18n ICU::data ICU::uc)
 
 #
 # Set install RPATH
@@ -318,40 +460,6 @@ install(TARGETS ${TARGET_NAME}
         LIBRARY DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_LIBDIR} COMPONENT openvino_tokenizers
         RUNTIME DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR} COMPONENT openvino_tokenizers)
 
-if(WIN32)
-  # post build
-  if(GENERATOR_IS_MULTI_CONFIG_VAR)
-    # Select the appropriate ICU UC shared library based on the build configuration (Debug or Release)
-    set(ICU_UC_SHARED_LIB $<IF:$<CONFIG:Debug>,${ICU_UC_SHARED_LIB_DEBUG},${ICU_UC_SHARED_LIB_RELEASE}>)
-    set(ICU_DATA_SHARED_LIB $<IF:$<CONFIG:Debug>,${ICU_DATA_SHARED_LIB_DEBUG},${ICU_DATA_SHARED_LIB_RELEASE}>)
-  else()
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-      set(ICU_UC_SHARED_LIB "${ICU_UC_SHARED_LIB_DEBUG}")
-      set(ICU_DATA_SHARED_LIB "${ICU_DATA_SHARED_LIB_DEBUG}")
-    else()
-      set(ICU_UC_SHARED_LIB "${ICU_UC_SHARED_LIB_RELEASE}")
-      set(ICU_DATA_SHARED_LIB "${ICU_DATA_SHARED_LIB_RELEASE}")
-    endif()
-  endif()
-  
-  add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_UC_SHARED_LIB} $<TARGET_FILE_DIR:${TARGET_NAME}>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${ICU_DATA_SHARED_LIB} $<TARGET_FILE_DIR:${TARGET_NAME}>
-  )
-  
-  install(
-    FILES ${ICU_UC_SHARED_LIB_RELEASE} ${ICU_DATA_SHARED_LIB_RELEASE}
-    DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
-    CONFIGURATIONS Release RelWithDebInfo MinSizeRel
-    COMPONENT openvino_tokenizers
-  )
-  install(
-    FILES ${ICU_UC_SHARED_LIB_DEBUG} ${ICU_DATA_SHARED_LIB_DEBUG}
-    DESTINATION ${OPENVINO_TOKENIZERS_INSTALL_BINDIR}
-    CONFIGURATIONS Debug
-    COMPONENT openvino_tokenizers
-  )
-endif()
 
 install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
               "${openvino_tokenizers_SOURCE_DIR}/third-party-programs.txt"

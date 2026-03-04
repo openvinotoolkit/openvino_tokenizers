@@ -11,6 +11,7 @@ from typing import Any, Optional
 import matplotlib.pyplot as plt
 import openvino as ov
 import pandas as pd
+import psutil
 import seaborn as sns
 from openvino import AsyncInferQueue, CompiledModel, InferRequest, ProfilingInfo, properties
 from openvino_tokenizers import convert_tokenizer
@@ -93,8 +94,17 @@ def benchmark_tokenizers(
     results = []
 
     # warmup
+    process = psutil.Process()
     for repeat in range(1, 2):
+        # print time of the first tokenization pass
+        print(f"Warmup iteration {repeat}")
+        
+        mem_before_ov = process.memory_info().rss / 1024 / 1024  # MB
+        ov_start = perf_counter()
         ov_tokenizer(["test " * repeat])
+        ov_time = perf_counter() - ov_start
+        mem_after_ov = process.memory_info().rss / 1024 / 1024  # MB
+        print(f"OV warmup time: {ov_time:.6f} seconds, memory delta: {mem_after_ov - mem_before_ov:.2f} MB")
         hf_tokenizer(["test " * repeat])
 
     ov_input_ids = []
