@@ -462,13 +462,21 @@ int main(int argc, char* argv[]) {
 | RWKV                            | Trie                 | ✅        | ✅         |
 
 
-## Checking COnverted Tokenizer
+## Checking a Converted Tokenizer
 
 Use `openvino_tokenizers check` to quickly sanity-check any HuggingFace tokenizer against its
 OpenVINO-converted equivalent without writing any code:
 
 ```shell
-openvino_tokenizers check LiquidAI/LFM2-1.2B
+openvino_tokenizers check bert-base-uncased
+# with openvino_genai installed all 5 steps are run automatically:
+openvino_tokenizers check LiquidAI/LFM2-1.2B --skip-missing-outputs
+```
+
+To test only the normalizer steps (no full conversion needed):
+
+```shell
+openvino_tokenizers check_normalization bert-base-uncased
 ```
 
 Steps performed:

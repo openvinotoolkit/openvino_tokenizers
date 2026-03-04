@@ -76,6 +76,10 @@ def parse_bert_normalizer(normalizer_dict: dict[str, Any]) -> list[Normalization
 
     if normalizer_dict["clean_text"] is True:
         steps.append(RegexNormalizationStep.del_control_chars_regex())
+        steps.append(RegexNormalizationStep.replace_whitespace_regex())
+
+    if normalizer_dict["handle_chinese_chars"] is True:
+        steps.append(RegexNormalizationStep.handle_chinese_chars_regex())
 
     # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L127
     if normalizer_dict.get("strip_accents") or normalizer_dict["lowercase"]:

@@ -5,14 +5,17 @@
 Unified CLI entry point for OpenVINO Tokenizers.
 
 Usage:
-    openvino_tokenizers convert <hf_repo_id> [options]   – convert a HF tokenizer to OpenVINO
-    openvino_tokenizers check   <hf_repo_id> [options]   – sanity-check a HF tokenizer
+    openvino_tokenizers convert            <hf_repo_id> [options]  – convert a HF tokenizer to OpenVINO
+    openvino_tokenizers check              <hf_repo_id> [options]  – sanity-check a HF tokenizer
+    openvino_tokenizers check_normalization <hf_repo_id> [options]  – test normalization steps only
 """
 
 import argparse
 
 
 def main() -> None:
+    from .check_normalization import _configure_parser as _cfg_check_norm
+    from .check_normalization import run as _run_check_norm
     from .check_tokenizer import _configure_parser as _cfg_check
     from .check_tokenizer import run as _run_check
     from .convert_tokenizer import _configure_parser as _cfg_convert
@@ -50,6 +53,22 @@ def main() -> None:
     )
     _cfg_check(sub_check)
     sub_check.set_defaults(func=_run_check)
+
+    sub_check_norm = subparsers.add_parser(
+        "check_normalization",
+        help="Test normalization steps of a HuggingFace tokenizer against their OV equivalents.",
+        description=(
+            "Normalization-step sanity-check for a HuggingFace tokenizer:\n"
+            "  [1] Load HF tokenizer\n"
+            "  [2] Print the parsed normalizer pipeline\n"
+            "  [3] Compare HF and OV outputs per step + full pipeline\n\n"
+            "Only fast tokenizers with a tokenizer.json are fully supported.\n"
+            "Exit code: 0 = all steps passed, 1 = any mismatch or error."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    _cfg_check_norm(sub_check_norm)
+    sub_check_norm.set_defaults(func=_run_check_norm)
 
     args = parser.parse_args()
     args.func(args)

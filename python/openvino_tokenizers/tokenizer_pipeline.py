@@ -233,6 +233,18 @@ class RegexNormalizationStep(NormalizationStep):
     @classmethod
     def add_prefix_whitespace_regex(cls) -> "RegexNormalizationStep":
         return cls(regex_search_pattern=r"^(\S)", replace_term=r" $1")
+    
+    @classmethod
+    def replace_whitespace_regex(cls) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r"\s", replace_term=" ", global_replace=True)
+
+    @classmethod
+    def handle_chinese_chars_regex(cls) -> "RegexNormalizationStep":
+        return cls(
+            regex_search_pattern=r"([\p{Han}])",
+            replace_term=r" $1 ",
+            global_replace=True,
+        )
 
     @classmethod
     def add_prefix_whitespace_to_not_whitespace_regex(cls) -> "RegexNormalizationStep":
