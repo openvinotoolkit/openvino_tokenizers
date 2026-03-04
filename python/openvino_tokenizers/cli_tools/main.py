@@ -39,9 +39,12 @@ def main() -> None:
         description=(
             "Quick sanity-check for a HuggingFace tokenizer:\n"
             "  [1] Load HF tokenizer\n"
-            "  [2] Convert to OpenVINO\n"
-            "  [3] Compare outputs on the standard test suite\n\n"
-            "Exit code: 0 = all steps succeeded, 1 = any step failed."
+            "  [2] Convert to OpenVINO (tokenizer + detokenizer)\n"
+            "  [3] Compare encode/decode outputs on the standard test suite\n"
+            "  [4] Run openvino_genai.Tokenizer encode/decode checks  (requires openvino_genai)\n"
+            "  [5] Test batch padding and pair inputs  (requires openvino_genai)\n\n"
+            "Exit code: 0 = all hard steps passed, 1 = any hard step failed.\n"
+            "Step 5 warnings never affect the exit code."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

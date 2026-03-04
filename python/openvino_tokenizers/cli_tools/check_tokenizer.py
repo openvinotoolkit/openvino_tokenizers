@@ -482,22 +482,6 @@ def _configure_parser(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="openvino_tokenizers check",
-        description=(
-            "Quick sanity-check for a HuggingFace tokenizer:\n"
-            "  [1] Load HF tokenizer\n"
-            "  [2] Convert to OpenVINO\n"
-            "  [3] Compare outputs on the standard test suite\n\n"
-            "Exit code: 0 = all steps succeeded, 1 = any step failed."
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    _configure_parser(parser)
-    return parser
-
-
 def run(args) -> None:
     has_genai = _has_openvino_genai()
     total_steps = 5 if has_genai else 3
@@ -577,9 +561,9 @@ def run(args) -> None:
             traceback.print_exc(file=sys.stderr)
             exit_code = 1
 
-    # ── Step 5 (optional, soft warnings) ──────────────────────────────────────
+    # ── Step 5 (optional, warnings) ──────────────────────────────────────
     if has_genai and saved_dir is not None:
-        _step(5, total_steps, "Testing openvino_genai.Tokenizer padding + pair inputs (soft warnings)")
+        _step(5, total_steps, "Testing openvino_genai.Tokenizer padding + pair inputs (warnings only)")
         try:
             step_test_genai_advanced(
                 hf_tokenizer=hf_tokenizer,
@@ -597,7 +581,3 @@ def run(args) -> None:
 
     print()
     sys.exit(exit_code)
-
-
-def check_tokenizer() -> None:
-    run(build_parser().parse_args())
