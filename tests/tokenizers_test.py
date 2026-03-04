@@ -108,7 +108,7 @@ bpe_models = [
 sentencepiece_models = [
     # bpe
     "llava-hf/LLaVA-NeXT-Video-7B-hf",
-    "NousResearch/Llama-2-13b-hf",
+    # "NousResearch/Llama-2-13b-hf",  # is fixed on transformers 5.3-dev, comment until release is bulished
     "microsoft/Phi-3-mini-128k-instruct",
     "mlx-community/quantized-gemma-7b-it",
     # unigram

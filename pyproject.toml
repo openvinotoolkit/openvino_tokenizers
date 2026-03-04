@@ -42,7 +42,7 @@ dependencies = [
 
 [project.optional-dependencies]
 transformers = [
-    "transformers[sentencepiece]>=4.36.0",
+    "transformers[sentencepiece]>=5.0.0",
     "tiktoken>=0.3.0",
 ]
 
@@ -111,6 +111,7 @@ url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
 priority = "supplemental"
 
 [tool.poetry.dependencies]
+python = ">=3.10,<4.0"
 openvino = { version = "*", source = "openvino-nightly" }
 
 [tool.poetry.group.dev]
