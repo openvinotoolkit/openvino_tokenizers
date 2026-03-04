@@ -265,8 +265,9 @@ class RegexNormalizationStep(NormalizationStep):
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
         return cls(
-            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F])",  # exclude \n\t\r
+            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\p{Cf}])",  # exclude \n\t\r
             replace_term="",
+            global_replace=True,
         )
 
     @classmethod
