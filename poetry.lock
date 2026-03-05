@@ -2273,4 +2273,4 @@ transformers = ["tiktoken", "transformers"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "af04415c8209af2839eff3df382eb4863fa02eeace932349f024f15ef3241822"
+content-hash = "7a0243e7b4ef0711e2d750829deabc5f1259dbb66b64f1a0df85c283b858f670"
