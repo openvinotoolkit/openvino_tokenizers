@@ -103,7 +103,8 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
     }
 
     auto out_elems = reinterpret_cast<char*>(outputs[0].data());
-    auto out_mask = outputs[1].data<char>();
+    // Mask may be unallocated when this op is used as an intermediate node with no consumers
+    auto out_mask = outputs[1] ? outputs[1].data<char>() : nullptr;
 
     auto out_elem_orig = out_elems;
     auto out_mask_orig = out_mask;
@@ -119,6 +120,12 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
         }
     };
 
+    auto mask_fill = [&](char*& dst, size_t count, char value) {
+        if (dst) {
+            dst = std::fill_n(dst, count, value);
+        }
+    };
+
     if (pad_right) {
         for (size_t i = 0; i < nelems; ++i) {
             const size_t data_len = static_cast<size_t>(ends[i] - begins[i]);
@@ -129,9 +136,9 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
             const auto end = begin + elem_size * inner_elems * target_len;
             out_elems = std::copy(begin, end, out_elems);
 
-            out_mask = std::fill_n(out_mask, target_len * inner_elems, char(1));
+            mask_fill(out_mask, target_len * inner_elems, char(1));
             if (target_len < target_dim) {
-                out_mask = std::fill_n(out_mask, (target_dim - target_len) * inner_elems, char(0));
+                mask_fill(out_mask, (target_dim - target_len) * inner_elems, char(0));
             }
 
             while (target_len < target_dim) {
@@ -154,12 +161,14 @@ bool RaggedToDense::evaluate(ov::TensorVector& outputs, const ov::TensorVector& 
             const auto end = begin + elem_size * inner_elems * target_len;
             out_elems = std::copy(begin, end, out_elems);
 
-            out_mask = std::fill_n(out_mask, pad_len * inner_elems, char(0));
-            out_mask = std::fill_n(out_mask, (target_dim - pad_len) * inner_elems, char(1));
+            mask_fill(out_mask, pad_len * inner_elems, char(0));
+            mask_fill(out_mask, (target_dim - pad_len) * inner_elems, char(1));
         }
     }
 
     OPENVINO_ASSERT(out_elems == out_elem_orig + outputs[0].get_byte_size());
-    OPENVINO_ASSERT(out_mask == out_mask_orig + outputs[1].get_byte_size());
+    if (out_mask) {
+        OPENVINO_ASSERT(out_mask == out_mask_orig + outputs[1].get_byte_size());
+    }
     return true;
 }
