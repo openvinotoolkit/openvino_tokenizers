@@ -44,12 +44,12 @@ jobs:
     continue-on-error: true
 
     steps:
-    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
+    - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@47c96472272212a547b113650cac640672ac599e
       id: openvino_download
       with:
         platform: 'windows'
         commit_packages_to_provide: 'wheels,developer_package.zip'
-        revision: latest_available_commit
+        revision: latest_nightly
 
   openvino_tokenizers_cpack:
     name: OpenVINO tokenizers cpack (BUILD_TYPE=${{ matrix.build_type }})
