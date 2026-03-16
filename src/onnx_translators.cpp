@@ -72,7 +72,7 @@ translate_string_normalizer(const ov::frontend::NodeContext &node) {
   }
   if (case_change_action == "LOWER") {
     string_result = post_translate_string_tensor_output(
-        std::make_shared<CaseFold>(inputs, "")->outputs());
+        std::make_shared<CaseFold>(inputs)->outputs());
   } else if (case_change_action == "UPPER") {
     string_result = post_translate_string_tensor_output(
         std::make_shared<CaseFold>(inputs, "", false)->outputs());
@@ -83,3 +83,79 @@ translate_string_normalizer(const ov::frontend::NodeContext &node) {
   set_node_name(node_name, string_result.get_node_shared_ptr());
   return {string_result};
 }
+
+ov::OutputVector
+translate_label_encoder(const ov::frontend::NodeContext& node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 1,
+        "LabelEncoder expects only 1 input");
+
+    bool valid_keys = node.has_attribute("keys_strings") || node.has_attribute("keys_tensor");
+    bool valid_values = node.has_attribute("values_int64s") || node.has_attribute("values_tensor");
+
+    FRONT_END_GENERAL_CHECK(valid_keys && valid_values,
+        "[ONNX Frontend] internal error: LabelEncoder OV Impl supports only one case: "
+        "2. string keys(/tensor) with i64 values.(/tensor)");
+
+    // check for default value
+    ov::Output<ov::Node> default_value;
+    int64_t default_int64_value = -1; 
+    if (node.has_attribute("default_int64")) {
+        default_int64_value = node.get_attribute<int64_t>("default_int64", -1);
+    } else if (node.has_attribute("default_tensor")) {
+        ov::Tensor default_tensor = node.get_attribute<ov::Tensor>("default_tensor");
+        std::memcpy(&default_int64_value, default_tensor.data(), sizeof(int64_t));
+    }
+    int32_t default_int32_value = static_cast<int32_t>(default_int64_value);
+    default_value = std::make_shared<Constant>(ov::element::i32, ov::Shape{ 1 }, std::vector<int32_t>{default_int32_value});
+
+    //check for keys
+    ov::Output<ov::Node> all_keys;
+    if (node.has_attribute("keys_strings")) {
+         std::vector<std::string> keys_strings = node.get_attribute<std::vector<std::string>>("keys_strings");
+         ov::Shape key_shape = { keys_strings.size() };
+         all_keys = std::make_shared<Constant>(ov::element::string, key_shape, keys_strings)->output(0);
+    } else if (node.has_attribute("keys_tensor")) {
+        ov::Tensor keys = node.get_attribute<ov::Tensor>("keys_tensor");
+        auto constant = std::make_shared<ov::op::v0::Constant>(keys);
+        all_keys = std::make_shared<Convert>(constant->output(0), ov::element::string)->output(0);
+    }
+
+    //check for values
+    ov::Output<ov::Node> all_values;
+    if (node.has_attribute("values_int64s")) {
+        std::vector<int64_t> values_ints = node.get_attribute<std::vector<int64_t>>("values_int64s");
+        ov::Shape values_shape = { values_ints.size() };
+        all_values = std::make_shared<Constant>(ov::element::i32, values_shape, values_ints)->output(0);
+    } else if (node.has_attribute("values_tensor")) {
+        ov::Tensor values = node.get_attribute<ov::Tensor>("values_tensor");
+        auto constant = std::make_shared<ov::op::v0::Constant>(values);
+        all_values = std::make_shared<Convert>(constant->output(0), ov::element::i32)->output(0);
+    }
+
+    // unpack string tensor for required keys and all keys from vocabulary
+    ov::OutputVector unpacked_input = pre_translate_string_tensor_input(node.get_input(0));
+    ov::OutputVector unpacked_all_keys = pre_translate_string_tensor_input(all_keys);
+
+    ov::OutputVector arguments = unpacked_input;
+    arguments.insert(arguments.end(), unpacked_all_keys.begin(), unpacked_all_keys.end());
+    arguments.push_back(all_values);
+    arguments.push_back(default_value);
+    auto tokens = std::make_shared<VocabEncoder>(arguments)->output(0);
+
+    //convert back to i64
+    tokens = std::make_shared<Convert>(tokens, ov::element::i64);
+      
+    set_node_name(node.get_name(), tokens.get_node_shared_ptr());
+    return { tokens };
+}
+
+
+
+
+
+    
+        
+    
+
+

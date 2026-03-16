@@ -9,7 +9,9 @@
 
 #define OPENVINO_TOKENIZERS_ONNX_CONVERSION_EXTENSIONS                         \
   std::make_shared<ov::frontend::onnx::ConversionExtension>(                   \
-      "StringNormalizer", translate_string_normalizer)
+      "StringNormalizer", translate_string_normalizer),                        \
+  std::make_shared<ov::frontend::onnx::ConversionExtension>(                   \
+      "LabelEncoder", "ai.onnx.ml", translate_label_encoder)                         
 
 #define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS                   \
   std::make_shared<ov::frontend::tensorflow::ConversionExtension>(             \

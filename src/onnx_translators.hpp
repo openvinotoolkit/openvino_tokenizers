@@ -8,3 +8,7 @@
 
 ov::OutputVector
 translate_string_normalizer(const ov::frontend::NodeContext &node);
+
+
+ov::OutputVector
+translate_label_encoder(const ov::frontend::NodeContext& node);
