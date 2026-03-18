@@ -26,7 +26,7 @@ public:
         T data;
         std::weak_ptr<Node> prev;
         std::shared_ptr<Node> next;
-        Node(const T& data) : data(data), prev(nullptr), next(nullptr) {}
+        Node(const T& data) : data(data), prev(), next(nullptr) {}
     };
 
     size_t m_size;
