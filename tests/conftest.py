@@ -147,8 +147,9 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     reporter = session.config.pluginmanager.get_plugin("terminalreporter")
     skipped = len(reporter.stats.get("skipped", []))
     pass_rate = 1 - session.testsfailed / (session.testscollected - skipped)
-    previous = previous_rates.get(parent, 0)
 
+    suffix = "transformers_v4" if version("transformers").startswith("4.") else ""
+    previous = previous_rates.get(parent + suffix, 0)
     stats = reporter.stats
 
     new_statuses = {}
@@ -183,7 +184,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     if pass_rate > previous:
         reporter.write_line(f"New pass rate {pass_rate} is bigger then previous: {previous}")
         session.exitstatus = pytest.ExitCode.OK
-        previous_rates[parent] = pass_rate
+        previous_rates[parent + suffix] = pass_rate
 
         with open(PASS_RATES_FILE, "w") as pass_rate_file:
             json.dump(previous_rates, pass_rate_file, indent=4)
