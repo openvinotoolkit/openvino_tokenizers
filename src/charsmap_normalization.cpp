@@ -4,7 +4,7 @@
 
 #include "charsmap_normalization.hpp"
 #include "utils.hpp"
-#include "builder.h"  // for making normalizer spec
+#include "precompiled_charsmap.hpp"  // generated header with precompiled charsmaps
 #include "absl/strings/str_format.h"
 
 using namespace ov;
@@ -31,30 +31,6 @@ void CharsMapNormalization::validate_and_infer_types() {
 }
 
 
-inline void init_sentencepiece_normalizer_chars_map(
-    const std::string& normalization_form,
-    const bool case_fold,
-    sentencepiece::normalizer::Builder::CharsMap& chars_map
-) {
-    if (normalization_form == "identity") {
-        // no need to modify chars_map
-    } else if (normalization_form == "nfc") {
-        sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map);
-    } else if (normalization_form == "nfd") {
-        sentencepiece::normalizer::Builder::BuildNFDMap(&chars_map);
-    } else if (normalization_form == "nfkc") {
-        sentencepiece::normalizer::Builder::BuildNFKCMap(&chars_map);
-    } else if (normalization_form == "nfkd") {
-        sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
-    } else {
-        OPENVINO_THROW("Unsupported normalization form: `", normalization_form, "`");
-    };
-    if (case_fold) {
-        sentencepiece::normalizer::Builder::MergeUnicodeCaseFoldMap(&chars_map);
-    };
-}
-
-
 bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 5) || (m_normalization_form != "" && inputs.size() == 4);
 
@@ -69,13 +45,14 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
 
             std::string precompiled_charsmap;
             if (m_normalization_form != "") {
-                sentencepiece::normalizer::Builder::CharsMap chars_map;
-                init_sentencepiece_normalizer_chars_map(m_normalization_form, m_case_fold, chars_map);
-                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+                precompiled_charsmap = get_precompiled_charsmap(m_normalization_form, m_case_fold);
+                OPENVINO_ASSERT(!precompiled_charsmap.empty(), 
+                    "Unsupported normalization form: `", m_normalization_form, 
+                    "` with case_fold=", m_case_fold);
             } else {
                 precompiled_charsmap = std::string(inputs[3 + has_skips].data<const char>(), inputs[3 + has_skips].get_size());
             };
-            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+            m_spec->set_precompiled_charsmap(std::move(precompiled_charsmap));
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
         });

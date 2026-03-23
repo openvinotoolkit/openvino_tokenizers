@@ -9,27 +9,9 @@
 
 #include "normalize_unicode.hpp"
 #include "utils.hpp"
-#include "builder.h"  // for making normalizer spec
+#include "precompiled_charsmap.hpp"  // generated header with precompiled charsmaps
 
 using namespace ov;
-
-
-inline void init_unicode_normalizer_chars_map(
-    const std::string& normalization_form,
-    sentencepiece::normalizer::Builder::CharsMap& chars_map
-) {
-    if (normalization_form == "NFC") {
-        sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map);
-    } else if (normalization_form == "NFD") {
-        sentencepiece::normalizer::Builder::BuildNFDMap(&chars_map);
-    } else if (normalization_form == "NFKC") {
-        sentencepiece::normalizer::Builder::BuildNFKCMap(&chars_map);
-    } else if (normalization_form == "NFKD") {
-        sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
-    } else {
-        OPENVINO_THROW("Unsupported normalization form: `", normalization_form, "`");
-    };
-}
 
 
 void NormalizeUnicode::validate_and_infer_types() {
@@ -60,11 +42,10 @@ bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
             m_spec->set_remove_extra_whitespaces(false);
             m_spec->set_escape_whitespaces(false);
 
-            sentencepiece::normalizer::Builder::CharsMap chars_map;
-            init_unicode_normalizer_chars_map(m_normalization_form, chars_map);
-            std::string precompiled_charsmap;
-            sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
-            m_spec->set_precompiled_charsmap(precompiled_charsmap);
+            std::string precompiled_charsmap = get_precompiled_charsmap(m_normalization_form, false);
+            OPENVINO_ASSERT(!precompiled_charsmap.empty(), 
+                "Unsupported normalization form: `", m_normalization_form, "`");
+            m_spec->set_precompiled_charsmap(std::move(precompiled_charsmap));
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
         });
