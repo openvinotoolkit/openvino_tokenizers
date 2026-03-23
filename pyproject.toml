@@ -37,9 +37,7 @@ classifiers = [
 
 dependencies = [
     # support of nightly openvino packages with dev suffix
-    "openvino~=2026.1.0.dev",
-    "urllib3>=2.6.0",
-    "fonttools>=4.60.2"
+    "openvino~=2026.1.0.dev"
 ]
 
 [project.optional-dependencies]
