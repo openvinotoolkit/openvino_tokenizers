@@ -38,4 +38,12 @@ public:
     bool has_evaluate() const override {
         return true;
     }
+
+    bool evaluate_lower(ov::TensorVector& output_values) const override {
+        return false;
+    }
+
+    bool evaluate_upper(ov::TensorVector& output_values) const override {
+        return false;
+    }
 };

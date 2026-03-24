@@ -41,6 +41,8 @@ void check_string_scalar_input(const ov::Node* node, size_t input_index);
 
 void check_ragged_input(const ov::Node* node, size_t input_index);
 
+void check_ragged_input_any_rank_data(const ov::Node* node, size_t input_index);
+
 void check_ragged_string_input(const ov::Node* node, size_t input_index);
 
 void set_string_output(ov::Node* node, size_t output_index, const ov::PartialShape& shape);
