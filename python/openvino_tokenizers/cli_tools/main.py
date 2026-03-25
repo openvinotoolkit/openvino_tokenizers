@@ -8,6 +8,7 @@ Usage:
     openvino_tokenizers convert            <hf_repo_id> [options]  – convert a HF tokenizer to OpenVINO
     openvino_tokenizers check              <hf_repo_id> [options]  – sanity-check a HF tokenizer
     openvino_tokenizers check_normalization <hf_repo_id> [options]  – test normalization steps only
+    openvino_tokenizers diagnose           <hf_repo_id> [options]  – pipeline-level diagnostics
 """
 
 import argparse
@@ -20,6 +21,8 @@ def main() -> None:
     from .check_tokenizer import run as _run_check
     from .convert_tokenizer import _configure_parser as _cfg_convert
     from .convert_tokenizer import run as _run_convert
+    from .diagnose_tokenizer import _configure_parser as _cfg_diagnose
+    from .diagnose_tokenizer import run as _run_diagnose
 
     parser = argparse.ArgumentParser(
         prog="openvino_tokenizers",
@@ -69,6 +72,23 @@ def main() -> None:
     )
     _cfg_check_norm(sub_check_norm)
     sub_check_norm.set_defaults(func=_run_check_norm)
+
+    sub_diagnose = subparsers.add_parser(
+        "diagnose",
+        help="Pipeline-level diagnostic for a HuggingFace tokenizer.",
+        description=(
+            "Pipeline-level diagnostic for a HuggingFace tokenizer:\n"
+            "  [1] Load HF tokenizer\n"
+            "  [2] Map tokenizer.json pipeline to OV steps\n"
+            "  [3] Test normalization steps individually\n"
+            "  [4] Test pre-tokenization\n"
+            "  [5] Run full pipeline comparison\n\n"
+            "Exit code: 0 = no issues, 1 = any mismatch or unsupported type."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    _cfg_diagnose(sub_diagnose)
+    sub_diagnose.set_defaults(func=_run_diagnose)
 
     args = parser.parse_args()
     args.func(args)
