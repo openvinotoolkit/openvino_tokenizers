@@ -443,7 +443,13 @@ class RegexSplitStep(PreTokenizatinStep):
         return cls(metaspace, invert=False, behaviour="mergedwithnext")
 
     @classmethod
-    def byte_level_splitter(cls) -> "RegexSplitStep":
+    def byte_level_splitter(cls, individual_digits: bool = False) -> "RegexSplitStep":
+        if individual_digits:
+            return cls(
+                r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+|\p{N}| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+",
+                invert=False,
+                behaviour="isolate",
+            )
         return cls(
             r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+",
             invert=False,
@@ -456,7 +462,6 @@ class RegexSplitStep(PreTokenizatinStep):
             r"\p{Nd}|\p{Nl}|\p{No}",
             invert=False,
             behaviour=behaviour,
-            mergeable=False,
         )
 
     @classmethod

@@ -351,6 +351,20 @@ text2image_prompts = [
         ("No split pattern", ("No split pattern",), RegexSplitStep(split_pattern="▁", behaviour="mergedwithprevious")),
         ("split", tuple("split"), RegexSplitStep.split_by_chars()),
         ("split by chars", tuple("split by chars"), RegexSplitStep.split_by_chars()),
+        # byte_level_splitter tests
+        ("Hello world!", ("Hello", " world", "!"), RegexSplitStep.byte_level_splitter()),
+        ("test's great", ("test", "'s", " great"), RegexSplitStep.byte_level_splitter()),
+        ("don't stop", ("don", "'t", " stop"), RegexSplitStep.byte_level_splitter()),
+        ("hello 123", ("hello", " 123"), RegexSplitStep.byte_level_splitter()),
+        ("Eng, but with d1gits: 123", ("Eng", ",", " but", " with", " d", "1", "gits", ":", " 123"), RegexSplitStep.byte_level_splitter()),
+        ("a  b", ("a", " ", " b"), RegexSplitStep.byte_level_splitter()),
+        # byte_level_splitter with individual_digits=True tests
+        ("Hello world!", ("Hello", " world", "!"), RegexSplitStep.byte_level_splitter(individual_digits=True)),
+        ("hello 123", ("hello", " ", "1", "2", "3"), RegexSplitStep.byte_level_splitter(individual_digits=True)),
+        ("Eng, but with d1gits: 123", ("Eng", ",", " but", " with", " d", "1", "gits", ":", " ", "1", "2", "3"), RegexSplitStep.byte_level_splitter(individual_digits=True)),
+        ("If I have 100 million dollars?", ("If", " I", " have", " ", "1", "0", "0", " million", " dollars", "?"), RegexSplitStep.byte_level_splitter(individual_digits=True)),
+        ("a1b2c3", ("a", "1", "b", "2", "c", "3"), RegexSplitStep.byte_level_splitter(individual_digits=True)),
+        ("test 0987654321 end", ("test", " ", "0", "9", "8", "7", "6", "5", "4", "3", "2", "1", " end"), RegexSplitStep.byte_level_splitter(individual_digits=True)),
     ],
 )
 def test_regex_split(test_string, expected, layer):

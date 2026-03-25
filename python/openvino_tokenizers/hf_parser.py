@@ -115,6 +115,7 @@ def parse_split_step(pretokenizer_dict: dict[str, Any]) -> RegexSplitStep:
 
 def parse_byte_level_pretokenization_step(
     pretokenizer_dict: dict[str, Any],
+    individual_digits: bool = False,
 ) -> list[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
     if pretokenizer_dict.get("add_prefix_space"):
@@ -123,7 +124,7 @@ def parse_byte_level_pretokenization_step(
 
     # regex is used by default, but it does not appear in config yet
     if pretokenizer_dict.get("use_regex", True):
-        steps.append(RegexSplitStep.byte_level_splitter())
+        steps.append(RegexSplitStep.byte_level_splitter(individual_digits=individual_digits))
 
     steps.append(BytesToCharsStep())
     return steps
@@ -257,8 +258,27 @@ class TransformersTokenizerPipelineParser:
             return
 
         if self.tokenizer_json["pre_tokenizer"].get("type") == "Sequence":
-            for pretokenizer in self.tokenizer_json["pre_tokenizer"]["pretokenizers"]:
-                self.parse_pre_tokenization_step(pretokenizer)
+            pretokenizers = self.tokenizer_json["pre_tokenizer"]["pretokenizers"]
+            skip_next = False
+            for idx, pretokenizer in enumerate(pretokenizers):
+                if skip_next:
+                    skip_next = False
+                    continue
+                # When Digits(individual_digits=True) is followed by ByteLevel(use_regex=True),
+                # use a single combined regex instead of two separate RegexSplit ops 
+                if (
+                    pretokenizer["type"] == "Digits"
+                    and pretokenizer.get("individual_digits", False)
+                    and idx + 1 < len(pretokenizers)
+                    and pretokenizers[idx + 1]["type"] == "ByteLevel"
+                    and pretokenizers[idx + 1].get("use_regex", True)
+                ):
+                    self.pipeline.add_steps(
+                        parse_byte_level_pretokenization_step(pretokenizers[idx + 1], individual_digits=True)
+                    )
+                    skip_next = True
+                else:
+                    self.parse_pre_tokenization_step(pretokenizer)
         else:
             self.parse_pre_tokenization_step(self.tokenizer_json["pre_tokenizer"])
 
