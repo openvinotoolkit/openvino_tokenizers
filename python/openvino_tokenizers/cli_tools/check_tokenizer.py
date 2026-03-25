@@ -13,7 +13,8 @@ Steps performed:
   [2] Convert it to OpenVINO (tokenizer + detokenizer)
   [3] Run the full test-string suite and compare outputs
   [4] Run openvino_genai.Tokenizer encode/decode checks (only if openvino_genai is installed)
-  [5] Run openvino_genai.Tokenizer padding + pair-input checks as soft warnings (only if openvino_genai is installed)
+  [5] Run openvino_genai.Tokenizer padding + pair-input checks (only if openvino_genai is installed)
+      — reported as errors for tokenizers-backend tokenizers, warnings otherwise
 
 On success each step prints a single ✓ line.
 On failure the step prints ✗ plus the relevant context (exception, failing
@@ -263,6 +264,20 @@ def step_test_tokenizer(
 
 # ── openvino_genai step ───────────────────────────────────────────────────────
 
+def _is_tokenizers_backend(hf_tokenizer) -> bool:
+    """Return True when the HF tokenizer is built on the `tokenizers` library."""
+    try:
+        from transformers.tokenization_utils_tokenizers import TokenizersBackend
+        return isinstance(hf_tokenizer, TokenizersBackend)
+    except ImportError:
+        pass
+    try:
+        from transformers import PreTrainedTokenizerFast
+        return isinstance(hf_tokenizer, PreTrainedTokenizerFast)
+    except ImportError:
+        return False
+
+
 def _has_openvino_genai() -> bool:
     try:
         import openvino_genai  # noqa: F401
@@ -335,15 +350,18 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool) ->
     return len(failures)
 
 
-def step_test_genai_advanced(hf_tokenizer, saved_dir: str) -> int:
+def step_test_genai_advanced(hf_tokenizer, saved_dir: str, strict: bool = False) -> int:
     """
-    Step 5 – soft-check batch padding and pair-input behaviour via
-    openvino_genai.Tokenizer.  Issues are reported as warnings (⚠) and do
-    NOT affect the exit code.
+    Step 5 – check batch padding and pair-input behaviour via
+    openvino_genai.Tokenizer.
+
+    When *strict* is False (default) issues are reported as warnings (⚠) and
+    do NOT affect the exit code.  When *strict* is True (tokenizers-backend
+    tokenizers) issues are reported as errors (✗) and DO affect the exit code.
 
     Mirrors test_padding and test_two_inputs_* from genai tokenizer tests.
 
-    Returns the number of warning items (0 = all good).
+    Returns the number of issue items (0 = all good).
     """
     from openvino_genai import Tokenizer as GenAITokenizer
 
@@ -415,7 +433,13 @@ def step_test_genai_advanced(hf_tokenizer, saved_dir: str) -> int:
         ))
 
     if not warnings_list:
-        _ok("No warnings")
+        _ok("No issues")
+    elif strict:
+        _fail(f"{len(warnings_list)} failure(s)")
+        for label, detail in warnings_list:
+            print(f"\n  {YELLOW}Case:{RESET} {label}", file=sys.stderr)
+            indented = textwrap.indent(detail, "    ")
+            print(f"{RED}{indented}{RESET}", file=sys.stderr)
     else:
         _warn(f"{len(warnings_list)} warning(s)")
         for label, detail in warnings_list:
@@ -561,16 +585,25 @@ def run(args) -> None:
             traceback.print_exc(file=sys.stderr)
             exit_code = 1
 
-    # ── Step 5 (optional, warnings) ──────────────────────────────────────
+    # ── Step 5 (optional, warnings or errors depending on backend) ────────
     if has_genai and saved_dir is not None:
-        _step(5, total_steps, "Testing openvino_genai.Tokenizer padding + pair inputs (warnings only)")
+        strict_advanced = _is_tokenizers_backend(hf_tokenizer)
+        label = "errors" if strict_advanced else "warnings only"
+        _step(5, total_steps, f"Testing openvino_genai.Tokenizer padding + pair inputs ({label})")
         try:
-            step_test_genai_advanced(
+            n_advanced = step_test_genai_advanced(
                 hf_tokenizer=hf_tokenizer,
                 saved_dir=saved_dir,
+                strict=strict_advanced,
             )
+            if strict_advanced and n_advanced:
+                exit_code = 1
         except Exception:
-            _warn("Advanced GenAI testing raised an unexpected exception:")
+            if strict_advanced:
+                _fail("Advanced GenAI testing raised an unexpected exception:")
+                exit_code = 1
+            else:
+                _warn("Advanced GenAI testing raised an unexpected exception:")
             traceback.print_exc(file=sys.stderr)
     elif not has_genai:
         print("\n  (skipping steps 4-5 — openvino_genai not installed)")

@@ -56,9 +56,11 @@ This executes:
 - **[2/5] Convert to OpenVINO** — converts to OV tokenizer + detokenizer models
 - **[3/5] Test against 31 strings** — compares HF vs OV encode/decode on English, multilingual, emoji, and edge-case strings
 - **[4/5] GenAI Tokenizer encode + decode** — tests `openvino_genai.Tokenizer` encode/decode with and without special tokens (skipped if `openvino_genai` is not installed)
-- **[5/5] GenAI padding + pair inputs** — soft-checks batch padding and pair-input behaviour; warnings only, does not affect exit code (skipped if `openvino_genai` is not installed)
+- **[5/5] GenAI padding + pair inputs** — checks batch padding and pair-input behaviour. For tokenizers-backend tokenizers (`PreTrainedTokenizerFast` / `TokenizersBackend`), mismatches are reported as errors and affect the exit code. For other tokenizers, mismatches are reported as warnings only (skipped if `openvino_genai` is not installed)
 
-### Step 2: Run the normalization check
+### \[Optional\] Step 2: Run the normalization check
+
+Run this step if there are issues in the **[3/5] Test against 31 strings** step of the previous command:
 
 ```
 openvino_tokenizers check_normalization <model_id> [flags]
@@ -83,10 +85,11 @@ Both commands print `✓` / `✗` per step and exit with code 0 (all passed) or 
 - Expected (HF) vs actual (OV) values — token IDs, decoded text, or normalized text
 - Shape mismatches, value mismatches, or missing output keys
 
-**Warnings (step 5 of `check`):**
+**Step 5 results (padding + pair inputs):**
 - Batch padding mismatches across different configurations (longest, max_length, left/right padding)
 - Pair-input encode mismatches
-- These do NOT affect the exit code but should be reported
+- For tokenizers-backend tokenizers (`PreTrainedTokenizerFast` / `TokenizersBackend`): these are **errors** that affect the exit code
+- For other tokenizers (e.g. SentencePiece-only): these are **warnings** that do NOT affect the exit code but should be reported
 
 ### Step 4: Report Results
 
