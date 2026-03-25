@@ -45,6 +45,7 @@ from .tokenizer_pipeline import (
     NormalizeUnicode,
     PaddingStep,
     PreTokenizatinStep,
+    PostTokenizationStep,
     RegexDecodingStep,
     RegexNormalizationStep,
     RegexSplitStep,
@@ -277,28 +278,17 @@ class TransformersTokenizerPipelineParser:
 
     post_tokenization_map: dict[
         str,
-        Callable[[dict[str, Any]], Union[PreTokenizatinStep, list[PreTokenizatinStep]]],
+        Callable[[dict[str, Any]], Union[PostTokenizationStep, list[PostTokenizationStep]]],
     ] = {
         "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
         "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
         "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
+        "ByteLevel": lambda *args, **kwargs: CombineSegmentsStep([Sequence()], add_special_tokens=False),
     }
 
     def post_tokenization(self) -> None:
         post_processor_json = self.tokenizer_json["post_processor"]
-        if (
-            post_processor_json is None
-            # As a `PostProcessor`, `ByteLevel` is in charge of trimming the offsets if necessary
-            or post_processor_json["type"] == "ByteLevel"
-        ):
-            self.add_truncation()
-            self.pipeline.add_steps(
-                CombineSegmentsStep([Sequence()], add_special_tokens=False)
-            )
-            self.add_padding(use_max_padding=self.use_max_padding)
-            return
-
-        pt_type = post_processor_json["type"]
+        pt_type = "ByteLevel" if post_processor_json is None else post_processor_json["type"]
 
         if pt_type != "Sequence" and pt_type not in self.post_tokenization_map:
             raise OVTypeError(f"Post-processor type '{pt_type}' is not supported")
