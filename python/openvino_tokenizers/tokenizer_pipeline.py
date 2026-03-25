@@ -357,6 +357,7 @@ class RegexSplitStep(PreTokenizatinStep):
     invert: bool = False
     behaviour: str = "remove"
     max_splits: int = -1
+    mergeable: bool = True
 
     def __post_init__(self):
         if self.max_splits < -1:
@@ -366,6 +367,8 @@ class RegexSplitStep(PreTokenizatinStep):
             )
 
     def __add__(self, other: "RegexSplitStep") -> "RegexSplitStep":
+        if not self.mergeable or not other.mergeable:
+            raise ValueError("Cannot merge RegexSplitStep instances marked as non-mergeable")
         if self.invert != other.invert:
             raise ValueError("Cannot add two RegexSplitStep instances with different invert attributes")
         if self.behaviour != other.behaviour:
@@ -453,6 +456,7 @@ class RegexSplitStep(PreTokenizatinStep):
             r"\p{Nd}|\p{Nl}|\p{No}",
             invert=False,
             behaviour=behaviour,
+            mergeable=False,
         )
 
     @classmethod
