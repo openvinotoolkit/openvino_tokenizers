@@ -303,7 +303,9 @@ class TransformersTokenizerPipelineParser:
         "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
         "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
         "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
-        "ByteLevel": lambda *args, **kwargs: CombineSegmentsStep([Sequence()], add_special_tokens=False),
+        "ByteLevel": (
+            lambda proc_json, num_inp, add_spec_tok: CombineSegmentsStep([Sequence()], add_special_tokens=add_spec_tok)
+        ),
     }
 
     def post_tokenization(self) -> None:
@@ -316,14 +318,24 @@ class TransformersTokenizerPipelineParser:
         if pt_type == "Sequence":
             processors = post_processor_json["processors"]
             byte_level = next(
-                ([] for step in processors if (step["type"] == "ByteLevel")),
+                (
+                    step_class(step, self.number_of_inputs, self.add_special_tokens)
+                    for step in processors
+                    if (
+                        step["type"] == "ByteLevel"
+                        and (step_class := self.post_tokenization_map.get(step["type"]))
+                    )
+                ),
                 None,
             )
             combine_segments_step = next(
                 (
                     step_class(step, self.number_of_inputs, self.add_special_tokens)
                     for step in processors
-                    if (step_class := self.post_tokenization_map.get(step["type"]))
+                    if (
+                        step["type"] != "ByteLevel"
+                        and (step_class := self.post_tokenization_map.get(step["type"]))
+                    )
                 ),
                 None,
             )
