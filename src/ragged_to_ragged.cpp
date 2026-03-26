@@ -19,8 +19,24 @@ void RaggedToRagged::validate_and_infer_types() {
     OPENVINO_ASSERT(rowids_type == element::i32, "Expected an i32 rowids tensor ragged representation.");
     OPENVINO_ASSERT(first_dim_size_type == element::i32, "Expected an i32 first dim size tensor ragged representation.");
 
-    set_output_type(0, get_input_element_type(0), PartialShape({ Dimension::dynamic() }));
-    set_output_type(1, get_input_element_type(0), PartialShape({ Dimension::dynamic() }));
+    // Check whether input 1 is a Constant node, otherwise fall back to the lower-bound tensor
+    PartialShape out_shape({ Dimension::dynamic() });
+    auto infer_from_int32_tensor = [&](const ov::Tensor& t) {
+        if (t && t.get_element_type() == element::i32 && t.get_size() >= 1) {
+            out_shape = PartialShape({ static_cast<Dimension::value_type>(t.data<const int32_t>()[0]) });
+        }
+    };
+    if (const auto* first_dim_const = dynamic_cast<const Constant*>(get_input_node_ptr(1))) {
+        auto vals = first_dim_const->cast_vector<int32_t>();
+        if (!vals.empty()) {
+            out_shape = PartialShape({ static_cast<Dimension::value_type>(vals[0]) });
+        }
+    } else {
+        infer_from_int32_tensor(get_input_tensor(1).get_lower_value());
+    }
+
+    set_output_type(0, get_input_element_type(0), out_shape);
+    set_output_type(1, get_input_element_type(0), out_shape);
 }
 
 
