@@ -289,7 +289,7 @@ class TransformersTokenizerPipelineParser:
         ):
             self.add_truncation()
             self.pipeline.add_steps(
-                CombineSegmentsStep([Sequence() for _ in range(self.number_of_inputs)], add_special_tokens=False)
+                CombineSegmentsStep([Sequence()], add_special_tokens=False)
             )
             self.add_padding(use_max_padding=self.use_max_padding)
             return
@@ -792,7 +792,7 @@ def convert_sentencepiece_model_tokenizer(
             add_prefix_space=params.add_prefix_space,
             byte_fallback=byte_fallback,
         )
-        sp_detokenizer_model = np.fromstring(sp_detokenizer_model_string, dtype=np.uint8)
+        sp_detokenizer_model = np.frombuffer(sp_detokenizer_model_string, dtype=np.uint8)
         sp_detokenizer_model_node = as_node(sp_detokenizer_model)
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
