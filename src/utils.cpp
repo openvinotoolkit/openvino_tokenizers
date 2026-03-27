@@ -62,6 +62,16 @@ void check_ragged_input(const Node* node, size_t input_index) {
     FRONT_END_GENERAL_CHECK(rank.is_dynamic() || rank.get_length() == 1, "The last tensor in ragged tensor representation should be a 1D tensor");
 }
 
+void check_ragged_input_any_rank_data(const Node* node, size_t input_index) {
+    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index + 0) == element::i32,
+                            "Expected an i32 tensor as the first part of the decomposed ragged representation");
+    FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index + 1) == element::i32,
+                            "Expected an i32 tensor as the second part of the decomposed ragged representation");
+    auto rank = node->get_input_partial_shape(input_index + 2).rank();
+    FRONT_END_GENERAL_CHECK(rank.is_dynamic() || rank.get_length() >= 1,
+                            "The last tensor in ragged tensor representation should have rank >= 1");
+}
+
 void check_ragged_string_input(const Node* node, size_t input_index) {
     FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+0) == element::i32, "Expected an i32 tensor as the first part of the decomposed ragged string representation");
     FRONT_END_GENERAL_CHECK(node->get_input_element_type(input_index+1) == element::i32, "Expected an i32 tensor as the second part of the decomposed ragged string representation");
