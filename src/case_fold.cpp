@@ -49,25 +49,17 @@ bool CaseFold::evaluate(ov::TensorVector &outputs,
   }
   // we only support upper when encoding is empty
   if (m_encoding.empty()) {
-    if (!m_lower) {
-      return evaluate_normalization_helper(
-          outputs, inputs, [](const std::string &str) {
-            std::string result = "";
-            for (unsigned char ch : str) {
-              result += ('a' <= ch && ch <= 'z') ? ch - 32 : ch;
-            };
-            return result;
-          });
-    } else {
-      return evaluate_normalization_helper(
-          outputs, inputs, [](const std::string &str) {
-            std::string result = "";
-            for (unsigned char ch : str) {
-              result += ('A' <= ch && ch <= 'Z') ? ch + 32 : ch;
-            };
-            return result;
-          });
-    }
+    return evaluate_normalization_helper(
+        outputs, inputs, [this](const std::string &str) {
+          const unsigned char low = m_lower ? 'A' : 'a';
+          const unsigned char hi = m_lower ? 'Z' : 'z';
+          const int delta = m_lower ? +32 : -32;
+          std::string result = "";
+          for (unsigned char ch : str) {
+            result += (low <= ch && ch <= hi) ? ch + delta : ch;
+          };
+          return result;
+        });
   } else {
     return evaluate_normalization_helper(
         outputs, inputs,

@@ -2,13 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "openvino/frontend/complex_type_mark.hpp"
-#include "openvino/frontend/hash_table.hpp"
-
+#include "onnx_translators.hpp"
 #include "openvino/op/util/framework_node.hpp"
 #include "openvino/opsets/opset13.hpp"
-
-#include "onnx_translators.hpp"
 #include "utils.hpp"
 
 #include "case_fold.hpp"
@@ -18,18 +14,12 @@
 #include "openvino/op/one_hot.hpp"
 #include "ragged_tensor_pack.hpp"
 #include "ragged_to_dense.hpp"
-#include "ragged_to_ragged.hpp"
-#include "ragged_to_sparse.hpp"
 #include "regex_normalization.hpp"
 #include "regex_split.hpp"
-#include "sentence_piece.hpp"
 #include "string_tensor_pack.hpp"
 #include "string_tensor_unpack.hpp"
 #include "string_to_hash_bucket.hpp"
-#include "trie_tokenizer.hpp"
-#include "vocab_decoder.hpp"
 #include "vocab_encoder.hpp"
-#include "wordpiece_tokenizer.hpp"
 
 using namespace ov;
 using namespace ov::op;
@@ -51,6 +41,7 @@ translate_onnx_string_normalizer(const ov::frontend::NodeContext &node) {
     stopwords = node.get_attribute<std::vector<std::string>>("stopwords");
   }
   bool is_case_sensitive = node.get_attribute<int64_t>("is_case_sensitive", 0);
+
   ov::Output<ov::Node> string_result;
   // check for stop words
   if (!stopwords.empty()) {
@@ -186,6 +177,9 @@ translate_onnx_tokenizer(const ov::frontend::NodeContext &node) {
       "Frontend tokenizer implementation expects tokenexp attribute");
 
   int64_t mark = node.get_attribute<int64_t>("mark");
+  FRONT_END_GENERAL_CHECK(mark == 1, "Frontend tokenizer implementation only "
+                                     "supports mark as False currently");
+
   int64_t mincharnum = node.get_attribute<int64_t>("mincharnum");
   std::string pad_value = node.get_attribute<std::string>("pad_value");
 
