@@ -11,9 +11,10 @@ using namespace ov;
 void CaseFold::validate_and_infer_types() {
   check_string_input(this, 0);
   OPENVINO_ASSERT(m_encoding == "" || m_encoding == "utf-8",
-                  "CaseFold operation `encoding` attribute must be one of "
-                  "[\"\", \"utf-8\"], got `",
-                  m_encoding, "`.");
+                  "CaseFold operation `encoding` attribute must either be "
+                  "[\"\"] or 'encoding'=\"utf-8\"] with 'lower'=True, got `",
+                  m_encoding, "`. and lower =", m_lower);
+
   set_string_output(this, 0, get_input_partial_shape(0));
 
   auto input_size = get_input_size();
@@ -24,6 +25,10 @@ void CaseFold::validate_and_infer_types() {
     this->set_output_type(3, get_input_element_type(3),
                           get_input_partial_shape(3));
   };
+
+  m_low = m_lower ? 'A' : 'a';
+  m_hi = m_lower ? 'Z' : 'z';
+  m_delta = m_lower ? +32 : -32;
 }
 
 bool CaseFold::evaluate(ov::TensorVector &outputs,
@@ -45,10 +50,6 @@ bool CaseFold::evaluate(ov::TensorVector &outputs,
 
       m_normalizer =
           std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
-
-      m_low = m_lower ? 'A' : 'a';
-      m_hi = m_lower ? 'Z' : 'z';
-      m_delta = m_lower ? +32 : -32;
     });
   }
   // we only support upper when encoding is empty

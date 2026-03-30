@@ -125,9 +125,7 @@ translate_onnx_label_encoder(const ov::frontend::NodeContext &node) {
   } else if (node.has_attribute("keys_tensor")) {
     ov::Tensor keys = node.get_attribute<ov::Tensor>("keys_tensor");
     auto constant = std::make_shared<ov::op::v0::Constant>(keys);
-    all_keys =
-        std::make_shared<Convert>(constant->output(0), ov::element::string)
-            ->output(0);
+    all_keys = constant->output(0);
   }
 
   // check for values
@@ -177,8 +175,8 @@ translate_onnx_tokenizer(const ov::frontend::NodeContext &node) {
       "Frontend tokenizer implementation expects tokenexp attribute");
 
   int64_t mark = node.get_attribute<int64_t>("mark");
-  FRONT_END_GENERAL_CHECK(mark == 1, "Frontend tokenizer implementation only "
-                                     "supports mark as False currently");
+  FRONT_END_GENERAL_CHECK(mark == 0, "Frontend tokenizer implementation only "
+                                     "supports mark==0 currently");
 
   int64_t mincharnum = node.get_attribute<int64_t>("mincharnum");
   std::string pad_value = node.get_attribute<std::string>("pad_value");
@@ -285,13 +283,10 @@ translate_onnx_tfid_vectorizer(const ov::frontend::NodeContext &node) {
       node.get_attribute<std::vector<int64_t>>("ngram_counts");
   std::vector<int64_t> ngram_indexes =
       node.get_attribute<std::vector<int64_t>>("ngram_indexes");
-  std::vector<double> weights =
-      node.get_attribute<std::vector<double>>("weights", std::vector<double>());
-  std::string mode = node.get_attribute<std::string>("mode");
 
   // We do not handle multi grams in this implementation
   FRONT_END_GENERAL_CHECK(
-      max_gram_length == min_gram_length == 1,
+      max_gram_length == 1 && min_gram_length == 1,
       "TFIDVectorizer Frontend Implementation handle only unigrams");
 
   FRONT_END_GENERAL_CHECK(
@@ -343,6 +338,8 @@ translate_onnx_tfid_vectorizer(const ov::frontend::NodeContext &node) {
                                                 std::vector<int32_t>{1});
   auto tf_counts =
       std::make_shared<ReduceSum>(one_hot, reduce_axis, false)->output(0);
+
+  set_node_name(node_name, tf_counts.get_node_shared_ptr());
 
   return {tf_counts};
 }
