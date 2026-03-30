@@ -45,18 +45,19 @@ bool CaseFold::evaluate(ov::TensorVector &outputs,
 
       m_normalizer =
           std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
+
+      m_low = m_lower ? 'A' : 'a';
+      m_hi = m_lower ? 'Z' : 'z';
+      m_delta = m_lower ? +32 : -32;
     });
   }
   // we only support upper when encoding is empty
   if (m_encoding.empty()) {
     return evaluate_normalization_helper(
         outputs, inputs, [this](const std::string &str) {
-          const unsigned char low = m_lower ? 'A' : 'a';
-          const unsigned char hi = m_lower ? 'Z' : 'z';
-          const int delta = m_lower ? +32 : -32;
           std::string result = "";
           for (unsigned char ch : str) {
-            result += (low <= ch && ch <= hi) ? ch + delta : ch;
+            result += (m_low <= ch && ch <= m_hi) ? ch + m_delta : ch;
           };
           return result;
         });
