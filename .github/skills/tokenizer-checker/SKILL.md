@@ -1,19 +1,19 @@
 ---
 name: tokenizer-checker
-description: "Validate a HuggingFace tokenizer with OpenVINO Tokenizers and OpenVINO GenAI. Use when: checking if a tokenizer converts and works correctly, verifying tokenizer/detokenizer accuracy, checking GenAI Tokenizer compatibility, gating tokenizer enablement pipeline."
+description: "Validate a HuggingFace tokenizer with OpenVINO Tokenizers and OpenVINO GenAI. Use when: checking if a tokenizer converts and works correctly, verifying tokenizer/detokenizer accuracy, testing normalization steps, checking GenAI Tokenizer compatibility."
 argument-hint: "model_id (e.g. zai-org/GLM-4.7)"
 ---
 
 # OpenVINO Tokenizer Checker
 
-Pass/fail gate for HuggingFace tokenizer compatibility with OpenVINO Tokenizers. Runs the `openvino_tokenizers check` CLI and produces a structured result that downstream skills (diagnostics, fixers) and the orchestrator agent can consume.
+Validates that a HuggingFace tokenizer converts to OpenVINO correctly and produces matching outputs for encoding, decoding, normalization, and GenAI compatibility.
 
 ## When to Use
 
 - Verify a HuggingFace tokenizer converts to OpenVINO and matches HF outputs
 - Check if a newly supported tokenizer works end-to-end with OpenVINO GenAI
-- Gate the tokenizer enablement pipeline — first step before diagnostics or fixing
-- Re-verify after fixes have been applied
+- Diagnose which test categories (English, multilingual, emoji, whitespace) fail
+- Test normalization steps individually to isolate mismatches
 
 ## Inputs
 
@@ -58,128 +58,59 @@ This executes:
 - **[4/5] GenAI Tokenizer encode + decode** — tests `openvino_genai.Tokenizer` encode/decode with and without special tokens (skipped if `openvino_genai` is not installed)
 - **[5/5] GenAI padding + pair inputs** — checks batch padding and pair-input behaviour. For tokenizers-backend tokenizers (`PreTrainedTokenizerFast` / `TokenizersBackend`), mismatches are reported as errors and affect the exit code. For other tokenizers, mismatches are reported as warnings only (skipped if `openvino_genai` is not installed)
 
-### Step 2: Parse the Output
+### \[Optional\] Step 2: Run the normalization check
 
-Read both stdout and stderr from the command. Extract:
-
-1. **Exit code**: 0 = all hard steps passed, 1 = any hard step failed.
-2. **Per-step results**: each step prints `✓` (pass) or `✗` (fail) with context.
-3. **Step 5 warnings**: `⚠` lines that do NOT affect the exit code for non-tokenizers-backend tokenizers.
-
-Classify each failing test string into one of these categories based on the [test string definitions in check_tokenizer.py](../../python/openvino_tokenizers/cli_tools/check_tokenizer.py):
-
-| Category | Strings |
-|----------|---------|
-| english | `"Eng... test, string?!"`, `"Multiline\nstring!..."`, `"What is OpenVINO?"`, etc. |
-| multilingual | `"Тестовая строка!"`, `"測試字符串"`, `"سلسلة الاختبار"`, etc. |
-| emoji | `"😀"`, `"🤣🤣🤣😁😁😁😁"`, `"🫠"`, `"🤷‍♂️"`, `"🤦🏼‍♂️"` |
-| whitespace_edge | `""`, `" "`, `" " * 10`, `"\n"`, `"\x06"`, etc. |
-
-Classify the nature of each mismatch:
-
-| Mismatch Type | How to Identify |
-|--------------|-----------------|
-| `conversion_error` | Step [2/5] prints `✗` — conversion itself failed with an exception |
-| `token_id_mismatch` | `"value mismatch for 'input_ids'"` in step [3/5] or [4/5] |
-| `shape_mismatch` | `"shape mismatch for ..."` in step [3/5] or [4/5] |
-| `missing_output` | `"output key '...' missing from OV result"` in step [3/5] |
-| `decode_mismatch` | `"detokenizer mismatch"` in step [3/5] or `"decode mismatch"` in step [4/5] |
-| `padding_mismatch` | `"padding mismatch"` in step [5/5] |
-| `pair_encode_mismatch` | `"pair encode mismatch"` in step [5/5] |
-
-### Step 3: Produce Structured Result
-
-After parsing, produce a result block in exactly this format:
+Run this step if there are issues in the **[3/5] Test against 31 strings** step of the previous command:
 
 ```
-## Result
-- status: PASS | FAIL
-- conversion_ok: true | false
-- tokenizer_test_failures: <number of failing strings in step 3>
-- detokenizer_failures: <number of detokenizer mismatches in step 3>
-- genai_test_failures: <number of failing strings in step 4, or "skipped">
-- genai_advanced_issues: <number of issues in step 5, or "skipped">
-- genai_advanced_strict: true | false (whether step 5 issues are errors or warnings)
-- failing_categories: [<list of categories with failures>]
-- failure_types: [<list of mismatch types observed>]
-- error_details: |
-    <copy the relevant ✗ lines and mismatch details from stderr, indented>
+openvino_tokenizers check_normalization <model_id> [flags]
 ```
 
-**Examples:**
+This executes:
+- **[1/3] Load HF tokenizer** — same as above
+- **[2/3] Parse normalizer pipeline** — extracts individual normalizer steps from `tokenizer.json` and prints the HF → OV mapping
+- **[3/3] Test normalizer steps** — tests each normalizer step independently, then tests the full stacked pipeline
 
-All pass:
-```
-## Result
-- status: PASS
-- conversion_ok: true
-- tokenizer_test_failures: 0
-- detokenizer_failures: 0
-- genai_test_failures: 0
-- genai_advanced_issues: 0
-- genai_advanced_strict: true
-- failing_categories: []
-- failure_types: []
-- error_details: none
-```
+### Step 3: Interpret Results
 
-Partial failure:
-```
-## Result
-- status: FAIL
-- conversion_ok: true
-- tokenizer_test_failures: 3
-- detokenizer_failures: 0
-- genai_test_failures: 3
-- genai_advanced_issues: 1
-- genai_advanced_strict: true
-- failing_categories: [emoji, whitespace_edge]
-- failure_types: [token_id_mismatch]
-- error_details: |
-    Input: '😀'
-      value mismatch for 'input_ids':
-        HF: [1, 155, 234]
-        OV: [1, 155, 235]
-    Input: ''
-      value mismatch for 'input_ids':
-        HF: [1]
-        OV: [1, 0]
-```
+Both commands print `✓` / `✗` per step and exit with code 0 (all passed) or 1 (any failure).
 
-Conversion failure:
-```
-## Result
-- status: FAIL
-- conversion_ok: false
-- tokenizer_test_failures: 0
-- detokenizer_failures: 0
-- genai_test_failures: skipped
-- genai_advanced_issues: skipped
-- genai_advanced_strict: false
-- failing_categories: []
-- failure_types: [conversion_error]
-- error_details: |
-    OVTypeError: Normalizer type 'NewFancyNormalizer' is not supported
-```
+**Pass criteria:**
+- Exit code 0 for each command
+- All test strings matched in step 3 of `check`
+- All normalizer steps matched in step 3 of `check_normalization`
 
-### Step 4: Report to User
+**Failure output includes:**
+- The input string that failed
+- Expected (HF) vs actual (OV) values — token IDs, decoded text, or normalized text
+- Shape mismatches, value mismatches, or missing output keys
 
-**If `status: PASS`:**
-- State that the tokenizer is fully compatible.
-- Note whether GenAI steps were tested or skipped (if `openvino_genai` is not installed).
-- Note any step-5 warnings if present (when `genai_advanced_strict: false` and `genai_advanced_issues > 0`).
+**Step 5 results (padding + pair inputs):**
+- Batch padding mismatches across different configurations (longest, max_length, left/right padding)
+- Pair-input encode mismatches
+- For tokenizers-backend tokenizers (`PreTrainedTokenizerFast` / `TokenizersBackend`): these are **errors** that affect the exit code
+- For other tokenizers (e.g. SentencePiece-only): these are **warnings** that do NOT affect the exit code but should be reported
 
-**If `status: FAIL`:**
-- Present the structured result block.
-- Summarize the key findings:
-  1. **Which step failed** — conversion, tokenizer comparison, detokenizer, GenAI encode/decode, or GenAI advanced.
-  2. **Pattern in failing categories** — helps identify the root cause area:
-     - Only emoji → multi-byte / surrogate handling issue
-     - Only multilingual → Unicode/encoding issue
-     - Only whitespace_edge → edge-case handling issue
-     - All categories → fundamental conversion or model issue
-  3. **Nature of the mismatch** — token ID, shape, decode, etc.
-- If invoked as part of the enablement pipeline, the orchestrator will hand off the result to the `tokenizer-diagnostics` skill for root cause analysis.
+### Step 4: Report Results
+
+Provide a structured report to the user:
+
+**If all steps pass:**
+- State that the tokenizer is fully compatible
+- Note whether GenAI steps were tested or skipped (if `openvino_genai` is not installed)
+- Note any step-5 warnings if present
+
+**If any step fails, build a failure report covering:**
+
+1. **Which step failed** — conversion, tokenizer comparison, detokenizer, GenAI encode/decode, or normalization
+2. **Which string categories failed** — identify patterns:
+   - English strings only → basic tokenization issue
+   - Multilingual strings → Unicode/encoding issue
+   - Emoji strings → multi-byte / surrogate handling issue
+   - Empty/whitespace strings → edge-case handling issue
+   - All strings → fundamental conversion issue
+3. **Nature of the mismatch** — token ID mismatch, shape mismatch, missing output key, decode mismatch, or normalization mismatch
+4. **Normalization isolation** — if `check_normalization` identifies a specific normalizer step as the root cause, report which step type (e.g. `NFC`, `Lowercase`, `Precompiled`) and its parameters
 
 ### Security
 
