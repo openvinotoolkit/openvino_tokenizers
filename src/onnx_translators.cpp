@@ -164,12 +164,13 @@ translate_onnx_tokenizer(const ov::frontend::NodeContext &node) {
       node.has_attribute("tokenexp"),
       "Frontend tokenizer implementation expects tokenexp attribute");
 
-  int64_t mark = node.get_attribute<int64_t>("mark");
+  int64_t mark = node.get_attribute<int64_t>("mark", 0);
   FRONT_END_GENERAL_CHECK(mark == 0, "Frontend tokenizer implementation only "
                                      "supports mark==0 currently");
 
-  int64_t mincharnum = node.get_attribute<int64_t>("mincharnum");
-  std::string pad_value = node.get_attribute<std::string>("pad_value");
+  int64_t mincharnum = node.get_attribute<int64_t>("mincharnum", 1);
+  std::string pad_value =
+      node.get_attribute<std::string>("pad_value", std::string{});
 
   auto default_value = std::make_shared<ov::op::v0::Constant>(
       ov::element::string, ov::Shape{}, // scalar shape
