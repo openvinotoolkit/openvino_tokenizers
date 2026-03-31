@@ -36,7 +36,7 @@ void VocabEncoder::validate_and_infer_types() {
 }
 
 bool VocabEncoder::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
-    auto& input = inputs[0];
+    auto& input = inputs[6];
 
     switch (input.get_element_type()) {
     case ov::element::i32:
