@@ -108,10 +108,9 @@ translate_onnx_label_encoder(const ov::frontend::NodeContext &node) {
         node.get_attribute<ov::Tensor>("default_tensor");
     std::memcpy(&default_int64_value, default_tensor.data(), sizeof(int64_t));
   }
-  int32_t default_int32_value = static_cast<int32_t>(default_int64_value);
   default_value =
-      std::make_shared<Constant>(ov::element::i32, ov::Shape{1},
-                                 std::vector<int32_t>{default_int32_value});
+      std::make_shared<Constant>(ov::element::i64, ov::Shape{1},
+                                 std::vector<int64_t>{default_int64_value});
 
   // check for keys
   ov::Output<ov::Node> all_keys;
@@ -134,15 +133,10 @@ translate_onnx_label_encoder(const ov::frontend::NodeContext &node) {
     std::vector<int64_t> values_ints =
         node.get_attribute<std::vector<int64_t>>("values_int64s");
     ov::Shape values_shape = {values_ints.size()};
-    all_values =
-        std::make_shared<Constant>(ov::element::i32, values_shape, values_ints)
-            ->output(0);
+    all_values = std::make_shared<Constant>(ov::element::i64, values_shape, values_ints)->output(0);
   } else if (node.has_attribute("values_tensor")) {
     ov::Tensor values = node.get_attribute<ov::Tensor>("values_tensor");
-    auto constant = std::make_shared<ov::op::v0::Constant>(values);
-    all_values =
-        std::make_shared<Convert>(constant->output(0), ov::element::i32)
-            ->output(0);
+    all_values = std::make_shared<ov::op::v0::Constant>(values)->output(0);
   }
 
   // unpack string tensor for required keys and all keys from vocabulary
@@ -157,10 +151,6 @@ translate_onnx_label_encoder(const ov::frontend::NodeContext &node) {
   arguments.push_back(all_values);
   arguments.push_back(default_value);
   auto tokens = std::make_shared<VocabEncoder>(arguments)->output(0);
-
-  // convert back to i64
-  tokens = std::make_shared<Convert>(tokens, ov::element::i64);
-
   set_node_name(node.get_name(), tokens.get_node_shared_ptr());
   return {tokens};
 }
@@ -303,20 +293,20 @@ translate_onnx_tfid_vectorizer(const ov::frontend::NodeContext &node) {
                    ov::element::string, ov::Shape{vocab_size}, pool_strings)
                    ->output(0);
 
-  int32_t vocab_size_int = static_cast<int32_t>(vocab_size);
+  int64_t vocab_size_int = static_cast<int64_t>(vocab_size);
   auto vocab_size_const = std::make_shared<Constant>(
-      ov::element::i32, Shape{}, std::vector<int32_t>{vocab_size_int});
+      ov::element::i64, Shape{}, std::vector<int64_t>{vocab_size_int});
 
   auto all_values =
       std::make_shared<ov::op::v0::Constant>(
-          ov::element::i32, ov::Shape{ngram_indexes.size()}, ngram_indexes)
+          ov::element::i64, ov::Shape{ngram_indexes.size()}, ngram_indexes)
           ->output(0);
 
   ov::OutputVector unpacked_input =
       pre_translate_string_tensor_input(node.get_input(0));
   ov::OutputVector unpacked_all_keys = pre_translate_string_tensor_input(vocab);
-  auto neg_indice = std::make_shared<Constant>(element::i32, Shape{},
-                                               std::vector<int32_t>{-1});
+  auto neg_indice = std::make_shared<Constant>(element::i64, Shape{},
+                                               std::vector<int64_t>{-1});
 
   ov::OutputVector arguments = unpacked_input;
   arguments.insert(arguments.end(), unpacked_all_keys.begin(),
@@ -334,8 +324,8 @@ translate_onnx_tfid_vectorizer(const ov::frontend::NodeContext &node) {
                                           off_value, -1)
                      ->output(0);
 
-  auto reduce_axis = std::make_shared<Constant>(ov::element::i32, Shape{1},
-                                                std::vector<int32_t>{1});
+  auto reduce_axis = std::make_shared<Constant>(ov::element::i64, Shape{1},
+                                                std::vector<int64_t>{1});
   auto tf_counts =
       std::make_shared<ReduceSum>(one_hot, reduce_axis, false)->output(0);
 

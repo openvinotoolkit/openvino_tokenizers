@@ -5,6 +5,7 @@
 #pragma once
 #include <vector>
 #include <openvino/op/op.hpp>
+#include <any>
 
 #include "absl/container/flat_hash_map.h"
 
@@ -22,7 +23,7 @@ public:
         constructor_validate_and_infer_types();
     }
 
-    VocabEncoder(const ov::OutputVector& arguments, std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> vocab) :
+    VocabEncoder(const ov::OutputVector& arguments, std::any vocab) :
         ov::op::Op(arguments), m_vocab(vocab) {
         constructor_validate_and_infer_types();
     }
@@ -43,6 +44,10 @@ public:
         return true;
     }
 private:
-    mutable std::shared_ptr<absl::flat_hash_map<std::string, int32_t>> m_vocab;
+    mutable std::any m_vocab;
+
     mutable std::once_flag m_init_flag;
+
+    template <typename T>
+    bool evaluate_impl(ov::TensorVector& outputs, const ov::TensorVector& inputs) const ;
 };
