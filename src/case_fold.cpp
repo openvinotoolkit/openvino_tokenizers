@@ -10,10 +10,13 @@ using namespace ov;
 
 void CaseFold::validate_and_infer_types() {
   check_string_input(this, 0);
-  OPENVINO_ASSERT(m_encoding == "" || m_encoding == "utf-8",
-                  "CaseFold operation `encoding` attribute must either be "
-                  "[\"\"] or 'encoding'=\"utf-8\"] with 'lower'=True, got `",
-                  m_encoding, "`. and lower =", m_lower);
+  OPENVINO_ASSERT(
+      (m_encoding.empty() || m_encoding == "utf-8") &&
+          (m_encoding != "utf-8" || m_lower),
+      "CaseFold operation `encoding` attribute must be either \"\" or "
+      "\"utf-8\". When `encoding` is \"utf-8\", only `lower` = true is "
+      "supported. Got encoding = `",
+      m_encoding, "` and lower = ", m_lower, ".");
 
   set_string_output(this, 0, get_input_partial_shape(0));
 
