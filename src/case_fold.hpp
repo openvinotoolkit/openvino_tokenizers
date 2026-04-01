@@ -17,6 +17,11 @@ public:
            const std::string &encoding = "utf-8", const bool lower = true)
       : ov::op::Op(arguments), m_encoding(encoding), m_lower(lower),
         m_init_flag() {
+      
+    m_low = m_lower ? 'A' : 'a';
+    m_hi = m_lower ? 'Z' : 'z';
+    m_delta = m_lower ? +32 : -32;
+
     constructor_validate_and_infer_types();
   }
 

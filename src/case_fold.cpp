@@ -29,9 +29,6 @@ void CaseFold::validate_and_infer_types() {
                           get_input_partial_shape(3));
   };
 
-  m_low = m_lower ? 'A' : 'a';
-  m_hi = m_lower ? 'Z' : 'z';
-  m_delta = m_lower ? +32 : -32;
 }
 
 bool CaseFold::evaluate(ov::TensorVector &outputs,
