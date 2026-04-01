@@ -233,6 +233,18 @@ class RegexNormalizationStep(NormalizationStep):
     @classmethod
     def add_prefix_whitespace_regex(cls) -> "RegexNormalizationStep":
         return cls(regex_search_pattern=r"^(\S)", replace_term=r" $1")
+    
+    @classmethod
+    def replace_whitespace_regex(cls) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r"\s", replace_term=" ", global_replace=True)
+
+    @classmethod
+    def handle_chinese_chars_regex(cls) -> "RegexNormalizationStep":
+        return cls(
+            regex_search_pattern=r"([\p{Han}])",
+            replace_term=r" $1 ",
+            global_replace=True,
+        )
 
     @classmethod
     def add_prefix_whitespace_to_not_whitespace_regex(cls) -> "RegexNormalizationStep":
@@ -253,8 +265,9 @@ class RegexNormalizationStep(NormalizationStep):
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
         return cls(
-            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F])",  # exclude \n\t\r
+            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\p{Cf}])",  # exclude \n\t\r
             replace_term="",
+            global_replace=True,
         )
 
     @classmethod
@@ -344,6 +357,7 @@ class RegexSplitStep(PreTokenizatinStep):
     invert: bool = False
     behaviour: str = "remove"
     max_splits: int = -1
+    mergeable: bool = True
 
     def __post_init__(self):
         if self.max_splits < -1:
@@ -353,6 +367,8 @@ class RegexSplitStep(PreTokenizatinStep):
             )
 
     def __add__(self, other: "RegexSplitStep") -> "RegexSplitStep":
+        if not self.mergeable or not other.mergeable:
+            raise ValueError("Cannot merge RegexSplitStep instances marked as non-mergeable")
         if self.invert != other.invert:
             raise ValueError("Cannot add two RegexSplitStep instances with different invert attributes")
         if self.behaviour != other.behaviour:
@@ -427,7 +443,13 @@ class RegexSplitStep(PreTokenizatinStep):
         return cls(metaspace, invert=False, behaviour="mergedwithnext")
 
     @classmethod
-    def byte_level_splitter(cls) -> "RegexSplitStep":
+    def byte_level_splitter(cls, individual_digits: bool = False) -> "RegexSplitStep":
+        if individual_digits:
+            return cls(
+                r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+|\p{N}| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+",
+                invert=False,
+                behaviour="isolate",
+            )
         return cls(
             r"'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+",
             invert=False,

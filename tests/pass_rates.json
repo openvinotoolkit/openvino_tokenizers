@@ -1,4 +1,4 @@
 {
-    "tests/tokenizers_test.py::test_": 0.9508006498027385,
-    "tests/tokenizers_test.py::test_transformers_v4": 0.9438384776050127
+    "tests/tokenizers_test.py::test_": 0.9597222222222223,
+    "tests/tokenizers_test.py::test_transformers_v4": 0.9447667672313762
 }
