@@ -49,7 +49,7 @@ private:
   mutable std::shared_ptr<sentencepiece::normalizer::Normalizer> m_normalizer;
   unsigned char m_low;
   unsigned char m_hi;
-  unsigned char m_delta;
+  int m_delta;
   // spec should be preserved for the lifetime of the normalizer
   mutable std::shared_ptr<sentencepiece::NormalizerSpec> m_spec;
   mutable std::once_flag m_init_flag;
