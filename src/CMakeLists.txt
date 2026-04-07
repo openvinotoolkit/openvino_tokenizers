@@ -383,6 +383,12 @@ ov_tokenizers_link_pcre2(${TARGET_NAME})
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
+# Enable LTO in Release build reduces the binary size by around 2 times
+if(NOT MSVC AND CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(${TARGET_NAME} PRIVATE -flto)
+    target_link_options(${TARGET_NAME} PRIVATE -flto)
+endif()
+
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
