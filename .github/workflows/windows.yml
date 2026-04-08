@@ -168,6 +168,26 @@ jobs:
         run: |
           cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
 
+      - name: Report tokenizers binary size
+        run: |
+          $installRoot = "${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers"
+          Write-Host "Install root: $installRoot"
+          $binaries = Get-ChildItem -Path $installRoot -Recurse -File | Where-Object {
+            $_.Name -in @('openvino_tokenizers.dll', 'libopenvino_tokenizers.so', 'libopenvino_tokenizers.dylib')
+          }
+
+          if (-not $binaries) {
+            Write-Warning "No openvino_tokenizers binary found under $installRoot"
+          } else {
+            foreach ($binary in $binaries) {
+              $sizeBytes = $binary.Length
+              $sizeMiB = [math]::Round($sizeBytes / 1MB, 2)
+              Write-Host "Binary: $($binary.FullName)"
+              Get-Item $binary.FullName | Format-Table -AutoSize Name, Length
+              Write-Host "Size: $sizeBytes bytes ($sizeMiB MiB)"
+            }
+          }
+
       - name: Pack Artifacts
         run: |
           $file=Get-ChildItem -Path "${{ env.OV_TOKENIZERS_INSTALL_DIR }}"
