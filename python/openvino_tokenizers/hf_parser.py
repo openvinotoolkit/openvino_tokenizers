@@ -45,6 +45,7 @@ from .tokenizer_pipeline import (
     NormalizeUnicode,
     PaddingStep,
     PreTokenizatinStep,
+    PostTokenizationStep,
     RegexDecodingStep,
     RegexNormalizationStep,
     RegexSplitStep,
@@ -76,6 +77,10 @@ def parse_bert_normalizer(normalizer_dict: dict[str, Any]) -> list[Normalization
 
     if normalizer_dict["clean_text"] is True:
         steps.append(RegexNormalizationStep.del_control_chars_regex())
+        steps.append(RegexNormalizationStep.replace_whitespace_regex())
+
+    if normalizer_dict["handle_chinese_chars"] is True:
+        steps.append(RegexNormalizationStep.handle_chinese_chars_regex())
 
     # https://github.com/huggingface/tokenizers/blob/8c9cfb0b689bce00b615b9557a9a767f286d7a33/tokenizers/src/normalizers/bert.rs#L127
     if normalizer_dict.get("strip_accents") or normalizer_dict["lowercase"]:
@@ -110,6 +115,7 @@ def parse_split_step(pretokenizer_dict: dict[str, Any]) -> RegexSplitStep:
 
 def parse_byte_level_pretokenization_step(
     pretokenizer_dict: dict[str, Any],
+    individual_digits: bool = False,
 ) -> list[Union[NormalizationStep, PreTokenizatinStep]]:
     steps = []
     if pretokenizer_dict.get("add_prefix_space"):
@@ -118,7 +124,7 @@ def parse_byte_level_pretokenization_step(
 
     # regex is used by default, but it does not appear in config yet
     if pretokenizer_dict.get("use_regex", True):
-        steps.append(RegexSplitStep.byte_level_splitter())
+        steps.append(RegexSplitStep.byte_level_splitter(individual_digits=individual_digits))
 
     steps.append(BytesToCharsStep())
     return steps
@@ -252,8 +258,27 @@ class TransformersTokenizerPipelineParser:
             return
 
         if self.tokenizer_json["pre_tokenizer"].get("type") == "Sequence":
-            for pretokenizer in self.tokenizer_json["pre_tokenizer"]["pretokenizers"]:
-                self.parse_pre_tokenization_step(pretokenizer)
+            pretokenizers = self.tokenizer_json["pre_tokenizer"]["pretokenizers"]
+            skip_next = False
+            for idx, pretokenizer in enumerate(pretokenizers):
+                if skip_next:
+                    skip_next = False
+                    continue
+                # When Digits(individual_digits=True) is followed by ByteLevel(use_regex=True),
+                # use a single combined regex instead of two separate RegexSplit ops 
+                if (
+                    pretokenizer["type"] == "Digits"
+                    and pretokenizer.get("individual_digits", False)
+                    and idx + 1 < len(pretokenizers)
+                    and pretokenizers[idx + 1]["type"] == "ByteLevel"
+                    and pretokenizers[idx + 1].get("use_regex", True)
+                ):
+                    self.pipeline.add_steps(
+                        parse_byte_level_pretokenization_step(pretokenizers[idx + 1], individual_digits=True)
+                    )
+                    skip_next = True
+                else:
+                    self.parse_pre_tokenization_step(pretokenizer)
         else:
             self.parse_pre_tokenization_step(self.tokenizer_json["pre_tokenizer"])
 
@@ -273,28 +298,19 @@ class TransformersTokenizerPipelineParser:
 
     post_tokenization_map: dict[
         str,
-        Callable[[dict[str, Any]], Union[PreTokenizatinStep, list[PreTokenizatinStep]]],
+        Callable[[dict[str, Any]], Union[PostTokenizationStep, list[PostTokenizationStep]]],
     ] = {
         "TemplateProcessing": CombineSegmentsStep.from_hf_json_template_postprocessor,
         "BertProcessing": CombineSegmentsStep.from_hf_json_bert_postprocessor,
         "RobertaProcessing": CombineSegmentsStep.from_hf_json_roberta_processor,
+        "ByteLevel": (
+            lambda proc_json, num_inp, add_spec_tok: CombineSegmentsStep([Sequence()], add_special_tokens=add_spec_tok)
+        ),
     }
 
     def post_tokenization(self) -> None:
         post_processor_json = self.tokenizer_json["post_processor"]
-        if (
-            post_processor_json is None
-            # As a `PostProcessor`, `ByteLevel` is in charge of trimming the offsets if necessary
-            or post_processor_json["type"] == "ByteLevel"
-        ):
-            self.add_truncation()
-            self.pipeline.add_steps(
-                CombineSegmentsStep([Sequence()], add_special_tokens=False)
-            )
-            self.add_padding(use_max_padding=self.use_max_padding)
-            return
-
-        pt_type = post_processor_json["type"]
+        pt_type = "ByteLevel" if post_processor_json is None else post_processor_json["type"]
 
         if pt_type != "Sequence" and pt_type not in self.post_tokenization_map:
             raise OVTypeError(f"Post-processor type '{pt_type}' is not supported")
@@ -302,14 +318,24 @@ class TransformersTokenizerPipelineParser:
         if pt_type == "Sequence":
             processors = post_processor_json["processors"]
             byte_level = next(
-                ([] for step in processors if (step["type"] == "ByteLevel")),
+                (
+                    step_class(step, self.number_of_inputs, self.add_special_tokens)
+                    for step in processors
+                    if (
+                        step["type"] == "ByteLevel"
+                        and (step_class := self.post_tokenization_map.get(step["type"]))
+                    )
+                ),
                 None,
             )
             combine_segments_step = next(
                 (
                     step_class(step, self.number_of_inputs, self.add_special_tokens)
                     for step in processors
-                    if (step_class := self.post_tokenization_map.get(step["type"]))
+                    if (
+                        step["type"] != "ByteLevel"
+                        and (step_class := self.post_tokenization_map.get(step["type"]))
+                    )
                 ),
                 None,
             )
