@@ -249,8 +249,8 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         }
 
         // Mark old neighbors as invalid.
-        if (first_it != res.head) {
-            invalid_pairs.insert({first_it->prev, first_it});
+        if (const auto prev_node = first_it->prev.lock()) {
+            invalid_pairs.insert({prev_node, first_it});
         }
         if (second_it != res.tail) {
             invalid_pairs.insert({second_it, second_it->next});
@@ -260,12 +260,12 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         auto new_node = res.merge_neighbors(first_it, second_it, rank);
         
         // Need to update the priority queue for the pairs which appeared after merge.
-        if (first_it->prev) {
-            const auto prev_pair = std::make_pair(first_it->prev->data, new_node->data);
+        if (const auto prev_node = first_it->prev.lock()) {
+            const auto prev_pair = std::make_pair(prev_node->data, new_node->data);
             const auto it = m_merges.find(prev_pair);
             if (it != m_merges.end()) {
                 const auto [idx, rank] = it->second;
-                pq.emplace(idx, rank, first_it->prev, new_node, i);
+                pq.emplace(idx, rank, prev_node, new_node, i);
             }
         }
 

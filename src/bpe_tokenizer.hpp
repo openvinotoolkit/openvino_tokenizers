@@ -24,9 +24,9 @@ class TokensList {
 public:
     struct Node {
         T data;
-        std::shared_ptr<Node> prev;
+        std::weak_ptr<Node> prev;
         std::shared_ptr<Node> next;
-        Node(const T& data) : data(data), prev(nullptr), next(nullptr) {}
+        Node(const T& data) : data(data), prev(), next(nullptr) {}
     };
 
     size_t m_size;
@@ -68,8 +68,8 @@ public:
         new_node->prev = first->prev;
         new_node->next = second->next;
 
-        if (first->prev) {
-            first->prev->next = new_node;
+        if (auto prev_node = first->prev.lock()) {
+            prev_node->next = new_node;
         } else {
             head = new_node;
         }
