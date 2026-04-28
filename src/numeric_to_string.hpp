@@ -7,12 +7,7 @@
 #include <openvino/op/op.hpp>
 
 // Converts a numeric tensor to a string tensor by representing each element as
-// its decimal string representation (e.g., int64 12345 -> "12345").
-// This is used to translate TensorFlow's AsString op when the input type is
-// a numeric type (int32, int64, float32, etc.).
-//
-// When the input is already element::string, the translator passes it through
-// directly (identity), so this op is only instantiated for numeric inputs.
+// its decimal string representation (ex. int64 12345 -> "12345")
 class NumericToString : public ov::op::Op {
 public:
     OPENVINO_OP("NumericToString", "openvino_tokenizers");

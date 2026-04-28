@@ -12,7 +12,6 @@
 using namespace ov;
 
 void NumericToString::validate_and_infer_types() {
-    // Output is a string tensor with the same shape as input
     set_output_type(0, element::string, get_input_partial_shape(0));
 }
 
