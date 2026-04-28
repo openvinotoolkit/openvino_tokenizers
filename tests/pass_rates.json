@@ -1,6 +1,4 @@
 {
     "tests/tokenizers_test.py::test_": 0.9597222222222223,
-    "tests/tokenizers_test.py::test_transformers_v4": 0.9447667672313762,
-    "tests/test_tf_translators.py::test_": 0.4444444444444444,
-    "tests/layer_tests.py::test_": 0.007352941176470562
+    "tests/tokenizers_test.py::test_transformers_v4": 0.9447667672313762
 }

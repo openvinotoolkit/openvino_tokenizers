@@ -611,3 +611,29 @@ def test_combine_segments(input_values, expected):
     res = compiled_model(np_input_values)
     for (_, val), (_, expect_val) in zip(res.items(), expected.items()):
         assert np.all(val == np.array(expect_val, dtype=np.int32))
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([0, 1, -1, 42, 9999, -12345], np.int64),
+        ([0, 1, -1, 42, 9999, -12345], np.int32),
+        ([1.0, -2.5, 0.0, 3.14159], np.float32),
+    ],
+)
+def test_numeric_to_string(values, dtype):
+    input_data = np.array(values, dtype=dtype)
+    ov_type = Type(dtype)
+
+    input_param = op.Parameter(ov_type, PartialShape(["?"]))
+    num_to_str = _get_factory().create("NumericToString", input_param.outputs()).outputs()
+    model = Model(num_to_str, [input_param], "numeric_to_string")
+
+    compiled_model = core.compile_model(model)
+    result = compiled_model([input_data])[0]
+
+    for got, val in zip(result.flatten(), values):
+        if dtype in (np.float32, np.float64):
+            assert abs(float(got) - val) < 1e-5, f"NumericToString: got {got!r}, expected ~{val}"
+        else:
+            assert got == str(val), f"NumericToString: got {got!r}, expected {str(val)!r}"
