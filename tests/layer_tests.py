@@ -618,7 +618,14 @@ def test_combine_segments(input_values, expected):
     [
         ([0, 1, -1, 42, 9999, -12345], np.int64),
         ([0, 1, -1, 42, 9999, -12345], np.int32),
+        ([0, 1, -1, 42], np.int16),
+        ([0, 1, -1, 42], np.int8),
+        ([0, 1, 42, 9999], np.uint64),
+        ([0, 1, 42, 9999], np.uint32),
+        ([0, 1, 42, 255], np.uint16),
+        ([0, 1, 42, 255], np.uint8),
         ([1.0, -2.5, 0.0, 3.14159], np.float32),
+        ([1.0, -2.5, 0.0, 3.14159], np.float64),
     ],
 )
 def test_numeric_to_string(values, dtype):
@@ -632,8 +639,21 @@ def test_numeric_to_string(values, dtype):
     compiled_model = core.compile_model(model)
     result = compiled_model([input_data])[0]
 
-    for got, val in zip(result.flatten(), values):
+    expected = [str(v) for v in values]
+    for got, exp in zip(result.flatten(), expected):
         if dtype in (np.float32, np.float64):
-            assert abs(float(got) - val) < 1e-5, f"NumericToString: got {got!r}, expected ~{val}"
+            assert abs(float(got) - float(exp)) < 1e-5, f"NumericToString: got {got!r}, expected ~{exp}"
         else:
-            assert got == str(val), f"NumericToString: got {got!r}, expected {str(val)!r}"
+            assert got == exp, f"NumericToString: got {got!r}, expected {exp!r}"
+
+
+def test_numeric_to_string_passthrough():
+    """String inputs should pass through unchanged (AsString identity behavior)."""
+    input_param = op.Parameter(Type.string, PartialShape(["?"]))
+    unpack = _get_opset_factory("opset15").create("StringTensorUnpack", input_param.outputs()).outputs()
+    pack = _get_opset_factory("opset15").create("StringTensorPack", unpack).outputs()
+    model = Model(pack, [input_param], "string_passthrough")
+
+    compiled_model = core.compile_model(model)
+    result = compiled_model([np.array(["hello", "world", "test"])])[0]
+    assert list(result.flatten()) == ["hello", "world", "test"]

@@ -70,9 +70,19 @@ bool NumericToString::evaluate(TensorVector& outputs, const TensorVector& inputs
             out_data[i] = oss.str();
         }
     } else if (type == element::boolean) {
-        const bool* in = input.data<bool>();
+        const uint8_t* in = input.data<uint8_t>();
         for (size_t i = 0; i < n; ++i) {
             out_data[i] = in[i] ? "true" : "false";
+        }
+    } else if (type == element::u8) {
+        const uint8_t* in = input.data<uint8_t>();
+        for (size_t i = 0; i < n; ++i) {
+            out_data[i] = std::to_string(static_cast<uint32_t>(in[i]));
+        }
+    } else if (type == element::u16) {
+        const uint16_t* in = input.data<uint16_t>();
+        for (size_t i = 0; i < n; ++i) {
+            out_data[i] = std::to_string(static_cast<uint32_t>(in[i]));
         }
     } else {
         OPENVINO_ASSERT(false, "[NumericToString] Unsupported input type: " + type.get_type_name());
