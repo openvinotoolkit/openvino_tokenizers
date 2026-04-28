@@ -25,6 +25,8 @@
 #include "wordpiece_tokenizer.hpp"
 #include "case_fold.hpp"
 #include "normalize_unicode.hpp"
+#include "numeric_to_string.hpp"
+#include "openvino/op/scatter_elements_update.hpp"
 
 using namespace ov;
 using namespace ov::op;
@@ -249,6 +251,96 @@ OutputVector translate_lookup_table_find_op(const ov::frontend::NodeContext& nod
     all_values = std::make_shared<Reshape>(all_values, target_shape, false);
 
     if (key_type == element::string && value_type.is_integral_number()) {
+        // Special case: if the key input was produced by NumericToString (i.e. int64/int32 →
+        // AsString → LookupTableFindV2 with string keys that are decimal representations of
+        // integers), bypass the dynamic-string VocabEncoder path.  At runtime the CPU Reference
+        // node cannot handle dynamic-shape string tensors (cpu_shape.h getStaticDims() assertion
+        // fails for element::string memory whose size is not known at compile time).
+        // Instead, parse the vocab string keys as int64 constants at graph-construction time and
+        // use the fully-numeric integer-key lookup path (Equal + ReduceMax + Gather).
+        if (auto num_to_str = ov::as_type_ptr<NumericToString>(keys.get_node_shared_ptr())) {
+            // Obtain the original numeric input
+            auto numeric_keys = num_to_str->input_value(0);
+            auto numeric_type = numeric_keys.get_element_type();
+
+            // Parse the string vocab keys as int64 values (at conversion time).
+            // all_keys has been wrapped in a Reshape; look through it to find the underlying Constant.
+            auto all_keys_const = ov::as_type_ptr<Constant>(all_keys.get_node_shared_ptr());
+            if (!all_keys_const) {
+                // all_keys was reshaped; get the Constant that feeds into the Reshape
+                auto reshape_node = all_keys.get_node_shared_ptr();
+                if (reshape_node->get_input_size() > 0) {
+                    all_keys_const = ov::as_type_ptr<Constant>(reshape_node->input_value(0).get_node_shared_ptr());
+                }
+            }
+            // If the hash table is not initialized (keys are a placeholder, not a Constant),
+            // the table effectively has no entries, so all lookups return default_value.
+            // This is semantically correct per TF: LookupTableFindV2 on empty/uninitialized
+            // tables returns default_value for every input.
+            //
+            // NOTE: A properly initialized table should have its data inlined as Const nodes
+            // by the OV TF frontend (see variables_index.cpp).  If the keys/values come from
+            // function arguments or resource variables (not inline Consts), the OV frontend
+            // cannot extract them and the table is left uninitialized.  In that case we emit
+            // a Broadcast(default_value, shape_of(keys)) so the model at least compiles and
+            // runs, albeit with the default value everywhere for this feature.
+            if (!all_keys_const) {
+                auto key_shape = std::make_shared<ShapeOf>(numeric_keys, element::i64)->output(0);
+                auto dv_cast = (value_type != default_value.get_element_type())
+                                   ? std::make_shared<Convert>(default_value, value_type)->output(0)
+                                   : default_value;
+                auto default_broadcast = std::make_shared<Broadcast>(dv_cast, key_shape)->output(0);
+                set_node_name(node.get_name(), default_broadcast.get_node_shared_ptr());
+                return { default_broadcast };
+            }
+            std::vector<int64_t> parsed_keys;
+            for (const auto& s : all_keys_const->get_value_strings()) {
+                try {
+                    parsed_keys.push_back(std::stoll(s));
+                } catch (const std::exception&) {
+                    // If parsing fails, fall through to the standard VocabEncoder path.
+                    goto use_vocab_encoder;
+                }
+            }
+            {
+                // Build integer key lookup in terms of native OV ops (no string Runtime ops).
+                // update all values with default value and all keys
+                auto int_all_keys = std::make_shared<Constant>(element::i64, Shape{parsed_keys.size()}, parsed_keys);
+                auto int_all_keys_cast = std::make_shared<Convert>(int_all_keys, numeric_type)->output(0);
+                auto int_num_keys = std::make_shared<ShapeOf>(int_all_keys_cast, element::i64)->output(0);
+                auto scalar_shape = std::make_shared<Constant>(element::i32, Shape{ 0 }, std::vector<int32_t>{});
+                int_num_keys = std::make_shared<Reshape>(int_num_keys, scalar_shape, false);
+                int_num_keys = std::make_shared<Convert>(int_num_keys, numeric_type)->output(0);
+
+                auto default_value_shape = std::make_shared<Constant>(element::i32, Shape{ 1 }, std::vector<int32_t>{1});
+                auto all_values_with_default = std::make_shared<Concat>(OutputVector{ all_values, std::make_shared<Reshape>(default_value, default_value_shape, false) }, 0);
+
+                auto unsqueeze_axis = std::make_shared<Constant>(element::i32, Shape{ 1 }, std::vector<int32_t>{-1});
+                auto unsqueeze_keys = std::make_shared<Unsqueeze>(numeric_keys, unsqueeze_axis);
+                auto equal_mask = std::make_shared<Equal>(int_all_keys_cast, unsqueeze_keys)->output(0);
+                auto reduce_equal_mask = std::make_shared<ReduceLogicalOr>(equal_mask, unsqueeze_axis, false);
+
+                auto const_zero = std::make_shared<Constant>(numeric_type, Shape{}, 0);
+                auto const_one = std::make_shared<Constant>(numeric_type, Shape{}, 1);
+                auto mask01 = std::make_shared<Select>(equal_mask, const_one, const_zero);
+                auto new_all_keys = std::make_shared<Range>(const_zero, int_num_keys, const_one, numeric_type);
+                auto reduce_axis = std::make_shared<Constant>(element::i32, Shape{ 1 }, std::vector<int32_t>{-1});
+                auto new_keys = std::make_shared<ReduceMax>(std::make_shared<Multiply>(mask01, new_all_keys)->output(0), reduce_axis, false)->output(0);
+                new_keys = std::make_shared<Select>(reduce_equal_mask, new_keys, int_num_keys);
+
+                // Cast index to int64 for Gather, then gather values
+                new_keys = std::make_shared<Convert>(new_keys, element::i64)->output(0);
+                auto gather_axis = std::make_shared<Constant>(element::i32, Shape{ 1 }, std::vector<int32_t>{0});
+                auto lookup_values = std::make_shared<Gather>(all_values_with_default, new_keys, gather_axis)->output(0);
+                if (value_type != lookup_values.get_element_type()) {
+                    lookup_values = std::make_shared<Convert>(lookup_values, value_type)->output(0);
+                }
+                set_node_name(node.get_name(), lookup_values.get_node_shared_ptr());
+                return { lookup_values };
+            }
+        }
+
+        use_vocab_encoder:
         // VocabEncoder has limitation that is support of only i32 value type
         // so prepare values format to i32 on inputs
         // and cast output tensor to i64 as required by TensorFlow
@@ -515,10 +607,17 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
         auto shape_less_zero = std::make_shared<Less>(shape, const_zero);
         shape = std::make_shared<Select>(shape_less_zero, replace_shape_3d, shape);
 
-        auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 3 }, std::vector<int32_t>{0, 0, 0});
-        auto pads_end = std::make_shared<Subtract>(shape, replace_shape_3d);
-        auto result_dense_tensor =
-            std::make_shared<Pad>(outer_dense, pads_begin, pads_end, default_value, ov::op::PadMode::CONSTANT)->output(0);
+        ov::Output<ov::Node> result_dense_tensor;
+        if (values.get_element_type() == ov::element::string) {
+            // For string data: RaggedToDense already handles padding; skip the Pad op
+            // (the CPU plugin cannot handle string-typed constant pad values).
+            result_dense_tensor = outer_dense;
+        } else {
+            auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 3 }, std::vector<int32_t>{0, 0, 0});
+            auto pads_end = std::make_shared<Subtract>(shape, replace_shape_3d);
+            result_dense_tensor =
+                std::make_shared<Pad>(outer_dense, pads_begin, pads_end, default_value, ov::op::PadMode::CONSTANT)->output(0);
+        }
 
         result_dense_tensor.get_node_shared_ptr()->set_friendly_name(node_name);
         result_dense_tensor.set_names({ node_name + ":0" });
@@ -534,11 +633,27 @@ ov::OutputVector translate_ragged_tensor_to_tensor(const ov::frontend::NodeConte
     auto shape_less_zero = std::make_shared<Less>(shape, const_zero);
     shape = std::make_shared<Select>(shape_less_zero, replace_shape, shape);
 
-    auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 2 }, std::vector<int32_t>{0, 0});
-    // note that replace_shape to be equal a shape of ragged_to_dense
-    // Pad operation removes (or crops) if padding number is negative
-    auto pads_end = std::make_shared<Subtract>(shape, replace_shape);
-    auto result_dense_tensor = std::make_shared<Pad>(ragged_to_dense, pads_begin, pads_end, default_value, ov::op::PadMode::CONSTANT)->output(0);
+    ov::Output<ov::Node> result_dense_tensor;
+    if (values.get_element_type() == ov::element::string) {
+        // For string-type tensors we skip OV's native Pad op because the CPU plugin
+        // unconditionally casts the constant pad value to float (pad.cpp), which
+        // crashes for element::string constants.  RaggedToDense already pads each row
+        // to longest_row_size with default_value, so no further padding is needed in
+        // the typical dynamic-batch / dynamic-length use case.
+        //
+        // TODO: If a model requires fixed-length padding beyond the longest sequence
+        // (i.e. when the 'shape' input has a positive value larger than the actual
+        // maximum sequence length), the output here will be shorter than requested.
+        // Fix: rebuild the CPU plugin with a type-aware check in Pad::createPrimitive,
+        // or implement a string-safe Pad custom op in openvino_tokenizers.
+        result_dense_tensor = ragged_to_dense;
+    } else {
+        auto pads_begin = std::make_shared<Constant>(ov::element::i32, Shape{ 2 }, std::vector<int32_t>{0, 0});
+        // note that replace_shape to be equal a shape of ragged_to_dense
+        // Pad operation removes (or crops) if padding number is negative
+        auto pads_end = std::make_shared<Subtract>(shape, replace_shape);
+        result_dense_tensor = std::make_shared<Pad>(ragged_to_dense, pads_begin, pads_end, default_value, ov::op::PadMode::CONSTANT)->output(0);
+    }
 
     result_dense_tensor.get_node_shared_ptr()->set_friendly_name(node_name);
     result_dense_tensor.set_names({ node_name + ":0" });
@@ -604,4 +719,28 @@ ov::OutputVector translate_string_to_hash_bucket_fast(const ov::frontend::NodeCo
     result.get_node_shared_ptr()->set_friendly_name(node_name);
     result.set_names({ node_name + ":0" });
     return { result };
+}
+
+ov::OutputVector translate_as_string(const ov::frontend::NodeContext& node) {
+    // TensorFlow's AsString op: converts each element to its string representation.
+    // When T is DT_STRING (the input is already a string tensor), we can pass
+    // it through unchanged. When T is a numeric type, we use NumericToString.
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 1,
+        "[TensorFlow Frontend] AsString expects exactly 1 input");
+
+    auto input = node.get_input(0);
+    auto input_type = input.get_element_type();
+
+    if (input_type == ov::element::string) {
+        // String input: AsString is identity for strings.
+        // Return the input as-is; do NOT rename the producer node — renaming it
+        // would break the TF frontend's name-based output lookup for that node.
+        return { input };
+    }
+
+    // Numeric input: convert to string using NumericToString custom op.
+    auto num_to_str = std::make_shared<NumericToString>(input);
+    set_node_name(node_name, num_to_str);
+    return { num_to_str->output(0) };
 }
