@@ -648,7 +648,6 @@ def test_numeric_to_string(values, dtype):
 
 
 def test_numeric_to_string_passthrough():
-    """String inputs should pass through unchanged (AsString identity behavior)."""
     input_param = op.Parameter(Type.string, PartialShape(["?"]))
     unpack = _get_opset_factory("opset15").create("StringTensorUnpack", input_param.outputs()).outputs()
     pack = _get_opset_factory("opset15").create("StringTensorPack", unpack).outputs()
