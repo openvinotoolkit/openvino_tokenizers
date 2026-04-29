@@ -6,6 +6,7 @@
 #include <openvino/frontend/tensorflow/extension/conversion.hpp>
 
 #include "tokenizer.hpp"
+#include "numeric_to_string.hpp"
 
 #define OPENVINO_TOKENIZERS_ONNX_CONVERSION_EXTENSIONS                         \
   std::make_shared<ov::frontend::onnx::ConversionExtension>(                   \
@@ -46,7 +47,9 @@
       std::make_shared<ov::frontend::tensorflow::ConversionExtension>(         \
           "NormalizeUTF8", translate_normalize_utf8),                          \
       std::make_shared<ov::frontend::tensorflow::ConversionExtension>(         \
-          "CaseFoldUTF8", translate_case_fold_utf8)
+          "CaseFoldUTF8", translate_case_fold_utf8),                           \
+      std::make_shared<ov::frontend::tensorflow::ConversionExtension>(         \
+          "AsString", translate_as_string)
 
 // clang-format off
 //! [ov_extension:entry_point]
@@ -56,6 +59,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<RaggedTensorPack>>(),
             std::make_shared<ov::OpExtension<StringTensorUnpack>>(),
             std::make_shared<ov::OpExtension<EqualStr>>(),
+            std::make_shared<ov::OpExtension<NumericToString>>(),
             std::make_shared<ov::OpExtension<RegexNormalization>>(),
             std::make_shared<ov::OpExtension<RegexSplit>>(),
             std::make_shared<ov::OpExtension<BPETokenizer>>(),

@@ -19,3 +19,4 @@ ov::OutputVector translate_wordpiece_tokenize_with_offsets(const ov::frontend::N
 ov::OutputVector translate_string_lower(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_case_fold_utf8(const ov::frontend::NodeContext& node);
 ov::OutputVector translate_normalize_utf8(const ov::frontend::NodeContext& node);
+ov::OutputVector translate_as_string(const ov::frontend::NodeContext& node);

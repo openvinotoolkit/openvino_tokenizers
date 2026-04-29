@@ -25,6 +25,7 @@
 #include "wordpiece_tokenizer.hpp"
 #include "case_fold.hpp"
 #include "normalize_unicode.hpp"
+#include "numeric_to_string.hpp"
 
 using namespace ov;
 using namespace ov::op;
@@ -604,4 +605,21 @@ ov::OutputVector translate_string_to_hash_bucket_fast(const ov::frontend::NodeCo
     result.get_node_shared_ptr()->set_friendly_name(node_name);
     result.set_names({ node_name + ":0" });
     return { result };
+}
+
+ov::OutputVector translate_as_string(const ov::frontend::NodeContext& node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 1,
+        "[TensorFlow Frontend] AsString expects exactly 1 input");
+
+    auto input = node.get_input(0);
+    auto input_type = input.get_element_type();
+
+    if (input_type == ov::element::string) {
+        return { input };
+    }
+
+    auto num_to_str = std::make_shared<NumericToString>(input);
+    set_node_name(node_name, num_to_str);
+    return { num_to_str->output(0) };
 }
