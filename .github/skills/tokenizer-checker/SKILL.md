@@ -24,12 +24,15 @@ The user must provide:
 Optional flags the user may request (pass through to the CLI):
 
 - `--trust-remote-code` — required for some models with custom tokenizer code
+- `--subfolder` — tokenizer subfolder inside a HuggingFace repo or local model directory (used when tokenizer is in a subfolder)
+- `--trust-remote-code` — required for some models with custom tokenizer code
 - `--no-detokenizer` — skip detokenizer conversion and testing
 - `--use-sentencepiece-backend` — use SentencePiece backend during conversion
 - `--no-special-tokens` — encode without special tokens
 - `--no-skip-special-tokens` — decode keeping special tokens
 - `--skip-missing-outputs` — ignore HF outputs absent in OV result (e.g. token_type_ids)
 - `--use-fast-false` — load the legacy (slow) tokenizer
+- `--max-length` — max length for conversion and HF truncation checks (default: 4048)
 
 ## Prerequisites
 

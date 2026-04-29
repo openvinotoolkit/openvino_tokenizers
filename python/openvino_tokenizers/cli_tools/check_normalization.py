@@ -331,6 +331,11 @@ def step_test_normalization(hf_tokenizer, step_dicts: list[dict], test_strings: 
 def _configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("repo_id", help="HuggingFace model id or local path to a tokenizer directory.")
     parser.add_argument(
+        "--subfolder",
+        default=None,
+        help="Tokenizer subfolder inside a HuggingFace repo or local model directory.",
+    )
+    parser.add_argument(
         "--use-fast-false",
         "--use_fast_false",
         action="store_true",
@@ -375,6 +380,7 @@ def run(args) -> None:
             repo_id=args.repo_id,
             use_fast=not args.use_fast_false,
             trust_remote_code=args.trust_remote_code,
+            subfolder=args.subfolder,
         )
     except Exception:
         _fail("Failed to load tokenizer:")

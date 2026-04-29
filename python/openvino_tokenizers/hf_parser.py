@@ -154,6 +154,19 @@ def parse_metaspace(pretokenizer_dict: dict[str, Any]) -> list[Union[Normalizati
 
 
 class TransformersTokenizerPipelineParser:
+
+    def parse_metaspace_decoder(decoder_dict: dict[str, Any]) -> DecodingStep:
+        """
+        Decoder for Metaspace: replaces the metaspace character back with space.
+        """
+        replacement = decoder_dict.get("replacement", "▁")
+        # Replace metaspace character (▁) with a space
+        return RegexDecodingStep(
+            regex_search_pattern=replacement,
+            replace_term=" ",
+        )
+
+
     def __init__(self, tokenizer_object: Any, params: TokenzierConversionParams) -> None:
         if not tokenizer_object.is_fast:
             raise OVTypeError("Tokenizer is not supported.")
@@ -405,6 +418,7 @@ class TransformersTokenizerPipelineParser:
         "Strip": RegexDecodingStep.parse_strip_dict,
         "ByteFallback": lambda decode_dict: ByteFallbackStep(),
         "ByteLevel": lambda decode_dict: CharsToBytesStep(),
+        "Metaspace": parse_metaspace_decoder,
     }
 
     def decoding(self) -> None:
