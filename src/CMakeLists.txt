@@ -383,6 +383,11 @@ ov_tokenizers_link_pcre2(${TARGET_NAME})
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
+# On Linux, set linker options to hide symbols and avoid conflicts with OpenVINO's symbols
+if(LINUX)
+  target_link_options(${TARGET_NAME} PRIVATE "-Wl,--exclude-libs,ALL")
+endif()
+
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
