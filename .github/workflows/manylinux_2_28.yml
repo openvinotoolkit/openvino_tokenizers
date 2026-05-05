@@ -134,6 +134,25 @@ jobs:
       - name: Cmake install - tokenizers
         run: /usr/bin/cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
 
+      - name: Report tokenizers binary size
+        run: |
+          set -e
+          install_root="${OV_TOKENIZERS_INSTALL_DIR}/ov_tokenizers"
+          echo "Install root: ${install_root}"
+          binaries=$(find "${install_root}" -type f \( -name "libopenvino_tokenizers.so" -o -name "libopenvino_tokenizers.dylib" -o -name "openvino_tokenizers.dll" \) | sort)
+          if [ -z "${binaries}" ]; then
+            echo "::warning::No openvino_tokenizers binary found under ${install_root}"
+          else
+            printf '%s\n' "${binaries}" | while IFS= read -r binary; do
+              [ -n "${binary}" ] || continue
+              bytes=$(wc -c < "${binary}")
+              mib=$(awk "BEGIN {printf \"%.2f\", ${bytes}/1024/1024}")
+              echo "Binary: ${binary}"
+              ls -lh "${binary}"
+              echo "Size: ${bytes} bytes (${mib} MiB)"
+            done
+          fi
+
       - name: Pack Artifacts
         run: |
           pushd ${OV_TOKENIZERS_INSTALL_DIR}
