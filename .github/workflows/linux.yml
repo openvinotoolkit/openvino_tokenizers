@@ -413,7 +413,100 @@ jobs:
             ${{ env.OPENVINO_REPO }}/TEST*.html
             ${{ env.OPENVINO_REPO }}/TEST*.xml
           if-no-files-found: 'warn'
+  
+  openvino_onnx_tests:
+    name: OpenVINO ONNX tests
+    needs: [ openvino_download, openvino_tokenizers_wheel]
+    if: always() && needs.openvino_tokenizers_wheel.result == 'success'
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-22.04
+    env:
+      OPENVINO_REPO: ${{ github.workspace }}/openvino
+      INSTALL_DIR: ${{ github.workspace }}/openvino/install
 
+    steps:
+      - name: Clone tokenizers sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: |
+            .github/actions
+      
+      - name: Clone Openvino ONNX tests
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: 'openvinotoolkit/openvino'
+          ref: ${{ env.OV_BRANCH }}
+          path: ${{ env.OPENVINO_REPO }}
+          sparse-checkout: |
+            tests/layer_tests/
+            tests/requirements_onnx
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Download tokenizers package
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: openvino_tokenizers_wheel
+          path: ${{ env.INSTALL_DIR }}/ov_tokenizers
+
+      - name: Download OpenVINO package
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ${{ needs.openvino_download.outputs.ov_artifact_name }}
+          path: ${{ env.INSTALL_DIR }}
+          merge-multiple: true
+
+      - name: Configure poetry
+        uses: ./.github/actions/install_poetry
+      
+      - name: Find OpenVINO wheel
+        uses: ./.github/actions/find_wheel
+        id: ov_wheel
+        with:
+          wheels_dir: '${{ env.INSTALL_DIR }}/wheels'
+          package_name: 'openvino'
+              
+      - name: Install OpenVINO wheel
+        run: poetry add ${{ steps.ov_wheel.outputs.wheel_path }}
+
+      - name: Find Tokenizers wheel
+        uses: ./.github/actions/find_wheel
+        id: tokenizers_wheel
+        with:
+          wheels_dir: '${{ env.INSTALL_DIR }}/ov_tokenizers'
+          package_name: 'openvino_tokenizers'
+
+      - name: Install OpenVINO tokenizers wheel
+        run: poetry run pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+          
+      #- name: Install Test dependencies
+      #  run: poetry install --extras=transformers --with dev
+
+      - name: Install ONNX tests dependencies
+        run: poetry run pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_onnx
+
+      - name: ONNX 1 Layer Tests
+        run: poetry run pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/onnx_tests/test_string_normalizer.py -n logical -m precommit  
+        env:
+          TEST_DEVICE: CPU
+          TEST_PRECISION: FP32
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: test-results-python-layers
+          path: |
+            ${{ env.OPENVINO_REPO }}/TEST*.html
+            ${{ env.OPENVINO_REPO }}/TEST*.xml
+          if-no-files-found: 'warn'
 
   store_artifacts:
     name: Store build artifacts
