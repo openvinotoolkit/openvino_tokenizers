@@ -504,7 +504,7 @@ def convert_fast_tokenizer(
             filtered_outputs[-1].add_names({output_name})
 
     tokenizer_model = Model(filtered_outputs, ov_tokenizer.get_parameters(), TOKENIZER_NAME)
-
+    tokenizer_model.add_sinks(ov_tokenizer.get_sinks())
     if params.with_detokenizer:
         return tokenizer_model, pipeline.get_detokenizer_ov_subgraph()
 
