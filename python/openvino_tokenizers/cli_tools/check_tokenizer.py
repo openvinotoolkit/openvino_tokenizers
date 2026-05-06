@@ -222,7 +222,7 @@ def step_test_tokenizer(
         hf_out = hf_tokenizer(
             input_list,
             return_tensors="np",
-            truncation=True,
+            truncation=False,
             add_special_tokens=add_special_tokens,
         )
         ov_out = ov_tokenizer(input_list)
@@ -307,7 +307,7 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool) ->
         # ── encode with / without special tokens (test_encode + test_special_tokens) ──
         for add_spec in (True, False):
             hf_ids = hf_tokenizer(
-                [test_str], return_tensors="np", add_special_tokens=add_spec, truncation=True
+                [test_str], return_tensors="np", add_special_tokens=add_spec, truncation=False
             )["input_ids"][0]
             genai_ids = genai_tok.encode(test_str, add_special_tokens=add_spec).input_ids.data[0]
             if not np.array_equal(hf_ids, genai_ids):
@@ -319,7 +319,7 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool) ->
 
         # ── decode with skip / keep special tokens (test_decode + test_special_tokens) ──
         hf_with_special = hf_tokenizer(
-            [test_str], return_tensors="np", add_special_tokens=True, truncation=True
+            [test_str], return_tensors="np", add_special_tokens=True, truncation=False
         )["input_ids"]
         for skip_spec in (True, False):
             hf_decoded = hf_tokenizer.decode(hf_with_special[0], skip_special_tokens=skip_spec)
