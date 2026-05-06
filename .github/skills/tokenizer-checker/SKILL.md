@@ -25,7 +25,6 @@ Optional flags the user may request (pass through to the CLI):
 
 - `--trust-remote-code` — required for some models with custom tokenizer code
 - `--subfolder` — tokenizer subfolder inside a HuggingFace repo or local model directory (used when tokenizer is in a subfolder)
-- `--trust-remote-code` — required for some models with custom tokenizer code
 - `--no-detokenizer` — skip detokenizer conversion and testing
 - `--use-sentencepiece-backend` — use SentencePiece backend during conversion
 - `--no-special-tokens` — encode without special tokens
