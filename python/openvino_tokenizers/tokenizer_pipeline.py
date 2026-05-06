@@ -1630,7 +1630,7 @@ class TokenizerPipeline:
 
         stateful_sinks = []
         for step in self.steps:
-            if isinstance(step, TruncationStep):    
+            if isinstance(step, TruncationStep):
                 stateful_sinks.extend(step.get_stateful_sinks())
         model.add_sinks(stateful_sinks)
 
