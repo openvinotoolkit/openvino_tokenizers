@@ -463,7 +463,7 @@ def check_tokenizer_output(
     else:
         test_string_hf = test_string
 
-    hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=True, **hf_tokenizer_kwargs)
+    hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=False, **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string_ov)
 
     for output_name, hf_result in hf_tokenized.items():
