@@ -306,6 +306,9 @@ jobs:
         
       - name: Tokenizers regression tests (using openvino python wheels)
         run: poetry run pytest tests
+      
+      - name: Check Lightricks/LTX-Video via check tools
+        run: poetry run openvino_tokenizers check Lightricks/LTX-Video --subfolder tokenizer --trust-remote-code
 
       - name: Install transformers v4
         run: |

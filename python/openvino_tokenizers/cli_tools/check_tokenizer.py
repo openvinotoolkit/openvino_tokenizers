@@ -29,6 +29,8 @@ from typing import Optional
 
 import numpy as np
 
+from openvino_tokenizers.cli_tools.convert_tokenizer import check_positive_int
+
 # ── test strings ─────────────────────────────────────────────────────────────
 
 ENG_STRINGS = [
@@ -523,12 +525,13 @@ def _configure_parser(parser: argparse.ArgumentParser) -> None:
         default=False,
         help="Ignore HF outputs that are absent in the OV result (e.g. token_type_ids).",
     )
+    
     parser.add_argument(
         "--max-length",
         "--max_length",
-        type=int,
-        default=4048,
-        help="Set max_length for tokenizer conversion and HF truncation checks (default: 4048).",
+        type=check_positive_int,
+        default=None,
+        help="Set max_length for tokenizer conversion and HF truncation checks (default: None).",
     )
 
 
