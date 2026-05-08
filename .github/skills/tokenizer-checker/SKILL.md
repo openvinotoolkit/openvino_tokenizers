@@ -31,7 +31,7 @@ Optional flags the user may request (pass through to the CLI):
 - `--no-skip-special-tokens` — decode keeping special tokens
 - `--skip-missing-outputs` — ignore HF outputs absent in OV result (e.g. token_type_ids)
 - `--use-fast-false` — load the legacy (slow) tokenizer
-- `--max-length` — max length for conversion and HF truncation checks (default: 4048)
+- `--max-length` — max length for conversion and HF truncation checks (default: None)
 
 ## Prerequisites
 
