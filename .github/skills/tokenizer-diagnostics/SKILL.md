@@ -23,7 +23,7 @@ Pinpoints the root cause of tokenizer conversion failures by analyzing the pipel
 **Optional (from tokenizer-checker result):**
 - `failure_types` — helps focus the diagnosis (e.g. `[token_id_mismatch]`, `[conversion_error]`)
 - `failing_categories` — narrows which test strings to inspect
-- CLI flags: `--trust-remote-code`, `--use-fast-false`
+- CLI flags: `--trust-remote-code`, `--subfolder`, `--max-length`, `--use-fast-false`
 
 ## Prerequisites
 
