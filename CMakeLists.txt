@@ -85,6 +85,18 @@ if(BUILD_CPP_EXTENSION)
                      PATHS "${OpenVINO_DIR_PY}")
     endif()
 
+    option(ENABLE_LTO "Enable Link Time Optimization" OFF)
+
+    if(ENABLE_LTO AND NOT OpenVINODeveloperPackage_FOUND)
+        include(CheckIPOSupported)
+        check_ipo_supported(RESULT IPO_SUPPORTED
+                            OUTPUT OUTPUT_MESSAGE
+                            LANGUAGES C CXX)
+        if(NOT IPO_SUPPORTED)
+            message(FATAL_ERROR "ENABLE_LTO is ON but IPO / LTO is not supported: ${OUTPUT_MESSAGE}")
+        endif()
+    endif()
+
     add_subdirectory(src)
 endif()
 

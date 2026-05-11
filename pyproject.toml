@@ -90,6 +90,7 @@ install_components = ["openvino_tokenizers", "openvino_tokenizers_python", "open
 [tool.py-build-cmake.cmake.options]
 OPENVINO_TOKENIZERS_INSTALL_BINDIR = "openvino_tokenizers/lib"
 OPENVINO_TOKENIZERS_INSTALL_LIBDIR = "openvino_tokenizers/lib"
+ENABLE_LTO = "ON"
 
 [tool.py-build-cmake.wheel]
 python_tag = ['py3']

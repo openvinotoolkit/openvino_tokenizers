@@ -168,6 +168,26 @@ jobs:
         run: |
           cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
 
+      - name: Report tokenizers binary size
+        run: |
+          $installRoot = "${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers"
+          Write-Host "Install root: $installRoot"
+          $binaries = Get-ChildItem -Path $installRoot -Recurse -File | Where-Object {
+            $_.Name -in @('openvino_tokenizers.dll', 'libopenvino_tokenizers.so', 'libopenvino_tokenizers.dylib')
+          }
+
+          if (-not $binaries) {
+            Write-Warning "No openvino_tokenizers binary found under $installRoot"
+          } else {
+            foreach ($binary in $binaries) {
+              $sizeBytes = $binary.Length
+              $sizeMiB = [math]::Round($sizeBytes / 1MB, 2)
+              Write-Host "Binary: $($binary.FullName)"
+              Get-Item $binary.FullName | Format-Table -AutoSize Name, Length
+              Write-Host "Size: $sizeBytes bytes ($sizeMiB MiB)"
+            }
+          }
+
       - name: Pack Artifacts
         run: |
           $file=Get-ChildItem -Path "${{ env.OV_TOKENIZERS_INSTALL_DIR }}"
@@ -323,6 +343,27 @@ jobs:
         with:
           key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
           path: ${{ env.CCACHE_DIR }}
+
+      - name: Report tokenizers wheel binary size
+        run: |
+          $wheel = Get-ChildItem -Path "${{ env.WHEELS_DIR }}" -Filter "*.whl" | Select-Object -First 1
+          if (-not $wheel) {
+            Write-Warning "No wheel found"
+            exit 0
+          }
+          $tmp_dir = New-Item -ItemType Directory -Path (Join-Path $env:TEMP "whl_inspect")
+          Expand-Archive -Path $wheel.FullName -DestinationPath $tmp_dir.FullName -Force
+          $binaries = Get-ChildItem -Path $tmp_dir.FullName -Recurse -Filter "openvino_tokenizers.dll"
+          if (-not $binaries) {
+            Write-Warning "No openvino_tokenizers binary found in wheel"
+          } else {
+            foreach ($binary in $binaries) {
+              $mib = [math]::Round($binary.Length / 1MB, 2)
+              Write-Host "Binary: $($binary.FullName)"
+              Write-Host "Size: $($binary.Length) bytes ($mib MiB)"
+            }
+          }
+          Remove-Item -Recurse -Force $tmp_dir.FullName
 
       - name: Upload openvino tokenizers wheel
         if: ${{ always() }}
