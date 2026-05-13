@@ -247,7 +247,15 @@ class TransformersTokenizerPipelineParser:
         try:
             steps = self.pre_tokenization_map[step_dict["type"]](step_dict)
             if step_dict["type"] == "Metaspace" and step_dict.get("prepend_scheme", "never") == "first":
-                first_prepend = steps.pop()
+                # The "first prepend" step is always a NormalizationStep (RegexNormalizationStep).
+                # When split=True, parse_metaspace appends a RegexSplitStep as the last step,
+                # so we must find the last NormalizationStep rather than blindly popping the tail.
+                # Fixes seamless_m4t_v2 / any BPE tokenizer using Metaspace with split=True.
+                prepend_idx = next(
+                    i for i in range(len(steps) - 1, -1, -1)
+                    if isinstance(steps[i], NormalizationStep)
+                )
+                first_prepend = steps.pop(prepend_idx)
                 self.pipeline.steps.insert(0, first_prepend)
             self.pipeline.add_steps(steps)
         except KeyError as error:
