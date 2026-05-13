@@ -104,6 +104,7 @@ bpe_models = [
     "answerdotai/ModernBERT-base",
     "tiiuae/Falcon3-7B-Instruct",
     "LiquidAI/LFM2-350M",
+    "facebook/seamless-m4t-v2-large",  # Metaspace BPE, prepend_scheme=first, split=True
 ]
 sentencepiece_models = [
     # bpe
