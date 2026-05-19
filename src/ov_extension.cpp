@@ -5,6 +5,7 @@
 #include <openvino/frontend/onnx/extension/conversion.hpp>
 #include <openvino/frontend/tensorflow/extension/conversion.hpp>
 
+#include "contrib_string_ops.hpp"
 #include "tokenizer.hpp"
 #include "numeric_to_string.hpp"
 
@@ -16,7 +17,22 @@
       std::make_shared<ov::frontend::onnx::ConversionExtension>(               \
           "Tokenizer", "com.microsoft", translate_onnx_tokenizer),             \
       std::make_shared<ov::frontend::onnx::ConversionExtension>(               \
-          "TfIdfVectorizer", translate_onnx_tfid_vectorizer)
+          "TfIdfVectorizer", translate_onnx_tfid_vectorizer),                  \
+      std::make_shared<ov::frontend::onnx::ConversionExtension>(               \
+          "SentencepieceTokenizer", "ai.onnx.contrib",                         \
+          translate_onnx_contrib_sentencepiece_tokenizer),                     \
+      std::make_shared<ov::frontend::onnx::ConversionExtension>(               \
+          "SentencepieceDecoder", "ai.onnx.contrib",                           \
+          translate_onnx_contrib_sentencepiece_decoder),                       \
+      std::make_shared<ov::frontend::onnx::ConversionExtension>(               \
+          "VectorToString", "ai.onnx.contrib",                                 \
+          translate_onnx_contrib_vector_to_string),                            \
+      std::make_shared<ov::frontend::onnx::ConversionExtension>(               \
+          "StringJoin", "ai.onnx.contrib",                                     \
+          translate_onnx_contrib_string_join),                                 \
+      std::make_shared<ov::frontend::onnx::ConversionExtension>(               \
+          "StringSplit", "ai.onnx.contrib",                                    \
+          translate_onnx_contrib_string_split)
 
 #define OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS                   \
   std::make_shared<ov::frontend::tensorflow::ConversionExtension>(             \
@@ -86,6 +102,8 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<CaseFold>>(),
             std::make_shared<ov::OpExtension<NormalizeUnicode>>(),
             std::make_shared<ov::OpExtension<UnigramTokenizer>>(),
+            std::make_shared<ov::OpExtension<ContribStringJoin>>(),
+            std::make_shared<ov::OpExtension<ContribStringSplit>>(),
             OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS,
             OPENVINO_TOKENIZERS_ONNX_CONVERSION_EXTENSIONS
 }));
