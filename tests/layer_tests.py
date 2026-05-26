@@ -611,3 +611,48 @@ def test_combine_segments(input_values, expected):
     res = compiled_model(np_input_values)
     for (_, val), (_, expect_val) in zip(res.items(), expected.items()):
         assert np.all(val == np.array(expect_val, dtype=np.int32))
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([0, 1, -1, 42, 9999, -12345], np.int64),
+        ([0, 1, -1, 42, 9999, -12345], np.int32),
+        ([0, 1, -1, 42], np.int16),
+        ([0, 1, -1, 42], np.int8),
+        ([0, 1, 42, 9999], np.uint64),
+        ([0, 1, 42, 9999], np.uint32),
+        ([0, 1, 42, 255], np.uint16),
+        ([0, 1, 42, 255], np.uint8),
+        ([1.0, -2.5, 0.0, 3.14159], np.float32),
+        ([1.0, -2.5, 0.0, 3.14159], np.float64),
+    ],
+)
+def test_numeric_to_string(values, dtype):
+    input_data = np.array(values, dtype=dtype)
+    ov_type = Type(dtype)
+
+    input_param = op.Parameter(ov_type, PartialShape(["?"]))
+    num_to_str = _get_factory().create("NumericToString", input_param.outputs()).outputs()
+    model = Model(num_to_str, [input_param], "numeric_to_string")
+
+    compiled_model = core.compile_model(model)
+    result = compiled_model([input_data])[0]
+
+    expected = [str(v) for v in values]
+    for got, exp in zip(result.flatten(), expected):
+        if dtype in (np.float32, np.float64):
+            assert abs(float(got) - float(exp)) < 1e-5, f"NumericToString: got {got!r}, expected ~{exp}"
+        else:
+            assert got == exp, f"NumericToString: got {got!r}, expected {exp!r}"
+
+
+def test_numeric_to_string_passthrough():
+    input_param = op.Parameter(Type.string, PartialShape(["?"]))
+    unpack = _get_opset_factory("opset15").create("StringTensorUnpack", input_param.outputs()).outputs()
+    pack = _get_opset_factory("opset15").create("StringTensorPack", unpack).outputs()
+    model = Model(pack, [input_param], "string_passthrough")
+
+    compiled_model = core.compile_model(model)
+    result = compiled_model([np.array(["hello", "world", "test"])])[0]
+    assert list(result.flatten()) == ["hello", "world", "test"]

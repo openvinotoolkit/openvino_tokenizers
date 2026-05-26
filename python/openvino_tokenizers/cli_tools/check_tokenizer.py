@@ -29,6 +29,8 @@ from typing import Optional
 
 import numpy as np
 
+from openvino_tokenizers.cli_tools.convert_tokenizer import check_positive_int
+
 # ── test strings ─────────────────────────────────────────────────────────────
 
 ENG_STRINGS = [
@@ -43,6 +45,16 @@ ENG_STRINGS = [
     (
         "If I have 100 million dollars, what kinds of projects should I invest to maximize "
         "my benefits in background of a growing number of artificial intelligence technologies?"
+    ),
+    (
+        "Write an epic travel diary where an engineer, a poet, and a chef cross seven cities in seven nights, "
+        "and in each city they must solve one unusual challenge: rebuild a clocktower using only recycled brass, "
+        "compose a lullaby for a sleepless market, design a dinner menu for astronauts who miss home, map hidden "
+        "canals beneath an old library, negotiate peace between rival street orchestras, restore a broken weather "
+        "vane that predicts memories instead of storms, and finally present a public workshop explaining every "
+        "decision, every tradeoff, every failed attempt, and every lesson learned, while also listing materials, "
+        "budgets, timelines, contingency plans, and a final reflection on teamwork, creativity, responsibility, "
+        "and how small practical choices can change the future of an entire neighborhood."
     ),
 ]
 MULTILINGUAL_STRINGS = [
@@ -158,7 +170,7 @@ def _compare_outputs(hf_out: dict, ov_out, skip_missing: bool = False) -> list[s
 
 # ── main steps ────────────────────────────────────────────────────────────────
 
-def step_load_tokenizer(repo_id: str, use_fast: bool, trust_remote_code: bool):
+def step_load_tokenizer(repo_id: str, use_fast: bool, trust_remote_code: bool, subfolder: Optional[str] = None):
     """Step 1 – load the HF tokenizer."""
     from transformers import AutoTokenizer
 
@@ -166,6 +178,7 @@ def step_load_tokenizer(repo_id: str, use_fast: bool, trust_remote_code: bool):
         repo_id,
         use_fast=use_fast,
         trust_remote_code=trust_remote_code,
+        subfolder=subfolder,
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -176,7 +189,7 @@ def step_load_tokenizer(repo_id: str, use_fast: bool, trust_remote_code: bool):
     return tokenizer
 
 
-def step_convert(hf_tokenizer, with_detokenizer: bool, use_sentencepiece_backend: bool):
+def step_convert(hf_tokenizer, with_detokenizer: bool, use_sentencepiece_backend: bool, max_length: int):
     """Step 2 – convert to OpenVINO."""
     from openvino import Core
     from openvino_tokenizers import convert_tokenizer
@@ -185,6 +198,7 @@ def step_convert(hf_tokenizer, with_detokenizer: bool, use_sentencepiece_backend
         hf_tokenizer,
         with_detokenizer=with_detokenizer,
         use_sentencepiece_backend=use_sentencepiece_backend,
+        max_length=max_length,
     )
 
     core = Core()
@@ -207,6 +221,7 @@ def step_test_tokenizer(
     add_special_tokens: bool,
     skip_special_tokens: bool,
     skip_missing_outputs: bool,
+    max_length: int,
 ) -> int:
     """
     Step 3 – run the test suite.
@@ -223,6 +238,7 @@ def step_test_tokenizer(
             input_list,
             return_tensors="np",
             truncation=True,
+            max_length=max_length,
             add_special_tokens=add_special_tokens,
         )
         ov_out = ov_tokenizer(input_list)
@@ -286,7 +302,7 @@ def _has_openvino_genai() -> bool:
         return False
 
 
-def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool) -> int:
+def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool, max_length: int) -> int:
     """
     Step 4 – load openvino_genai.Tokenizer from *saved_dir* and verify that
     encode / decode results match HuggingFace on the standard test strings.
@@ -307,7 +323,7 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool) ->
         # ── encode with / without special tokens (test_encode + test_special_tokens) ──
         for add_spec in (True, False):
             hf_ids = hf_tokenizer(
-                [test_str], return_tensors="np", add_special_tokens=add_spec, truncation=True
+                [test_str], return_tensors="np", add_special_tokens=add_spec, truncation=True, max_length=max_length
             )["input_ids"][0]
             genai_ids = genai_tok.encode(test_str, add_special_tokens=add_spec).input_ids.data[0]
             if not np.array_equal(hf_ids, genai_ids):
@@ -319,7 +335,7 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool) ->
 
         # ── decode with skip / keep special tokens (test_decode + test_special_tokens) ──
         hf_with_special = hf_tokenizer(
-            [test_str], return_tensors="np", add_special_tokens=True, truncation=True
+            [test_str], return_tensors="np", add_special_tokens=True, truncation=True, max_length=max_length
         )["input_ids"]
         for skip_spec in (True, False):
             hf_decoded = hf_tokenizer.decode(hf_with_special[0], skip_special_tokens=skip_spec)
@@ -455,6 +471,11 @@ def step_test_genai_advanced(hf_tokenizer, saved_dir: str, strict: bool = False)
 def _configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("repo_id", help="HuggingFace model id or local path to a tokenizer directory.")
     parser.add_argument(
+        "--subfolder",
+        default=None,
+        help="Tokenizer subfolder inside a HuggingFace repo or local model directory.",
+    )
+    parser.add_argument(
         "--use-fast-false",
         "--use_fast_false",
         action="store_true",
@@ -504,6 +525,14 @@ def _configure_parser(parser: argparse.ArgumentParser) -> None:
         default=False,
         help="Ignore HF outputs that are absent in the OV result (e.g. token_type_ids).",
     )
+    
+    parser.add_argument(
+        "--max-length",
+        "--max_length",
+        type=check_positive_int,
+        default=None,
+        help="Set max_length for tokenizer conversion and HF truncation checks (default: None).",
+    )
 
 
 def run(args) -> None:
@@ -518,6 +547,7 @@ def run(args) -> None:
             repo_id=args.repo_id,
             use_fast=not args.use_fast_false,
             trust_remote_code=args.trust_remote_code,
+            subfolder=args.subfolder,
         )
     except Exception:
         _fail("Failed to load tokenizer:")
@@ -532,6 +562,7 @@ def run(args) -> None:
             hf_tokenizer=hf_tokenizer,
             with_detokenizer=not args.no_detokenizer,
             use_sentencepiece_backend=args.use_sentencepiece_backend,
+            max_length=args.max_length,
         )
         if has_genai:
             import tempfile
@@ -542,6 +573,7 @@ def run(args) -> None:
                 hf_tokenizer,
                 with_detokenizer=True,
                 use_sentencepiece_backend=args.use_sentencepiece_backend,
+                max_length=args.max_length,
             )
             save_model(ov_tok_model, f"{saved_dir}/openvino_tokenizer.xml")
             save_model(ov_detok_model, f"{saved_dir}/openvino_detokenizer.xml")
@@ -561,6 +593,7 @@ def run(args) -> None:
             add_special_tokens=not args.no_special_tokens,
             skip_special_tokens=args.skip_special_tokens,  # True by default
             skip_missing_outputs=args.skip_missing_outputs,
+            max_length=args.max_length,
         )
         if n_failures:
             exit_code = 1
@@ -577,6 +610,7 @@ def run(args) -> None:
                 hf_tokenizer=hf_tokenizer,
                 saved_dir=saved_dir,
                 skip_missing_outputs=args.skip_missing_outputs,
+                max_length=args.max_length,
             )
             if n_genai_failures:
                 exit_code = 1

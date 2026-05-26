@@ -42,7 +42,7 @@ else()
 endif()
 
 project(openvino_tokenizers
-        VERSION 2026.2.0.0
+        VERSION 2026.3.0.0
         DESCRIPTION "OpenVINO Tokenizers"
         HOMEPAGE_URL "https://github.com/openvinotoolkit/openvino_tokenizers"
         LANGUAGES CXX C)
@@ -83,6 +83,18 @@ if(BUILD_CPP_EXTENSION)
         find_package(OpenVINO ${OV_COMPATIBILITY_VERSION} REQUIRED
                      COMPONENTS Runtime Threading
                      PATHS "${OpenVINO_DIR_PY}")
+    endif()
+
+    option(ENABLE_LTO "Enable Link Time Optimization" OFF)
+
+    if(ENABLE_LTO AND NOT OpenVINODeveloperPackage_FOUND)
+        include(CheckIPOSupported)
+        check_ipo_supported(RESULT IPO_SUPPORTED
+                            OUTPUT OUTPUT_MESSAGE
+                            LANGUAGES C CXX)
+        if(NOT IPO_SUPPORTED)
+            message(FATAL_ERROR "ENABLE_LTO is ON but IPO / LTO is not supported: ${OUTPUT_MESSAGE}")
+        endif()
     endif()
 
     add_subdirectory(src)

@@ -383,6 +383,23 @@ ov_tokenizers_link_pcre2(${TARGET_NAME})
 string(REPLACE " " ";" extra_flags "${c_cxx_flags} ${cxx_flags}")
 set_target_properties(${TARGET_NAME} PROPERTIES COMPILE_OPTIONS "${extra_flags}")
 
+set_target_properties(${TARGET_NAME} PROPERTIES
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE ${ENABLE_LTO})
+
+# CMake uses -flto=thin for Apple Clang IPO, but full LTO (-flto) is needed
+# to effectively eliminate dead code from statically linked dependencies.
+if(ENABLE_LTO AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    target_compile_options(${TARGET_NAME} PRIVATE
+        $<$<CONFIG:Release>:-flto>)
+    target_link_options(${TARGET_NAME} PRIVATE
+        $<$<CONFIG:Release>:-flto>)
+endif()
+
+# On Linux, set linker options to hide symbols and avoid conflicts with OpenVINO's symbols
+if(LINUX)
+  target_link_options(${TARGET_NAME} PRIVATE "-Wl,--exclude-libs,ALL")
+endif()
+
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
