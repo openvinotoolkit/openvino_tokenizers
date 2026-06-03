@@ -39,10 +39,10 @@ _TRAIN_WORDS = (
 
 
 @pytest.fixture(scope="module")
-def spm_model():
+def spm_model(tmp_path_factory):
     import random
 
-    tmp = Path(tempfile.mkdtemp())
+    tmp = tmp_path_factory.mktemp("spm")
     corpus = tmp / "corpus.txt"
     rng = random.Random(0)
     with corpus.open("w") as f:

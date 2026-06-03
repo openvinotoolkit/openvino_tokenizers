@@ -18,8 +18,8 @@ namespace {
 std::string read_scalar_packed_string(const ov::Tensor& begins_t,
                                       const ov::Tensor& ends_t,
                                       const ov::Tensor& chars_t) {
-    OPENVINO_ASSERT(begins_t.get_size() >= 1,
-                    "Expected at least one element in packed string scalar");
+    OPENVINO_ASSERT(begins_t.get_size() == 1 && ends_t.get_size() == 1,
+                    "Expected a scalar packed string (single begins/ends element)");
     auto begins = begins_t.data<const int32_t>();
     auto ends   = ends_t.data<const int32_t>();
     auto chars  = chars_t.data<const uint8_t>();
@@ -77,6 +77,8 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
 
     int64_t axis;
     {
+        OPENVINO_ASSERT(inputs[6].get_size() == 1,
+                        "ContribStringJoin axis input must be a scalar (single element)");
         const auto& at = inputs[6].get_element_type();
         if (at == element::i64)
             axis = inputs[6].data<const int64_t>()[0];
@@ -90,7 +92,11 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
     if (in_rank == 0 || ov::shape_size(in_shape) <= 1) {
         ov::Shape out_shape = (in_rank <= 1) ? ov::Shape{} : in_shape;
         if (in_rank > 1) {
-            out_shape.erase(out_shape.begin() + ((axis < 0) ? axis + (int64_t)in_rank : axis));
+            int64_t axis_norm = axis;
+            if (axis_norm < 0) axis_norm += static_cast<int64_t>(in_rank);
+            OPENVINO_ASSERT(axis_norm >= 0 && static_cast<size_t>(axis_norm) < in_rank,
+                            "ContribStringJoin axis out of range");
+            out_shape.erase(out_shape.begin() + static_cast<size_t>(axis_norm));
         }
         outputs[0].set_shape(out_shape);
         outputs[1].set_shape(out_shape);
@@ -220,6 +226,8 @@ bool ContribStringSplit::evaluate(ov::TensorVector& outputs,
     std::string delim = read_scalar_packed_string(inputs[3], inputs[4], inputs[5]);
     bool skip_empty;
     {
+        OPENVINO_ASSERT(inputs[6].get_size() == 1,
+                        "ContribStringSplit skip_empty input must be a scalar (single element)");
         const auto& st = inputs[6].get_element_type();
         if (st == element::boolean)
             skip_empty = inputs[6].data<const bool>()[0];
