@@ -163,11 +163,11 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            auto results = m_tokenizer->tokenize(str);
-            for (const auto& token : results) {
-                OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                new_elems[ragged_offset++] = token;
-            }
+            ragged_offset += m_tokenizer->tokenize(
+                str,
+                new_elems + ragged_offset,
+                outputs[2].get_size() - ragged_offset
+            );
         }
         new_ends[seq] = ragged_offset;
     }
@@ -184,9 +184,13 @@ struct CompareRank {
     }
 };
 
-std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
-    if (m_cache.count(text)) {
-        return m_cache.at(text);
+size_t BPETokenizerImpl::tokenize(std::string& text, int32_t* output, size_t output_capacity) {
+    const auto cache_it = m_cache.find(text);
+    if (cache_it != m_cache.end()) {
+        const auto& cached = cache_it->second;
+        OPENVINO_ASSERT(cached.size() <= output_capacity);
+        std::copy(cached.begin(), cached.end(), output);
+        return cached.size();
     }
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
@@ -296,7 +300,9 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
             m_cache.emplace(std::move(text), res_vec);
         }
     }
-    return res_vec;
+    OPENVINO_ASSERT(res_vec.size() <= output_capacity);
+    std::copy(res_vec.begin(), res_vec.end(), output);
+    return res_vec.size();
 }
 
 BPETokenizerImpl::BPETokenizerImpl(
