@@ -529,6 +529,7 @@ jobs:
       matrix:
         build_type: [Release] # TODO: Add Debug build when OV provider is ready or use OV package
     needs: [openvino_download, openvino_tokenizers_wheel, openvino_tokenizers_cpack]
+    timeout-minutes: 10
     defaults:
       run:
         shell: bash
