@@ -484,6 +484,11 @@ install(FILES "${openvino_tokenizers_SOURCE_DIR}/LICENSE"
         DESTINATION "docs/openvino_tokenizers"
         COMPONENT openvino_tokenizers_docs)
 
+# Install PDBs when building with OpenVINODeveloperPackage (if ov_install_pdb is available).
+if(OpenVINODeveloperPackage_FOUND AND COMMAND ov_install_pdb)
+  ov_install_pdb(${TARGET_NAME})
+endif()
+
 #
 # Cpack configuration
 #
