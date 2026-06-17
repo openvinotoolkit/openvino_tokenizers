@@ -14,7 +14,6 @@
 # library itself is used as the reference implementation; the string ops are
 # checked against hand-computed expected values.
 
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -330,6 +329,41 @@ def test_string_join(tmp_path):
         },
     )
     assert outputs[0].str_data.ravel().tolist() == [" ".join(parts)]
+
+
+def test_string_join_empty_axis(tmp_path):
+    # Regression test: input shape [0, N] joined along axis 0 must produce N
+    # empty strings.  Previously the degenerate fast-path (shape_size <= 1)
+    # incorrectly triggered here, initialising only element 0 and leaving the
+    # rest of begins/ends uninitialized.
+    N = 3
+    node = helper.make_node(
+        "StringJoin", ["inp", "sep", "axis"], ["joined"], domain="ai.onnx.contrib"
+    )
+    graph = helper.make_graph(
+        [node],
+        "string_join_2d",
+        [
+            helper.make_tensor_value_info("inp", TensorProto.STRING, [None, None]),
+            helper.make_tensor_value_info("sep", TensorProto.STRING, []),
+            helper.make_tensor_value_info("axis", TensorProto.INT64, []),
+        ],
+        [helper.make_tensor_value_info("joined", TensorProto.STRING, [None])],
+    )
+    model = helper.make_model(
+        graph,
+        opset_imports=[helper.make_opsetid("", 17), helper.make_opsetid("ai.onnx.contrib", 1)],
+    )
+    onnx_path = _save(model, tmp_path, "join_empty_axis.onnx")
+    outputs = _run(
+        onnx_path,
+        {
+            "inp": ov.Tensor(np.empty((0, N), dtype=str)),
+            "sep": ov.Tensor(np.array("-", dtype=str)),
+            "axis": ov.Tensor(np.array(0, dtype=np.int64)),
+        },
+    )
+    assert outputs[0].str_data.ravel().tolist() == [""] * N
 
 
 def test_string_split(tmp_path):

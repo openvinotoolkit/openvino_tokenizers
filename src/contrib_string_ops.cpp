@@ -31,6 +31,7 @@ std::string read_scalar_packed_string(const ov::Tensor& begins_t,
 }  // namespace
 
 void ContribStringJoin::validate_and_infer_types() {
+    OPENVINO_ASSERT(get_input_size() == 7, "ContribStringJoin expects 7 inputs");
     check_string_input(this, 0);
     check_string_input(this, 3);
     {
@@ -97,7 +98,11 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
     }
 
     // Handle 0-D / single-string degenerate case: identity copy.
-    if (in_rank == 0 || ov::shape_size(in_shape) <= 1) {
+    // shape_size == 0 (empty input, e.g. [0,N]) must NOT enter this branch:
+    // the output still has N elements and only initialising index 0 would
+    // leave the rest of begins/ends uninitialized.  The general path handles
+    // axis_size == 0 correctly by producing N empty strings.
+    if (in_rank == 0 || ov::shape_size(in_shape) == 1) {
         ov::Shape out_shape = (in_rank <= 1) ? ov::Shape{} : in_shape;
         if (in_rank > 1) {
             out_shape.erase(out_shape.begin() + axis);
@@ -187,6 +192,7 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
 }
 
 void ContribStringSplit::validate_and_infer_types() {
+    OPENVINO_ASSERT(get_input_size() == 7, "ContribStringSplit expects 7 inputs");
     check_string_input(this, 0);
     check_string_input(this, 3);
     {
