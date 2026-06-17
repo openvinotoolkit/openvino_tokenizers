@@ -23,6 +23,7 @@ std::string read_scalar_packed_string(const ov::Tensor& begins_t,
     auto begins = begins_t.data<const int32_t>();
     auto ends   = ends_t.data<const int32_t>();
     auto chars  = chars_t.data<const uint8_t>();
+    OPENVINO_ASSERT(ends[0] >= begins[0], "Malformed packed string: ends[0] < begins[0]");
     return std::string(reinterpret_cast<const char*>(chars + begins[0]),
                        static_cast<size_t>(ends[0] - begins[0]));
 }
@@ -88,15 +89,18 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
             OPENVINO_THROW("ContribStringJoin: unsupported axis element type ", at);
     }
 
+    if (in_rank > 0) {
+        if (axis < 0)
+            axis += static_cast<int64_t>(in_rank);
+        OPENVINO_ASSERT(axis >= 0 && static_cast<size_t>(axis) < in_rank,
+                        "ContribStringJoin axis out of range");
+    }
+
     // Handle 0-D / single-string degenerate case: identity copy.
     if (in_rank == 0 || ov::shape_size(in_shape) <= 1) {
         ov::Shape out_shape = (in_rank <= 1) ? ov::Shape{} : in_shape;
         if (in_rank > 1) {
-            int64_t axis_norm = axis;
-            if (axis_norm < 0) axis_norm += static_cast<int64_t>(in_rank);
-            OPENVINO_ASSERT(axis_norm >= 0 && static_cast<size_t>(axis_norm) < in_rank,
-                            "ContribStringJoin axis out of range");
-            out_shape.erase(out_shape.begin() + static_cast<size_t>(axis_norm));
+            out_shape.erase(out_shape.begin() + axis);
         }
         outputs[0].set_shape(out_shape);
         outputs[1].set_shape(out_shape);
@@ -114,12 +118,6 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
         }
         return true;
     }
-
-    if (axis < 0) {
-        axis += static_cast<int64_t>(in_rank);
-    }
-    OPENVINO_ASSERT(axis >= 0 && static_cast<size_t>(axis) < in_rank,
-                    "ContribStringJoin axis out of range");
 
     // Compute strides for input (row-major).
     std::vector<size_t> in_strides(in_rank, 1);
@@ -146,9 +144,9 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
 
     std::vector<std::string> result(out_size);
     size_t total_chars = 0;
+    std::vector<size_t> coords_out(out_shape.size());
     for (size_t oi = 0; oi < out_size; ++oi) {
         // Unravel oi in out_shape order.
-        std::vector<size_t> coords_out(out_shape.size());
         size_t r = oi;
         for (size_t d = 0; d < out_shape.size(); ++d) {
             coords_out[d] = r / out_strides[d];
@@ -248,11 +246,12 @@ bool ContribStringSplit::evaluate(ov::TensorVector& outputs,
     std::vector<std::string> values;
     size_t max_tokens = 0;
 
+    std::vector<int64_t> coord(in_rank);
     for (size_t p = 0; p < in_size; ++p) {
+        OPENVINO_ASSERT(ends[p] >= begins[p], "Malformed packed string: ends[", p, "] < begins[", p, "]");
         std::string_view s(reinterpret_cast<const char*>(chars + begins[p]),
                            static_cast<size_t>(ends[p] - begins[p]));
 
-        std::vector<int64_t> coord(in_rank);
         size_t r = p;
         for (size_t d = 0; d < in_rank; ++d) {
             coord[d] = static_cast<int64_t>(r / in_strides[d]);
@@ -280,12 +279,15 @@ bool ContribStringSplit::evaluate(ov::TensorVector& outputs,
             }
         }
 
+        // tok_pos tracks the original slot position in the split sequence so
+        // that sparse COO indices correctly reflect pre-skip positions.
         size_t tok_pos = 0;
         for (auto& t : tokens) {
-            if (skip_empty && t.empty()) continue;
-            indices_flat.insert(indices_flat.end(), coord.begin(), coord.end());
-            indices_flat.push_back(static_cast<int64_t>(tok_pos));
-            values.emplace_back(t);
+            if (!skip_empty || !t.empty()) {
+                indices_flat.insert(indices_flat.end(), coord.begin(), coord.end());
+                indices_flat.push_back(static_cast<int64_t>(tok_pos));
+                values.emplace_back(t);
+            }
             ++tok_pos;
         }
         if (tok_pos > max_tokens) max_tokens = tok_pos;

@@ -358,3 +358,26 @@ def test_string_split(tmp_path):
     assert list(values.str_data) == expected_values
     assert indices.data.tolist() == expected_indices
     assert dense_shape.data.tolist() == [len(strings), max_cols]
+
+
+def test_string_split_skip_empty_preserves_original_positions(tmp_path):
+    # When skip_empty=True and consecutive delimiters produce empty tokens,
+    # the sparse COO indices must reflect the original (pre-skip) slot positions,
+    # not compressed filtered positions. dense_shape last dim must also be the
+    # max original token count (3 here), not the filtered count (2).
+    onnx_path = _save(_build_string_split_model(), tmp_path, "split_skip.onnx")
+    # "a  b" split on " " → ["a", "", "b"]; skip_empty drops ""; original positions 0, 2
+    strings = ["a  b", "x"]
+    outputs = _run(
+        onnx_path,
+        {
+            "inp": ov.Tensor(np.array(strings, dtype=str)),
+            "delim": ov.Tensor(np.array(" ", dtype=str)),
+            "skip": ov.Tensor(np.array(True)),
+        },
+    )
+    indices, values, dense_shape = outputs
+
+    assert list(values.str_data) == ["a", "b", "x"]
+    assert indices.data.tolist() == [[0, 0], [0, 2], [1, 0]]
+    assert dense_shape.data.tolist() == [2, 3]
