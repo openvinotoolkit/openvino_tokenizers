@@ -344,14 +344,14 @@ namespace {
 template <typename T>
 T extract_scalar_const(const ov::Output<ov::Node> &input,
                        const std::string &name) {
-    auto const_node =
-        ov::as_type_ptr<Constant>(input.get_node_shared_ptr());
-    FRONT_END_GENERAL_CHECK(const_node,
-        "[ONNX Frontend] expected constant for ", name);
-    auto values = const_node->cast_vector<T>();
-    FRONT_END_GENERAL_CHECK(values.size() == 1,
-        "[ONNX Frontend] expected scalar for ", name);
-    return values[0];
+  auto const_node =
+      ov::as_type_ptr<Constant>(input.get_node_shared_ptr());
+  FRONT_END_GENERAL_CHECK(const_node,
+      "[ONNX Frontend] expected constant for ", name);
+  auto values = const_node->cast_vector<T>();
+  FRONT_END_GENERAL_CHECK(values.size() == 1,
+      "[ONNX Frontend] expected scalar for ", name);
+  return values[0];
 }
 
 // Build an OV graph that converts the SentencepieceTokenizer OV op's sparse
@@ -363,38 +363,38 @@ ov::OutputVector make_row_splits_from_sparse(
     const ov::Output<ov::Node> &sparse_indices,
     const ov::Output<ov::Node> &sparse_values,
     const ov::Output<ov::Node> &dense_shape) {
-    auto axis0_1d = std::make_shared<Constant>(element::i64, Shape{1},
-                                               std::vector<int64_t>{0});
-    auto axis1_1d = std::make_shared<Constant>(element::i64, Shape{1},
-                                               std::vector<int64_t>{1});
-    auto axis0_0d = std::make_shared<Constant>(element::i64, Shape{},
-                                               std::vector<int64_t>{0});
+  auto axis0_1d = std::make_shared<Constant>(element::i64, Shape{1},
+                                             std::vector<int64_t>{0});
+  auto axis1_1d = std::make_shared<Constant>(element::i64, Shape{1},
+                                             std::vector<int64_t>{1});
+  auto axis0_0d = std::make_shared<Constant>(element::i64, Shape{},
+                                             std::vector<int64_t>{0});
 
-    // batch_indices = sparse_indices[:, 0], shape [N]
-    auto batch_indices =
-        std::make_shared<Gather>(sparse_indices, axis0_0d, axis1_1d);
+  // batch_indices = sparse_indices[:, 0], shape [N]
+  auto batch_indices =
+      std::make_shared<Gather>(sparse_indices, axis0_0d, axis1_1d);
 
-    // B = dense_shape[0], scalar i64
-    auto B = std::make_shared<Gather>(dense_shape, axis0_0d, axis0_0d);
+  // B = dense_shape[0], scalar i64
+  auto B = std::make_shared<Gather>(dense_shape, axis0_0d, axis0_0d);
 
-    // range = [0, B+1)
-    auto one_i64 = std::make_shared<Constant>(element::i64, Shape{},
-                                              std::vector<int64_t>{1});
-    auto B_plus_1 = std::make_shared<Add>(B, one_i64);
-    auto zero_i64 = std::make_shared<Constant>(element::i64, Shape{},
-                                               std::vector<int64_t>{0});
-    auto range =
-        std::make_shared<Range>(zero_i64, B_plus_1, one_i64, element::i64);
+  // range = [0, B+1)
+  auto one_i64 = std::make_shared<Constant>(element::i64, Shape{},
+                                            std::vector<int64_t>{1});
+  auto B_plus_1 = std::make_shared<Add>(B, one_i64);
+  auto zero_i64 = std::make_shared<Constant>(element::i64, Shape{},
+                                             std::vector<int64_t>{0});
+  auto range =
+      std::make_shared<Range>(zero_i64, B_plus_1, one_i64, element::i64);
 
-    // mask[n, i] = batch_indices[n] < range[i]
-    auto bi_unsq = std::make_shared<Unsqueeze>(batch_indices, axis1_1d);
-    auto range_unsq = std::make_shared<Unsqueeze>(range, axis0_1d);
-    auto mask = std::make_shared<Less>(bi_unsq, range_unsq);
-    auto mask_i64 = std::make_shared<Convert>(mask, element::i64);
-    auto row_splits =
-        std::make_shared<ReduceSum>(mask_i64, axis0_1d, false)->output(0);
+  // mask[n, i] = batch_indices[n] < range[i]
+  auto bi_unsq = std::make_shared<Unsqueeze>(batch_indices, axis1_1d);
+  auto range_unsq = std::make_shared<Unsqueeze>(range, axis0_1d);
+  auto mask = std::make_shared<Less>(bi_unsq, range_unsq);
+  auto mask_i64 = std::make_shared<Convert>(mask, element::i64);
+  auto row_splits =
+      std::make_shared<ReduceSum>(mask_i64, axis0_1d, false)->output(0);
 
-    return {sparse_values, row_splits};
+  return {sparse_values, row_splits};
 }
 
 }  // namespace
@@ -590,7 +590,7 @@ translate_onnx_contrib_string_join(const ov::frontend::NodeContext &node) {
 
     OutputVector args;
     args.insert(args.end(), input_unpacked.begin(), input_unpacked.end());
-    args.insert(args.end(), sep_unpacked.begin(), sep_unpacked.end());
+    args.push_back(sep_unpacked[2]);  // pass sep raw chars (u8) directly
     args.push_back(axis_i64);
 
     auto join = std::make_shared<ContribStringJoin>(args);
@@ -619,7 +619,7 @@ translate_onnx_contrib_string_split(const ov::frontend::NodeContext &node) {
 
     OutputVector args;
     args.insert(args.end(), input_unpacked.begin(), input_unpacked.end());
-    args.insert(args.end(), delim_unpacked.begin(), delim_unpacked.end());
+    args.push_back(delim_unpacked[2]);  // pass delim raw chars (u8) directly
     args.push_back(skip_bool);
 
     auto split = std::make_shared<ContribStringSplit>(args);

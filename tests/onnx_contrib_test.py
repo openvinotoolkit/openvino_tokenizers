@@ -14,8 +14,6 @@
 # library itself is used as the reference implementation; the string ops are
 # checked against hand-computed expected values.
 
-from pathlib import Path
-
 import numpy as np
 import openvino as ov
 import pytest

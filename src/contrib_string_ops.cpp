@@ -12,30 +12,12 @@
 
 using namespace ov;
 
-namespace {
-
-// Read a single scalar string from a packed (begins, ends, chars) representation.
-std::string read_scalar_packed_string(const ov::Tensor& begins_t,
-                                      const ov::Tensor& ends_t,
-                                      const ov::Tensor& chars_t) {
-    OPENVINO_ASSERT(begins_t.get_size() == 1 && ends_t.get_size() == 1,
-                    "Expected a scalar packed string (single begins/ends element)");
-    auto begins = begins_t.data<const int32_t>();
-    auto ends   = ends_t.data<const int32_t>();
-    auto chars  = chars_t.data<const uint8_t>();
-    OPENVINO_ASSERT(ends[0] >= begins[0], "Malformed packed string: ends[0] < begins[0]");
-    return std::string(reinterpret_cast<const char*>(chars + begins[0]),
-                       static_cast<size_t>(ends[0] - begins[0]));
-}
-
-}  // namespace
-
 void ContribStringJoin::validate_and_infer_types() {
-    OPENVINO_ASSERT(get_input_size() == 7, "ContribStringJoin expects 7 inputs");
+    OPENVINO_ASSERT(get_input_size() == 5, "ContribStringJoin expects 5 inputs");
     check_string_input(this, 0);
-    check_string_input(this, 3);
+    check_string_scalar_input(this, 3);
     {
-        auto t = get_input_element_type(6);
+        auto t = get_input_element_type(4);
         OPENVINO_ASSERT(t == element::i64 || t == element::i32 || t.is_dynamic(),
                         "ContribStringJoin axis input must be of integer type, got: ", t);
     }
@@ -67,7 +49,7 @@ void ContribStringJoin::validate_and_infer_types() {
 
 bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
                                  const ov::TensorVector& inputs) const {
-    OPENVINO_ASSERT(inputs.size() == 7, "ContribStringJoin expects 7 inputs");
+    OPENVINO_ASSERT(inputs.size() == 5, "ContribStringJoin expects 5 inputs");
 
     auto begins = inputs[0].data<const int32_t>();
     auto ends   = inputs[1].data<const int32_t>();
@@ -75,17 +57,18 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
     const auto& in_shape = inputs[0].get_shape();
     size_t in_rank = in_shape.size();
 
-    std::string sep = read_scalar_packed_string(inputs[3], inputs[4], inputs[5]);
+    std::string_view sep(reinterpret_cast<const char*>(inputs[3].data<const uint8_t>()),
+                         inputs[3].get_size());
 
     int64_t axis;
     {
-        OPENVINO_ASSERT(inputs[6].get_size() == 1,
+        OPENVINO_ASSERT(inputs[4].get_size() == 1,
                         "ContribStringJoin axis input must be a scalar (single element)");
-        const auto& at = inputs[6].get_element_type();
+        const auto& at = inputs[4].get_element_type();
         if (at == element::i64)
-            axis = inputs[6].data<const int64_t>()[0];
+            axis = inputs[4].data<const int64_t>()[0];
         else if (at == element::i32)
-            axis = static_cast<int64_t>(inputs[6].data<const int32_t>()[0]);
+            axis = static_cast<int64_t>(inputs[4].data<const int32_t>()[0]);
         else
             OPENVINO_THROW("ContribStringJoin: unsupported axis element type ", at);
     }
@@ -147,32 +130,31 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
         out_strides[i] = out_strides[i + 1] * out_shape[i + 1];
     }
 
-    std::vector<std::string> result(out_size);
-    size_t total_chars = 0;
+    // Helper: unravel output linear index to compute input base offset.
     std::vector<size_t> coords_out(out_shape.size());
-    for (size_t oi = 0; oi < out_size; ++oi) {
-        // Unravel oi in out_shape order.
+    auto compute_base_offset = [&](size_t oi) -> size_t {
         size_t r = oi;
         for (size_t d = 0; d < out_shape.size(); ++d) {
             coords_out[d] = r / out_strides[d];
             r = r % out_strides[d];
         }
-        // Map to base offset in input (axis coord = 0).
-        size_t base_offset = 0;
-        size_t k = 0;
+        size_t base = 0, k = 0;
         for (size_t d = 0; d < in_rank; ++d) {
             if (static_cast<int64_t>(d) == axis) continue;
-            base_offset += coords_out[k++] * in_strides[d];
+            base += coords_out[k++] * in_strides[d];
         }
-        std::string joined;
+        return base;
+    };
+
+    // Pass 1: compute total output chars to pre-size the output buffer.
+    size_t total_chars = 0;
+    for (size_t oi = 0; oi < out_size; ++oi) {
+        size_t base = compute_base_offset(oi);
         for (size_t a = 0; a < axis_size; ++a) {
-            size_t idx = base_offset + a * in_strides[axis];
-            if (a > 0) joined.append(sep);
-            joined.append(reinterpret_cast<const char*>(chars + begins[idx]),
-                          static_cast<size_t>(ends[idx] - begins[idx]));
+            size_t idx = base + a * in_strides[axis];
+            if (a > 0) total_chars += sep.size();
+            total_chars += static_cast<size_t>(ends[idx] - begins[idx]);
         }
-        total_chars += joined.size();
-        result[oi] = std::move(joined);
     }
 
     outputs[0].set_shape(out_shape);
@@ -181,22 +163,33 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
     auto out_begins = outputs[0].data<int32_t>();
     auto out_ends   = outputs[1].data<int32_t>();
     auto out_chars  = outputs[2].data<uint8_t>();
+
+    // Pass 2: write joined strings directly to the output buffer.
     size_t cur = 0;
-    for (size_t i = 0; i < out_size; ++i) {
-        out_begins[i] = static_cast<int32_t>(cur);
-        std::copy(result[i].begin(), result[i].end(), out_chars + cur);
-        cur += result[i].size();
-        out_ends[i] = static_cast<int32_t>(cur);
+    for (size_t oi = 0; oi < out_size; ++oi) {
+        out_begins[oi] = static_cast<int32_t>(cur);
+        size_t base = compute_base_offset(oi);
+        for (size_t a = 0; a < axis_size; ++a) {
+            size_t idx = base + a * in_strides[axis];
+            if (a > 0) {
+                std::copy(sep.data(), sep.data() + sep.size(), out_chars + cur);
+                cur += sep.size();
+            }
+            size_t slen = static_cast<size_t>(ends[idx] - begins[idx]);
+            std::copy(chars + begins[idx], chars + ends[idx], out_chars + cur);
+            cur += slen;
+        }
+        out_ends[oi] = static_cast<int32_t>(cur);
     }
     return true;
 }
 
 void ContribStringSplit::validate_and_infer_types() {
-    OPENVINO_ASSERT(get_input_size() == 7, "ContribStringSplit expects 7 inputs");
+    OPENVINO_ASSERT(get_input_size() == 5, "ContribStringSplit expects 5 inputs");
     check_string_input(this, 0);
-    check_string_input(this, 3);
+    check_string_scalar_input(this, 3);
     {
-        auto t = get_input_element_type(6);
+        auto t = get_input_element_type(4);
         OPENVINO_ASSERT(t == element::boolean || t == element::u8 || t == element::i8 || t.is_dynamic(),
                         "ContribStringSplit skip_empty input must be of boolean/byte type, got: ", t);
     }
@@ -217,7 +210,7 @@ void ContribStringSplit::validate_and_infer_types() {
 
 bool ContribStringSplit::evaluate(ov::TensorVector& outputs,
                                   const ov::TensorVector& inputs) const {
-    OPENVINO_ASSERT(inputs.size() == 7, "ContribStringSplit expects 7 inputs");
+    OPENVINO_ASSERT(inputs.size() == 5, "ContribStringSplit expects 5 inputs");
 
     auto begins = inputs[0].data<const int32_t>();
     auto ends   = inputs[1].data<const int32_t>();
@@ -227,18 +220,19 @@ bool ContribStringSplit::evaluate(ov::TensorVector& outputs,
     size_t in_size = ov::shape_size(in_shape);
     size_t out_rank = in_rank + 1;
 
-    std::string delim = read_scalar_packed_string(inputs[3], inputs[4], inputs[5]);
+    std::string_view delim(reinterpret_cast<const char*>(inputs[3].data<const uint8_t>()),
+                           inputs[3].get_size());
     bool skip_empty;
     {
-        OPENVINO_ASSERT(inputs[6].get_size() == 1,
+        OPENVINO_ASSERT(inputs[4].get_size() == 1,
                         "ContribStringSplit skip_empty input must be a scalar (single element)");
-        const auto& st = inputs[6].get_element_type();
+        const auto& st = inputs[4].get_element_type();
         if (st == element::boolean)
-            skip_empty = inputs[6].data<const bool>()[0];
+            skip_empty = inputs[4].data<const bool>()[0];
         else if (st == element::u8)
-            skip_empty = inputs[6].data<const uint8_t>()[0] != 0;
+            skip_empty = inputs[4].data<const uint8_t>()[0] != 0;
         else if (st == element::i8)
-            skip_empty = inputs[6].data<const int8_t>()[0] != 0;
+            skip_empty = inputs[4].data<const int8_t>()[0] != 0;
         else
             OPENVINO_THROW("ContribStringSplit: unsupported skip_empty element type ", st);
     }

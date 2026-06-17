@@ -13,10 +13,8 @@
 //   0: input begins   (i32, tensor shape S)
 //   1: input ends     (i32, tensor shape S)
 //   2: input chars    (u8,  1D)
-//   3: sep begins     (i32, 0D/1D, single element)
-//   4: sep ends       (i32, 0D/1D, single element)
-//   5: sep chars      (u8,  1D)
-//   6: axis           (i64, 0-D or 1-D single element)
+//   3: sep chars      (u8,  1D raw bytes of the separator string)
+//   4: axis           (i64, 0-D or 1-D single element)
 //
 // Outputs:
 //   0: out begins (i32, shape = S with axis removed; scalar shape {} if rank==1)
@@ -55,10 +53,8 @@ public:
 //   0: input begins     (i32, tensor shape S)
 //   1: input ends       (i32, tensor shape S)
 //   2: input chars      (u8,  1D)
-//   3: delim begins     (i32, 0D/1D, single element)
-//   4: delim ends       (i32, 0D/1D, single element)
-//   5: delim chars      (u8,  1D)
-//   6: skip_empty       (bool, 0-D or 1-D single element)
+//   3: delim chars      (u8,  1D raw bytes of the delimiter string)
+//   4: skip_empty       (bool, 0-D or 1-D single element)
 //
 // Outputs:
 //   0: sparse indices   (i64, shape [N, rank+1])
