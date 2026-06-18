@@ -17,3 +17,18 @@ translate_onnx_tokenizer(const ov::frontend::NodeContext &node);
 
 ov::OutputVector
 translate_onnx_tfid_vectorizer(const ov::frontend::NodeContext &node);
+
+ov::OutputVector
+translate_onnx_contrib_sentencepiece_tokenizer(const ov::frontend::NodeContext &node);
+
+ov::OutputVector
+translate_onnx_contrib_sentencepiece_decoder(const ov::frontend::NodeContext &node);
+
+ov::OutputVector
+translate_onnx_contrib_vector_to_string(const ov::frontend::NodeContext &node);
+
+ov::OutputVector
+translate_onnx_contrib_string_join(const ov::frontend::NodeContext &node);
+
+ov::OutputVector
+translate_onnx_contrib_string_split(const ov::frontend::NodeContext &node);
