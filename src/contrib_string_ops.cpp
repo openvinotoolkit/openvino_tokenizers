@@ -123,6 +123,7 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
     }
     size_t out_size = ov::shape_size(out_shape);
     size_t axis_size = in_shape[axis];
+    const size_t axis_stride = in_strides[axis];
 
     // Output strides (over out_shape) for unraveling output linear index.
     std::vector<size_t> out_strides(out_shape.size(), 1);
@@ -147,12 +148,13 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
     };
 
     // Pass 1: compute total output chars to pre-size the output buffer.
-    size_t total_chars = 0;
+    // Pre-count all separators: each of the out_size joined strings contains
+    // (axis_size - 1) separators.  Guard against axis_size == 0 (size_t underflow).
+    size_t total_chars = (axis_size > 0) ? out_size * (axis_size - 1) * sep.size() : 0;
     for (size_t oi = 0; oi < out_size; ++oi) {
         size_t base = compute_base_offset(oi);
         for (size_t a = 0; a < axis_size; ++a) {
-            size_t idx = base + a * in_strides[axis];
-            if (a > 0) total_chars += sep.size();
+            size_t idx = base + a * axis_stride;
             total_chars += static_cast<size_t>(ends[idx] - begins[idx]);
         }
     }
@@ -170,7 +172,7 @@ bool ContribStringJoin::evaluate(ov::TensorVector& outputs,
         out_begins[oi] = static_cast<int32_t>(cur);
         size_t base = compute_base_offset(oi);
         for (size_t a = 0; a < axis_size; ++a) {
-            size_t idx = base + a * in_strides[axis];
+            size_t idx = base + a * axis_stride;
             if (a > 0) {
                 std::copy(sep.data(), sep.data() + sep.size(), out_chars + cur);
                 cur += sep.size();
