@@ -472,8 +472,9 @@ int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) const {
     uint8_t ch = str[idx];
     int end_idx = idx;
 
-    while (current_node->m_to.count(ch)) {
-        current_node = current_node->m_to.at(ch).get();
+    auto next_node = current_node->m_to.find(ch);
+    while (next_node != current_node->m_to.end()) {
+        current_node = next_node->second.get();
         idx++;
         if (current_node->m_value != -1) {
             token_id = current_node->m_value;
@@ -483,6 +484,7 @@ int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) const {
             break;
         }
         ch = str[idx];
+        next_node = current_node->m_to.find(ch);
     }
     idx = end_idx;
     return token_id;
@@ -495,8 +497,9 @@ int Trie::find_longest(const std::string_view& str, int& idx) const {
     uint8_t ch = str[idx];
     int end_idx = idx;
 
-    while (current_node->m_to.count(ch)) {
-        current_node = current_node->m_to.at(ch).get();
+    auto next_node = current_node->m_to.find(ch);
+    while (next_node != current_node->m_to.end()) {
+        current_node = next_node->second.get();
         idx++;
         if (current_node->m_value != -1) {
             token_id = current_node->m_value;
@@ -506,6 +509,7 @@ int Trie::find_longest(const std::string_view& str, int& idx) const {
             break;
         }
         ch = str[idx];
+        next_node = current_node->m_to.find(ch);
     }
     idx = end_idx;
     return token_id;

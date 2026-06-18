@@ -129,7 +129,7 @@ public:
         bool fuse_unk = false,
         bool byte_fallback = false
     );
-    std::vector<int32_t> tokenize(std::string& text);
+    size_t tokenize(std::string& text, int32_t* output, size_t output_capacity);
 };
 
 

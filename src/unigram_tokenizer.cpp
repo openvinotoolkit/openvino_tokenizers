@@ -55,16 +55,18 @@ bool UnigramTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
     auto new_ends   = outputs[1].data<int32_t>();
     auto new_elems  = outputs[2].data<int32_t>();
     int32_t ragged_offset = 0;
+    unigram_impl::Scratch scratch;
 
     for(size_t seq = 0; seq < num_rows; ++seq) {
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
             auto str = absl::string_view(chars + begins[ragged_col], ends[ragged_col] - begins[ragged_col]);
-            auto results = m_tokenizer->tokenize(str);
-            for (const auto& token : results) {
-                OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
-                new_elems[ragged_offset++] = token;
-            }
+            ragged_offset += m_tokenizer->tokenize(
+                str,
+                new_elems + ragged_offset,
+                outputs[2].get_size() - ragged_offset,
+                scratch
+            );
         }
         new_ends[seq] = ragged_offset;
     }
@@ -75,15 +77,6 @@ bool UnigramTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
 
 namespace unigram_impl {
     constexpr float UNK_PENALTY = 10.0;
-
-    struct BestPathNode {
-        int token_id = 0;
-        float best_score = 0;
-        int starts_at = -1;
-
-        BestPathNode(int token_id)
-        : token_id(token_id), best_score(0), starts_at(-1) {};
-    };
 
     // from https://github.com/google/sentencepiece/blob/d8f741853847553169444afc12c00f4bbff3e9ce/src/util.h#L151
     // Return length of a single UTF-8 source character
@@ -110,7 +103,7 @@ UnigramTokenizerImpl::UnigramTokenizerImpl(
     std::vector<VocabWithIdx> vocab_with_idx(vocab.size());
     for (int idx = 0; idx < vocab.size(); ++idx) {
         vocab_with_idx[idx] = {vocab[idx].first, vocab[idx].second, idx};
-        m_scores[idx] = vocab[idx].second;
+        m_scores.push_back(vocab[idx].second);
     };
     // DoubleArray::build() requires sorted string input
     std::sort(vocab_with_idx.begin(), vocab_with_idx.end(), [](const VocabWithIdx& a, const VocabWithIdx& b) {
@@ -135,21 +128,21 @@ UnigramTokenizerImpl::UnigramTokenizerImpl(
     return;
 };
 
-
-std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
+size_t UnigramTokenizerImpl::tokenize(absl::string_view text, int32_t* output, size_t output_capacity, unigram_impl::Scratch& scratch) const {
     if (text.empty()) {
-        return {};
+        return 0;
     }
 
     const int input_length = text.size();
     const float unk_score = m_min_score - unigram_impl::UNK_PENALTY;
-    std::vector<unigram_impl::BestPathNode> best_path(input_length + 1, unigram_impl::BestPathNode(m_unk_token_id));
+    const size_t path_size = input_length + 1;
+    scratch.best_path.assign(path_size, unigram_impl::BestPathNode(m_unk_token_id));
     int starts_at = 0;
 
     while (starts_at < input_length) {
         size_t node_pos = 0;
         size_t current_pos = starts_at;
-        const auto best_score_so_far = best_path[starts_at].best_score;
+        const auto best_score_so_far = scratch.best_path[starts_at].best_score;
         bool found_next_token = false;
         const int next_char_input_length = std::min<int>(
             unigram_impl::get_next_char_length(text.data() + starts_at),
@@ -161,7 +154,7 @@ std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
             if (token_id == -2) { break; };
 
             if (token_id >= 0) {
-                auto &target_node = best_path[current_pos];
+                auto& target_node = scratch.best_path[current_pos];
                 const auto length = current_pos - starts_at;
 
                 // scores for special tokens should be precomputed and stored in m_scores
@@ -181,7 +174,7 @@ std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
         };
 
         if (!found_next_token) {
-            auto &target_node = best_path[starts_at + next_char_input_length];
+            auto& target_node = scratch.best_path[starts_at + next_char_input_length];
             const auto candidate_best_score = unk_score + best_score_so_far;
             if (target_node.starts_at == -1 || candidate_best_score > target_node.best_score) {
                 target_node.best_score = candidate_best_score;
@@ -194,18 +187,23 @@ std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
 
     // backtrack to get the best path
     int ends_at = input_length;
-    std::vector<int32_t> result;
+    scratch.backtrack.clear();
     int prev_token_id = -1;
     while (ends_at > 0) {
-        const auto &node = best_path[ends_at];
+        const auto& node = scratch.best_path[ends_at];
         ends_at = node.starts_at;
-        if (node.token_id == m_unk_token_id && prev_token_id == m_unk_token_id) {
+        const auto token_id = node.token_id;
+        if (token_id == m_unk_token_id && prev_token_id == m_unk_token_id) {
             // skip consecutive unk tokens
             continue;
         };
-        result.push_back(node.token_id);
-        prev_token_id = node.token_id;
+        scratch.backtrack.push_back(token_id);
+        prev_token_id = token_id;
     };
-    std::reverse(result.begin(), result.end());
-    return result;
+    OPENVINO_ASSERT(scratch.backtrack.size() <= output_capacity);
+    const auto token_count = scratch.backtrack.size();
+    for (size_t idx = 0; idx < token_count; ++idx) {
+        output[idx] = scratch.backtrack[token_count - idx - 1];
+    }
+    return token_count;
 }

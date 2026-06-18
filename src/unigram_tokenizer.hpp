@@ -21,6 +21,20 @@ using VocabToken = std::pair<std::string, float>;
 using Vocab = std::vector<VocabToken>;
 using Scores = std::vector<float>;
 
+struct BestPathNode {
+    int token_id = 0;
+    float best_score = 0;
+    int starts_at = -1;
+
+    BestPathNode(int token_id)
+    : token_id(token_id), best_score(0), starts_at(-1) {};
+};
+
+struct Scratch {
+    std::vector<BestPathNode> best_path;
+    std::vector<int32_t> backtrack;
+};
+
 }  // namespace unigram_impl
 
 class UnigramTokenizerImpl {
@@ -38,7 +52,7 @@ public:
         bool byte_fallback
     );
 
-    std::vector<int32_t> tokenize(absl::string_view text);
+    size_t tokenize(absl::string_view text, int32_t* output, size_t output_capacity, unigram_impl::Scratch& scratch) const;
 };
 
 
