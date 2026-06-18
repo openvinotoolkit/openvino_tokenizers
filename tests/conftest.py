@@ -1,6 +1,6 @@
 import json
 import os
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from io import StringIO
 from math import isclose
 from pathlib import Path
@@ -148,7 +148,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     skipped = len(reporter.stats.get("skipped", []))
     pass_rate = 1 - session.testsfailed / (session.testscollected - skipped)
 
-    suffix = "transformers_v4" if version("transformers").startswith("4.") else ""
+    try:
+        suffix = "transformers_v4" if version("transformers").startswith("4.") else ""
+    except PackageNotFoundError:
+        suffix = ""
     previous = previous_rates.get(parent + suffix, 0)
     stats = reporter.stats
 

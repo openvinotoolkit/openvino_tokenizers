@@ -8,6 +8,7 @@
 #include "utils.hpp"
 
 #include "case_fold.hpp"
+#include "contrib_string_ops.hpp"
 #include "equal_str.hpp"
 #include "fuze.hpp"
 #include "normalize_unicode.hpp"
@@ -16,6 +17,7 @@
 #include "ragged_to_dense.hpp"
 #include "regex_normalization.hpp"
 #include "regex_split.hpp"
+#include "sentence_piece.hpp"
 #include "string_tensor_pack.hpp"
 #include "string_tensor_unpack.hpp"
 #include "string_to_hash_bucket.hpp"
@@ -333,4 +335,302 @@ translate_onnx_tfid_vectorizer(const ov::frontend::NodeContext &node) {
   set_node_name(node_name, tf_counts.get_node_shared_ptr());
 
   return {tf_counts};
+}
+
+namespace {
+
+// Extract a scalar value of type T from a constant input. Helper mirrored after
+// the tensorflow translator's extract_scalar_const_value.
+template <typename T>
+T extract_scalar_const(const ov::Output<ov::Node> &input,
+                       const std::string &name) {
+  auto const_node =
+      ov::as_type_ptr<Constant>(input.get_node_shared_ptr());
+  FRONT_END_GENERAL_CHECK(const_node,
+      "[ONNX Frontend] expected constant for ", name);
+  auto values = const_node->cast_vector<T>();
+  FRONT_END_GENERAL_CHECK(values.size() == 1,
+      "[ONNX Frontend] expected scalar for ", name);
+  return values[0];
+}
+
+// Build an OV graph that converts the SentencepieceTokenizer OV op's sparse
+// outputs (indices [N, 2], values [N] i32, dense_shape [2] i64) into the
+// onnxruntime-extensions style outputs:
+//   - flat token ids (i32, 1D)
+//   - row split indices (i64, 1D length batch_size + 1)
+ov::OutputVector make_row_splits_from_sparse(
+    const ov::Output<ov::Node> &sparse_indices,
+    const ov::Output<ov::Node> &sparse_values,
+    const ov::Output<ov::Node> &dense_shape) {
+  auto axis0_1d = std::make_shared<Constant>(element::i64, Shape{1},
+                                             std::vector<int64_t>{0});
+  auto axis1_1d = std::make_shared<Constant>(element::i64, Shape{1},
+                                             std::vector<int64_t>{1});
+  auto axis0_0d = std::make_shared<Constant>(element::i64, Shape{},
+                                             std::vector<int64_t>{0});
+
+  // batch_indices = sparse_indices[:, 0], shape [N]
+  auto batch_indices =
+      std::make_shared<Gather>(sparse_indices, axis0_0d, axis1_1d);
+
+  // B = dense_shape[0], scalar i64
+  auto B = std::make_shared<Gather>(dense_shape, axis0_0d, axis0_0d);
+
+  // range = [0, B+1)
+  auto one_i64 = std::make_shared<Constant>(element::i64, Shape{},
+                                            std::vector<int64_t>{1});
+  auto B_plus_1 = std::make_shared<Add>(B, one_i64);
+  auto zero_i64 = std::make_shared<Constant>(element::i64, Shape{},
+                                             std::vector<int64_t>{0});
+  auto range =
+      std::make_shared<Range>(zero_i64, B_plus_1, one_i64, element::i64);
+
+  // mask[n, i] = batch_indices[n] < range[i]
+  auto bi_unsq = std::make_shared<Unsqueeze>(batch_indices, axis1_1d);
+  auto range_unsq = std::make_shared<Unsqueeze>(range, axis0_1d);
+  auto mask = std::make_shared<Less>(bi_unsq, range_unsq);
+  auto mask_i64 = std::make_shared<Convert>(mask, element::i64);
+  auto row_splits =
+      std::make_shared<ReduceSum>(mask_i64, axis0_1d, false)->output(0);
+
+  return {sparse_values, row_splits};
+}
+
+}  // namespace
+
+ov::OutputVector
+translate_onnx_contrib_sentencepiece_tokenizer(
+    const ov::frontend::NodeContext &node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 6 || node.get_input_size() == 7,
+        "ai.onnx.contrib.SentencepieceTokenizer expects 6 or 7 inputs "
+        "(input, nbest_size, alpha, add_bos, add_eos, reverse[, fairseq])");
+    FRONT_END_GENERAL_CHECK(node.has_attribute("model"),
+        "ai.onnx.contrib.SentencepieceTokenizer requires the 'model' attribute");
+
+    auto model_bytes = node.get_attribute<std::string>("model");
+    auto sp_model_const = std::make_shared<Constant>(
+        element::u8, Shape{model_bytes.size()},
+        reinterpret_cast<const void *>(model_bytes.data()));
+
+    auto input_strings = node.get_input(0);
+    auto nbest_size =
+        extract_scalar_const<int32_t>(node.get_input(1), "nbest_size");
+    auto alpha = extract_scalar_const<float>(node.get_input(2), "alpha");
+    auto add_bos = extract_scalar_const<bool>(node.get_input(3), "add_bos");
+    auto add_eos = extract_scalar_const<bool>(node.get_input(4), "add_eos");
+    auto reverse = extract_scalar_const<bool>(node.get_input(5), "reverse");
+    // The optional 7th input enables fairseq-style id remapping, which the
+    // underlying SentencepieceTokenizer op does not implement.
+    if (node.get_input_size() == 7) {
+        auto fairseq = extract_scalar_const<bool>(node.get_input(6), "fairseq");
+        FRONT_END_GENERAL_CHECK(!fairseq,
+            "ai.onnx.contrib.SentencepieceTokenizer does not support fairseq mode");
+    }
+
+    auto sp_tokenizer = std::make_shared<SentencepieceTokenizer>(
+        OutputVector{sp_model_const, input_strings},
+        nbest_size, alpha, add_bos, add_eos, reverse);
+    FRONT_END_GENERAL_CHECK(sp_tokenizer->get_output_size() == 3,
+        "SentencepieceTokenizer must produce three outputs");
+
+    auto outs = make_row_splits_from_sparse(
+        sp_tokenizer->output(0),  // sparse_indices i64 [N,2]
+        sp_tokenizer->output(1),  // sparse_values  i32 [N]
+        sp_tokenizer->output(2)); // dense_shape    i64 [2]
+
+    outs[0].add_names({node_name + ":0"});
+    outs[1].add_names({node_name + ":1"});
+    return outs;
+}
+
+ov::OutputVector
+translate_onnx_contrib_sentencepiece_decoder(
+    const ov::frontend::NodeContext &node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 2,
+        "ai.onnx.contrib.SentencepieceDecoder expects 2 inputs (token ids, fairseq)");
+    FRONT_END_GENERAL_CHECK(node.has_attribute("model"),
+        "ai.onnx.contrib.SentencepieceDecoder requires the 'model' attribute");
+    // The optional fairseq flag enables fairseq-style id remapping, which the
+    // underlying SentencepieceDetokenizer op does not implement.
+    auto fairseq = extract_scalar_const<bool>(node.get_input(1), "fairseq");
+    FRONT_END_GENERAL_CHECK(!fairseq,
+        "ai.onnx.contrib.SentencepieceDecoder does not support fairseq mode");
+
+    auto model_bytes = node.get_attribute<std::string>("model");
+    auto sp_model_const = std::make_shared<Constant>(
+        element::u8, Shape{model_bytes.size()},
+        reinterpret_cast<const void *>(model_bytes.data()));
+
+    // SentencepieceDetokenizer expects a 2D [batch, seq_len] i32 tensor of ids.
+    auto token_ids = std::make_shared<Convert>(node.get_input(0), element::i32);
+    auto sp_detokenizer = std::make_shared<SentencepieceDetokenizer>(
+        OutputVector{sp_model_const, token_ids});
+    FRONT_END_GENERAL_CHECK(sp_detokenizer->get_output_size() == 3,
+        "SentencepieceDetokenizer must produce three outputs");
+
+    auto str_out = post_translate_string_tensor_output(sp_detokenizer->outputs());
+    str_out.add_names({node_name + ":0"});
+    return {str_out};
+}
+
+namespace {
+
+// Parse the `map` attribute of ai.onnx.contrib.VectorToString. Each non-empty
+// line has the format "<token>\t<id>". Returns the vocabulary in id order
+// (filled with `unk` for missing ids in [0, max_id]).
+std::vector<std::string> parse_vector_to_string_map(
+    const std::string &text, const std::string &unk) {
+    std::vector<std::pair<std::string, int64_t>> pairs;
+    int64_t max_id = -1;
+    size_t pos = 0;
+    while (pos < text.size()) {
+        size_t nl = text.find('\n', pos);
+        if (nl == std::string::npos) nl = text.size();
+        if (nl > pos) {
+            auto tab = text.find('\t', pos);
+            if (tab != std::string::npos && tab < nl) {
+                std::string token = text.substr(pos, tab - pos);
+                std::string id_str = text.substr(tab + 1, nl - tab - 1);
+                // Strip trailing CR if present.
+                if (!id_str.empty() && id_str.back() == '\r') id_str.pop_back();
+                try {
+                    int64_t id = std::stoll(id_str);
+                    if (id >= 0) {
+                        pairs.emplace_back(std::move(token), id);
+                        if (id > max_id) max_id = id;
+                    }
+                } catch (...) {
+                    // Skip malformed line.
+                }
+            }
+        }
+        pos = nl + 1;
+    }
+    std::vector<std::string> vocab(static_cast<size_t>(max_id + 1), unk);
+    for (auto &p : pairs) {
+        vocab[static_cast<size_t>(p.second)] = std::move(p.first);
+    }
+    return vocab;
+}
+
+}  // namespace
+
+ov::OutputVector
+translate_onnx_contrib_vector_to_string(
+    const ov::frontend::NodeContext &node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 1,
+        "ai.onnx.contrib.VectorToString expects 1 input (token ids)");
+    FRONT_END_GENERAL_CHECK(node.has_attribute("map"),
+        "ai.onnx.contrib.VectorToString requires the 'map' attribute");
+
+    auto map_text = node.get_attribute<std::string>("map");
+    auto unk = node.get_attribute<std::string>("unk", std::string{});
+
+    auto vocab = parse_vector_to_string_map(map_text, unk);
+    size_t vocab_size = vocab.size();
+    FRONT_END_GENERAL_CHECK(vocab_size > 0,
+        "ai.onnx.contrib.VectorToString: parsed empty map");
+    // Append unk as a sentinel slot so out-of-range ids can be mapped to it
+    // purely via integer Select+Gather (CPU plugin does not support Select on
+    // string tensors).
+    vocab.push_back(unk);
+    size_t vocab_size_with_unk = vocab.size();
+
+    auto vocab_const = std::make_shared<Constant>(
+        element::string, Shape{vocab_size_with_unk}, vocab);
+
+    // Lookup: ids may be i64 or i32 in the source model. Cast to i64 and map
+    // out-of-range ids to the sentinel unk slot.
+    auto ids = node.get_input(0);
+    auto ids_i64 = std::make_shared<Convert>(ids, element::i64);
+    auto vocab_size_const = std::make_shared<Constant>(
+        element::i64, Shape{},
+        std::vector<int64_t>{static_cast<int64_t>(vocab_size)});
+    auto zero_i64 = std::make_shared<Constant>(element::i64, Shape{},
+                                               std::vector<int64_t>{0});
+    auto unk_idx_const = std::make_shared<Constant>(
+        element::i64, Shape{},
+        std::vector<int64_t>{static_cast<int64_t>(vocab_size)});  // last slot
+
+    auto in_range_hi = std::make_shared<Less>(ids_i64, vocab_size_const);
+    auto in_range_lo = std::make_shared<GreaterEqual>(ids_i64, zero_i64);
+    auto in_range = std::make_shared<LogicalAnd>(in_range_hi, in_range_lo);
+
+    auto safe_ids = std::make_shared<Select>(in_range, ids_i64, unk_idx_const);
+    auto axis0 = std::make_shared<Constant>(element::i64, Shape{},
+                                            std::vector<int64_t>{0});
+    auto result = std::make_shared<Gather>(vocab_const, safe_ids, axis0);
+
+    set_node_name(node_name, result);
+    return {result->output(0)};
+}
+
+ov::OutputVector
+translate_onnx_contrib_string_join(const ov::frontend::NodeContext &node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 3,
+        "ai.onnx.contrib.StringJoin expects 3 inputs "
+        "(input, sep, axis)");
+
+    auto input_unpacked = pre_translate_string_tensor_input(node.get_input(0));
+    auto sep_unpacked = pre_translate_string_tensor_input(node.get_input(1));
+
+    // axis: ensure i64
+    auto axis_in = node.get_input(2);
+    ov::Output<ov::Node> axis_i64;
+    if (axis_in.get_element_type() == element::i64) {
+        axis_i64 = axis_in;
+    } else {
+        axis_i64 = std::make_shared<Convert>(axis_in, element::i64);
+    }
+
+    OutputVector args;
+    args.insert(args.end(), input_unpacked.begin(), input_unpacked.end());
+    args.push_back(sep_unpacked[2]);  // pass sep raw chars (u8) directly
+    args.push_back(axis_i64);
+
+    auto join = std::make_shared<ContribStringJoin>(args);
+    auto packed = post_translate_string_tensor_output(join->outputs());
+    set_node_name(node_name, packed.get_node_shared_ptr());
+    return {packed};
+}
+
+ov::OutputVector
+translate_onnx_contrib_string_split(const ov::frontend::NodeContext &node) {
+    auto node_name = node.get_name();
+    FRONT_END_GENERAL_CHECK(node.get_input_size() == 3,
+        "ai.onnx.contrib.StringSplit expects 3 inputs "
+        "(input, delimiter, skip_empty)");
+
+    auto input_unpacked = pre_translate_string_tensor_input(node.get_input(0));
+    auto delim_unpacked = pre_translate_string_tensor_input(node.get_input(1));
+
+    auto skip_in = node.get_input(2);
+    ov::Output<ov::Node> skip_bool;
+    if (skip_in.get_element_type() == element::boolean) {
+        skip_bool = skip_in;
+    } else {
+        skip_bool = std::make_shared<Convert>(skip_in, element::boolean);
+    }
+
+    OutputVector args;
+    args.insert(args.end(), input_unpacked.begin(), input_unpacked.end());
+    args.push_back(delim_unpacked[2]);  // pass delim raw chars (u8) directly
+    args.push_back(skip_bool);
+
+    auto split = std::make_shared<ContribStringSplit>(args);
+    auto indices = split->output(0);
+    auto values_packed = post_translate_string_tensor_output(
+        OutputVector{split->output(1), split->output(2), split->output(3)});
+    auto dense_shape = split->output(4);
+
+    indices.add_names({node_name + ":0"});
+    values_packed.add_names({node_name + ":1"});
+    dense_shape.add_names({node_name + ":2"});
+
+    return {indices, values_packed, dense_shape};
 }
