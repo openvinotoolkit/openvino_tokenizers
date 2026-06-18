@@ -19,6 +19,7 @@ from openvino.exceptions import OVTypeError
 from openvino.utils.types import as_node, make_constant_node
 from transformers import PreTrainedTokenizerBase, PreTrainedTokenizerFast
 from transformers.convert_slow_tokenizer import import_protobuf
+from transformers.utils.versions import require_version
 
 from . import _get_factory, _get_opset_factory
 from .constants import (
@@ -61,6 +62,14 @@ from .tokenizer_pipeline import (
     WordPieceTokenizationStep,
 )
 from .utils import TokenzierConversionParams, create_string_constant_node
+
+
+def transformers_version_at_least(requirement: str) -> bool:
+    try:
+        require_version(f"transformers>={requirement}")
+        return True
+    except ImportError:
+        return False
 
 
 def parse_replace_normalizer(normalizer_dict: dict[str, Any]) -> list[RegexNormalizationStep]:
@@ -450,7 +459,15 @@ class TransformersTokenizerPipelineParser:
         if prefix := self.tokenizer_json["model"].get("continuing_subword_prefix"):
             self.pipeline.add_steps(RegexDecodingStep.replace_continuing_subword_prefix(prefix=prefix))
 
-        if self.clean_up_tokenization_spaces and self.pipeline.decoding_steps:
+        clean_up_tokenization_spaces = self.clean_up_tokenization_spaces
+        if self.tokenizer_json["model"]["type"] == "BPE" and transformers_version_at_least("5.7.0"):
+            clean_up_tokenization_spaces = clean_up_tokenization_spaces and getattr(
+                self.original_tokenizer,
+                "clean_up_tokenization_spaces_for_bpe_even_though_it_will_corrupt_output",
+                False,
+            )
+
+        if clean_up_tokenization_spaces and self.pipeline.decoding_steps:
             self.pipeline.add_steps(RegexDecodingStep.clean_up_tokenization_spaces())
         return
 
