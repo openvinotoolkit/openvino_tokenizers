@@ -335,18 +335,23 @@ def test_string_join_empty_axis(tmp_path):
     # incorrectly triggered here, initialising only element 0 and leaving the
     # rest of begins/ends uninitialized.
     N = 3
+    # Embed axis=0 as an ONNX graph initializer (constant) so that OpenVINO
+    # creates a Constant node for it.  This lets validate_and_infer_types read
+    # the axis value and produce a static output shape, which the CPU plugin
+    # requires.
     node = helper.make_node(
         "StringJoin", ["inp", "sep", "axis"], ["joined"], domain="ai.onnx.contrib"
     )
+    axis_init = helper.make_tensor("axis", TensorProto.INT64, [], [0])
     graph = helper.make_graph(
         [node],
         "string_join_2d",
         [
-            helper.make_tensor_value_info("inp", TensorProto.STRING, [None, None]),
+            helper.make_tensor_value_info("inp", TensorProto.STRING, [0, N]),
             helper.make_tensor_value_info("sep", TensorProto.STRING, []),
-            helper.make_tensor_value_info("axis", TensorProto.INT64, []),
         ],
         [helper.make_tensor_value_info("joined", TensorProto.STRING, [None])],
+        initializer=[axis_init],
     )
     model = helper.make_model(
         graph,
@@ -358,7 +363,6 @@ def test_string_join_empty_axis(tmp_path):
         {
             "inp": ov.Tensor(np.empty((0, N), dtype=str)),
             "sep": ov.Tensor(np.array("-", dtype=str)),
-            "axis": ov.Tensor(np.array(0, dtype=np.int64)),
         },
     )
     assert outputs[0].str_data.ravel().tolist() == [""] * N

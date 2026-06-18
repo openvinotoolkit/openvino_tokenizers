@@ -10,6 +10,8 @@
 #include <string_view>
 #include <vector>
 
+#include <openvino/op/constant.hpp>
+
 using namespace ov;
 
 void ContribStringJoin::validate_and_infer_types() {
@@ -29,12 +31,22 @@ void ContribStringJoin::validate_and_infer_types() {
         if (rank <= 1) {
             out_pshape = PartialShape{};
         } else {
-            // Axis is generally not known statically; produce a dynamic
-            // shape one rank lower.
+            // Try to read axis as a constant so we can preserve known
+            // non-axis dimensions in the output shape (important for the
+            // CPU plugin which requires static shapes).
+            int64_t const_axis = -1;  // -1 means unknown at inference time
+            if (auto axis_const = ov::as_type_ptr<ov::op::v0::Constant>(
+                    input_value(4).get_node_shared_ptr())) {
+                const_axis = axis_const->cast_vector<int64_t>()[0];
+                if (const_axis < 0) const_axis += rank;
+            }
             std::vector<Dimension> dims;
             dims.reserve(rank - 1);
-            for (int64_t i = 0; i + 1 < rank; ++i) {
-                dims.emplace_back();
+            for (int64_t i = 0; i < rank; ++i) {
+                if (i == const_axis) continue;
+                // Preserve the known input dimension; fall back to dynamic
+                // if axis is not a compile-time constant.
+                dims.push_back(const_axis >= 0 ? in_pshape[i] : Dimension());
             }
             out_pshape = PartialShape(dims);
         }
