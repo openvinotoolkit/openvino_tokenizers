@@ -133,6 +133,7 @@ optional = true
 
 [tool.poetry.group.onnx_tests.dependencies]
 onnx = ">=1.13.0"
+sentencepiece = ">=0.1.96"
 
 [tool.poetry.group.benchmark]
 optional = true
