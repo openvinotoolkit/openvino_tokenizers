@@ -860,7 +860,7 @@ class UnigramModelStep(TokenizationModelStep):
         # Keep precision and not compress to f16 on ARM devices.
         const_vocab_logprobs_node =  make_constant_node(np.array(self.vocab_logprobs, dtype=np.float32), Type.f32)
         const_vocab_logprobs_node.get_rt_info()["precise_0"] = ""
-        const_vocab_logprobs_node.get_rt_info()["DisablePrecisionConversion_0"] = "dynamic:f16"
+        const_vocab_logprobs_node.get_rt_info()["keep_const_precision_0"] = ""
 
         input_nodes.extend(
             (

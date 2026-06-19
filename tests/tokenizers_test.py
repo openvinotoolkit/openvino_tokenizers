@@ -16,7 +16,7 @@ from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info
 from openvino_tokenizers.utils import TokenzierConversionParams, get_hf_tokenizer_attribute
 from transformers import AutoTokenizer
 
-from tests.utils import compile_model_for_tests, get_hf_tokenizer
+from tests.utils import get_hf_tokenizer
 
 
 if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
@@ -135,7 +135,7 @@ def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, 
         use_max_padding=use_max_padding,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
-    compiled_tokenizer = compile_model_for_tests(ov_tokenizer, core=core)
+    compiled_tokenizer = core.compile_model(ov_tokenizer)
     return hf_tokenizer, compiled_tokenizer
 
 
@@ -154,8 +154,8 @@ def get_tokenizer_detokenizer(
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
-    compiled_tokenizer = compile_model_for_tests(ov_tokenizer, core=core)
-    compiled_detokenizer = compile_model_for_tests(ov_detokenizer, core=core)
+    compiled_tokenizer = core.compile_model(ov_tokenizer)
+    compiled_detokenizer = core.compile_model(ov_detokenizer)
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
 
 
@@ -834,7 +834,7 @@ def test_streaming_detokenizer(sentencepiece_streaming_tokenizers):
 def test_detokenizer_results_align_with_hf_on_multitoken_symbols_for_streaming():
     hf_tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen-14B-Chat", trust_remote_code=True)
     _, ov_detokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=True)
-    ov_detokenizer = compile_model_for_tests(ov_detokenizer, core=core)
+    ov_detokenizer = core.compile_model(ov_detokenizer)
 
     test_string = "🤷‍♂️"  # tokenized into 5 tokens
     tokenized_string = hf_tokenizer(test_string).input_ids
@@ -978,9 +978,8 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
     ov_tokenizer = Core().read_model(tmp_path / "openvino_tokenizer.xml")
 
     # Compile with cache dir, to check if after restoration still will work fine.
-    compiled_tokenizer = compile_model_for_tests(
+    compiled_tokenizer = Core().compile_model(
         ov_tokenizer,
-        core=Core(),
         device_name="CPU",
         config={properties.cache_dir: str(tmp_path)},
     )
@@ -988,9 +987,8 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
 
     # On the second run, it should be loaded from cache.
     # Check that output is still the same
-    compiled_tokenizer = compile_model_for_tests(
+    compiled_tokenizer = Core().compile_model(
         ov_tokenizer,
-        core=Core(),
         device_name="CPU",
         config={properties.cache_dir: str(tmp_path)},
     )
@@ -1028,7 +1026,7 @@ def max_length(request):
 def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
     ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2, max_length=max_length)
-    ov_tokenizer = compile_model_for_tests(ov_tokenizer, core=Core(), device_name="CPU")
+    ov_tokenizer = Core().compile_model(ov_tokenizer, device_name="CPU")
     return hf_tokenizer, ov_tokenizer
 
 
