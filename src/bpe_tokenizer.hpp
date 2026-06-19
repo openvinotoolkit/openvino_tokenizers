@@ -31,91 +31,16 @@ struct TokenPairHash {
 using Merges = absl::flat_hash_map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>, TokenPairHash>;
 using Vocab = std::unordered_map<std::string, unsigned int>;
 
-template <typename T = int32_t>
-class TokensList {
-public:
-    struct Node {
-        T data;
-        std::weak_ptr<Node> prev;
-        std::shared_ptr<Node> next;
-        Node(const T& data) : data(data), prev(), next(nullptr) {}
-    };
-
-    size_t m_size;
-
-public:
-    size_t size() const {
-        return m_size;
-    }
-
-    std::shared_ptr<Node> head;
-    std::shared_ptr<Node> tail;
-
-    TokensList() : head(nullptr), tail(nullptr), m_size(0) {}
-
-    ~TokensList() {
-        while (head) {
-            head = head->next;
-        }
-    }
-
-    void insert(const T& data) {
-        auto new_node = std::make_shared<Node>(data);
-        if (tail) {
-            tail->next = new_node;
-            new_node->prev = tail;
-        } else {
-            head = new_node;
-        }
-        tail = new_node;
-        ++m_size;
-    }
-
-    std::shared_ptr<Node> merge_neighbors(std::shared_ptr<Node> first, std::shared_ptr<Node> second, const T& new_data) {
-        // OPENVINO_ASSERT(!first || !second || first->next != second);
-        // OPENVINO_THROW("Nodes must be consecutive and non-null");
-
-        std::shared_ptr<Node> new_node = std::make_shared<Node>(new_data);
-
-        new_node->prev = first->prev;
-        new_node->next = second->next;
-
-        if (auto prev_node = first->prev.lock()) {
-            prev_node->next = new_node;
-        } else {
-            head = new_node;
-        }
-
-        if (second->next) {
-            second->next->prev = new_node;
-        } else {
-            tail = new_node;
-        }
-
-        // No need to delete first and second as shared_ptr will handle it
-        m_size -= 1;
-        return new_node;
-    }
+// A single symbol in the word being tokenized. The word is held as one
+// contiguous vector of Symbols forming a doubly linked list through integer
+// indices (-1 == no neighbor). Merges append a new Symbol and mark the two
+// operands dead, so indices are stable for the lifetime of a tokenize() call.
+struct BPESymbol {
+    int32_t id;     // token id
+    int32_t prev;   // index of previous live symbol, or -1
+    int32_t next;   // index of next live symbol, or -1
+    bool alive;
 };
-
-// Define a custom hash function for std::pair
-struct NodePairHash {
-    std::size_t operator()(const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& pair) const {
-        auto hash1 = std::hash<std::shared_ptr<TokensList<int32_t>::Node>>{}(pair.first);
-        auto hash2 = std::hash<std::shared_ptr<TokensList<int32_t>::Node>>{}(pair.second);
-        return hash1 ^ (hash2 << 1);  // Combine the two hash values
-    }
-};
-
-// Define a custom equality function for std::pair
-struct NodePairEqual {
-    bool operator()(const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& lhs,
-                    const std::pair<std::shared_ptr<TokensList<int32_t>::Node>, std::shared_ptr<TokensList<int32_t>::Node>>& rhs) const {
-        return lhs.first == rhs.first && lhs.second == rhs.second;
-    }
-};
-
-using TokenNode = std::shared_ptr<TokensList<int32_t>::Node>;
 
 class BPETokenizerImpl {
 private:
