@@ -99,7 +99,13 @@ class Trie {
         int find_longest(const std::string_view& str, int& idx) const;
 
     private:
-        std::unordered_map<unsigned char, std::unique_ptr<Trie>> m_to;
+        // Returns the child node for byte `ch`, or nullptr if absent.
+        const Trie* find_child(unsigned char ch) const;
+
+        // Children kept sorted by byte. Most nodes have a small fan-out, so a
+        // contiguous sorted vector with binary search beats a per-node hash map
+        // on both memory (no bucket array per node) and cache locality.
+        std::vector<std::pair<unsigned char, std::unique_ptr<Trie>>> m_children;
         int m_value = -1;  // -1 for unset value
 };
 
