@@ -9,7 +9,12 @@ import pytest
 
 
 def pytest_addoption(parser):
-    parser.addoption("--update_readme", help="Update test coverage report in README.md")
+    parser.addoption(
+        "--update_readme",
+        action="store_true",
+        default=False,
+        help="Update test coverage report in README.md",
+    )
 
 
 PASS_RATES_FILE = Path(__file__).parent / "pass_rates.json"
