@@ -5,6 +5,7 @@
 #pragma once
 
 #include <openvino/op/op.hpp>
+#include <shared_mutex>
 #include "absl/container/flat_hash_map.h"
 #include "utils.hpp"
 
@@ -53,7 +54,7 @@ private:
     int32_t m_unk_token_id = -1;
     bool m_fuse_unk = false;
     size_t m_cache_capacity;
-    std::mutex m_mutex;
+    std::shared_mutex m_mutex;
     std::unordered_map<std::string, std::vector<int32_t>> m_cache;
 public:
     BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};

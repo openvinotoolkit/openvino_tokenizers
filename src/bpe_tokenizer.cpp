@@ -188,6 +188,7 @@ struct CompareRank {
 
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     {
+        std::shared_lock<std::shared_mutex> lock(m_mutex);
         const auto it = m_cache.find(text);
         if (it != m_cache.end()) {
             return it->second;
@@ -302,8 +303,8 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     }
 
     {
-        // Read/Write to common trie structures should be protected to prevent race conditions.
-        std::lock_guard<std::mutex> lock(m_mutex);
+        // Cache writes take an exclusive lock; lookups above take a shared lock.
+        std::unique_lock<std::shared_mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
             m_cache.emplace(std::move(cache_key), res_vec);
