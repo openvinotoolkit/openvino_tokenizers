@@ -5,6 +5,7 @@
 #pragma once
 
 #include <openvino/op/op.hpp>
+#include "absl/container/flat_hash_map.h"
 #include "utils.hpp"
 
 #ifdef _MSC_VER
@@ -16,7 +17,18 @@
 #undef m_tokenizer
 
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
-using Merges = std::map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>>;
+
+// Hash for an ordered pair of token ids. The bundled absl shim aliases
+// flat_hash_map to std::unordered_map<K, V, std::hash<K>>, and std has no
+// std::hash specialization for std::pair, so the hasher must be explicit.
+struct TokenPairHash {
+    std::size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
+        return (static_cast<std::size_t>(static_cast<uint32_t>(pair.first)) << 32)
+             | static_cast<std::size_t>(static_cast<uint32_t>(pair.second));
+    }
+};
+
+using Merges = absl::flat_hash_map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>, TokenPairHash>;
 using Vocab = std::unordered_map<std::string, unsigned int>;
 
 template <typename T = int32_t>
