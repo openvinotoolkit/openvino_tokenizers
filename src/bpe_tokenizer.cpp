@@ -47,10 +47,7 @@ void BPETokenizer::validate_and_infer_types() {
 bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const auto input_size = get_input_size();
 
-    {
-        // Write to common trie structures should be protected to prevent race conditions.
-        std::lock_guard<std::mutex> lock(m_mutex);
-
+    std::call_once(m_init_flag, [&]() {
         if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
             const size_t added_token_input = input_size - 4;
             const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
@@ -136,8 +133,8 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 vocab, merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
             );
         }
-    }
-    
+    });
+
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();
@@ -198,11 +195,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
-    // TODO: CVS-150387 Implement suffix_indicator.
 
-    // The word is represented as a flat vector of Symbols linked by integer
-    // indices. Merges append a new Symbol and mark operands dead, so indices
-    // stay valid for the whole call. This avoids per-symbol heap allocations.
     std::vector<BPESymbol> symbols;
     symbols.reserve(text.size() + 1);
 

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <openvino/op/op.hpp>
+#include <mutex>
 #include <shared_mutex>
 #include "absl/container/flat_hash_map.h"
 #include "utils.hpp"
@@ -19,9 +20,6 @@
 
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
 
-// Hash for an ordered pair of token ids. The bundled absl shim aliases
-// flat_hash_map to std::unordered_map<K, V, std::hash<K>>, and std has no
-// std::hash specialization for std::pair, so the hasher must be explicit.
 struct TokenPairHash {
     std::size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
         return (static_cast<std::size_t>(static_cast<uint32_t>(pair.first)) << 32)
@@ -148,5 +146,5 @@ private:
     std::string m_end_suffix;
     bool m_byte_fallback = false;
     size_t m_cache_capacity = 20000;
-    mutable std::mutex m_mutex;
+    mutable std::once_flag m_init_flag;
 };
