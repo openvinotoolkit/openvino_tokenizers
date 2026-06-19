@@ -978,20 +978,12 @@ def test_loading_from_cache(tmp_path, model_id, test_string):
     ov_tokenizer = Core().read_model(tmp_path / "openvino_tokenizer.xml")
 
     # Compile with cache dir, to check if after restoration still will work fine.
-    compiled_tokenizer = Core().compile_model(
-        ov_tokenizer,
-        device_name="CPU",
-        config={properties.cache_dir: str(tmp_path)},
-    )
+    compiled_tokenizer = Core().compile_model(ov_tokenizer, "CPU", {properties.cache_dir: str(tmp_path)})
     check_tokenizer_output((hf_tokenizer, compiled_tokenizer), test_string=test_string)
 
     # On the second run, it should be loaded from cache.
     # Check that output is still the same
-    compiled_tokenizer = Core().compile_model(
-        ov_tokenizer,
-        device_name="CPU",
-        config={properties.cache_dir: str(tmp_path)},
-    )
+    compiled_tokenizer = Core().compile_model(ov_tokenizer, "CPU", {properties.cache_dir: str(tmp_path)})
     check_tokenizer_output((hf_tokenizer, compiled_tokenizer), test_string=test_string)
 
 
@@ -1026,7 +1018,7 @@ def max_length(request):
 def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
     ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2, max_length=max_length)
-    ov_tokenizer = Core().compile_model(ov_tokenizer, device_name="CPU")
+    ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
     return hf_tokenizer, ov_tokenizer
 
 

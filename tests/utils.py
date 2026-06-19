@@ -1,16 +1,8 @@
-import platform
-
-from openvino import Core, Type, properties
 import requests
 from transformers import AutoTokenizer
 
 
 MAX_RETRY = 2
-
-
-def is_arm_processor() -> bool:
-    machine = platform.machine().lower()
-    return "arm" in machine or "aarch64" in machine
 
 
 def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left_padding=None):
