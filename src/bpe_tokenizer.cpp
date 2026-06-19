@@ -185,9 +185,13 @@ struct CompareRank {
 };
 
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
-    if (m_cache.count(text)) {
-        return m_cache.at(text);
+    {
+        const auto it = m_cache.find(text);
+        if (it != m_cache.end()) {
+            return it->second;
+        }
     }
+    std::string cache_key = text;
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
@@ -293,7 +297,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         std::lock_guard<std::mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-            m_cache.emplace(std::move(text), res_vec);
+            m_cache.emplace(std::move(cache_key), res_vec);
         }
     }
     return res_vec;
