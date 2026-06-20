@@ -452,15 +452,32 @@ std::pair<std::pair<size_t,size_t>, std::pair<size_t,size_t>> PCRE2Wrapper::matc
 }
 
 
+const Trie* Trie::find_child(unsigned char ch) const {
+    auto it = std::lower_bound(
+        m_children.begin(), m_children.end(), ch,
+        [](const std::pair<unsigned char, std::unique_ptr<Trie>>& entry, unsigned char value) {
+            return entry.first < value;
+        });
+    if (it != m_children.end() && it->first == ch) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
 void Trie::add(const std::vector<unsigned char>& str, const int value, int idx) {
     if (idx == str.size()) {
         m_value = value;
     } else {
         auto ch = str[idx];
-        if (m_to.count(ch) == 0) {
-            m_to[ch] = std::make_unique<Trie>();
+        auto it = std::lower_bound(
+            m_children.begin(), m_children.end(), ch,
+            [](const std::pair<unsigned char, std::unique_ptr<Trie>>& entry, unsigned char value) {
+                return entry.first < value;
+            });
+        if (it == m_children.end() || it->first != ch) {
+            it = m_children.emplace(it, ch, std::make_unique<Trie>());
         }
-        m_to[ch]->add(str, value, idx + 1);
+        it->second->add(str, value, idx + 1);
     }
 }
 
@@ -472,8 +489,8 @@ int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) const {
     uint8_t ch = str[idx];
     int end_idx = idx;
 
-    while (current_node->m_to.count(ch)) {
-        current_node = current_node->m_to.at(ch).get();
+    while (const Trie* next_node = current_node->find_child(ch)) {
+        current_node = next_node;
         idx++;
         if (current_node->m_value != -1) {
             token_id = current_node->m_value;
@@ -495,8 +512,8 @@ int Trie::find_longest(const std::string_view& str, int& idx) const {
     uint8_t ch = str[idx];
     int end_idx = idx;
 
-    while (current_node->m_to.count(ch)) {
-        current_node = current_node->m_to.at(ch).get();
+    while (const Trie* next_node = current_node->find_child(ch)) {
+        current_node = next_node;
         idx++;
         if (current_node->m_value != -1) {
             token_id = current_node->m_value;

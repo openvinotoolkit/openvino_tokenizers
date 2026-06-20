@@ -9,7 +9,12 @@ import pytest
 
 
 def pytest_addoption(parser):
-    parser.addoption("--update_readme", help="Update test coverage report in README.md")
+    parser.addoption(
+        "--update_readme",
+        action="store_true",
+        default=False,
+        help="Update test coverage report in README.md",
+    )
 
 
 PASS_RATES_FILE = Path(__file__).parent / "pass_rates.json"
@@ -145,22 +150,36 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
         previous_statuses = json.load(f)
 
     reporter = session.config.pluginmanager.get_plugin("terminalreporter")
-    skipped = len(reporter.stats.get("skipped", []))
-    pass_rate = 1 - session.testsfailed / (session.testscollected - skipped)
+    stats = reporter.stats
+
+    # The pass rate must only reflect tokenizers_test.py. A full `pytest tests` run also
+    # collects optional modules (e.g. onnx_contrib_test.py, which is skipped at collection
+    # when onnx is not installed); counting those would skew the rate and make CI diverge
+    # from a `pytest tokenizers_test.py` run.
+    def is_tokenizers_test(report):
+        return "tokenizers_test.py" in report.nodeid
+
+    passed = [report for report in stats.get("passed", []) if is_tokenizers_test(report)]
+    failed = [report for report in stats.get("failed", []) if is_tokenizers_test(report)]
+    skipped = [report for report in stats.get("skipped", []) if is_tokenizers_test(report)]
+
+    relevant = len(passed) + len(failed)
+    if relevant == 0:
+        return
+    pass_rate = 1 - len(failed) / relevant
 
     try:
         suffix = "transformers_v4" if version("transformers").startswith("4.") else ""
     except PackageNotFoundError:
         suffix = ""
     previous = previous_rates.get(parent + suffix, 0)
-    stats = reporter.stats
 
     new_statuses = {}
-    for stat in stats.get("passed", []):
+    for stat in passed:
         new_statuses[stat.nodeid] = "passed"
-    for stat in stats.get("skipped", []):
+    for stat in skipped:
         new_statuses[stat.nodeid] = "skipped"
-    for stat in stats.get("failed", []):
+    for stat in failed:
         new_statuses[stat.nodeid] = "failed"
 
     rewrite_statuses = parent in ("tokenizers_test.py::test_", "tests/tokenizers_test.py::test_")

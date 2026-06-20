@@ -47,10 +47,7 @@ void BPETokenizer::validate_and_infer_types() {
 bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const auto input_size = get_input_size();
 
-    {
-        // Write to common trie structures should be protected to prevent race conditions.
-        std::lock_guard<std::mutex> lock(m_mutex);
-
+    std::call_once(m_init_flag, [&]() {
         if (m_added_tokens == nullptr && (input_size == 15 || input_size == 18)) {
             const size_t added_token_input = input_size - 4;
             const size_t added_tokens_size = inputs[added_token_input + 3].get_size();
@@ -136,8 +133,8 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 vocab, merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
             );
         }
-    }
-    
+    });
+
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
     auto begins = inputs[2].data<const int32_t>();
@@ -176,124 +173,134 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 struct CompareRank {
-    bool operator()(const std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t>& lhs,
-                    const std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t >& rhs) const {
-        // Compare beased on positions in merges, but if positions in merges match 
+    // QueueEntry: (position in merges, merged token id, first symbol index,
+    // second symbol index, replacement sequence number).
+    using QueueEntry = std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>;
+    bool operator()(const QueueEntry& lhs, const QueueEntry& rhs) const {
+        // Compare based on positions in merges, but if positions in merges match
         // prefer pairs which are closer to the beginning of the sequence.
         return (std::get<0>(lhs) != std::get<0>(rhs)) ? std::get<0>(lhs) > std::get<0>(rhs) : std::get<4>(lhs) > std::get<4>(rhs);
     }
 };
 
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
-    if (m_cache.count(text)) {
-        return m_cache.at(text);
+    {
+        std::shared_lock<std::shared_mutex> lock(m_mutex);
+        const auto it = m_cache.find(text);
+        if (it != m_cache.end()) {
+            return it->second;
+        }
     }
+    std::string cache_key = text;
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
     text += m_end_suffix;
-    // TODO: CVS-150387 Implement suffix_indicator.
+
+    std::vector<BPESymbol> symbols;
+    symbols.reserve(text.size() + 1);
+
+    auto append_symbol = [&symbols](int32_t id) {
+        const int32_t idx = static_cast<int32_t>(symbols.size());
+        if (idx > 0) {
+            symbols[idx - 1].next = idx;
+        }
+        symbols.push_back(BPESymbol{id, idx - 1, -1, true});
+    };
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
-    TokensList res;
     const auto text_view = std::string_view(text);
     for (int idx = 0; idx < text.size();) {
         auto r = m_trie->find_longest(text_view, idx);
         if (r != -1) {
-            res.insert(r);
+            append_symbol(r);
         } else if (m_byte_fallback) {
-            res.insert(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text_view[idx]))));
+            append_symbol(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text_view[idx]))));
             idx++;
         } else {
-            if (!m_fuse_unk || (res.tail->data) != -1) {
-                res.insert(m_unk_token_id);
+            if (!m_fuse_unk || symbols.empty() || symbols.back().id != -1) {
+                append_symbol(m_unk_token_id);
             }
             idx++;
         }
     }
-    size_t initial_num_tokens = res.size();
+    const size_t initial_num_tokens = symbols.size();
+    size_t live_count = symbols.size();
 
     // Prepare priority queue to store pairs with their ranks.
-    // (position in merges, rank, iterator to first, iterator to second, replacement sequence number).
-    using QueueEntry = std::tuple<int32_t, int32_t, TokenNode, TokenNode, int32_t>;
+    using QueueEntry = CompareRank::QueueEntry;
     std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
 
-    // Fill the priority queue with initial pairs from TokensList
-    TokenNode curr_node = res.head;
-    OPENVINO_ASSERT(curr_node != nullptr);
-    TokenNode next_node = curr_node->next;
-    
     // replacement sequence number, is used in CompareRank.
     // When merges have the same position prefer replaces which occured earlier.
     int32_t i = 0;
-    while (next_node) {
-        const auto pair = std::make_pair(curr_node->data, next_node->data);
-        const auto it = m_merges.find(pair);
+
+    // Try to enqueue the pair (a, b) of adjacent symbol indices if it is a known merge.
+    auto try_push = [&](int32_t a, int32_t b) {
+        const auto it = m_merges.find(std::make_pair(symbols[a].id, symbols[b].id));
         if (it != m_merges.end()) {
-            const auto [idx, rank] = it->second;
-            pq.emplace(idx, rank, curr_node, next_node, i);
+            const auto [merge_idx, merged_id] = it->second;
+            pq.emplace(merge_idx, merged_id, a, b, i);
         }
-        curr_node = next_node;
-        next_node = curr_node->next;
+    };
+
+    // Fill the priority queue with initial pairs. head tracks the index of the
+    // first live symbol; it moves when a merge consumes the current head.
+    int32_t head = symbols.empty() ? -1 : 0;
+    for (int32_t a = head; a != -1 && symbols[a].next != -1; a = symbols[a].next) {
+        try_push(a, symbols[a].next);
         i++;
     }
 
-    // Stored pairs which become invalid after merging neighbors.
-    std::unordered_set<std::pair<TokenNode, TokenNode>, NodePairHash, NodePairEqual> invalid_pairs;
-    while (!pq.empty() && res.size() >= 2) {
-        auto [idx, rank, first_it, second_it, position] = pq.top();
+    while (!pq.empty() && live_count >= 2) {
+        auto [merge_idx, merged_id, first, second, position] = pq.top();
         pq.pop();
 
-        // Check that pair is still valid, if not, then continue.
-        if (invalid_pairs.find({first_it, second_it}) != invalid_pairs.end()) {
+        // Skip stale entries: a merge always consumes (kills) its two operands,
+        // so two symbols that formed a pair stay adjacent while both are alive.
+        if (!symbols[first].alive || !symbols[second].alive || symbols[first].next != second) {
             continue;
         }
 
-        // Mark old neighbors as invalid.
-        if (const auto prev_node = first_it->prev.lock()) {
-            invalid_pairs.insert({prev_node, first_it});
+        // Merge: append a new symbol that takes first's left neighbor and second's
+        // right neighbor, then mark the operands dead.
+        const int32_t prev = symbols[first].prev;
+        const int32_t next = symbols[second].next;
+        const int32_t merged = static_cast<int32_t>(symbols.size());
+        symbols.push_back(BPESymbol{merged_id, prev, next, true});
+        symbols[first].alive = false;
+        symbols[second].alive = false;
+        if (prev != -1) {
+            symbols[prev].next = merged;
+        } else {
+            head = merged;
         }
-        if (second_it != res.tail) {
-            invalid_pairs.insert({second_it, second_it->next});
+        if (next != -1) {
+            symbols[next].prev = merged;
         }
-
-        // Merge the pair.
-        auto new_node = res.merge_neighbors(first_it, second_it, rank);
-        
-        // Need to update the priority queue for the pairs which appeared after merge.
-        if (const auto prev_node = first_it->prev.lock()) {
-            const auto prev_pair = std::make_pair(prev_node->data, new_node->data);
-            const auto it = m_merges.find(prev_pair);
-            if (it != m_merges.end()) {
-                const auto [idx, rank] = it->second;
-                pq.emplace(idx, rank, prev_node, new_node, i);
-            }
-        }
-
-        if (second_it->next) {
-            const auto next_pair = std::make_pair(new_node->data, second_it->next->data);
-            const auto it = m_merges.find(next_pair);
-            if (it != m_merges.end()) {
-                const auto [idx, rank] = it->second;
-                pq.emplace(idx, rank, new_node, second_it->next, i);
-            }
-        }
+        live_count--;
         i++;
+
+        // Enqueue the new pairs created on the left and right of the merged symbol.
+        if (prev != -1) {
+            try_push(prev, merged);
+        }
+        if (next != -1) {
+            try_push(merged, next);
+        }
     }
-    
+
     std::vector<int32_t> res_vec;
-    res_vec.reserve(res.size());
-    TokenNode node = res.head;
-    while (node) {
-        res_vec.emplace_back(node->data);
-        node = node->next;
+    res_vec.reserve(live_count);
+    for (int32_t idx = head; idx != -1; idx = symbols[idx].next) {
+        res_vec.emplace_back(symbols[idx].id);
     }
 
     {
-        // Read/Write to common trie structures should be protected to prevent race conditions.
-        std::lock_guard<std::mutex> lock(m_mutex);
+        // Cache writes take an exclusive lock; lookups above take a shared lock.
+        std::unique_lock<std::shared_mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-            m_cache.emplace(std::move(text), res_vec);
+            m_cache.emplace(std::move(cache_key), res_vec);
         }
     }
     return res_vec;

@@ -99,7 +99,8 @@ class Trie {
         int find_longest(const std::string_view& str, int& idx) const;
 
     private:
-        std::unordered_map<unsigned char, std::unique_ptr<Trie>> m_to;
+        const Trie* find_child(unsigned char ch) const;
+        std::vector<std::pair<unsigned char, std::unique_ptr<Trie>>> m_children;
         int m_value = -1;  // -1 for unset value
 };
 
