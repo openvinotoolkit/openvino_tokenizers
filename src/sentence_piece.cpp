@@ -375,9 +375,13 @@ SentencepieceDetokenizer::SentencepieceDetokenizer(const OutputVector& args, con
 void SentencepieceDetokenizer::validate_and_infer_types() {
     OPENVINO_ASSERT(get_input_size() == 2, "SentencepieceDetokenizer expects two inputs: sp model and token ids");
     OPENVINO_ASSERT(get_input_element_type(0) == element::u8, "SentencepieceDetokenizer accepts sp model as the first input and it should be of type u8 tensor");
-    OPENVINO_ASSERT(get_input_partial_shape(1).size() == 2, "SentencepieceDetokenizer expects 2D tensor as second input");
 
-    auto batch_size = PartialShape({get_input_partial_shape(1)[0]});
+    // Token-ids rank may be dynamic at translation time; defer the 2D check.
+    const auto& ids_shape = get_input_partial_shape(1);
+    OPENVINO_ASSERT(ids_shape.rank().is_dynamic() || ids_shape.size() == 2,
+                    "SentencepieceDetokenizer expects 2D tensor as second input");
+
+    auto batch_size = ids_shape.rank().is_static() ? PartialShape({ids_shape[0]}) : PartialShape{Dimension()};
     set_string_output(this, 0, batch_size);
 }
 
@@ -454,9 +458,13 @@ SentencepieceStreamDetokenizer::SentencepieceStreamDetokenizer(const OutputVecto
 void SentencepieceStreamDetokenizer::validate_and_infer_types() {
     OPENVINO_ASSERT(get_input_size() == 2, "SentencepieceDetokenizer expects two inputs: sp model and token ids");
     OPENVINO_ASSERT(get_input_element_type(0) == element::u8, "SentencepieceDetokenizer accepts sp model as the first input and it should be of type u8 tensor");
-    OPENVINO_ASSERT(get_input_partial_shape(1).size() == 2, "SentencepieceDetokenizer expects 2D tensor as second input");
 
-    auto batch_size = PartialShape({get_input_partial_shape(1)[0]});
+    // Token-ids rank may be dynamic at translation time; defer the 2D check.
+    const auto& ids_shape = get_input_partial_shape(1);
+    OPENVINO_ASSERT(ids_shape.rank().is_dynamic() || ids_shape.size() == 2,
+                    "SentencepieceDetokenizer expects 2D tensor as second input");
+
+    auto batch_size = ids_shape.rank().is_static() ? PartialShape({ids_shape[0]}) : PartialShape{Dimension()};
     set_string_output(this, 0, batch_size);
 }
 
