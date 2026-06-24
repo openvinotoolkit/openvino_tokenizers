@@ -134,6 +134,31 @@ def _build_decoder_model(model_bytes, *, fairseq=False):
     )
 
 
+def _build_decoder_model_dynamic_rank(model_bytes):
+    # Like _build_decoder_model, but token-ids is declared with unknown rank
+    # (shape=None), mirroring a decoder fed from a not-yet-inferred Loop output.
+    nodes = [
+        _scalar_const("fairseq", [False], TensorProto.BOOL),
+        helper.make_node(
+            "SentencepieceDecoder",
+            ["ids", "fairseq"],
+            ["text"],
+            domain="ai.onnx.contrib",
+            model=model_bytes,
+        ),
+    ]
+    graph = helper.make_graph(
+        nodes,
+        "decoder_dyn_rank",
+        [helper.make_tensor_value_info("ids", TensorProto.INT64, None)],
+        [helper.make_tensor_value_info("text", TensorProto.STRING, [None])],
+    )
+    return helper.make_model(
+        graph,
+        opset_imports=[helper.make_opsetid("", 17), helper.make_opsetid("ai.onnx.contrib", 1)],
+    )
+
+
 def _build_vector_to_string_model(map_text, unk):
     node = helper.make_node(
         "VectorToString",
@@ -293,6 +318,16 @@ def test_sentencepiece_decoder(spm_model, tmp_path, text):
     decoded = outputs[0].str_data[0]
 
     assert decoded == processor.decode(ids)
+
+
+def test_sentencepiece_decoder_dynamic_rank_input(spm_model, tmp_path):
+    # Regression: an unknown-rank token-ids input must not throw during
+    # conversion (the 2D check is deferred until the rank is known).
+    model_bytes, _ = spm_model
+    onnx_path = _save(_build_decoder_model_dynamic_rank(model_bytes), tmp_path, "dec_dyn_rank.onnx")
+
+    model = ov.Core().read_model(onnx_path)  # must not raise
+    assert model.output(0).get_element_type() == ov.Type.string
 
 
 def test_sentencepiece_decoder_fairseq_true_unsupported(spm_model, tmp_path):
