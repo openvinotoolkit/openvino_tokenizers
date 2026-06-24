@@ -1,10 +1,39 @@
 import numpy as np
 import requests
+from huggingface_hub import snapshot_download
+from huggingface_hub.errors import HfHubHTTPError
 from openvino import AsyncInferQueue, CompiledModel
 from transformers import AutoTokenizer
 
 
 MAX_RETRY = 2
+
+# Only the files a tokenizer needs. snapshot_download with these patterns resolves a
+# repo to a local directory without pulling model weights (*.bin/*.safetensors/etc.),
+# which can be many GB for the models referenced in the tests. *.py is included so that
+# trust_remote_code tokenizers can load their custom code.
+TOKENIZER_FILE_PATTERNS = [
+    "*.json",
+    "*.txt",
+    "*.model",
+    "*.vocab",
+    "*.spm",
+    "*.py",
+    "tokenizer*",
+    "merges*",
+    "vocab*",
+    "spiece*",
+    "added_tokens*",
+    "special_tokens*",
+]
+
+_local_path_cache: dict = {}
+
+
+def get_tokenizer_local_path(repo_id: str) -> str:
+    if repo_id not in _local_path_cache:
+        _local_path_cache[repo_id] = snapshot_download(repo_id, allow_patterns=TOKENIZER_FILE_PATTERNS)
+    return _local_path_cache[repo_id]
 
 
 class AsyncTokenizerRunner:
@@ -88,8 +117,16 @@ def get_hf_tokenizer(request, fast_tokenizer=True, trust_remote_code=False, left
 
     for retry in range(1, MAX_RETRY + 1):
         try:
+            # Resolve to a local path (tokenizer files only) to avoid Hub revalidation on
+            # every from_pretrained. Fall back to the repo id if resolution fails, so the
+            # tokenizer can still load directly from the Hub.
+            try:
+                pretrained = get_tokenizer_local_path(request.param)
+            except (HfHubHTTPError, OSError):
+                pretrained = request.param
+
             tokenizer = AutoTokenizer.from_pretrained(
-                request.param, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
+                pretrained, use_fast=fast_tokenizer, trust_remote_code=trust_remote_code, **kwargs
             )
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
