@@ -1,3 +1,4 @@
+import numpy as np
 import requests
 from openvino import AsyncInferQueue, CompiledModel
 from transformers import AutoTokenizer
@@ -7,53 +8,65 @@ MAX_RETRY = 2
 
 
 class AsyncTokenizerRunner:
-    """Callable drop-in for a ``CompiledModel`` that batches a known corpus of
-    single-string inputs through an ``AsyncInferQueue`` on first use.
+    """Callable drop-in for a ``CompiledModel`` that batches a known corpus of inputs
+    through an ``AsyncInferQueue`` on first use.
 
-    The tokenizer tests parametrize over a fixed, module-level list of strings and
-    invoke the compiled model once per string with a synchronous, depth-1 call. That
+    The (de)tokenizer tests parametrize over a fixed, module-level list of strings and
+    invoke the compiled model once per item with a synchronous, depth-1 call. That
     pattern cannot exploit the THROUGHPUT performance hint, which only pays off with
     many requests in flight across CPU streams. Because the corpus is known up front,
     the first call primes the whole corpus through one async queue and memoizes the
-    per-string results; every later call is an O(1) dict lookup.
+    per-item results; every later call is an O(1) lookup.
 
-    Inputs that are not part of the primed corpus (multi-string batches, chat strings
-    built at runtime, pair inputs) fall through to a plain synchronous call, so
-    correctness and the dict-by-output-name access used by the tests are preserved.
+    The corpus elements are the exact objects the tests pass to the model: strings for
+    tokenizers, or token-id arrays for detokenizers. Inputs that are not part of the
+    primed corpus (multi-string batches, chat strings built at runtime, pair inputs)
+    fall through to a plain synchronous call, so correctness and the dict-by-output-name
+    access used by the tests are preserved.
     """
 
-    def __init__(self, compiled_model: CompiledModel, corpus: list[str]) -> None:
+    def __init__(self, compiled_model: CompiledModel, corpus: list) -> None:
         self._model = compiled_model
         self._corpus = corpus
-        self._cache: dict[tuple, dict] = {}
+        self._cache: dict = {}
         self._primed = False
 
     @staticmethod
     def _key(inputs):
-        # Only plain strings or sequences of strings can be memoized; anything else
-        # (e.g. the pair-input broadcast, which builds a tuple of lists) is unhashable
-        # and must fall through to a synchronous call.
         if isinstance(inputs, str):
             return (inputs,)
+        if isinstance(inputs, np.ndarray):
+            return (inputs.shape, inputs.dtype.str, inputs.tobytes())
         if isinstance(inputs, (list, tuple)) and all(isinstance(item, str) for item in inputs):
             return tuple(inputs)
         return None
 
     def _results_to_dict(self, request) -> dict:
-        # Copy because AsyncInferQueue recycles output buffers after the callback returns.
-        return {output.get_any_name(): request.results[output].copy() for output in self._model.outputs}
+        results = {}
+        for output in self._model.outputs:
+            tensor = request.results[output].copy()
+            for name in output.get_names():
+                results[name] = tensor
+        return results
+
+    def _model_input(self, item):
+        return [item] if isinstance(item, str) else item
 
     def _prime(self) -> None:
+        self._primed = True
+
         queue = AsyncInferQueue(self._model)
 
-        def callback(request, key: tuple) -> None:
+        def callback(request, key) -> None:
             self._cache[key] = self._results_to_dict(request)
 
         queue.set_callback(callback)
-        for string in self._corpus:
-            queue.start_async([string], (string,))
-        queue.wait_all()
-        self._primed = True
+        try:
+            for item in self._corpus:
+                queue.start_async(self._model_input(item), self._key(item))
+            queue.wait_all()
+        except Exception:
+            pass
 
     def __call__(self, inputs):
         if not self._primed:

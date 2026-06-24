@@ -155,6 +155,13 @@ def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, 
     return hf_tokenizer, AsyncTokenizerRunner(compiled_tokenizer, single_string_corpus)
 
 
+def build_detokenizer_corpus(hf_tokenizer) -> list:
+    return [
+        hf_tokenizer(test_string, return_tensors="np", padding=True).input_ids.astype("int32")
+        for test_string in single_string_corpus
+    ]
+
+
 def get_tokenizer_detokenizer(
     hf_tokenizer,
     streaming_detokenizer=False,
@@ -170,8 +177,10 @@ def get_tokenizer_detokenizer(
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
-    compiled_tokenizer = core.compile_model(ov_tokenizer)
-    compiled_detokenizer = core.compile_model(ov_detokenizer)
+    compiled_tokenizer = core.compile_model(ov_tokenizer, "CPU", THROUGHPUT_CONFIG)
+    compiled_detokenizer = core.compile_model(ov_detokenizer, "CPU", THROUGHPUT_CONFIG)
+    if not streaming_detokenizer:
+        compiled_detokenizer = AsyncTokenizerRunner(compiled_detokenizer, build_detokenizer_corpus(hf_tokenizer))
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
 
 
