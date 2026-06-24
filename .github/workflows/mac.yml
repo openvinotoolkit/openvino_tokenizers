@@ -111,7 +111,7 @@ jobs:
 
       - name: Setup ccache
         id: ccache-restore
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-cpack-${{ github.sha }}
           restore-keys: |
@@ -166,7 +166,7 @@ jobs:
       #
       - name: Save ccache
         if: always() && steps.ccache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         with:
           key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
           path: ${{ env.CCACHE_DIR }}
@@ -251,7 +251,7 @@ jobs:
 
       - name: Setup ccache
         id: ccache-restore
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         with:
           key: ${{ runner.os }}-${{ runner.arch }}-ccache-${{ env.TARGET_BRANCH }}-wheel-${{ github.sha }}
           restore-keys: |
@@ -284,7 +284,7 @@ jobs:
       #
       - name: Save ccache
         if: always() && steps.ccache-restore.outputs.cache-hit != 'true' && github.event_name == 'push'
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
         with:
           key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
           path: ${{ env.CCACHE_DIR }}
