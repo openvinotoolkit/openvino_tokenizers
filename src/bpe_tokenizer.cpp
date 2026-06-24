@@ -213,15 +213,29 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         auto r = m_trie->find_longest(text_view, idx);
         if (r != -1) {
             append_symbol(r);
-        } else if (m_byte_fallback) {
-            append_symbol(m_vocab.at(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text_view[idx]))));
-            idx++;
-        } else {
-            if (!m_fuse_unk || symbols.empty() || symbols.back().id != -1) {
-                append_symbol(m_unk_token_id);
-            }
-            idx++;
+            continue;
         }
+
+        // No vocabulary match at this position. Resolve it the way HF tokenizers does:
+        // prefer the byte-fallback token, then the unk token, otherwise drop the byte.
+        // The byte token is looked up (not asserted) because some published vocabs set
+        // byte_fallback=true yet ship no <0xNN> tokens; a hard map::at there would crash
+        // the whole inference instead of degrading like HF.
+        int32_t fallback_id = -1;
+        if (m_byte_fallback) {
+            const auto byte_it = m_vocab.find(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text_view[idx])));
+            if (byte_it != m_vocab.end()) {
+                fallback_id = static_cast<int32_t>(byte_it->second);
+            }
+        }
+
+        if (fallback_id != -1) {
+            append_symbol(fallback_id);
+        } else if (m_unk_token_id != -1 && (!m_fuse_unk || symbols.empty() || symbols.back().id != -1)) {
+            append_symbol(m_unk_token_id);
+        }
+        // else: unresolvable byte and no unk token -> skip it, matching HF tokenizers.
+        idx++;
     }
     const size_t initial_num_tokens = symbols.size();
     size_t live_count = symbols.size();
