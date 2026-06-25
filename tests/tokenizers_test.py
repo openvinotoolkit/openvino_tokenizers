@@ -16,7 +16,7 @@ from openvino_tokenizers.constants import ORIGINAL_TOKENIZER_CLASS_NAME, rt_info
 from openvino_tokenizers.utils import TokenzierConversionParams, get_hf_tokenizer_attribute
 from transformers import AutoTokenizer
 
-from tests.utils import get_hf_tokenizer
+from tests.utils import AsyncTokenizerRunner, get_hf_tokenizer
 
 
 if os.environ.get("OV_TOKENIZERS_TESTS_PRINT_WHOLE_DIFF"):
@@ -83,6 +83,18 @@ chat_messages = [
     ]
 ]
 
+# The exact set of single strings the tokenizer tests parametrize over (see the
+# `@pytest.mark.parametrize` decorators below). AsyncTokenizerRunner primes its async
+# queue with this corpus, so every per-string test becomes a cache lookup. Strings not
+# listed here fall back to synchronous inference, so this must stay in sync with the
+# parametrize lists.
+single_string_corpus = [
+    *eng_test_strings,
+    *multilingual_test_strings,
+    *emoji_test_strings,
+    *misc_strings,
+]
+
 wordpiece_models = [
     "bert-base-multilingual-cased",
     "cointegrated/rubert-tiny2",
@@ -127,6 +139,10 @@ tiktiken_models = [
 ]
 
 
+# THROUGHPUT hint lets AsyncTokenizerRunner spread the primed corpus across CPU streams.
+THROUGHPUT_CONFIG = {properties.hint.performance_mode(): properties.hint.PerformanceMode.THROUGHPUT}
+
+
 def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, use_sentencepiece_backend=False):
     ov_tokenizer = convert_tokenizer(
         hf_tokenizer,
@@ -135,8 +151,15 @@ def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, 
         use_max_padding=use_max_padding,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
-    compiled_tokenizer = core.compile_model(ov_tokenizer)
-    return hf_tokenizer, compiled_tokenizer
+    compiled_tokenizer = core.compile_model(ov_tokenizer, "CPU", THROUGHPUT_CONFIG)
+    return hf_tokenizer, AsyncTokenizerRunner(compiled_tokenizer, single_string_corpus)
+
+
+def build_detokenizer_corpus(hf_tokenizer) -> list:
+    return [
+        hf_tokenizer(test_string, return_tensors="np", padding=True).input_ids.astype("int32")
+        for test_string in single_string_corpus
+    ]
 
 
 def get_tokenizer_detokenizer(
@@ -154,8 +177,10 @@ def get_tokenizer_detokenizer(
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
-    compiled_tokenizer = core.compile_model(ov_tokenizer)
-    compiled_detokenizer = core.compile_model(ov_detokenizer)
+    compiled_tokenizer = core.compile_model(ov_tokenizer, "CPU", THROUGHPUT_CONFIG)
+    compiled_detokenizer = core.compile_model(ov_detokenizer, "CPU", THROUGHPUT_CONFIG)
+    if not streaming_detokenizer:
+        compiled_detokenizer = AsyncTokenizerRunner(compiled_detokenizer, build_detokenizer_corpus(hf_tokenizer))
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
 
 

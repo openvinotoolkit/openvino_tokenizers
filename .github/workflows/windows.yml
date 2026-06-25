@@ -437,7 +437,7 @@ jobs:
       - name: Tokenizers regression tests (using openvino python modules)
         run: |
           . "${{ env.INSTALL_DIR }}/setupvars.ps1"
-          poetry run pytest tests
+          poetry run pytest tests -n auto
 
   openvino_onnx_contrib_tests:
     name: OpenVINO ONNX contrib tests

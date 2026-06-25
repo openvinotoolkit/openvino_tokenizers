@@ -382,7 +382,7 @@ jobs:
         run: poetry install --extras=transformers --with dev,benchmark
 
       - name: Tokenizers regression tests (using openvino python wheel)
-        run: poetry run pytest tests/tokenizers_test.py
+        run: poetry run pytest tests/tokenizers_test.py -n auto
 
   Overall_Status:
     name: ci/gha_overall_status_macos
