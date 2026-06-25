@@ -348,14 +348,14 @@ jobs:
         run: poetry install --extras=transformers --with dev,benchmark
         
       - name: Tokenizers regression tests (using openvino python wheels)
-        run: poetry run pytest tests
+        run: poetry run pytest tests -n auto
 
       - name: Install transformers v4
         run: |
           poetry add "transformers@^4.0.0[sentencepiece]"
 
       - name: Tokenizers regression tests (with transformers v4)
-        run: poetry run pytest tests
+        run: poetry run pytest tests -n auto
         
   openvino_tf_tests:
     name: OpenVINO TensorFlow tests
