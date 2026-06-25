@@ -19,6 +19,7 @@ TOKENIZER_FILE_PATTERNS = [
     "*.vocab",
     "*.spm",
     "*.py",
+    "*.jinja",
     "tokenizer*",
     "merges*",
     "vocab*",
