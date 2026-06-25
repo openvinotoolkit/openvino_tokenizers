@@ -7,25 +7,17 @@ from transformers import AutoTokenizer
 
 
 MAX_RETRY = 2
-
-# Only the files a tokenizer needs. snapshot_download with these patterns resolves a
-# repo to a local directory without pulling model weights (*.bin/*.safetensors/etc.),
-# which can be many GB for the models referenced in the tests. *.py is included so that
-# trust_remote_code tokenizers can load their custom code.
-TOKENIZER_FILE_PATTERNS = [
-    "*.json",
-    "*.txt",
-    "*.model",
-    "*.vocab",
-    "*.spm",
-    "*.py",
-    "*.jinja",
-    "tokenizer*",
-    "merges*",
-    "vocab*",
-    "spiece*",
-    "added_tokens*",
-    "special_tokens*",
+WEIGHT_FILE_PATTERNS = [
+    "*.safetensors",
+    "*.bin",
+    "*.pt",
+    "*.pth",
+    "*.h5",
+    "*.gguf",
+    "*.onnx",
+    "*.tflite",
+    "*.msgpack",
+    "*.ot",
 ]
 
 _local_path_cache: dict = {}
@@ -33,7 +25,7 @@ _local_path_cache: dict = {}
 
 def get_tokenizer_local_path(repo_id: str) -> str:
     if repo_id not in _local_path_cache:
-        _local_path_cache[repo_id] = snapshot_download(repo_id, allow_patterns=TOKENIZER_FILE_PATTERNS)
+        _local_path_cache[repo_id] = snapshot_download(repo_id, ignore_patterns=WEIGHT_FILE_PATTERNS)
     return _local_path_cache[repo_id]
 
 
