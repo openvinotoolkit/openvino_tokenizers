@@ -408,36 +408,36 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
         
-      - name: Configure poetry
-        uses: ./.github/actions/install_poetry
-      
+      - name: Configure uv
+        uses: ./.github/actions/install_uv
+
       - name: Find OpenVINO wheel
         uses: ./.github/actions/find_wheel
         id: ov_wheel
         with:
           wheels_dir: '${{ env.INSTALL_DIR }}\\wheels'
           package_name: 'openvino'
-         
-      - name: Install OpenVINO wheel
-        run: poetry add ${{ steps.ov_wheel.outputs.wheel_path }}
-      
+
       - name: Find Tokenizers wheel
         uses: ./.github/actions/find_wheel
         id: tokenizers_wheel
         with:
           wheels_dir: '${{ env.INSTALL_DIR }}\\ov_tokenizers'
           package_name: 'openvino_tokenizers'
-        
-      - name: Install OpenVINO tokenizers wheel
-        run: poetry run pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
 
       - name: Install Test dependencies
-        run: poetry install --extras=transformers --with dev,benchmark
-          
+        run: uv sync --extra transformers --group dev --group benchmark --no-install-package openvino
+
+      - name: Install OpenVINO wheel
+        run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
+
+      - name: Install OpenVINO tokenizers wheel
+        run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+
       - name: Tokenizers regression tests (using openvino python modules)
         run: |
           . "${{ env.INSTALL_DIR }}/setupvars.ps1"
-          poetry run pytest tests -n auto
+          uv run --no-sync pytest tests -n auto
 
   openvino_onnx_contrib_tests:
     name: OpenVINO ONNX contrib tests
@@ -474,8 +474,8 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
 
-      - name: Configure poetry
-        uses: ./.github/actions/install_poetry
+      - name: Configure uv
+        uses: ./.github/actions/install_uv
 
       - name: Find OpenVINO wheel
         uses: ./.github/actions/find_wheel
@@ -484,9 +484,6 @@ jobs:
           wheels_dir: '${{ env.INSTALL_DIR }}\\wheels'
           package_name: 'openvino'
 
-      - name: Install OpenVINO wheel
-        run: poetry add ${{ steps.ov_wheel.outputs.wheel_path }}
-
       - name: Find Tokenizers wheel
         uses: ./.github/actions/find_wheel
         id: tokenizers_wheel
@@ -494,16 +491,19 @@ jobs:
           wheels_dir: '${{ env.INSTALL_DIR }}\\ov_tokenizers'
           package_name: 'openvino_tokenizers'
 
-      - name: Install OpenVINO tokenizers wheel
-        run: poetry run pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
-
       - name: Install Test dependencies
-        run: poetry install --with dev,onnx_tests
+        run: uv sync --group dev --group onnx_tests --no-install-package openvino
+
+      - name: Install OpenVINO wheel
+        run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
+
+      - name: Install OpenVINO tokenizers wheel
+        run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
 
       - name: ONNX contrib extension tests
         run: |
           . "${{ env.INSTALL_DIR }}/setupvars.ps1"
-          poetry run pytest tests/onnx_contrib_test.py
+          uv run --no-sync pytest tests/onnx_contrib_test.py
 
   store_artifacts:
     name: Store build artifacts

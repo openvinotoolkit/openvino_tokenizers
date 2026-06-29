@@ -1,0 +1,13 @@
+name: Install uv
+description: Install the uv package manager on Linux, macOS, and Windows
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+      with:
+        enable-cache: true
+
+    - name: Check uv version
+      shell: bash
+      run: uv --version

@@ -104,47 +104,42 @@ requires = [
 ]
 build-backend = "py_build_cmake.build"
 
-[tool.poetry]
-package-mode = false
+# Dependency groups (PEP 735) used by CI for tests, benchmarks and fuzzing.
+[dependency-groups]
+dev = [
+    "ruff>=0.1.0,<=0.12.8",
+    "bandit>=1.7.0,<=1.8.6",
+    "pytest>=7.0.0,<=8.3.5",
+    "pytest-xdist>=3.4.0,<=3.8.0",
+    "pytest-harvest>=1.10.3,<=1.10.5",
+    "pandas>=2.0.0,<=2.3.1",
+    "jinja2>=3.0.0,<=3.1.6",
+]
+onnx_tests = [
+    "onnx>=1.13.0",
+    "sentencepiece>=0.1.96",
+]
+benchmark = [
+    "pandas>=2.0.0,<=2.3.1",
+    "seaborn>=0.10.0,<=0.13.2",
+    "tqdm>=4.50.0,<=4.67.1",
+]
+fuzzing = [
+    "atheris>=2.0.0,<=2.3.0",
+]
 
-[[tool.poetry.source]]
+# Don't build/install this project itself (built via py-build-cmake into a wheel
+# and installed separately in CI); uv only manages the dependencies below.
+# Mirrors Poetry's `package-mode = false`.
+[tool.uv]
+package = false
+
+# Nightly OpenVINO wheels. Marked `explicit` so the index is only consulted for
+# packages that opt in via [tool.uv.sources] (mirrors Poetry's "supplemental").
+[[tool.uv.index]]
 name = "openvino-nightly"
 url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
-priority = "supplemental"
+explicit = true
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0"
-openvino = { version = "*", source = "openvino-nightly" }
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-ruff = ">=0.1.0,<=0.12.8"
-bandit = ">=1.7.0,<=1.8.6"
-pytest = ">=7.0.0,<=8.3.5"
-pytest-xdist = ">=3.4.0,<=3.8.0"
-pytest-harvest = ">=1.10.3,<=1.10.5"
-pandas = ">=2.0.0,<=2.3.1"
-jinja2 = ">=3.0.0,<=3.1.6"
-
-[tool.poetry.group.onnx_tests]
-optional = true
-
-[tool.poetry.group.onnx_tests.dependencies]
-onnx = ">=1.13.0"
-sentencepiece = ">=0.1.96"
-
-[tool.poetry.group.benchmark]
-optional = true
-
-[tool.poetry.group.benchmark.dependencies]
-pandas = ">=2.0.0,<=2.3.1"
-seaborn = ">=0.10.0,<=0.13.2"
-tqdm = ">=4.50.0,<=4.67.1"
-
-[tool.poetry.group.fuzzing]
-optional = true
-
-[tool.poetry.group.fuzzing.dependencies]
-atheris = ">=2.0.0,<=2.3.0"
+[tool.uv.sources]
+openvino = { index = "openvino-nightly" }
