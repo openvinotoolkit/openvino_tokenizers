@@ -109,7 +109,7 @@ build-backend = "py_build_cmake.build"
 dev = [
     "ruff>=0.1.0,<=0.12.8",
     "bandit>=1.7.0,<=1.8.6",
-    "pytest>=7.0.0,<=8.3.5",
+    "pytest>=9.0.3,<=9.0.3",
     "pytest-xdist>=3.4.0,<=3.8.0",
     "pytest-harvest>=1.10.3,<=1.10.5",
     "pandas>=2.0.0,<=2.3.1",
@@ -128,14 +128,9 @@ fuzzing = [
     "atheris>=2.0.0,<=2.3.0",
 ]
 
-# Don't build/install this project itself (built via py-build-cmake into a wheel
-# and installed separately in CI); uv only manages the dependencies below.
-# Mirrors Poetry's `package-mode = false`.
 [tool.uv]
 package = false
 
-# Nightly OpenVINO wheels. Marked `explicit` so the index is only consulted for
-# packages that opt in via [tool.uv.sources] (mirrors Poetry's "supplemental").
 [[tool.uv.index]]
 name = "openvino-nightly"
 url = "https://storage.openvinotoolkit.org/simple/wheels/nightly"
