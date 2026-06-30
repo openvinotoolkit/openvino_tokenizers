@@ -1301,15 +1301,25 @@ class VocabDecoderStep(DecodingStep):
             vocab_outputs = create_string_constant_node(self.vocab)
         input_nodes.extend(vocab_outputs)
 
-        # Put constant with skip tokens even if do_skip_tokens=False, so that it can be switched on/off at runtime.
-        # Slice through all skip tokens if flag is true, else slice to get an empty tensor.
-        stop_const = op.Constant(Type.i32, Shape([1]), [np.iinfo(np.int32).max if self.do_skip_tokens else 0])
-
-        zero_const = op.Constant(Type.i32, Shape([1]), [0])
-        one_const = op.Constant(Type.i32, Shape([1]), [1])
-        skip_tokens_const = op.Constant(Type.i32, Shape([len(self.skip_tokens)]), self.skip_tokens)
-        sliced_skips = opset.slice(skip_tokens_const, zero_const, stop_const, one_const).outputs()
-        input_nodes.extend(sliced_skips)
+        if self.do_skip_tokens and self.skip_tokens:
+            # Port 4: provide the skip-token ID list to VocabDecoder.
+            # VocabDecoder accepts either 4 inputs (no skip list → uses m_skip_tokens attribute)
+            # or 5 inputs (skip list via port 4).  When skip_special_tokens=True we take the
+            # 5-input path; when False we take the 4-input path and rely on the empty
+            # m_skip_tokens attribute so that no tokens are stripped.
+            #
+            # WARNING: Do NOT produce a zero-dimension Const for port 4 (e.g. by slicing with
+            # stop=0).  A zero-dim Const triggers a crash in the Intel CPU plugin
+            # ("ReadValue contains dead weak ptr") when the detokenizer is loaded alongside
+            # a stateful language model inside VLMPipeline.  Always omit port 4 entirely when
+            # no tokens should be skipped.
+            stop_const = op.Constant(Type.i32, Shape([1]), [np.iinfo(np.int32).max])
+            zero_const = op.Constant(Type.i32, Shape([1]), [0])
+            one_const = op.Constant(Type.i32, Shape([1]), [1])
+            skip_tokens_const = op.Constant(Type.i32, Shape([len(self.skip_tokens)]), self.skip_tokens)
+            sliced_skips = opset.slice(skip_tokens_const, zero_const, stop_const, one_const).outputs()
+            input_nodes.extend(sliced_skips)
+        # else: omit port 4 → VocabDecoder uses m_skip_tokens attribute (empty → skip nothing)
 
         return _get_factory().create("VocabDecoder", input_nodes).outputs()
 
