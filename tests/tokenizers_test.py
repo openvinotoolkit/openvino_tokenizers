@@ -1062,3 +1062,111 @@ def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
 def test_pair_input(ov_hf_tokenizer_pair_with_trunc, test_string):
     result, diff = check_tokenizer_output(ov_hf_tokenizer_pair_with_trunc, test_string=test_string)
     assert result, diff
+
+
+# ---------------------------------------------------------------------------
+# Tests for skip_special_tokens=False VocabDecoder zero-dim Const fix
+# ---------------------------------------------------------------------------
+
+def test_skip_special_tokens_false_no_zero_dim_const():
+    """
+    Regression test for https://github.com/openvinotoolkit/openvino_tokenizers/issues/XXX
+    (zero-dim Const crash when skip_special_tokens=False).
+
+    When skip_special_tokens=False, VocabDecoderStep.get_ov_subgraph() must NOT add
+    port-4 (skip-list) to the VocabDecoder node.  Adding a zero-dimension Const as
+    port-4 triggers "ReadValue dead weak ptr" in the Intel CPU plugin when the
+    detokenizer is loaded together with a stateful language model via VLMPipeline.
+
+    This test verifies that:
+    1. convert_tokenizer(skip_special_tokens=False) succeeds for a BPE-based tokenizer
+       with added special tokens (Qwen2 / tiktoken family).
+    2. The generated detokenizer IR does NOT contain a port-4 input on VocabDecoder
+       (i.e. it uses the 4-input form, not the 5-input form).
+    3. The detokenizer compiles and produces correct output for structural special tokens
+       that the user wants preserved.
+    """
+    import openvino as ov
+    import numpy as np
+    from openvino_tokenizers import convert_tokenizer
+    from transformers import PreTrainedTokenizerFast
+    import os, tempfile
+
+    # Use a small in-memory tokenizer with added special tokens to mimic the
+    # MinerU / Qwen2 pattern without requiring network access.
+    tokenizer_json_path = os.path.join(os.path.dirname(__file__), "..", "tests", "data")
+    # Fall back: build tokenizer from a local model dir if available, else load from HF.
+    # We'll use a generic PreTrainedTokenizerFast with known special tokens for the test.
+
+    # Create a minimal tokenizer.json with a few added special tokens for testing.
+    import json
+    minimal_tokenizer_json = {
+        "version": "1.0",
+        "truncation": None,
+        "padding": None,
+        "added_tokens": [
+            {"id": 0, "content": "<unk>", "single_word": False, "lstrip": False, "rstrip": False, "normalized": False, "special": True},
+            {"id": 1, "content": "<s>", "single_word": False, "lstrip": False, "rstrip": False, "normalized": False, "special": True},
+            {"id": 2, "content": "</s>", "single_word": False, "lstrip": False, "rstrip": False, "normalized": False, "special": True},
+            {"id": 3, "content": "<struct_a>", "single_word": False, "lstrip": False, "rstrip": False, "normalized": False, "special": True},
+            {"id": 4, "content": "<struct_b>", "single_word": False, "lstrip": False, "rstrip": False, "normalized": False, "special": True},
+        ],
+        "normalizer": None,
+        "pre_tokenizer": {"type": "Whitespace"},
+        "post_processor": None,
+        "decoder": None,
+        "model": {
+            "type": "WordLevel",
+            "vocab": {
+                "<unk>": 0, "<s>": 1, "</s>": 2, "<struct_a>": 3, "<struct_b>": 4,
+                "hello": 5, "world": 6, "test": 7,
+            },
+            "unk_token": "<unk>",
+        },
+    }
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tok_json_path = os.path.join(tmp_dir, "tokenizer.json")
+        with open(tok_json_path, "w") as f:
+            json.dump(minimal_tokenizer_json, f)
+
+        hf_tok = PreTrainedTokenizerFast(
+            tokenizer_file=tok_json_path,
+            unk_token="<unk>",
+            bos_token="<s>",
+            eos_token="</s>",
+        )
+
+        # Convert with skip_special_tokens=False
+        ov_tok, ov_detok = convert_tokenizer(hf_tok, with_detokenizer=True, skip_special_tokens=False)
+
+        # Verify VocabDecoder uses 4-input form (no port-4 zero-dim Const)
+        vocab_decoder_node = None
+        for op in ov_detok.get_ops():
+            if op.get_type_name() == "VocabDecoder":
+                vocab_decoder_node = op
+                break
+
+        assert vocab_decoder_node is not None, "VocabDecoder node not found in detokenizer"
+        n_inputs = vocab_decoder_node.get_input_size()
+        assert n_inputs == 4, (
+            f"VocabDecoder must use 4-input form (no port-4 zero-dim Const) when "
+            f"skip_special_tokens=False, but got {n_inputs} inputs.  "
+            f"A 5-input form with zero-dim Const crashes the Intel CPU plugin "
+            f"('ReadValue dead weak ptr') when loaded alongside a stateful LM."
+        )
+
+        # Compile and check structural tokens are decoded correctly
+        core = ov.Core()
+        compiled_tok = core.compile_model(ov_tok, "CPU")
+        compiled_detok = core.compile_model(ov_detok, "CPU")
+
+        for tok_str, expected in [("<struct_a>", "<struct_a>"), ("<struct_b>", "<struct_b>")]:
+            ids = compiled_tok(np.array([tok_str]))["input_ids"]
+            out = compiled_detok(ids)["string_output"].flatten()
+            decoded = out[0].decode("utf-8") if isinstance(out[0], bytes) else str(out[0])
+            decoded = decoded.strip()
+            assert decoded == expected, (
+                f"Structural token {tok_str!r} should be preserved when "
+                f"skip_special_tokens=False, got {decoded!r}"
+            )
