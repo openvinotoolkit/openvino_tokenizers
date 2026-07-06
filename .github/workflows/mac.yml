@@ -355,18 +355,17 @@ jobs:
           path: ${{ env.INSTALL_DIR }}
           merge-multiple: true
 
-      - name: Configure poetry
-        uses: ./.github/actions/install_poetry
-        
+      - name: Configure uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
+
       - name: Find OpenVINO wheel
         uses: ./.github/actions/find_wheel
         id: ov_wheel
         with:
           wheels_dir: '${{ env.INSTALL_DIR }}/wheels'
           package_name: 'openvino'
-          
-      - name: Install OpenVINO wheel
-        run: poetry add ${{ steps.ov_wheel.outputs.wheel_path }}
 
       - name: Find Tokenizers wheel
         uses: ./.github/actions/find_wheel
@@ -375,14 +374,17 @@ jobs:
           wheels_dir: '${{ env.INSTALL_DIR }}/ov_tokenizers'
           package_name: 'openvino_tokenizers'
 
-      - name: Install OpenVINO tokenizers wheel
-        run: poetry run pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
-          
       - name: Install Test dependencies
-        run: poetry install --extras=transformers --with dev,benchmark
+        run: uv sync --extra transformers --group dev --group benchmark --no-install-package openvino
+
+      - name: Install OpenVINO wheel
+        run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
+
+      - name: Install OpenVINO tokenizers wheel
+        run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
 
       - name: Tokenizers regression tests (using openvino python wheel)
-        run: poetry run pytest tests/tokenizers_test.py -n auto
+        run: uv run --no-sync pytest tests/tokenizers_test.py -n auto
 
   Overall_Status:
     name: ci/gha_overall_status_macos

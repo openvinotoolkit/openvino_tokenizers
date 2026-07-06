@@ -30,3 +30,5 @@ allow-dependencies-licenses:
   - 'pkg:pypi/packaging@25.0'
   - 'pkg:pypi/python-dateutil@2.9.0'
   - 'pkg:pypi/fonttools@4.58.4'
+  - 'pkg:pypi/typing-extensions@4.15.0'  # Python-2.0
+  
