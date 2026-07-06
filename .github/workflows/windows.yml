@@ -409,7 +409,9 @@ jobs:
           merge-multiple: true
         
       - name: Configure uv
-        uses: ./.github/actions/install_uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
 
       - name: Find OpenVINO wheel
         uses: ./.github/actions/find_wheel
@@ -475,7 +477,9 @@ jobs:
           merge-multiple: true
 
       - name: Configure uv
-        uses: ./.github/actions/install_uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          enable-cache: true
 
       - name: Find OpenVINO wheel
         uses: ./.github/actions/find_wheel
