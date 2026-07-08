@@ -67,6 +67,12 @@ endif()
 # Dependencies
 #
 
+set(ABSL_DEPENDENCIES
+    absl::flat_hash_set
+    absl::raw_hash_set
+    absl::string_view
+)
+
 include(FetchContent)
 
 # This option must be defined early because it affects SentencePiece configuration
@@ -143,7 +149,7 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     else()
       target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece)
     endif()
-    target_link_libraries(${TARGET_NAME} PRIVATE absl::string_view absl::flat_hash_set)
+    target_link_libraries(${TARGET_NAME} PRIVATE ${ABSL_DEPENDENCIES})
   else()
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
       if(SPM_ABSL_PROVIDER STREQUAL "package")
@@ -247,7 +253,7 @@ if(REGENERATE_PRECOMPILED_CHARSMAP)
         target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${sp_target})
       endif()
     endforeach()
-    target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE absl::string_view absl::flat_hash_set)
+    target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${ABSL_DEPENDENCIES})
   else()
     # Using built sentencepiece - need access to builder.h and config.h
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
