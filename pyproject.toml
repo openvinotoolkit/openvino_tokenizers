@@ -36,7 +36,7 @@ classifiers = [
 ]
 
 dependencies = [
-    # support of nightly openvino packages with dev suffix
+    # support of nightly openvino packages with dev suffix test change
     "openvino~=2026.3.0.dev"
 ]
 
