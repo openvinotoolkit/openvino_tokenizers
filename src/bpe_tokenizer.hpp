@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <string_view>
+#include <tuple>
+#include <vector>
 #include <openvino/op/op.hpp>
 #include <mutex>
 #include <shared_mutex>
@@ -41,6 +44,13 @@ struct BPESymbol {
     bool alive;
 };
 
+using BPEQueueEntry = std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>;
+
+struct BPETokenizerScratch {
+    std::vector<BPESymbol> symbols;
+    std::vector<BPEQueueEntry> queue_storage;
+};
+
 class BPETokenizerImpl {
 private:
     Vocab m_vocab;
@@ -66,6 +76,8 @@ public:
         bool byte_fallback = false
     );
     std::vector<int32_t> tokenize(std::string& text);
+    void tokenize_into(std::string_view text, std::vector<int32_t>& out);
+    void tokenize_into(std::string_view text, std::vector<int32_t>& out, BPETokenizerScratch& scratch);
 };
 
 

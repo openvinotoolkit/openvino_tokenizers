@@ -155,13 +155,20 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto new_ends   = outputs[1].data<int32_t>();
     auto new_elems  = outputs[2].data<int32_t>();
     int32_t ragged_offset = 0;
+    std::vector<int32_t> token_buffer;
+    token_buffer.reserve(256);
+    BPETokenizerScratch bpe_scratch;
 
     for(size_t seq = 0; seq < num_rows; ++seq) {
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
-            auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            auto results = m_tokenizer->tokenize(str);
-            for (const auto& token : results) {
+            token_buffer.clear();
+            const auto piece = std::string_view(
+                reinterpret_cast<const char*>(chars + begins[ragged_col]),
+                static_cast<size_t>(ends[ragged_col] - begins[ragged_col])
+            );
+            m_tokenizer->tokenize_into(piece, token_buffer, bpe_scratch);
+            for (const auto token : token_buffer) {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                 new_elems[ragged_offset++] = token;
             }
@@ -173,31 +180,59 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 struct CompareRank {
-    // QueueEntry: (position in merges, merged token id, first symbol index,
-    // second symbol index, replacement sequence number).
-    using QueueEntry = std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>;
-    bool operator()(const QueueEntry& lhs, const QueueEntry& rhs) const {
+    bool operator()(const BPEQueueEntry& lhs, const BPEQueueEntry& rhs) const {
         // Compare based on positions in merges, but if positions in merges match
         // prefer pairs which are closer to the beginning of the sequence.
         return (std::get<0>(lhs) != std::get<0>(rhs)) ? std::get<0>(lhs) > std::get<0>(rhs) : std::get<4>(lhs) > std::get<4>(rhs);
     }
 };
 
+class ReusableBPEQueue : public std::priority_queue<BPEQueueEntry, std::vector<BPEQueueEntry>, CompareRank> {
+public:
+    using Base = std::priority_queue<BPEQueueEntry, std::vector<BPEQueueEntry>, CompareRank>;
+
+    explicit ReusableBPEQueue(std::vector<BPEQueueEntry>&& storage) : Base(CompareRank{}, std::move(storage)) {}
+
+    std::vector<BPEQueueEntry>&& release_storage() {
+        return std::move(this->c);
+    }
+};
+
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
+    std::vector<int32_t> result;
+    tokenize_into(std::string_view(text), result);
+    return result;
+}
+
+void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>& out) {
+    BPETokenizerScratch scratch;
+    tokenize_into(text, out, scratch);
+}
+
+void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>& out, BPETokenizerScratch& scratch) {
+    std::string cache_key(text);
     {
         std::shared_lock<std::shared_mutex> lock(m_mutex);
-        const auto it = m_cache.find(text);
+        const auto it = m_cache.find(cache_key);
         if (it != m_cache.end()) {
-            return it->second;
+            out.insert(out.end(), it->second.begin(), it->second.end());
+            return;
         }
     }
-    std::string cache_key = text;
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
-    text += m_end_suffix;
+    std::string text_with_suffix;
+    std::string_view text_view = text;
+    if (!m_end_suffix.empty()) {
+        text_with_suffix.reserve(text.size() + m_end_suffix.size());
+        text_with_suffix.append(text);
+        text_with_suffix.append(m_end_suffix);
+        text_view = std::string_view(text_with_suffix);
+    }
 
-    std::vector<BPESymbol> symbols;
-    symbols.reserve(text.size() + 1);
+    auto& symbols = scratch.symbols;
+    symbols.clear();
+    symbols.reserve(text_view.size() + 1);
 
     auto append_symbol = [&symbols](int32_t id) {
         const int32_t idx = static_cast<int32_t>(symbols.size());
@@ -208,8 +243,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     };
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
-    const auto text_view = std::string_view(text);
-    for (int idx = 0; idx < text.size();) {
+    for (int idx = 0; idx < text_view.size();) {
         auto r = m_trie->find_longest(text_view, idx);
         if (r != -1) {
             append_symbol(r);
@@ -238,11 +272,13 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         idx++;
     }
     const size_t initial_num_tokens = symbols.size();
+    const size_t out_start = out.size();
     size_t live_count = symbols.size();
 
     // Prepare priority queue to store pairs with their ranks.
-    using QueueEntry = CompareRank::QueueEntry;
-    std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
+    scratch.queue_storage.clear();
+    scratch.queue_storage.reserve(symbols.size());
+    ReusableBPEQueue pq(std::move(scratch.queue_storage));
 
     // replacement sequence number, is used in CompareRank.
     // When merges have the same position prefer replaces which occured earlier.
@@ -303,21 +339,20 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         }
     }
 
-    std::vector<int32_t> res_vec;
-    res_vec.reserve(live_count);
     for (int32_t idx = head; idx != -1; idx = symbols[idx].next) {
-        res_vec.emplace_back(symbols[idx].id);
+        out.emplace_back(symbols[idx].id);
     }
+    scratch.queue_storage = pq.release_storage();
+    scratch.queue_storage.clear();
 
     {
         // Cache writes take an exclusive lock; lookups above take a shared lock.
         std::unique_lock<std::shared_mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-            m_cache.emplace(std::move(cache_key), res_vec);
+            m_cache.emplace(std::move(cache_key), std::vector<int32_t>(out.begin() + out_start, out.end()));
         }
     }
-    return res_vec;
 }
 
 BPETokenizerImpl::BPETokenizerImpl(
