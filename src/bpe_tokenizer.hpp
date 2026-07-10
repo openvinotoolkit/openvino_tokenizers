@@ -6,6 +6,7 @@
 
 #include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 #include <openvino/op/op.hpp>
 #include <mutex>
@@ -48,7 +49,8 @@ public:
         if (capacity < 8) {
             capacity = 8;
         }
-        m_slots.assign(capacity, Slot{});
+        m_slots.clear();
+        m_slots.resize(capacity);
         m_mask = capacity - 1;
         m_size = 0;
     }
@@ -63,7 +65,10 @@ public:
             }
             idx = (idx + 1) & m_mask;
         }
-        m_slots[idx] = Slot{key, value, true};
+        Slot& slot = m_slots[idx];
+        slot.key = key;
+        slot.value = value;
+        slot.occupied = true;
         ++m_size;
     }
 
@@ -144,11 +149,11 @@ private:
     std::shared_mutex m_mutex;
     std::unordered_map<std::string, std::vector<int32_t>> m_cache;
 public:
-    BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(vocab), m_merges(merges) {};
+    BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(std::move(vocab)), m_merges(std::move(merges)) {};
     BPETokenizerImpl(
-        const Vocab& vocab, const TextMerges& merges, 
+        Vocab vocab, const TextMerges& merges,
         size_t cache_capacity,
-        std::string unk_token,
+        const std::string& unk_token,
         std::string suffix_indicator,
         std::string end_suffix,
         bool fuse_unk = false,
