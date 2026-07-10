@@ -349,7 +349,7 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
         // Cache writes take an exclusive lock; lookups above take a shared lock.
         std::unique_lock<std::shared_mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
-        if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
+        if (m_cache.size() < m_cache_capacity && initial_num_tokens > 0) {
             m_cache.emplace(std::move(cache_key), std::vector<int32_t>(out.begin() + out_start, out.end()));
         }
     }
