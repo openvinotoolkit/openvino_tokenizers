@@ -286,10 +286,9 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
 
     // Try to enqueue the pair (a, b) of adjacent symbol indices if it is a known merge.
     auto try_push = [&](int32_t a, int32_t b) {
-        const auto it = m_merges.find(std::make_pair(symbols[a].id, symbols[b].id));
-        if (it != m_merges.end()) {
-            const auto [merge_idx, merged_id] = it->second;
-            pq.emplace(merge_idx, merged_id, a, b, i);
+        const MergeValue* merge = m_merges.find(symbols[a].id, symbols[b].id);
+        if (merge != nullptr) {
+            pq.emplace(merge->rank, merge->new_id, a, b, i);
         }
     };
 
@@ -367,12 +366,15 @@ BPETokenizerImpl::BPETokenizerImpl(
         m_unk_token_id = vocab.at(unk_token);
     }
     Merges new_merges;
+    new_merges.reserve(merges.size());
     Vocab new_vocab = vocab;
 
     for (size_t i = 0; i < merges.size(); i++) {
         auto& pair = merges.at(i);
-        auto id_pair = std::make_pair(vocab.at(pair.first), vocab.at(pair.second));
-        new_merges[id_pair] = {i, vocab.at(pair.first + pair.second)};
+        new_merges.insert(
+            vocab.at(pair.first), vocab.at(pair.second),
+            MergeValue{static_cast<int32_t>(i), static_cast<int32_t>(vocab.at(pair.first + pair.second))}
+        );
         new_vocab.erase(pair.first + pair.second);
     }
 

@@ -23,14 +23,93 @@
 
 using TextMerges = std::vector<std::pair<std::string, std::string>>;
 
-struct TokenPairHash {
-    std::size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
-        return (static_cast<std::size_t>(static_cast<uint32_t>(pair.first)) << 32)
-             | static_cast<std::size_t>(static_cast<uint32_t>(pair.second));
-    }
+// Rank (position in the merge list) and resulting token id for a merge pair.
+struct MergeValue {
+    int32_t rank;
+    int32_t new_id;
 };
 
-using Merges = absl::flat_hash_map<std::pair<int32_t, int32_t>, std::pair<int32_t, int32_t>, TokenPairHash>;
+// Open-addressing hash map from a packed (left_id, right_id) token pair to its
+// merge rank and result. The vocabulary uses absl::flat_hash_map, but in this
+// build that is only a shim over std::unordered_map (see third_party/absl),
+// i.e. a node-based chained table. The merges map is the hottest BPE structure
+// -- probed for every adjacent pair and again after every merge -- so a single
+// contiguous open-addressed array (linear probing, no per-node allocation)
+// gives a large cache-locality win over pointer-chasing buckets.
+class MergesMap {
+public:
+    void reserve(size_t num_entries) {
+        // Size to the next power of two with load factor < ~0.7.
+        size_t needed = static_cast<size_t>(num_entries / 0.7) + 1;
+        size_t capacity = 1;
+        while (capacity < needed) {
+            capacity <<= 1;
+        }
+        if (capacity < 8) {
+            capacity = 8;
+        }
+        m_slots.assign(capacity, Slot{});
+        m_mask = capacity - 1;
+        m_size = 0;
+    }
+
+    void insert(int32_t left, int32_t right, MergeValue value) {
+        const uint64_t key = pack(left, right);
+        size_t idx = hash(key) & m_mask;
+        while (m_slots[idx].occupied) {
+            if (m_slots[idx].key == key) {
+                m_slots[idx].value = value;
+                return;
+            }
+            idx = (idx + 1) & m_mask;
+        }
+        m_slots[idx] = Slot{key, value, true};
+        ++m_size;
+    }
+
+    // Returns a pointer to the merge value for (left, right), or nullptr.
+    const MergeValue* find(int32_t left, int32_t right) const {
+        if (m_slots.empty()) {
+            return nullptr;
+        }
+        const uint64_t key = pack(left, right);
+        size_t idx = hash(key) & m_mask;
+        while (m_slots[idx].occupied) {
+            if (m_slots[idx].key == key) {
+                return &m_slots[idx].value;
+            }
+            idx = (idx + 1) & m_mask;
+        }
+        return nullptr;
+    }
+
+    size_t size() const { return m_size; }
+
+private:
+    struct Slot {
+        uint64_t key = 0;
+        MergeValue value{};
+        bool occupied = false;
+    };
+
+    static uint64_t pack(int32_t left, int32_t right) {
+        return (static_cast<uint64_t>(static_cast<uint32_t>(left)) << 32)
+             | static_cast<uint64_t>(static_cast<uint32_t>(right));
+    }
+
+    // Fibonacci/multiplicative hash; the packed integer key is already dense so
+    // a full string-style hash is unnecessary.
+    static size_t hash(uint64_t key) {
+        key *= 0x9E3779B97F4A7C15ULL;
+        return static_cast<size_t>(key >> 32);
+    }
+
+    std::vector<Slot> m_slots;
+    size_t m_mask = 0;
+    size_t m_size = 0;
+};
+
+using Merges = MergesMap;
 using Vocab = std::unordered_map<std::string, unsigned int>;
 
 // A single symbol in the word being tokenized. The word is held as one
