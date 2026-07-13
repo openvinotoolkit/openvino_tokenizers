@@ -55,13 +55,17 @@ bool UnigramTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
     auto new_ends   = outputs[1].data<int32_t>();
     auto new_elems  = outputs[2].data<int32_t>();
     int32_t ragged_offset = 0;
+    std::vector<int32_t> token_buffer;
+    token_buffer.reserve(256);
+    unigram_impl::UnigramTokenizerScratch unigram_scratch;
 
     for(size_t seq = 0; seq < num_rows; ++seq) {
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
+            token_buffer.clear();
             auto str = absl::string_view(chars + begins[ragged_col], ends[ragged_col] - begins[ragged_col]);
-            auto results = m_tokenizer->tokenize(str);
-            for (const auto& token : results) {
+            m_tokenizer->tokenize_into(str, token_buffer, unigram_scratch);
+            for (const auto& token : token_buffer) {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                 new_elems[ragged_offset++] = token;
             }
@@ -75,15 +79,6 @@ bool UnigramTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
 
 namespace unigram_impl {
     constexpr float UNK_PENALTY = 10.0;
-
-    struct BestPathNode {
-        int token_id = 0;
-        float best_score = 0;
-        int starts_at = -1;
-
-        BestPathNode(int token_id)
-        : token_id(token_id), best_score(0), starts_at(-1) {};
-    };
 
     // from https://github.com/google/sentencepiece/blob/d8f741853847553169444afc12c00f4bbff3e9ce/src/util.h#L151
     // Return length of a single UTF-8 source character
@@ -137,13 +132,32 @@ UnigramTokenizerImpl::UnigramTokenizerImpl(
 
 
 std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
+    std::vector<int32_t> result;
+    tokenize_into(text, result);
+    return result;
+}
+
+
+void UnigramTokenizerImpl::tokenize_into(absl::string_view text, std::vector<int32_t>& out) {
+    unigram_impl::UnigramTokenizerScratch scratch;
+    tokenize_into(text, out, scratch);
+}
+
+
+void UnigramTokenizerImpl::tokenize_into(
+    absl::string_view text,
+    std::vector<int32_t>& out,
+    unigram_impl::UnigramTokenizerScratch& scratch
+) {
     if (text.empty()) {
-        return {};
+        return;
     }
 
     const int input_length = text.size();
     const float unk_score = m_min_score - unigram_impl::UNK_PENALTY;
-    std::vector<unigram_impl::BestPathNode> best_path(input_length + 1, unigram_impl::BestPathNode(m_unk_token_id));
+    auto& best_path = scratch.best_path;
+    best_path.assign(input_length + 1, unigram_impl::BestPathNode(m_unk_token_id));
+    out.reserve(out.size() + static_cast<size_t>(input_length));
     int starts_at = 0;
 
     while (starts_at < input_length) {
@@ -194,7 +208,7 @@ std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
 
     // backtrack to get the best path
     int ends_at = input_length;
-    std::vector<int32_t> result;
+    const auto out_start = out.size();
     int prev_token_id = -1;
     while (ends_at > 0) {
         const auto &node = best_path[ends_at];
@@ -203,9 +217,8 @@ std::vector<int32_t> UnigramTokenizerImpl::tokenize(absl::string_view text) {
             // skip consecutive unk tokens
             continue;
         };
-        result.push_back(node.token_id);
+        out.push_back(node.token_id);
         prev_token_id = node.token_id;
     };
-    std::reverse(result.begin(), result.end());
-    return result;
+    std::reverse(out.begin() + out_start, out.end());
 }
