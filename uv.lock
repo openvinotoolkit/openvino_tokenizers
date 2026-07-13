@@ -1302,7 +1302,7 @@ dev = [
     { name = "bandit", specifier = ">=1.7.0,<=1.9.4" },
     { name = "jinja2", specifier = ">=3.0.0,<=3.1.6" },
     { name = "pandas", specifier = ">=2.0.0,<=2.3.3" },
-    { name = "pytest", specifier = "<=9.0.3,>=9.0.3" },
+    { name = "pytest", specifier = ">=9.0.3,<=9.0.3" },
     { name = "pytest-harvest", specifier = ">=1.10.3,<=1.10.5" },
     { name = "pytest-xdist", specifier = ">=3.4.0,<=3.8.0" },
     { name = "ruff", specifier = ">=0.1.0,<=0.15.20" },
