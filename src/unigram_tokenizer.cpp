@@ -106,7 +106,7 @@ UnigramTokenizerImpl::UnigramTokenizerImpl(
         int idx;
     };
 
-    m_scores.reserve(vocab.size());
+    m_scores.resize(vocab.size());
     std::vector<VocabWithIdx> vocab_with_idx(vocab.size());
     for (int idx = 0; idx < vocab.size(); ++idx) {
         vocab_with_idx[idx] = {vocab[idx].first, vocab[idx].second, idx};
