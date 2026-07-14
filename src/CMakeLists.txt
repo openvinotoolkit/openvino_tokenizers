@@ -67,12 +67,6 @@ endif()
 # Dependencies
 #
 
-set(ABSL_DEPENDENCIES
-    absl::flat_hash_set
-    absl::raw_hash_set
-    absl::string_view
-)
-
 include(FetchContent)
 
 # This option must be defined early because it affects SentencePiece configuration
@@ -149,7 +143,6 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     else()
       target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece)
     endif()
-    target_link_libraries(${TARGET_NAME} PRIVATE ${ABSL_DEPENDENCIES})
   else()
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
       if(SPM_ABSL_PROVIDER STREQUAL "package")
@@ -253,7 +246,18 @@ if(REGENERATE_PRECOMPILED_CHARSMAP)
         target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${sp_target})
       endif()
     endforeach()
-    target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE ${ABSL_DEPENDENCIES})
+    target_link_libraries(${CHARSMAP_GENERATOR_NAME} PRIVATE
+      absl::status
+      absl::status_builder
+      absl::strings
+      absl::flags
+      absl::flags_parse
+      absl::log
+      absl::log_initialize
+      absl::check
+      absl::random_random
+      absl::time
+    )
   else()
     # Using built sentencepiece - need access to builder.h and config.h
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
@@ -408,6 +412,24 @@ endif()
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
+
+set(ABSL_DEPENDENCIES
+  absl::flat_hash_map
+  absl::str_format
+  absl::string_view
+)
+
+foreach(absl_dependency IN LISTS ABSL_DEPENDENCIES)
+  if(TARGET ${absl_dependency})
+    get_target_property(absl_dependency_real ${absl_dependency} ALIASED_TARGET)
+
+    if(absl_dependency_real)
+      set(absl_dependency ${absl_dependency_real})
+    endif()
+
+    target_link_libraries(${TARGET_NAME} PRIVATE ${absl_dependency})
+  endif()
+endforeach()
 
 #
 # Set install RPATH
