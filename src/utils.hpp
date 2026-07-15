@@ -5,6 +5,7 @@
 #pragma once
 
 #include <functional>
+#include <string_view>
 #include <openvino/runtime/tensor.hpp>
 #include <openvino/frontend/node_context.hpp>
 #include <pcre2.h>
@@ -77,11 +78,28 @@ void set_node_name(const std::string& node_name, const std::shared_ptr<ov::Node>
 
 class PCRE2Wrapper {
     public:
+        class MatchData {
+            public:
+                explicit MatchData(const PCRE2Wrapper& wrapper);
+                MatchData(const MatchData&) = delete;
+                MatchData& operator=(const MatchData&) = delete;
+                MatchData(MatchData&& other) noexcept;
+                MatchData& operator=(MatchData&& other) noexcept;
+                ~MatchData();
+
+                pcre2_match_data* get() const;
+
+            private:
+                pcre2_match_data* m_match_data = nullptr;
+        };
+
         pcre2_code* m_compiled = nullptr;
         PCRE2Wrapper(const absl::string_view& pattern);
         std::string substitute(const std::string& orig_str, const absl::string_view& replace_pattern, bool global_replace) const;
+        MatchData create_match_data() const;
         std::pair<size_t, size_t> match(const std::string& orig_str, size_t curr_start) const;
         std::pair<size_t, size_t> match(const std::string_view& str, size_t curr_start) const;
+        std::pair<size_t, size_t> match(const std::string_view& str, size_t curr_start, MatchData& match_data) const;
         // Return both full-match offsets and capture-group offsets in one call.
         // Returns {{full_begin, full_end}, {group_begin, group_end}} or {{SIZE_MAX,SIZE_MAX},{SIZE_MAX,SIZE_MAX}} on failure.
         std::pair<std::pair<size_t,size_t>, std::pair<size_t,size_t>> match_and_find_group(const std::string& orig_str, size_t curr_start) const;

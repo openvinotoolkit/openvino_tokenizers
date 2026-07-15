@@ -150,8 +150,9 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         compile_pattern_if_necessary(std::move(split_pattern));
     }
 
-    auto get_next_match = [this](const std::string& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
-        auto match = this->m_search_pattern_pcre2->match(str, curr_start);
+    auto match_data = m_search_pattern_pcre2->create_match_data();
+    auto get_next_match = [this, &match_data](const std::string_view& str, size_t curr_start) -> std::optional<std::pair<size_t, size_t>>{
+        auto match = this->m_search_pattern_pcre2->match(str, curr_start, match_data);
         if (match.first != SIZE_MAX && match.first != match.second) {
             return match;
         } else {
@@ -222,13 +223,16 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
         new_ragged_begins[seq] = ragged_offset;
 
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
-            const auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
+            const std::string_view str(
+                reinterpret_cast<const char*>(chars + begins[ragged_col]),
+                ends[ragged_col] - begins[ragged_col]
+            );
 
             if (skips[ragged_col]) {
                 new_begins[ragged_offset] = begins[ragged_col];
                 new_skips[ragged_offset] = true;
                 new_ends[ragged_offset++] = ends[ragged_col];
-            } else if (m_skip_tokens != nullptr && m_skip_tokens->count(str) == 1) {
+            } else if (m_skip_tokens != nullptr && m_skip_tokens->count(std::string(str)) == 1) {
                 // legacy skip mechanism
                 new_begins[ragged_offset] = begins[ragged_col];
                 new_ends[ragged_offset++] = ends[ragged_col];

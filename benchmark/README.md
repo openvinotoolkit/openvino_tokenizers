@@ -7,8 +7,9 @@ Use `pip install -U openvino-tokenizers[benchmark]` or `pip install -U .[benchma
 ## Usage
 
 ```shell
-usage: benchmark.py [-h] [-d DATASET] [-n NUM_PAIRS] [--trust-remote-code] [--dump-latency-stats] [--print-per-layer-stats] [--tput]
-                    [--seed SEED]
+usage: benchmark.py [-h] [-d DATASET] [--converted_tokenizer CONVERTED_TOKENIZER] [-n NUM_PAIRS]
+                    [--trust-remote-code] [--dump-latency-stats] [--print-per-layer-stats] [--tput]
+                    [-b BATCH] [--seed SEED] [-o OUTPUT_DIR]
                     model_id
 
 OpenVINO Tokenizers Benchmark
@@ -20,6 +21,8 @@ options:
   -h, --help            show this help message and exit
   -d DATASET, --dataset DATASET
                         Path to the dataset.
+  --converted_tokenizer CONVERTED_TOKENIZER, --converted-tokenizer CONVERTED_TOKENIZER
+                        Path to converted tokenizer.
   -n NUM_PAIRS, --num_pairs NUM_PAIRS
                         Number of prompt/completion pairs to sample from the dataset.
   --trust-remote-code, --trust_remote_code
@@ -30,8 +33,25 @@ options:
   --print-per-layer-stats, --print_per_layer_stats
                         Print execution info for each tokenizer layer.
   --tput                Use THROUGHPUT performance hint.
+  -b BATCH, --batch BATCH
+                        Batch size
   --seed SEED           Random seed for data sampling
+  -o OUTPUT_DIR, --output-dir OUTPUT_DIR
+                        Directory for generated CSV, metadata, and plot files.
 ```
+
+`--num_pairs` controls the number of sampled prompt/completion pairs. `--batch` only controls how those prompts are
+grouped into batches.
+
+The benchmark reports synchronous OpenVINO and Hugging Face throughput in prompts/s and batches/s. Async OpenVINO
+results are reported as queued execution throughput and queued latency; they are not treated as directly comparable to
+Hugging Face synchronous per-call latency.
+
+Generated files are written to `--output-dir`:
+
+- `benchmark_metadata_<model>.json`: versions, workload details, throughput, and latency percentiles.
+- `latency_benchmark_<model>.jpeg`: sync latency comparison and async queued latency plots.
+- `latency_res_<model>.csv`: per-batch latency data, when `--dump-latency-stats` is passed.
 
 ## Download Dataset
 
