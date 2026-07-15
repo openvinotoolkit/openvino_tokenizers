@@ -4,3 +4,5 @@ __pycache__
 .idea
 venv/
 temp/
+node_modules/
+.github/actions/find_wheel/coverage/
