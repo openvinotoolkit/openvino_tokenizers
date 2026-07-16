@@ -122,7 +122,7 @@ onnx_tests = [
 benchmark = [
     "pandas>=2.0.0,<=2.3.3",
     "seaborn>=0.10.0,<=0.13.2",
-    "tqdm>=4.50.0,<=4.67.1",
+    "tqdm>=4.50.0,<=4.68.4",
 ]
 fuzzing = [
     "atheris>=2.0.0,<=2.3.0",
