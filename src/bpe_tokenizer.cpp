@@ -73,10 +73,12 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             auto vocab_chars  = inputs[7].data<const uint8_t>();
             auto vocab_size   = inputs[6].get_size();
 
+            const size_t added_tokens_size = m_added_tokens ? m_added_tokens->size() : 0;
             Vocab vocab;
+            vocab.reserve(vocab_size + added_tokens_size);
             for(size_t id = 0; id < vocab_size; ++id) {
-                const auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
-                vocab[token] = int32_t(id); // TODO: Check range
+                auto token = std::string(vocab_chars + vocab_begins[id], vocab_chars + vocab_ends[id]);
+                vocab.insert_or_assign(std::move(token), static_cast<unsigned int>(id)); // TODO: Check range
             }
 
             auto merges_begins = inputs[8].data<const int32_t>();
@@ -85,16 +87,12 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             auto merges_size   = inputs[8].get_size();
 
             TextMerges merges;
+            merges.reserve(merges_size);
             if (input_size == 11 || input_size == 15){
-                std::string delim = " ";
                 for(size_t id = 0; id < merges_size; ++id) {
                     auto merge = std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]);
-                    const int delim_pos = merge.find(delim);
-
-                    std::pair<std::string, std::string> merge_pair = {
-                        merge.substr(0, delim_pos), merge.substr(delim_pos + 1)
-                    };
-                    merges.emplace_back(merge_pair);
+                    const size_t delim_pos = merge.find(' ');
+                    merges.emplace_back(merge.substr(0, delim_pos), merge.substr(delim_pos + 1));
                 }
             } else {
                 auto right_merges_begins = inputs[11].data<const int32_t>();
@@ -102,25 +100,11 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 auto right_merges_chars  = inputs[13].data<const uint8_t>();
 
                 for(size_t id = 0; id < merges_size; ++id) {
-                    std::pair<const std::string, const std::string> merge_pair = {
+                    merges.emplace_back(
                         std::string(merges_chars + merges_begins[id], merges_chars + merges_ends[id]),
                         std::string(right_merges_chars + right_merges_begins[id], right_merges_chars + right_merges_ends[id])
-                    };
-                    merges.emplace_back(merge_pair);
+                    );
                 };
-            };
-
-            std::vector<std::string> unk_token = {};
-            if (m_unk_token.size() > 0) {
-                unk_token.push_back(m_unk_token);
-            };
-            std::vector<std::string> suffix_indicator = {};
-            if (m_suffix_indicator.size() > 0) {
-                suffix_indicator.push_back(m_suffix_indicator);
-            };
-            std::vector<std::string> end_suffix = {};
-            if (m_end_suffix.size() > 0) {
-                end_suffix.push_back(m_end_suffix);
             };
 
             if (m_added_tokens){
@@ -130,7 +114,7 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             }
 
             m_tokenizer = std::make_shared<BPETokenizerImpl>(
-                vocab, merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
+                std::move(vocab), merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
             );
         }
     });
@@ -155,13 +139,20 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
     auto new_ends   = outputs[1].data<int32_t>();
     auto new_elems  = outputs[2].data<int32_t>();
     int32_t ragged_offset = 0;
+    std::vector<int32_t> token_buffer;
+    token_buffer.reserve(256);
+    BPETokenizerScratch bpe_scratch;
 
     for(size_t seq = 0; seq < num_rows; ++seq) {
         new_begins[seq] = ragged_offset;
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
-            auto str = std::string(chars + begins[ragged_col], chars + ends[ragged_col]);
-            auto results = m_tokenizer->tokenize(str);
-            for (const auto& token : results) {
+            token_buffer.clear();
+            const auto piece = std::string_view(
+                reinterpret_cast<const char*>(chars + begins[ragged_col]),
+                static_cast<size_t>(ends[ragged_col] - begins[ragged_col])
+            );
+            m_tokenizer->tokenize_into(piece, token_buffer, bpe_scratch);
+            for (const auto token : token_buffer) {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                 new_elems[ragged_offset++] = token;
             }
@@ -173,31 +164,59 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
 }
 
 struct CompareRank {
-    // QueueEntry: (position in merges, merged token id, first symbol index,
-    // second symbol index, replacement sequence number).
-    using QueueEntry = std::tuple<int32_t, int32_t, int32_t, int32_t, int32_t>;
-    bool operator()(const QueueEntry& lhs, const QueueEntry& rhs) const {
+    bool operator()(const BPEQueueEntry& lhs, const BPEQueueEntry& rhs) const {
         // Compare based on positions in merges, but if positions in merges match
         // prefer pairs which are closer to the beginning of the sequence.
         return (std::get<0>(lhs) != std::get<0>(rhs)) ? std::get<0>(lhs) > std::get<0>(rhs) : std::get<4>(lhs) > std::get<4>(rhs);
     }
 };
 
+class ReusableBPEQueue : public std::priority_queue<BPEQueueEntry, std::vector<BPEQueueEntry>, CompareRank> {
+public:
+    using Base = std::priority_queue<BPEQueueEntry, std::vector<BPEQueueEntry>, CompareRank>;
+
+    explicit ReusableBPEQueue(std::vector<BPEQueueEntry>&& storage) : Base(CompareRank{}, std::move(storage)) {}
+
+    std::vector<BPEQueueEntry>&& release_storage() {
+        return std::move(this->c);
+    }
+};
+
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
+    std::vector<int32_t> result;
+    tokenize_into(std::string_view(text), result);
+    return result;
+}
+
+void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>& out) {
+    BPETokenizerScratch scratch;
+    tokenize_into(text, out, scratch);
+}
+
+void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>& out, BPETokenizerScratch& scratch) {
+    std::string cache_key(text);
     {
         std::shared_lock<std::shared_mutex> lock(m_mutex);
-        const auto it = m_cache.find(text);
+        const auto it = m_cache.find(cache_key);
         if (it != m_cache.end()) {
-            return it->second;
+            out.insert(out.end(), it->second.begin(), it->second.end());
+            return;
         }
     }
-    std::string cache_key = text;
 
     // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
-    text += m_end_suffix;
+    std::string text_with_suffix;
+    std::string_view text_view = text;
+    if (!m_end_suffix.empty()) {
+        text_with_suffix.reserve(text.size() + m_end_suffix.size());
+        text_with_suffix.append(text);
+        text_with_suffix.append(m_end_suffix);
+        text_view = std::string_view(text_with_suffix);
+    }
 
-    std::vector<BPESymbol> symbols;
-    symbols.reserve(text.size() + 1);
+    auto& symbols = scratch.symbols;
+    symbols.clear();
+    symbols.reserve(text_view.size() + 1);
 
     auto append_symbol = [&symbols](int32_t id) {
         const int32_t idx = static_cast<int32_t>(symbols.size());
@@ -208,8 +227,7 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     };
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
-    const auto text_view = std::string_view(text);
-    for (int idx = 0; idx < text.size();) {
+    for (int idx = 0; idx < text_view.size();) {
         auto r = m_trie->find_longest(text_view, idx);
         if (r != -1) {
             append_symbol(r);
@@ -238,11 +256,13 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         idx++;
     }
     const size_t initial_num_tokens = symbols.size();
+    const size_t out_start = out.size();
     size_t live_count = symbols.size();
 
     // Prepare priority queue to store pairs with their ranks.
-    using QueueEntry = CompareRank::QueueEntry;
-    std::priority_queue<QueueEntry, std::vector<QueueEntry>, CompareRank> pq;
+    scratch.queue_storage.clear();
+    scratch.queue_storage.reserve(symbols.size());
+    ReusableBPEQueue pq(std::move(scratch.queue_storage));
 
     // replacement sequence number, is used in CompareRank.
     // When merges have the same position prefer replaces which occured earlier.
@@ -250,10 +270,9 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
 
     // Try to enqueue the pair (a, b) of adjacent symbol indices if it is a known merge.
     auto try_push = [&](int32_t a, int32_t b) {
-        const auto it = m_merges.find(std::make_pair(symbols[a].id, symbols[b].id));
-        if (it != m_merges.end()) {
-            const auto [merge_idx, merged_id] = it->second;
-            pq.emplace(merge_idx, merged_id, a, b, i);
+        const MergeValue* merge = m_merges.find(symbols[a].id, symbols[b].id);
+        if (merge != nullptr) {
+            pq.emplace(merge->rank, merge->new_id, a, b, i);
         }
     };
 
@@ -303,45 +322,61 @@ std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
         }
     }
 
-    std::vector<int32_t> res_vec;
-    res_vec.reserve(live_count);
     for (int32_t idx = head; idx != -1; idx = symbols[idx].next) {
-        res_vec.emplace_back(symbols[idx].id);
+        out.emplace_back(symbols[idx].id);
     }
+    scratch.queue_storage = pq.release_storage();
+    scratch.queue_storage.clear();
 
     {
         // Cache writes take an exclusive lock; lookups above take a shared lock.
         std::unique_lock<std::shared_mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
-        if (m_cache.size() < m_cache_capacity && initial_num_tokens > 2) {
-            m_cache.emplace(std::move(cache_key), res_vec);
+        if (m_cache.size() < m_cache_capacity && initial_num_tokens > 0) {
+            m_cache.emplace(std::move(cache_key), std::vector<int32_t>(out.begin() + out_start, out.end()));
         }
     }
-    return res_vec;
 }
 
 BPETokenizerImpl::BPETokenizerImpl(
-        const Vocab& vocab, const TextMerges& merges, size_t cache_capacity,
-        std::string unk_token,
+        Vocab vocab, const TextMerges& merges, size_t cache_capacity,
+        const std::string& unk_token,
         std::string suffix_indicator,
         std::string end_suffix,
         bool fuse_unk,
         bool byte_fallback
-    ): m_cache_capacity(cache_capacity), m_suffix_indicator(suffix_indicator), m_end_suffix(end_suffix), m_byte_fallback(byte_fallback) {
-    if (vocab.count(unk_token)) {
-        m_unk_token_id = vocab.at(unk_token);
+    ): m_suffix_indicator(std::move(suffix_indicator)),
+       m_end_suffix(std::move(end_suffix)),
+       m_byte_fallback(byte_fallback),
+       m_fuse_unk(fuse_unk),
+       m_cache_capacity(cache_capacity) {
+    if (const auto unk_it = vocab.find(unk_token); unk_it != vocab.end()) {
+        m_unk_token_id = static_cast<int32_t>(unk_it->second);
     }
     Merges new_merges;
-    Vocab new_vocab = vocab;
+    new_merges.reserve(merges.size());
+    std::vector<std::string> merged_tokens;
+    merged_tokens.reserve(merges.size());
 
     for (size_t i = 0; i < merges.size(); i++) {
         auto& pair = merges.at(i);
-        auto id_pair = std::make_pair(vocab.at(pair.first), vocab.at(pair.second));
-        new_merges[id_pair] = {i, vocab.at(pair.first + pair.second)};
-        new_vocab.erase(pair.first + pair.second);
+        const auto left_id = vocab.at(pair.first);
+        const auto right_id = vocab.at(pair.second);
+        auto merged_token = pair.first + pair.second;
+        const auto merged_id = vocab.at(merged_token);
+        new_merges.insert(
+            static_cast<int32_t>(left_id),
+            static_cast<int32_t>(right_id),
+            MergeValue{static_cast<int32_t>(i), static_cast<int32_t>(merged_id)}
+        );
+        merged_tokens.emplace_back(std::move(merged_token));
     }
 
-    m_vocab = std::move(new_vocab);
+    for (const auto& token : merged_tokens) {
+        vocab.erase(token);
+    }
+
+    m_vocab = std::move(vocab);
     m_merges = std::move(new_merges);
 
     m_trie = std::make_unique<Trie>();

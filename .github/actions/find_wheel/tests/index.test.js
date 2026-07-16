@@ -1,11 +1,35 @@
 /**
- * Unit tests for the action's main functionality, src/restoreImpl.js
+ * Unit tests for the action's main functionality, src/index.js
  */
-const core = require("@actions/core");
-const path = require("path");
-const os = require("os");
-const fs = require("fs");
-const findWheelImpl = require("../src/index.js");
+import {
+  jest,
+  describe,
+  it,
+  beforeEach,
+  afterEach,
+  expect,
+} from "@jest/globals";
+import path from "path";
+import os from "os";
+import fs from "fs";
+
+// Mock the GitHub Actions core library
+jest.unstable_mockModule("@actions/core", () => ({
+  getInput: jest.fn(),
+  setOutput: jest.fn(),
+  setFailed: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
+  warning: jest.fn(),
+  error: jest.fn(),
+}));
+
+const core = await import("@actions/core");
+const findWheelImpl = await import("../src/index.js");
+
+const getInputMock = core.getInput;
+const setOutputMock = core.setOutput;
+const setFailedMock = core.setFailed;
 
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "test-find-wheel"));
 const wheelsPath = path.join(tempDir, "wheels");
@@ -17,18 +41,10 @@ const wheels = [
   "package_y-2.0.0-cp311-cp311-linux_x86_64.whl",
 ];
 
-// Mock the GitHub Actions core library
-const getInputMock = jest.spyOn(core, "getInput").mockImplementation();
-const setOutputMock = jest.spyOn(core, "setOutput").mockImplementation();
-const setFailedMock = jest.spyOn(core, "setFailed").mockImplementation();
-
 // Clean up mock file system after each test
 afterEach(() => {
   fs.rmSync(tempDir, { recursive: true });
 });
-
-// Mock the action's main function
-const runMock = jest.spyOn(findWheelImpl, "run");
 
 describe("run", () => {
   beforeEach(() => {
@@ -58,7 +74,6 @@ describe("run", () => {
     });
 
     await findWheelImpl.run();
-    expect(runMock).toHaveReturned();
 
     // Verify that all of the core library functions were called correctly
     expect(setOutputMock).toHaveBeenNthCalledWith(
