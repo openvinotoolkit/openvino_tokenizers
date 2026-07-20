@@ -1,8 +1,8 @@
-const core = require("@actions/core");
-const { glob } = require("glob");
-const path = require("path");
-const { promisify } = require("util");
-const { exec } = require("child_process");
+import * as core from "@actions/core";
+import { glob } from "glob";
+import path from "path";
+import { promisify } from "util";
+import { exec } from "child_process";
 
 const execAsync = promisify(exec);
 
@@ -69,9 +69,6 @@ async function run() {
   }
 }
 
-module.exports = {
-  run,
-  getPythonVersion,
-};
+export { run, getPythonVersion };
 
 run();

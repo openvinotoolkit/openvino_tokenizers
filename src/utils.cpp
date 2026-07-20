@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cctype>
 #include <algorithm>
+#include <utility>
 
 using namespace ov;
 using namespace ov::opset15;
@@ -277,6 +278,40 @@ PCRE2Wrapper::~PCRE2Wrapper() {
     }
 }
 
+PCRE2Wrapper::MatchData::MatchData(const PCRE2Wrapper& wrapper) {
+    if (wrapper.m_compiled != nullptr) {
+        m_match_data = pcre2_match_data_create_from_pattern(wrapper.m_compiled, NULL);
+    }
+}
+
+PCRE2Wrapper::MatchData::MatchData(MatchData&& other) noexcept :
+    m_match_data(std::exchange(other.m_match_data, nullptr)) {
+}
+
+PCRE2Wrapper::MatchData& PCRE2Wrapper::MatchData::operator=(MatchData&& other) noexcept {
+    if (this != &other) {
+        if (m_match_data != nullptr) {
+            pcre2_match_data_free(m_match_data);
+        }
+        m_match_data = std::exchange(other.m_match_data, nullptr);
+    }
+    return *this;
+}
+
+PCRE2Wrapper::MatchData::~MatchData() {
+    if (m_match_data != nullptr) {
+        pcre2_match_data_free(m_match_data);
+    }
+}
+
+pcre2_match_data* PCRE2Wrapper::MatchData::get() const {
+    return m_match_data;
+}
+
+PCRE2Wrapper::MatchData PCRE2Wrapper::create_match_data() const {
+    return MatchData(*this);
+}
+
 std::string PCRE2Wrapper::substitute (const std::string& orig_str,
                                      const absl::string_view& replace_pattern,
                                      bool global_replace) const {
@@ -347,42 +382,21 @@ std::string PCRE2Wrapper::substitute (const std::string& orig_str,
 }
 
 std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string& str, size_t curr_start) const {
-    if (m_compiled == nullptr) {
-        return {SIZE_MAX, SIZE_MAX};
-    }
-    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
-    PCRE2_SIZE subject_length = str.length();
-
-    const auto match_func = m_is_jit ? pcre2_jit_match : pcre2_match;
-    int match_result = match_func(
-        m_compiled,
-        (PCRE2_SPTR) str.c_str(), subject_length,
-        curr_start,
-        0,
-        match_data,
-        NULL
-    );
-
-    if (match_result < 0) {
-        pcre2_match_data_free(match_data);
-        return {SIZE_MAX, SIZE_MAX};
-    }
-
-    // At this point there is at least one match, no out of bound can happen here.
-    // If ovector do not contain values early return is done and the code below is not run.
-    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
-    std::pair<size_t, size_t> res = {ovector[0], ovector[1]};
-
-    // Free only after copying results from match_data to res;
-    pcre2_match_data_free(match_data);
-    return res;
+    return match(std::string_view(str.data(), str.size()), curr_start);
 }
 
 std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string_view& str, size_t curr_start) const {
     if (m_compiled == nullptr) {
         return {SIZE_MAX, SIZE_MAX};
     }
-    pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(m_compiled, NULL);
+    auto match_data = create_match_data();
+    return match(str, curr_start, match_data);
+}
+
+std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string_view& str, size_t curr_start, MatchData& match_data) const {
+    if (m_compiled == nullptr || match_data.get() == nullptr) {
+        return {SIZE_MAX, SIZE_MAX};
+    }
     PCRE2_SIZE subject_length = str.size();
 
     const auto match_func = m_is_jit ? pcre2_jit_match : pcre2_match;
@@ -391,23 +405,18 @@ std::pair<size_t, size_t> PCRE2Wrapper::match(const std::string_view& str, size_
         (PCRE2_SPTR) str.data(), subject_length,
         static_cast<PCRE2_SIZE>(curr_start),
         0,
-        match_data,
+        match_data.get(),
         NULL
     );
 
     if (match_result < 0) {
-        pcre2_match_data_free(match_data);
         return {SIZE_MAX, SIZE_MAX};
     }
 
     // At this point there is at least one match, no out of bound can happen here.
     // If ovector do not contain values early return is done and the code below is not run.
-    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data);
-    std::pair<size_t, size_t> res = {ovector[0], ovector[1]};
-
-    // Free only after copying results from match_data to res;
-    pcre2_match_data_free(match_data);
-    return res;
+    PCRE2_SIZE *ovector = pcre2_get_ovector_pointer(match_data.get());
+    return {ovector[0], ovector[1]};
 }
 
 // Return both full-match offsets and capture-group offsets in one call
