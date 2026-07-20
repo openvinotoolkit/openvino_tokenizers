@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from importlib.metadata import PackageNotFoundError, version
 from io import StringIO
 from math import isclose
@@ -19,6 +20,7 @@ def pytest_addoption(parser):
 
 PASS_RATES_FILE = Path(__file__).parent / "pass_rates.json"
 STATUSES_FILE = Path(__file__).parent / "stats.json"
+README_FILE = Path(__file__).resolve().parents[1] / "README.md"
 
 # todo: create a unified source of tokenizer models and types for all tests
 unigram_tokenizers = [
@@ -31,56 +33,113 @@ unigram_tokenizers = [
 ]
 
 
-def build_coverege_report(session: pytest.Session) -> None:
-    import pandas as pd
-    from pytest_harvest import get_session_results_df
+def _get_tokenizers_test_module():
+    for name, module in sys.modules.items():
+        if name.endswith("tokenizers_test"):
+            return module
 
-    # Use row.get so the report still builds if a run did not exercise every fixture type
-    # (those *_param columns are then absent from the results frame).
-    def add_tokenizer_type(row):
-        if not pd.isnull(row.get("hf_wordpiece_tokenizers_param")):
-            return "WordPiece"
-        if not pd.isnull(row.get("hf_wordpiece_tokenizers_with_padding_sides_param")):
-            return "WordPiece"
-        if not pd.isnull(row.get("hf_bpe_tokenizers_param")):
-            return "BPE"
-        if not pd.isnull(row.get("hf_bpe_tokenizers_with_padding_sides_param")):
-            return "BPE"
-        if not pd.isnull(row.get("hf_sentencepiece_tokenizers_param")):
-            if row.get("is_sentencepiece_backend_param"):
-                return "SentencePiece"
-            elif row.get("hf_sentencepiece_tokenizers_param") in unigram_tokenizers:
-                return "Unigram"
-            else:
-                return "BPE"
-        if not pd.isnull(row.get("hf_sentencepiece_tokenizers_with_padding_sides_param")):
-            if row.get("is_sentencepiece_backend_param"):
-                return "SentencePiece"
-            elif row.get("hf_sentencepiece_tokenizers_with_padding_sides_param") in unigram_tokenizers:
-                return "Unigram"
-            else:
-                return "BPE"
-        if not pd.isnull(row.get("hf_tiktoken_tokenizers_param")):
-            return "Tiktoken"
-        if not pd.isnull(row.get("hf_tiktoken_tokenizers_with_padding_sides_param")):
-            return "Tiktoken"
+    try:
+        import tests.tokenizers_test as tokenizers_test
+    except ModuleNotFoundError:
+        import tokenizers_test
 
-    results_df = get_session_results_df(session)
+    return tokenizers_test
 
-    # get_session_results_df can come back empty (e.g. under xdist if the harvested worker
-    # results were already cleaned up, or if no harvestable tests ran). The coverage report
-    # is only meaningful for a full-coverage run, so skip it rather than crash.
-    expected_param_columns = [
-        "hf_wordpiece_tokenizers_param",
-        "hf_wordpiece_tokenizers_with_padding_sides_param",
-        "hf_bpe_tokenizers_param",
-        "hf_bpe_tokenizers_with_padding_sides_param",
-        "hf_sentencepiece_tokenizers_param",
-        "hf_sentencepiece_tokenizers_with_padding_sides_param",
-        "hf_tiktoken_tokenizers_param",
-        "hf_tiktoken_tokenizers_with_padding_sides_param",
+
+def _get_model_id_map(tokenizers_test):
+    models = [
+        *tokenizers_test.wordpiece_models,
+        *tokenizers_test.bpe_models,
+        *tokenizers_test.sentencepiece_models,
+        *tokenizers_test.tiktiken_models,
     ]
-    if results_df.empty or not any(column in results_df.columns for column in expected_param_columns):
+    return {model.split("/")[-1]: model for model in models}
+
+
+def _get_nodeid_parts(nodeid):
+    test_id = nodeid.split("::")[-1]
+    if "[" not in test_id:
+        return test_id, ""
+    test_name, params = test_id.split("[", 1)
+    return test_name, params.rsplit("]", 1)[0]
+
+
+def _get_model_from_params(params, model_id_map):
+    for model_id in sorted(model_id_map, key=len, reverse=True):
+        if params == model_id or params.startswith(f"{model_id}-"):
+            return model_id_map[model_id], params[len(model_id) :].lstrip("-")
+    return None, None
+
+
+def _get_tokenizer_type_from_report(test_name, model, params_tail):
+    if test_name.startswith(("test_hf_wordpiece_tokenizers", "test_wordpiece_model_detokenizer")):
+        return "WordPiece"
+    if test_name.startswith(("test_hf_bpe_tokenizers", "test_bpe_model_tokenizer", "test_bpe_detokenizer")):
+        return "BPE"
+    if test_name.startswith(
+        (
+            "test_tiktoken_tokenizers",
+            "test_hf_tiktoken_tokenizers",
+            "test_tiktoken_model_tokenizer",
+            "test_tiktoken_detokenizer",
+        )
+    ):
+        return "Tiktoken"
+    if test_name.startswith(("test_sentencepiece_model_tokenizer", "test_hf_sentencepiece_tokenizers", "test_sentencepiece_model_detokenizer")):
+        if "sp_backend" in params_tail.split("-"):
+            return "SentencePiece"
+        if model in unigram_tokenizers:
+            return "Unigram"
+        return "BPE"
+    return None
+
+
+def _build_coverage_results_from_terminal_stats(session):
+    import pandas as pd
+
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter is None:
+        return pd.DataFrame()
+
+    tokenizers_test = _get_tokenizers_test_module()
+    model_id_map = _get_model_id_map(tokenizers_test)
+    rows = []
+    index = []
+
+    for status, status_value in (("passed", 1), ("failed", 0)):
+        for report in reporter.stats.get(status, []):
+            if "tokenizers_test.py::" not in report.nodeid:
+                continue
+
+            test_name, params = _get_nodeid_parts(report.nodeid)
+            model, params_tail = _get_model_from_params(params, model_id_map)
+            if model is None:
+                continue
+
+            tokenizer_type = _get_tokenizer_type_from_report(test_name, model, params_tail)
+            if tokenizer_type is None:
+                continue
+
+            rows.append(
+                {
+                    "Tokenizer Type": tokenizer_type,
+                    "Model": model,
+                    "test_string": params_tail,
+                    "status": status_value,
+                }
+            )
+            index.append(report.nodeid)
+
+    return pd.DataFrame(rows, index=index)
+
+
+def _is_xdist_worker(session):
+    return hasattr(session.config, "workerinput")
+
+
+def build_coverege_report(session: pytest.Session) -> None:
+    results_df = _build_coverage_results_from_terminal_stats(session)
+    if results_df.empty:
         reporter = session.config.pluginmanager.get_plugin("terminalreporter")
         if reporter is not None:
             reporter.write_line(
@@ -89,34 +148,7 @@ def build_coverege_report(session: pytest.Session) -> None:
             )
         return
 
-    # Some fixture-type columns may be missing for a partial run; add them as NaN so the
-    # downstream fillna chain and column selection below do not raise KeyError.
-    for column in expected_param_columns:
-        if column not in results_df.columns:
-            results_df[column] = pd.NA
-
-    results_df["Tokenizer Type"] = results_df.apply(add_tokenizer_type, axis=1)
-    results_df = results_df[results_df.status != "skipped"]  # filter skipped tests
-    results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_bpe_tokenizers_param, inplace=True)
-    results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_sentencepiece_tokenizers_param, inplace=True)
-    results_df.hf_wordpiece_tokenizers_param.fillna(results_df.hf_tiktoken_tokenizers_param, inplace=True)
-    results_df.hf_wordpiece_tokenizers_param.fillna(
-        results_df.hf_wordpiece_tokenizers_with_padding_sides_param, inplace=True
-    )
-    results_df.hf_wordpiece_tokenizers_param.fillna(
-        results_df.hf_bpe_tokenizers_with_padding_sides_param, inplace=True
-    )
-    results_df.hf_wordpiece_tokenizers_param.fillna(
-        results_df.hf_sentencepiece_tokenizers_with_padding_sides_param, inplace=True
-    )
-    results_df.hf_wordpiece_tokenizers_param.fillna(
-        results_df.hf_tiktoken_tokenizers_with_padding_sides_param, inplace=True
-    )
-    results_df.status = (results_df.status == "passed").astype(int)
-    results_df = results_df.dropna(subset=["hf_wordpiece_tokenizers_param"])
-    results_df["Model"] = results_df.hf_wordpiece_tokenizers_param + [
-        "_legacy" * value for value in results_df.index.str.contains("Slow")
-    ]
+    results_df["Model"] = results_df["Model"] + ["_legacy" * value for value in results_df.index.str.contains("Slow")]
     results_df = results_df[["Tokenizer Type", "Model", "test_string", "status"]]
     grouped_by_model = results_df.groupby(["Tokenizer Type", "Model"]).agg({"status": ["mean", "count"]}).reset_index()
     grouped_by_model.columns = ["Tokenizer Type", "Model", "Output Matched, %", "Number of Tests"]
@@ -125,7 +157,7 @@ def build_coverege_report(session: pytest.Session) -> None:
     grouped_by_type.columns = ["Tokenizer Type", "Output Matched, %", "Number of Tests"]
     grouped_by_type["Output Matched, %"] *= 100
 
-    readme_path = Path("../README.md")
+    readme_path = README_FILE
     with open(readme_path) as f:
         old_readme = f.read().split("## Test Results")[0]
 
@@ -167,12 +199,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     """
     Tests fail if the test pass rate decreases
     """
-    from pytest_harvest import is_main_process
-
     # Under pytest-xdist this hook runs on every worker as well as the controller. Only
     # the controller has the aggregated terminalreporter stats and should read/write the
     # pass-rate and status files; workers must not touch them.
-    if not is_main_process(session):
+    if _is_xdist_worker(session):
         return
 
     if session.config.getoption("update_readme", default=False):

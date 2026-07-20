@@ -45,7 +45,16 @@ struct CharsmapConfig {
     std::string identifier;
 };
 
-void init_sentencepiece_normalizer_chars_map(
+template <typename Status>
+bool check_status(const Status& status, const std::string& operation) {
+    if (status.ok()) {
+        return true;
+    }
+    std::cerr << operation << " failed: " << status.ToString() << std::endl;
+    return false;
+}
+
+bool init_sentencepiece_normalizer_chars_map(
     const std::string& normalization_form,
     const bool case_fold,
     sentencepiece::normalizer::Builder::CharsMap& chars_map
@@ -53,21 +62,34 @@ void init_sentencepiece_normalizer_chars_map(
     if (normalization_form == "identity") {
         // no need to modify chars_map
     } else if (normalization_form == "nfc") {
-        sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map);
+        if (!check_status(sentencepiece::normalizer::Builder::BuildNFCMap(&chars_map), "BuildNFCMap")) {
+            return false;
+        }
     } else if (normalization_form == "nfd") {
-        sentencepiece::normalizer::Builder::BuildNFDMap(&chars_map);
+        if (!check_status(sentencepiece::normalizer::Builder::BuildNFDMap(&chars_map), "BuildNFDMap")) {
+            return false;
+        }
     } else if (normalization_form == "nfkc") {
-        sentencepiece::normalizer::Builder::BuildNFKCMap(&chars_map);
+        if (!check_status(sentencepiece::normalizer::Builder::BuildNFKCMap(&chars_map), "BuildNFKCMap")) {
+            return false;
+        }
     } else if (normalization_form == "nfkd") {
-        sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map);
+        if (!check_status(sentencepiece::normalizer::Builder::BuildNFKDMap(&chars_map), "BuildNFKDMap")) {
+            return false;
+        }
     } else {
         std::cerr << "Unsupported normalization form: " << normalization_form << std::endl;
-        return;
+        return false;
     }
     
     if (case_fold) {
-        sentencepiece::normalizer::Builder::MergeUnicodeCaseFoldMap(&chars_map);
+        if (!check_status(
+                sentencepiece::normalizer::Builder::MergeUnicodeCaseFoldMap(&chars_map),
+                "MergeUnicodeCaseFoldMap")) {
+            return false;
+        }
     }
+    return true;
 }
 
 void write_string_literal(std::ofstream& out, const std::string& var_name, const std::string& data) {
@@ -134,10 +156,16 @@ int main(int argc, char* argv[]) {
             c = std::tolower(c);
         }
         
-        init_sentencepiece_normalizer_chars_map(norm_form_lower, config.case_fold, chars_map);
+        if (!init_sentencepiece_normalizer_chars_map(norm_form_lower, config.case_fold, chars_map)) {
+            return 1;
+        }
         
         std::string precompiled_charsmap;
-        sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap);
+        if (!check_status(
+                sentencepiece::normalizer::Builder::CompileCharsMap(chars_map, &precompiled_charsmap),
+                "CompileCharsMap")) {
+            return 1;
+        }
         
         write_string_literal(header_file, "precompiled_charsmap_" + config.identifier, precompiled_charsmap);
     }

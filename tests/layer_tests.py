@@ -145,7 +145,7 @@ tokenizers_with_charsmap = ["google/flan-t5-xxl"]
 charsmap_test_strings = [
     "Henry \u2163  ①②③",
     "",
-    pytest.param(" \t\n", marks=pytest.mark.xfail(reason="Whitespace is deleted by OV tokenizer, need a fix")),
+    " \t\n",
 ]
 
 
@@ -170,7 +170,8 @@ def unigram_model_json(request, hf_charsmap_sentencepiece_tokenizer):
 
 @pytest.fixture(scope="session")
 def precompiled_charsmap_json(request, unigram_model_json):
-    return unigram_model_json["normalizer"]["normalizers"][0]
+    normalizer = unigram_model_json["normalizer"]
+    return normalizer.get("normalizers", [normalizer])[0]
 
 
 @pytest.mark.parametrize("test_string", charsmap_test_strings)
@@ -186,8 +187,8 @@ def test_charsmap_normalizartion(test_string, hf_charsmap_sentencepiece_tokenize
     "test_parameters",
     [
         # results for sentencepiece charsmap:
-        ("NFC", 17325),  # failed examples: 2640
-        ("NFD", 17736),  # failed examples: 2229
+        ("NFC", 17326),  # failed examples: 2708
+        ("NFD", 17737),  # failed examples: 2297
         ("NFKC", 17224),  # failed examples: 2741
         ("NFKD", 17619),  # failed examples: 2346
         # results for icu70:

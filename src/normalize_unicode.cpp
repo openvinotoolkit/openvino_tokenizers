@@ -11,6 +11,8 @@
 #include "utils.hpp"
 #include "precompiled_charsmap.hpp"  // generated header with precompiled charsmaps
 
+#include "absl/log/globals.h"
+
 using namespace ov;
 
 
@@ -35,7 +37,7 @@ bool NormalizeUnicode::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
 
     if (m_normalizer == nullptr) {
         std::call_once(m_init_flag, [&]() {
-            sentencepiece::logging::SetMinLogLevel(1);
+            absl::SetMinLogLevel(absl::LogSeverityAtLeast::kWarning);
 
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(false);

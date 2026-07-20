@@ -80,8 +80,8 @@ option(REGENERATE_PRECOMPILED_CHARSMAP "Regenerate the precompiled charsmap head
 
 FetchContent_Declare(
   sentencepiece
-  URL      https://github.com/google/sentencepiece/releases/download/v0.2.1/sentencepiece-0.2.1.tar.gz
-  URL_HASH SHA256=8138cec27c2f2282f4a34d9a016e3374cd40e5c6e9cb335063db66a0a3b71fad
+  URL      https://github.com/google/sentencepiece/releases/download/v0.2.2/sentencepiece-0.2.2.tar.gz
+  URL_HASH SHA256=3d2b5e824b5622038dc7b490897efe05ebbbb9e7350fc142f3ecc8789ef9bdf6
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
@@ -99,7 +99,10 @@ if(NOT sentencepiece_POPULATED)
   else()
       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "module" CACHE STRING "")
+      if(SPM_ABSL_PROVIDER STREQUAL "internal")
+          set(SPM_ABSL_PROVIDER "module" CACHE STRING "" FORCE)
+      endif()
   endif()
 
   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
