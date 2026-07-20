@@ -90,6 +90,12 @@ if(NOT sentencepiece_POPULATED)
       set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
       set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
+  elseif(WIN32)
+      # OpenVINO on Windows links Abseil dynamically. Avoid building a second
+      # Abseil copy inside SentencePiece, which causes duplicate MSVC symbols.
+      set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
+      set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "package" CACHE STRING "" FORCE)
   else()
       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
@@ -148,10 +154,6 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     endif()
   else()
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
-      if(SPM_ABSL_PROVIDER STREQUAL "package")
-        message(FATAL_ERROR "When 'SPM_PROTOBUF_PROVIDER' is 'package', 'SPM_ABSL_PROVIDER' must have the same value")
-      endif()
-
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
         "${_sp_src}/src/builtin_pb" # for "sentencepiece_model.pb.h"
         "${_sp_src}/src" # for "normalizer.h"
@@ -173,6 +175,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     # to propogate _GLIBCXX_USE_CXX11_ABI value
     target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+    if(SPM_ABSL_PROVIDER STREQUAL "package")
+      target_link_libraries(${TARGET_NAME} PRIVATE ${ABSL_DEPENDENCIES})
+    endif()
 
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
