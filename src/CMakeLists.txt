@@ -91,11 +91,11 @@ if(NOT sentencepiece_POPULATED)
       set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
       set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
   elseif(WIN32)
-      # OpenVINO on Windows links Abseil dynamically. Avoid building a second
-      # Abseil copy inside SentencePiece, which causes duplicate MSVC symbols.
+      # OpenVINO on Windows links Abseil dynamically. Use SentencePiece's
+      # minimal Abseil shim to avoid both duplicate symbols and find_package(absl).
       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-      set(SPM_ABSL_PROVIDER "package" CACHE STRING "" FORCE)
+      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "" FORCE)
   else()
       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")

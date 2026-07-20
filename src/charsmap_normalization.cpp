@@ -5,7 +5,6 @@
 #include "charsmap_normalization.hpp"
 #include "utils.hpp"
 #include "precompiled_charsmap.hpp"  // generated header with precompiled charsmaps
-#include "absl/log/globals.h"
 #include "absl/strings/str_format.h"
 
 using namespace ov;
@@ -37,8 +36,6 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
 
     if (m_normalizer == nullptr) {
         std::call_once(m_init_flag, [&]() {
-            absl::SetMinLogLevel(absl::LogSeverityAtLeast::kWarning);
-
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
             m_spec->set_add_dummy_prefix(m_add_dummy_prefix);
             m_spec->set_remove_extra_whitespaces(m_remove_extra_whitespaces);
