@@ -33,12 +33,12 @@ wheels = [
 
 [[package]]
 name = "atheris"
-version = "2.3.0"
+version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3f/80/65938e910e1b61ecf2a66339f2e1860b84d1d0f0e604a0b08910d00707a5/atheris-2.3.0.tar.gz", hash = "sha256:cf1fdf5fa220a41a2f262b32363fc566549502b2cb0addf4e1baad5531c0e825", size = 304139, upload-time = "2023-08-29T20:53:14.063Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/db/d141a3ac3974d267946b49abaeedea999725eca44a34534b8c5450356e8f/atheris-2.3.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b91cb296d60915c3efa4f6db48f09c4678b574cddb7ca98035f1cb9d9fb96f64", size = 30877874, upload-time = "2023-08-29T20:52:55.649Z" },
-    { url = "https://files.pythonhosted.org/packages/00/01/3a2a31c0016233599b12e8fa6c956ec6c1df78630d8cec9cfa78904d0013/atheris-2.3.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e4e43d1ee4760916a84ff73c9c6cf9ac6eee80fc030479bbed43fe0b8e994981", size = 31182450, upload-time = "2023-08-29T20:52:58.899Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/88/fd6ad595dafa9c7ce56dbfcaff0c7244988dac3af86c771166c6516ccf6b/atheris-3.1.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:ec5e11f21a4c197fe91f7aea2b2de88e623c73a21fc07b105ac6329a1588457b", size = 36875908, upload-time = "2026-06-17T00:04:01.104Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/18/e19718c384fd7d801d0da7485407daef9af6194b6d8c8818175bec5efec6/atheris-3.1.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:f8a9f51ce8369026e8eb7b7174835e8c4c85a1a6db5d9add36c15100779d2a39", size = 36800563, upload-time = "2026-06-17T00:04:04.559Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/ff/ae7a5bfe99033e510bea4ed09934e636d93777317a48147369bc0dc2b71f/atheris-3.1.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:315a0b5c819852b1ffe1ca72efc389c7724881f2c33e4aacb8c6bcec49bd5011", size = 36772569, upload-time = "2026-06-17T00:04:07.702Z" },
 ]
 
 [[package]]
@@ -1307,7 +1307,7 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.4.0,<=3.8.0" },
     { name = "ruff", specifier = ">=0.1.0,<=0.15.22" },
 ]
-fuzzing = [{ name = "atheris", specifier = ">=2.0.0,<=2.3.0" }]
+fuzzing = [{ name = "atheris", specifier = ">=2.0.0,<=3.1.0" }]
 onnx-tests = [
     { name = "onnx", specifier = ">=1.13.0" },
     { name = "sentencepiece", specifier = ">=0.1.96" },
