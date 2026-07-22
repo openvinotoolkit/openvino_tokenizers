@@ -90,19 +90,13 @@ if(NOT sentencepiece_POPULATED)
       set(SPM_USE_BUILTIN_PROTOBUF OFF CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
       set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
-  elseif(WIN32)
-      # OpenVINO on Windows links Abseil dynamically. Use SentencePiece's
-      # minimal Abseil shim to avoid both duplicate symbols and find_package(absl).
+  else()
+      # SentencePiece's internal Abseil provider is a small compatibility shim.
+      # It avoids building full upstream Abseil, which conflicts with OpenVINO
+      # on Windows and fails with some CI toolchain flags on Linux.
       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
       set(SPM_ABSL_PROVIDER "internal" CACHE STRING "" FORCE)
-  else()
-      set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
-      set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-      set(SPM_ABSL_PROVIDER "module" CACHE STRING "")
-      if(SPM_ABSL_PROVIDER STREQUAL "internal")
-          set(SPM_ABSL_PROVIDER "module" CACHE STRING "" FORCE)
-      endif()
   endif()
 
   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
