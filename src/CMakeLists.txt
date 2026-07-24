@@ -74,8 +74,8 @@ option(REGENERATE_PRECOMPILED_CHARSMAP "Regenerate the precompiled charsmap head
 
 FetchContent_Declare(
   sentencepiece
-  URL      https://github.com/google/sentencepiece/releases/download/v0.2.1/sentencepiece-0.2.1.tar.gz
-  URL_HASH SHA256=8138cec27c2f2282f4a34d9a016e3374cd40e5c6e9cb335063db66a0a3b71fad
+  URL      https://github.com/google/sentencepiece/releases/download/v0.2.2/sentencepiece-0.2.2.tar.gz
+  URL_HASH SHA256=3d2b5e824b5622038dc7b490897efe05ebbbb9e7350fc142f3ecc8789ef9bdf6
 )
 FetchContent_GetProperties(sentencepiece)
 if(NOT sentencepiece_POPULATED)
@@ -91,9 +91,12 @@ if(NOT sentencepiece_POPULATED)
       set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
       set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
   else()
+      # SentencePiece's internal Abseil provider is a small compatibility shim.
+      # It avoids building full upstream Abseil, which conflicts with OpenVINO
+      # on Windows and fails with some CI toolchain flags on Linux.
       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "")
+      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "" FORCE)
   endif()
 
   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
@@ -145,10 +148,6 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     endif()
   else()
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
-      if(SPM_ABSL_PROVIDER STREQUAL "package")
-        message(FATAL_ERROR "When 'SPM_PROTOBUF_PROVIDER' is 'package', 'SPM_ABSL_PROVIDER' must have the same value")
-      endif()
-
       target_include_directories(${TARGET_NAME} SYSTEM PRIVATE
         "${_sp_src}/src/builtin_pb" # for "sentencepiece_model.pb.h"
         "${_sp_src}/src" # for "normalizer.h"
@@ -170,6 +169,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     # to propogate _GLIBCXX_USE_CXX11_ABI value
     target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
+    if(SPM_ABSL_PROVIDER STREQUAL "package")
+      target_link_libraries(${TARGET_NAME} PRIVATE ${ABSL_DEPENDENCIES})
+    endif()
 
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968
