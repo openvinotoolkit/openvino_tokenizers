@@ -1584,21 +1584,41 @@ class TokenizerPipeline:
 
             if self.is_metaspace_prepend_first:
                 prepend_metaspace_step = self.steps.pop(0)
+
+                # Apply normalization steps on the flat (non-ragged) string BEFORE the prepend.
+                # This is necessary when the normalizer maps ▁ back to a space (e.g. the
+                # Precompiled charsmap used by SeamlessM4T / NLLB tokenizers): if the prepend
+                # runs first it inserts ▁, the charsmap then converts it back to a space, and
+                # the word loses its metaspace prefix.  Running normalizers first avoids this.
+                for step in self.normalization_steps:
+                    input_node = step.get_ov_subgraph(input_node)
+
                 input_node = prepend_metaspace_step.get_ov_subgraph(input_node)
 
-            ragged = []
-            if isinstance(self.steps[0], SpecialTokensSplit):
-                input_node = self.add_ragged_dimension(input_node)
-                input_node = self.steps[0].get_ov_subgraph(input_node)
-                ragged, input_node = input_node[:2], input_node[2:]
+                ragged = []
+                if isinstance(self.steps[0], SpecialTokensSplit):
+                    input_node = self.add_ragged_dimension(input_node)
+                    input_node = self.steps[0].get_ov_subgraph(input_node)
+                    ragged, input_node = input_node[:2], input_node[2:]
 
-            for step in self.normalization_steps:
-                input_node = step.get_ov_subgraph(input_node)
-
-            if not ragged:
-                input_node = self.add_ragged_dimension(input_node)
+                if not ragged:
+                    input_node = self.add_ragged_dimension(input_node)
+                else:
+                    input_node = ragged + input_node
             else:
-                input_node = ragged + input_node
+                ragged = []
+                if isinstance(self.steps[0], SpecialTokensSplit):
+                    input_node = self.add_ragged_dimension(input_node)
+                    input_node = self.steps[0].get_ov_subgraph(input_node)
+                    ragged, input_node = input_node[:2], input_node[2:]
+
+                for step in self.normalization_steps:
+                    input_node = step.get_ov_subgraph(input_node)
+
+                if not ragged:
+                    input_node = self.add_ragged_dimension(input_node)
+                else:
+                    input_node = ragged + input_node
 
             for step in self.pre_tokenization_steps:
                 input_node = step.get_ov_subgraph(input_node)
