@@ -1,0 +1,11 @@
+{
+    "tests/tokenizers_test.py::test_": 0.9535087719298245,
+    "tests/tokenizers_test.py::test_transformers_v4": 0.0
+}
+
+
+# THIS WHEN TRUNCATION is left as default
+{
+    "tests/tokenizers_test.py::test_": 0.9562134502923977,
+    "tests/tokenizers_test.py::test_transformers_v4": 0.0
+}
