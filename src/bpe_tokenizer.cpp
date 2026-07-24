@@ -5,6 +5,8 @@
 #include "bpe_tokenizer.hpp"
 #include "openvino/opsets/opset13.hpp"
 #include "absl/strings/str_format.h"
+#include <array>
+#include <limits>
 #include <queue>
 using namespace ov;
 using namespace ov::opset13;
@@ -182,6 +184,127 @@ public:
     }
 };
 
+namespace {
+
+constexpr size_t SHORT_BPE_MAX_SYMBOLS = 32;
+constexpr size_t SHORT_BPE_MAX_NODES = 2 * SHORT_BPE_MAX_SYMBOLS - 1;
+constexpr int32_t NO_INDEX = -1;
+constexpr int32_t NO_RANK = std::numeric_limits<int32_t>::max();
+
+struct ShortBPESymbol {
+    int32_t id = -1;
+    int32_t prev = NO_INDEX;
+    int32_t next = NO_INDEX;
+    bool alive = false;
+};
+
+void merge_short_bpe(
+    const Merges& merges,
+    const std::vector<BPESymbol>& initial_symbols,
+    std::vector<int32_t>& out
+) {
+    const size_t initial_size = initial_symbols.size();
+    OPENVINO_ASSERT(initial_size <= SHORT_BPE_MAX_SYMBOLS);
+    if (initial_size == 0) {
+        return;
+    }
+
+    std::array<ShortBPESymbol, SHORT_BPE_MAX_NODES> symbols{};
+    std::array<int32_t, SHORT_BPE_MAX_NODES> ranks{};
+    std::array<int32_t, SHORT_BPE_MAX_NODES> merged_ids{};
+    std::array<int32_t, SHORT_BPE_MAX_NODES> sequence_numbers{};
+    ranks.fill(NO_RANK);
+    merged_ids.fill(-1);
+    sequence_numbers.fill(NO_RANK);
+
+    for (size_t idx = 0; idx < initial_size; ++idx) {
+        symbols[idx] = ShortBPESymbol{
+            initial_symbols[idx].id,
+            idx == 0 ? NO_INDEX : static_cast<int32_t>(idx - 1),
+            idx + 1 == initial_size ? NO_INDEX : static_cast<int32_t>(idx + 1),
+            true
+        };
+    }
+
+    auto set_candidate = [&](int32_t first, int32_t second, int32_t sequence_number) {
+        const MergeValue* merge = merges.find(symbols[first].id, symbols[second].id);
+        if (merge == nullptr) {
+            ranks[first] = NO_RANK;
+            merged_ids[first] = -1;
+            sequence_numbers[first] = NO_RANK;
+            return;
+        }
+        ranks[first] = merge->rank;
+        merged_ids[first] = merge->new_id;
+        sequence_numbers[first] = sequence_number;
+    };
+
+    int32_t sequence_number = 0;
+    for (size_t idx = 0; idx + 1 < initial_size; ++idx) {
+        set_candidate(static_cast<int32_t>(idx), static_cast<int32_t>(idx + 1), sequence_number++);
+    }
+
+    int32_t head = 0;
+    size_t node_count = initial_size;
+    size_t live_count = initial_size;
+    while (live_count >= 2) {
+        int32_t best = NO_INDEX;
+        for (size_t idx = 0; idx < node_count; ++idx) {
+            if (ranks[idx] == NO_RANK) {
+                continue;
+            }
+            if (best == NO_INDEX ||
+                ranks[idx] < ranks[best] ||
+                (ranks[idx] == ranks[best] && sequence_numbers[idx] < sequence_numbers[best])) {
+                best = static_cast<int32_t>(idx);
+            }
+        }
+        if (best == NO_INDEX) {
+            break;
+        }
+
+        const int32_t second = symbols[best].next;
+        OPENVINO_ASSERT(second != NO_INDEX && symbols[best].alive && symbols[second].alive);
+        const int32_t prev = symbols[best].prev;
+        const int32_t next = symbols[second].next;
+        const int32_t merged = static_cast<int32_t>(node_count++);
+        OPENVINO_ASSERT(node_count <= symbols.size());
+
+        symbols[merged] = ShortBPESymbol{merged_ids[best], prev, next, true};
+        symbols[best].alive = false;
+        symbols[second].alive = false;
+        ranks[best] = NO_RANK;
+        ranks[second] = NO_RANK;
+        sequence_numbers[best] = NO_RANK;
+        sequence_numbers[second] = NO_RANK;
+
+        if (prev != NO_INDEX) {
+            symbols[prev].next = merged;
+        } else {
+            head = merged;
+        }
+        if (next != NO_INDEX) {
+            symbols[next].prev = merged;
+        }
+
+        --live_count;
+        ++sequence_number;
+        if (prev != NO_INDEX) {
+            set_candidate(prev, merged, sequence_number);
+        }
+        if (next != NO_INDEX) {
+            set_candidate(merged, next, sequence_number);
+        }
+    }
+
+    out.reserve(out.size() + live_count);
+    for (int32_t idx = head; idx != NO_INDEX; idx = symbols[idx].next) {
+        out.push_back(symbols[idx].id);
+    }
+}
+
+}  // namespace
+
 std::vector<int32_t> BPETokenizerImpl::tokenize(std::string& text) {
     std::vector<int32_t> result;
     tokenize_into(std::string_view(text), result);
@@ -259,74 +382,78 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
     const size_t out_start = out.size();
     size_t live_count = symbols.size();
 
-    // Prepare priority queue to store pairs with their ranks.
-    scratch.queue_storage.clear();
-    scratch.queue_storage.reserve(symbols.size());
-    ReusableBPEQueue pq(std::move(scratch.queue_storage));
+    if (initial_num_tokens <= SHORT_BPE_MAX_SYMBOLS) {
+        merge_short_bpe(m_merges, symbols, out);
+    } else {
+        // Prepare priority queue to store pairs with their ranks.
+        scratch.queue_storage.clear();
+        scratch.queue_storage.reserve(symbols.size());
+        ReusableBPEQueue pq(std::move(scratch.queue_storage));
 
-    // replacement sequence number, is used in CompareRank.
-    // When merges have the same position prefer replaces which occured earlier.
-    int32_t i = 0;
+        // replacement sequence number, is used in CompareRank.
+        // When merges have the same position prefer replaces which occured earlier.
+        int32_t i = 0;
 
-    // Try to enqueue the pair (a, b) of adjacent symbol indices if it is a known merge.
-    auto try_push = [&](int32_t a, int32_t b) {
-        const MergeValue* merge = m_merges.find(symbols[a].id, symbols[b].id);
-        if (merge != nullptr) {
-            pq.emplace(merge->rank, merge->new_id, a, b, i);
+        // Try to enqueue the pair (a, b) of adjacent symbol indices if it is a known merge.
+        auto try_push = [&](int32_t a, int32_t b) {
+            const MergeValue* merge = m_merges.find(symbols[a].id, symbols[b].id);
+            if (merge != nullptr) {
+                pq.emplace(merge->rank, merge->new_id, a, b, i);
+            }
+        };
+
+        // Fill the priority queue with initial pairs. head tracks the index of the
+        // first live symbol; it moves when a merge consumes the current head.
+        int32_t head = symbols.empty() ? -1 : 0;
+        for (int32_t a = head; a != -1 && symbols[a].next != -1; a = symbols[a].next) {
+            try_push(a, symbols[a].next);
+            i++;
         }
-    };
 
-    // Fill the priority queue with initial pairs. head tracks the index of the
-    // first live symbol; it moves when a merge consumes the current head.
-    int32_t head = symbols.empty() ? -1 : 0;
-    for (int32_t a = head; a != -1 && symbols[a].next != -1; a = symbols[a].next) {
-        try_push(a, symbols[a].next);
-        i++;
+        while (!pq.empty() && live_count >= 2) {
+            auto [merge_idx, merged_id, first, second, position] = pq.top();
+            pq.pop();
+
+            // Skip stale entries: a merge always consumes (kills) its two operands,
+            // so two symbols that formed a pair stay adjacent while both are alive.
+            if (!symbols[first].alive || !symbols[second].alive || symbols[first].next != second) {
+                continue;
+            }
+
+            // Merge: append a new symbol that takes first's left neighbor and second's
+            // right neighbor, then mark the operands dead.
+            const int32_t prev = symbols[first].prev;
+            const int32_t next = symbols[second].next;
+            const int32_t merged = static_cast<int32_t>(symbols.size());
+            symbols.push_back(BPESymbol{merged_id, prev, next, true});
+            symbols[first].alive = false;
+            symbols[second].alive = false;
+            if (prev != -1) {
+                symbols[prev].next = merged;
+            } else {
+                head = merged;
+            }
+            if (next != -1) {
+                symbols[next].prev = merged;
+            }
+            live_count--;
+            i++;
+
+            // Enqueue the new pairs created on the left and right of the merged symbol.
+            if (prev != -1) {
+                try_push(prev, merged);
+            }
+            if (next != -1) {
+                try_push(merged, next);
+            }
+        }
+
+        for (int32_t idx = head; idx != -1; idx = symbols[idx].next) {
+            out.emplace_back(symbols[idx].id);
+        }
+        scratch.queue_storage = pq.release_storage();
+        scratch.queue_storage.clear();
     }
-
-    while (!pq.empty() && live_count >= 2) {
-        auto [merge_idx, merged_id, first, second, position] = pq.top();
-        pq.pop();
-
-        // Skip stale entries: a merge always consumes (kills) its two operands,
-        // so two symbols that formed a pair stay adjacent while both are alive.
-        if (!symbols[first].alive || !symbols[second].alive || symbols[first].next != second) {
-            continue;
-        }
-
-        // Merge: append a new symbol that takes first's left neighbor and second's
-        // right neighbor, then mark the operands dead.
-        const int32_t prev = symbols[first].prev;
-        const int32_t next = symbols[second].next;
-        const int32_t merged = static_cast<int32_t>(symbols.size());
-        symbols.push_back(BPESymbol{merged_id, prev, next, true});
-        symbols[first].alive = false;
-        symbols[second].alive = false;
-        if (prev != -1) {
-            symbols[prev].next = merged;
-        } else {
-            head = merged;
-        }
-        if (next != -1) {
-            symbols[next].prev = merged;
-        }
-        live_count--;
-        i++;
-
-        // Enqueue the new pairs created on the left and right of the merged symbol.
-        if (prev != -1) {
-            try_push(prev, merged);
-        }
-        if (next != -1) {
-            try_push(merged, next);
-        }
-    }
-
-    for (int32_t idx = head; idx != -1; idx = symbols[idx].next) {
-        out.emplace_back(symbols[idx].id);
-    }
-    scratch.queue_storage = pq.release_storage();
-    scratch.queue_storage.clear();
 
     {
         // Cache writes take an exclusive lock; lookups above take a shared lock.

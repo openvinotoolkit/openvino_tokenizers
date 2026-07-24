@@ -9,7 +9,7 @@ import openvino as ov
 import pytest
 import requests
 from openvino import Model, PartialShape, Type, op
-from openvino_tokenizers import _get_factory, _get_opset_factory
+from openvino_tokenizers import _get_factory, _get_opset_factory, convert_tokenizer
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
 from openvino_tokenizers.tokenizer_pipeline import (
@@ -27,6 +27,9 @@ from openvino_tokenizers.tokenizer_pipeline import (
     UTF8ValidateStep,
 )
 from openvino_tokenizers.utils import TokenzierConversionParams
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from transformers import PreTrainedTokenizerFast
 
 from tests.utils import get_hf_tokenizer
 
@@ -42,6 +45,59 @@ class NormalizationTestLine(NamedTuple):
     nfkc: str
     nfkd: str
     comment: str
+
+
+@pytest.fixture(scope="module")
+def synthetic_bpe_tokenizers():
+    vocab = {
+        "[UNK]": 0,
+        "a": 1,
+        "aa": 2,
+        "aaa": 3,
+        "aaaa": 4,
+        "aaaaaaaa": 5,
+        "aaaaaaaaaaaaaaaa": 6,
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": 7,
+        "b": 8,
+        "c": 9,
+        "ab": 10,
+        "bc": 11,
+        "abc": 12,
+    }
+    merges = [
+        ("a", "a"),
+        ("aa", "a"),
+        ("aa", "aa"),
+        ("aaaa", "aaaa"),
+        ("aaaaaaaa", "aaaaaaaa"),
+        ("aaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaa"),
+        ("b", "c"),
+        ("a", "b"),
+        ("a", "bc"),
+    ]
+    backend = Tokenizer(BPE(vocab=vocab, merges=merges, unk_token="[UNK]"))
+    hf_tokenizer = PreTrainedTokenizerFast(tokenizer_object=backend, unk_token="[UNK]")
+    ov_model = convert_tokenizer(hf_tokenizer, with_detokenizer=False, add_special_tokens=False)
+    return hf_tokenizer, core.compile_model(ov_model, "CPU")
+
+
+@pytest.mark.parametrize(
+    "text, expected_ids",
+    [
+        ("aaa", [3]),
+        ("abc", [12]),
+        ("a" * 32, [7]),
+        ("a" * 33, [6, 5, 4, 2, 3]),
+    ],
+    ids=["leftmost_tie", "rank_differs_from_id", "short_path_limit", "priority_queue_fallback"],
+)
+def test_bpe_short_merge_path_matches_hf(synthetic_bpe_tokenizers, text, expected_ids):
+    hf_tokenizer, ov_tokenizer = synthetic_bpe_tokenizers
+    hf_ids = hf_tokenizer(text, add_special_tokens=False)["input_ids"]
+    ov_ids = ov_tokenizer([text])["input_ids"][0].tolist()
+
+    assert hf_ids == expected_ids
+    assert ov_ids == expected_ids
 
 
 def parse_normalization_test_line(line):
