@@ -130,9 +130,19 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         signature_to_extend = self.post_processor["pair"]["ids"][len(input_signature) :]
 
         # Since we add additional special tokens the max_length for truncation should be reduced.
-        self.trunc_values[0] = make_constant_node(
-            self.trunc_values[0].node.data - (len(signature_to_extend) - 1), Type.i32
-        ).output(0)
+        num_added_tokens = len(signature_to_extend) - 1
+        max_length_node = self.trunc_values[0].node
+        if max_length_node.get_type_name() == "Select":
+            max_length = np.asarray(max_length_node.input_value(1).node.get_data()).item()
+            adjusted_max_length = make_constant_node(max_length - num_added_tokens, Type.i32)
+            self.trunc_values[0] = opset.select(
+                max_length_node.input_value(0),
+                adjusted_max_length,
+                max_length_node.input_value(2),
+            ).output(0)
+        else:
+            max_length = np.asarray(max_length_node.get_data()).item()
+            self.trunc_values[0] = make_constant_node(max_length - num_added_tokens, Type.i32).output(0)
 
         trunc = _get_factory().create("Truncate", [*first_input, *second_input, *self.trunc_values])
         first_input, second_input = trunc.outputs()[:3], trunc.outputs()[3:6]
