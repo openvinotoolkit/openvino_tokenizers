@@ -895,7 +895,7 @@ class TruncationStep(PostTokenizationStep):
     axis: int = -1
     _stateful_assign: Optional[op.Node] = field(default=None, init=False, repr=False)
 
-    TRUNCATE_ENABLED_VAR_ID = "is_max_length_set"
+    TRUNCATE_ENABLED_VAR_ID = "truncation"
     DISABLE_TRUNCATE_MAX_LENGTH = np.int32(np.iinfo(np.int32).max - 64)
 
     @classmethod
