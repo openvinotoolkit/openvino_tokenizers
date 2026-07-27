@@ -41,7 +41,7 @@
     "text tensors"
   ],
   "dependencies": {
-    "adm-zip": "^0.5.16",
+    "adm-zip": "^0.6.0",
     "openvino-node": "2026.3.0"
   }
 }
