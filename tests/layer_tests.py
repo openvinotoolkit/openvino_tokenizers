@@ -100,6 +100,60 @@ def test_bpe_short_merge_path_matches_hf(synthetic_bpe_tokenizers, text, expecte
     assert ov_ids == expected_ids
 
 
+@pytest.mark.parametrize(
+    "model,texts,expected_ids",
+    [
+        (
+            BPE(
+                vocab={"[UNK]": 0, "a</w>": 1},
+                merges=[],
+                unk_token="[UNK]",
+                end_of_word_suffix="</w>",
+            ),
+            ["a", ""],
+            [[1], []],
+        ),
+        (
+            BPE(
+                vocab={"[UNK]": 0, "<0xC3>": 1, "<0xA9>": 2},
+                merges=[],
+                unk_token="[UNK]",
+                byte_fallback=True,
+            ),
+            ["é", "x"],
+            [[1, 2], [0]],
+        ),
+        (
+            BPE(
+                vocab={"[UNK]": 0, "a": 1},
+                merges=[],
+                unk_token="[UNK]",
+                fuse_unk=True,
+            ),
+            ["xyz", "xay"],
+            [[0], [0, 1, 0]],
+        ),
+    ],
+    ids=["end_suffix_and_empty", "byte_fallback", "fuse_unk"],
+)
+def test_bpe_edge_paths(model, texts, expected_ids):
+    hf_tokenizer = PreTrainedTokenizerFast(
+        tokenizer_object=Tokenizer(model),
+        unk_token="[UNK]",
+    )
+    ov_model = convert_tokenizer(
+        hf_tokenizer,
+        with_detokenizer=False,
+        add_special_tokens=False,
+    )
+    ov_tokenizer = core.compile_model(ov_model, "CPU")
+
+    for text, expected in zip(texts, expected_ids):
+        assert hf_tokenizer(text, add_special_tokens=False)["input_ids"] == expected
+        assert ov_tokenizer([text])["input_ids"][0].tolist() == expected
+        assert ov_tokenizer([text])["input_ids"][0].tolist() == expected
+
+
 def parse_normalization_test_line(line):
     parts, comment = line.split("#", 1)
     parts = [part.strip() for part in parts.split(";")]

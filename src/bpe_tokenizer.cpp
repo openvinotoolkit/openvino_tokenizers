@@ -13,7 +13,6 @@ using namespace ov::opset13;
 
 #undef tokenizer
 
-
 void BPETokenizer::validate_and_infer_types() {
     auto input_size = get_input_size();
 
@@ -317,12 +316,13 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
 }
 
 void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>& out, BPETokenizerScratch& scratch) {
-    std::string cache_key(text);
+    const uint64_t cache_hash = BPEResultCache::hash(text);
+
     {
         std::shared_lock<std::shared_mutex> lock(m_mutex);
-        const auto it = m_cache.find(cache_key);
-        if (it != m_cache.end()) {
-            out.insert(out.end(), it->second.begin(), it->second.end());
+        const auto* cached_result = m_cache.find(text, cache_hash);
+        if (cached_result != nullptr) {
+            out.insert(out.end(), cached_result->begin(), cached_result->end());
             return;
         }
     }
@@ -372,7 +372,8 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
 
         if (fallback_id != -1) {
             append_symbol(fallback_id);
-        } else if (m_unk_token_id != -1 && (!m_fuse_unk || symbols.empty() || symbols.back().id != -1)) {
+        } else if (m_unk_token_id != -1 &&
+                   (!m_fuse_unk || symbols.empty() || symbols.back().id != m_unk_token_id)) {
             append_symbol(m_unk_token_id);
         }
         // else: unresolvable byte and no unk token -> skip it, matching HF tokenizers.
@@ -460,7 +461,12 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
         std::unique_lock<std::shared_mutex> lock(m_mutex);
         // TODO: Check if LRU Cache is more effective.
         if (m_cache.size() < m_cache_capacity && initial_num_tokens > 0) {
-            m_cache.emplace(std::move(cache_key), std::vector<int32_t>(out.begin() + out_start, out.end()));
+            m_cache.insert(
+                text,
+                cache_hash,
+                out.begin() + out_start,
+                out.end()
+            );
         }
     }
 }
@@ -476,7 +482,8 @@ BPETokenizerImpl::BPETokenizerImpl(
        m_end_suffix(std::move(end_suffix)),
        m_byte_fallback(byte_fallback),
        m_fuse_unk(fuse_unk),
-       m_cache_capacity(cache_capacity) {
+       m_cache_capacity(cache_capacity),
+       m_cache(cache_capacity) {
     if (const auto unk_it = vocab.find(unk_token); unk_it != vocab.end()) {
         m_unk_token_id = static_cast<int32_t>(unk_it->second);
     }
@@ -511,5 +518,4 @@ BPETokenizerImpl::BPETokenizerImpl(
         const auto token = std::vector<unsigned char>(word.first.begin(), word.first.end());
         m_trie->add(token, word.second);
     }
-    m_cache.reserve(cache_capacity);
 }
