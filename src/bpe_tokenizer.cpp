@@ -320,9 +320,9 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
 
     {
         std::shared_lock<std::shared_mutex> lock(m_mutex);
-        const auto* cached_result = m_cache.find(text, cache_hash);
-        if (cached_result != nullptr) {
-            out.insert(out.end(), cached_result->begin(), cached_result->end());
+        const auto cached_result = m_cache.find(text, cache_hash);
+        if (cached_result.found()) {
+            out.insert(out.end(), cached_result.begin(), cached_result.end());
             return;
         }
     }
