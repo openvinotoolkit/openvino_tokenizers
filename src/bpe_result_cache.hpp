@@ -84,7 +84,7 @@ public:
             return ValueView{};
         }
 
-        const  fingFingerprinterprint = stored_fingerprint(hash_value);
+        const Fingerprint fingerprint = stored_fingerprint(hash_value);
         size_t slot_idx = static_cast<size_t>(hash_value) & m_mask;
         for (size_t probes = 0; probes < m_slots.size(); ++probes) {
             const Slot& slot = m_slots[slot_idx];
