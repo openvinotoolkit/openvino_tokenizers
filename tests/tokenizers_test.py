@@ -436,6 +436,33 @@ def print_diff(left, right) -> str:
     return f"\n{diff}"
 
 
+def convert_hf_object_array_to_dense(hf_result: np.ndarray, ov_result: np.ndarray, output_name: str, hf_tokenizer):
+    if hf_result.dtype != object or len(hf_result.shape) != 1 or len(ov_result.shape) != 2:
+        return hf_result
+
+    if output_name == "input_ids":
+        pad_value = hf_tokenizer.pad_token_id or 0
+    else:
+        pad_value = 0
+
+    dense_rows = []
+    target_length = ov_result.shape[1]
+    for row in hf_result:
+        row = np.asarray(row, dtype=ov_result.dtype)
+        pad_width = target_length - row.shape[0]
+        if pad_width < 0:
+            return hf_result
+
+        padding = np.full(pad_width, pad_value, dtype=ov_result.dtype)
+        if getattr(hf_tokenizer, "padding_side", "right") == "left":
+            row = np.concatenate([padding, row])
+        else:
+            row = np.concatenate([row, padding])
+        dense_rows.append(row)
+
+    return np.stack(dense_rows)
+
+
 def check_tokenizer_output(
     tokenizers: tuple,
     test_string: Union[str, list[str]],
@@ -466,12 +493,19 @@ def check_tokenizer_output(
     hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=False, **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string_ov)
 
+    padding_val = hf_tokenizer_kwargs.get("padding", False)
+
     for output_name, hf_result in hf_tokenized.items():
         if output_name not in ov_tokenized and skip_missing_outputs:
             continue
 
         assert output_name in ov_tokenized, f"OV Tokenizer missing output: {output_name}"
         ov_result = ov_tokenized[output_name]
+
+        # hf_result can be object only if the tokenizer returns a ragged array, which is not supported by OV. 
+        # In that case, we can only compare the shapes and not the values.
+        if hf_result.dtype == np.object_ and padding_val is not True:
+            hf_result = convert_hf_object_array_to_dense(hf_result, ov_result, output_name, hf_tokenizer)
 
         outputs = f"\nHF: {hf_result}\nOV: {ov_result}"
         diff = print_diff(hf_result, ov_result) if calculate_diff and ov_result.shape != hf_result.shape else outputs
@@ -531,7 +565,7 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_speci
 )
 def test_hf_wordpiece_tokenizers_multiple_strings(
     wordpiece_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding
-):
+):  
     hf_tokenizer_kwargs = {
         "add_special_tokens": do_add_special_tokens,
         "padding": "max_length" if use_max_padding else True,

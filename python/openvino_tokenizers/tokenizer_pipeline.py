@@ -1200,14 +1200,16 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
 
         outputs = []
 
+        # Calculate max_length as the maximum ragged length.
+        input_max_length = opset.reduce_max(
+            opset.subtract(input_nodes[1], input_nodes[0]),
+            make_constant_node(0, Type.i32),
+        )
         if not self.pad_to_max_length or self.max_length == -1 or self.max_length >= 2**31:
-            # Calculate max_length as the maximum ragged length
-            max_length = opset.reduce_max(
-                opset.subtract(input_nodes[1], input_nodes[0]),
-                make_constant_node(0, Type.i32),
-            )
+            max_length = input_max_length
         else:
-            max_length = make_constant_node(self.max_length, Type.i32)
+            configured_max_length = make_constant_node(self.max_length, Type.i32)
+            max_length = opset.maximum(configured_max_length, input_max_length)
 
         names = [TOKEN_IDS_INPUT_NAME, TOKEN_TYPE_IDS_INPUT_NAME][: len(input_nodes) // 3]
         for idx, name in enumerate(names):
