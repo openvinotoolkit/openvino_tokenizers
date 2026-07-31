@@ -125,7 +125,7 @@ benchmark = [
     "tqdm>=4.50.0,<=4.69.0",
 ]
 fuzzing = [
-    "atheris>=2.0.0,<=2.3.0",
+    "atheris>=2.0.0,<=3.1.0",
 ]
 
 [tool.uv]
