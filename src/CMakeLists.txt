@@ -71,6 +71,12 @@ include(FetchContent)
 
 # This option must be defined early because it affects SentencePiece configuration
 option(REGENERATE_PRECOMPILED_CHARSMAP "Regenerate the precompiled charsmap header (requires ICU at build time)" OFF)
+option(ENABLE_SYSTEM_PCRE2 "Use the system-installed PCRE2 library" OFF)
+
+if(ENABLE_SYSTEM_PCRE2)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(PCRE2 REQUIRED IMPORTED_TARGET libpcre2-8)
+endif()
 
 FetchContent_Declare(
   sentencepiece
@@ -182,28 +188,33 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
 endfunction()
 
 function(ov_tokenizers_link_pcre2 TARGET_NAME)
-  FetchContent_Declare(
-      pcre2
-      URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.46/pcre2-10.46.zip
-      URL_HASH SHA256=d872153b2d2338f7bc7b6e9bcc2f7f0c8a529c34fe48c538fea0b3a4e062f046
-  )
-  FetchContent_GetProperties(pcre2)
-  if(NOT pcre2_POPULATED)
-    FetchContent_Populate(pcre2)
+  if(ENABLE_SYSTEM_PCRE2)
+    target_link_libraries(${TARGET_NAME} PRIVATE PkgConfig::PCRE2)
+  else()
+    FetchContent_Declare(
+        pcre2
+        URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.46/pcre2-10.46.zip
+        URL_HASH SHA256=d872153b2d2338f7bc7b6e9bcc2f7f0c8a529c34fe48c538fea0b3a4e062f046
+    )
+    FetchContent_GetProperties(pcre2)
+    if(NOT pcre2_POPULATED)
+      FetchContent_Populate(pcre2)
 
-    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-    set(CMAKE_POLICY_DEFAULT_CMP0126 NEW)
-    set(PCRE2_SUPPORT_JIT ON)
-    set(PCRE2_LINK_SIZE 3 CACHE STRING "PCRE2 internal link size" FORCE)
-    set(PCRE2_STATIC_PIC ON)
-    set(PCRE2_BUILD_TESTS OFF)
-    set(PCRE2_BUILD_PCRE2GREP OFF)
+      set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+      set(CMAKE_POLICY_DEFAULT_CMP0126 NEW)
+      set(PCRE2_SUPPORT_JIT ON)
+      set(PCRE2_LINK_SIZE 3 CACHE STRING "PCRE2 internal link size" FORCE)
+      set(PCRE2_STATIC_PIC ON)
+      set(PCRE2_BUILD_TESTS OFF)
+      set(PCRE2_BUILD_PCRE2GREP OFF)
 
-    add_subdirectory(${pcre2_SOURCE_DIR} ${pcre2_BINARY_DIR} EXCLUDE_FROM_ALL)
+      add_subdirectory(${pcre2_SOURCE_DIR} ${pcre2_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif()
+
+    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${pcre2_BINARY_DIR})
+    target_link_libraries(${TARGET_NAME} PRIVATE pcre2-8)
   endif()
 
-  target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${pcre2_BINARY_DIR})
-  target_link_libraries(${TARGET_NAME} PRIVATE pcre2-8)
   target_compile_definitions(${TARGET_NAME} PRIVATE PCRE2_CODE_UNIT_WIDTH=8)
 endfunction()
 
