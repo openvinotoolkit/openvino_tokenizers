@@ -111,7 +111,8 @@ def _configure_parser(parser: ArgumentParser) -> None:
             "Tokenizer will add padding tokens to max input size, "
             'similar to huggingface_tokenizer(text, padding="max_length"). '
             "You can pass a positive integer that can be used as max length parameter "
-            'or "True" to use `huggingface_tokenizer.model_max_length` value (if set). '
+            "or \"True\" to use `huggingface_tokenizer.model_max_length` value (if set). "
+            "Integer values have priority over --max_length option. "
             "Not supported for Sentencepiece-based tokenizers."
         ),
     )
@@ -303,6 +304,7 @@ def run(args) -> None:
         use_sentencepiece_backend=args.use_sentencepiece_backend,
         utf8_replace_mode=args.utf8_replace_mode,
         max_length=args.max_length,
+        truncation=args.max_length is not None,
         number_of_inputs=args.number_of_inputs,
     )
     if not isinstance(converted, tuple):

@@ -143,12 +143,13 @@ tiktiken_models = [
 THROUGHPUT_CONFIG = {properties.hint.performance_mode(): properties.hint.PerformanceMode.THROUGHPUT}
 
 
-def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, use_sentencepiece_backend=False):
+def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, use_sentencepiece_backend=False, truncation=False):
     ov_tokenizer = convert_tokenizer(
         hf_tokenizer,
         with_detokenizer=False,
         add_special_tokens=add_special_tokens,
         use_max_padding=use_max_padding,
+        truncation=truncation,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
     compiled_tokenizer = core.compile_model(ov_tokenizer, "CPU", THROUGHPUT_CONFIG)
@@ -218,6 +219,12 @@ def do_add_special_tokens(request):
     scope="session", params=[True, False], ids=lambda do_skip: "skip_tokens" if do_skip else "no_skip_tokens"
 )
 def do_skip_special_tokens(request):
+    return request.param
+
+@pytest.fixture(
+    scope="session", params=[True, False], ids=lambda truncation: "truncation" if truncation else "no_truncation"
+)
+def truncation(request):
     return request.param
 
 
@@ -317,7 +324,7 @@ def bpe_tokenizers(hf_bpe_tokenizers, do_add_special_tokens):
 
 
 @pytest.fixture(scope="session")
-def bpe_tokenizers_with_padding_options(hf_bpe_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding):
+def bpe_tokenizers_with_padding_options(hf_bpe_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding, truncation):
     if use_max_padding and getattr(hf_bpe_tokenizers_with_padding_sides, "model_max_length") > 2**31:
         pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
 
@@ -325,6 +332,7 @@ def bpe_tokenizers_with_padding_options(hf_bpe_tokenizers_with_padding_sides, do
         hf_bpe_tokenizers_with_padding_sides,
         add_special_tokens=do_add_special_tokens,
         use_max_padding=use_max_padding,
+        truncation=truncation
     )
 
 
@@ -490,7 +498,8 @@ def check_tokenizer_output(
     else:
         test_string_hf = test_string
 
-    hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=False, **hf_tokenizer_kwargs)
+    truncation = hf_tokenizer_kwargs.get("truncation", False)
+    hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=truncation, **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string_ov)
 
     padding_val = hf_tokenizer_kwargs.get("padding", False)
@@ -749,11 +758,12 @@ def test_bpe_model_tokenizer_chat(bpe_tokenizers, test_chat, do_add_special_toke
     ],
 )
 def test_hf_bpe_tokenizers_multiple_strings(
-    bpe_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding
+    bpe_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding, truncation
 ):
     hf_tokenizer_kwargs = {
         "add_special_tokens": do_add_special_tokens,
         "padding": "max_length" if use_max_padding else True,
+        "truncation": truncation,
     }
     result, diff = check_tokenizer_output(
         bpe_tokenizers_with_padding_options,
@@ -983,6 +993,7 @@ def test_rt_info_conversion_params(tokenizer_to_check_rt_info):
         detokenizer_input_type=Type.i64,
         streaming_detokenizer=False,
         use_max_padding=False,
+        truncation=False,
         handle_special_tokens_with_re=None,
         use_sentencepiece_backend=False,
         utf8_replace_mode=None,

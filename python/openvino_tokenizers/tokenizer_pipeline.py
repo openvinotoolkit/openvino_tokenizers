@@ -892,6 +892,7 @@ class PostTokenizationStep(BasePipelineStep):
 class TruncationStep(PostTokenizationStep):
     max_length: int
     truncate_right: bool = True
+    truncation: bool = False
     axis: int = -1
     _stateful_assign: Optional[op.Node] = field(default=None, init=False, repr=False)
 
@@ -900,7 +901,11 @@ class TruncationStep(PostTokenizationStep):
 
     @classmethod
     def from_hf_json(
-        cls, tokenizer_json: dict[str, Any], num_of_added_tokens: int = 0, max_length: int = -1
+        cls,
+        tokenizer_json: dict[str, Any],
+        num_of_added_tokens: int = 0,
+        max_length: int = -1,
+        truncation: bool = False,
     ) -> "TruncationStep":
         if max_length == -1:
             max_length = min(
@@ -912,10 +917,11 @@ class TruncationStep(PostTokenizationStep):
         return cls(
             max_length=max_length,
             truncate_right=tokenizer_json["truncation"]["direction"] == "Right",
+            truncation=truncation,
         )
 
     @classmethod
-    def from_hf_object(cls, tokenizer: Any, num_of_added_tokens: int = 0) -> "TruncationStep":
+    def from_hf_object(cls, tokenizer: Any, num_of_added_tokens: int = 0, truncation: bool = False) -> "TruncationStep":
         max_length = min(
             tokenizer.model_max_length - num_of_added_tokens,
             2**31 - 1 - num_of_added_tokens,
@@ -923,6 +929,7 @@ class TruncationStep(PostTokenizationStep):
         return cls(
             max_length=max_length,
             truncate_right=tokenizer.truncation_side == "right",
+            truncation=truncation,
         )
 
     @staticmethod
@@ -935,8 +942,8 @@ class TruncationStep(PostTokenizationStep):
         # TODO: Check if axis is the right-most dimension
         self.validate_inputs(input_nodes)
 
-        truncate_enabled_default = make_constant_node(False, Type.boolean)
-        truncate_enabled = opset.read_value(truncate_enabled_default, self.TRUNCATE_ENABLED_VAR_ID)
+        do_truncate_default = make_constant_node(self.truncation, Type.boolean)
+        truncate_enabled = opset.read_value(do_truncate_default, self.TRUNCATE_ENABLED_VAR_ID)
         self._stateful_assign = opset.assign(truncate_enabled, self.TRUNCATE_ENABLED_VAR_ID)
 
         max_length_const = make_constant_node(self.max_length, Type.i32)

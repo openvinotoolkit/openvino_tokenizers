@@ -180,6 +180,7 @@ class TransformersTokenizerPipelineParser:
         self.skip_special_tokens = params.skip_special_tokens
         self.clean_up_tokenization_spaces = params.clean_up_tokenization_spaces
         self.use_max_padding = params.use_max_padding
+        self.truncation = params.truncation
         self.utf8_replace_mode = params.utf8_replace_mode
         self.number_of_inputs = params.number_of_inputs
         self.num_of_added_tokens = 0
@@ -371,11 +372,18 @@ class TransformersTokenizerPipelineParser:
         max_length = getattr(self.original_tokenizer, "model_max_length", -1)
 
         if self.original_tokenizer.model_max_length is not None:
-            self.pipeline.add_steps(TruncationStep.from_hf_object(self.original_tokenizer, self.num_of_added_tokens))
+            self.pipeline.add_steps(
+                TruncationStep.from_hf_object(
+                    self.original_tokenizer, self.num_of_added_tokens, truncation=self.truncation
+                )
+            )
         elif self.tokenizer_json["truncation"] is not None:
             self.pipeline.add_steps(
                 TruncationStep.from_hf_json(
-                    self.tokenizer_json, num_of_added_tokens=self.num_of_added_tokens, max_length=max_length
+                    self.tokenizer_json,
+                    num_of_added_tokens=self.num_of_added_tokens,
+                    max_length=max_length,
+                    truncation=self.truncation,
                 )
             )
 
@@ -1092,7 +1100,7 @@ def convert_tiktoken_model_tokenizer(
             NormalizeUnicode("NFC"),
             RegexSplitStep(split_pattern, behaviour="contiguous"),
             BPETokenizationStep.from_tiktoken_encoding(encoding, reference_vocab=reference_vocab),
-            TruncationStep.from_hf_object(hf_tokenizer),
+            TruncationStep.from_hf_object(hf_tokenizer, truncation=params.truncation),
             *add_prefix_steps,
             PaddingStep(
                 token=getattr(hf_tokenizer, "pad_token"),
