@@ -498,8 +498,7 @@ def check_tokenizer_output(
     else:
         test_string_hf = test_string
 
-    truncation = hf_tokenizer_kwargs.get("truncation", False)
-    hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", truncation=truncation, **hf_tokenizer_kwargs)
+    hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string_ov)
 
     padding_val = hf_tokenizer_kwargs.get("padding", False)
