@@ -91,12 +91,11 @@ if(NOT sentencepiece_POPULATED)
       set(SPM_PROTOBUF_PROVIDER "package" CACHE STRING "")
       set(SPM_ABSL_PROVIDER "package" CACHE STRING "")
   else()
-      # SentencePiece's internal Abseil provider is a small compatibility shim.
-      # It avoids building full upstream Abseil, which conflicts with OpenVINO
-      # on Windows and fails with some CI toolchain flags on Linux.
       set(SPM_USE_BUILTIN_PROTOBUF ON CACHE BOOL "")
       set(SPM_PROTOBUF_PROVIDER "internal" CACHE STRING "")
-      set(SPM_ABSL_PROVIDER "internal" CACHE STRING "" FORCE)
+      # SentencePiece 0.2.2 dropped the "internal" Abseil shim; the only
+      # non-package option left is "module", which vendors upstream Abseil.
+      set(SPM_ABSL_PROVIDER "module" CACHE STRING "" FORCE)
   endif()
 
   set(SPM_ENABLE_SHARED OFF CACHE BOOL "")
@@ -169,9 +168,6 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
     # to propogate _GLIBCXX_USE_CXX11_ABI value
     target_compile_definitions(sentencepiece-static PUBLIC $<TARGET_PROPERTY:openvino::runtime,INTERFACE_COMPILE_DEFINITIONS>)
     target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece-static)
-    if(SPM_ABSL_PROVIDER STREQUAL "package")
-      target_link_libraries(${TARGET_NAME} PRIVATE ${ABSL_DEPENDENCIES})
-    endif()
 
     if(ANDROID)
       # see https://github.com/protocolbuffers/protobuf/issues/2719#issuecomment-625400968

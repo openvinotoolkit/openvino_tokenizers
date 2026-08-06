@@ -24,6 +24,7 @@ from openvino_tokenizers.tokenizer_pipeline import (
     SpecialToken,
     SpecialTokensSplit,
     TokenizerPipeline,
+    UnigramModelStep,
     UTF8ValidateStep,
 )
 from openvino_tokenizers.utils import TokenzierConversionParams
@@ -443,7 +444,10 @@ def test_unigram_model(test_string, hf_charsmap_sentencepiece_tokenizer):
     pipeline = TransformersTokenizerPipelineParser(
         hf_charsmap_sentencepiece_tokenizer, TokenzierConversionParams()
     ).parse()
-    pipeline.steps = pipeline.steps[:7]
+    # Truncate right after the unigram model: the number of preceding
+    # normalization steps depends on the parsed tokenizer, so find it by type.
+    unigram_index = next(idx for idx, step in enumerate(pipeline.steps) if isinstance(step, UnigramModelStep))
+    pipeline.steps = pipeline.steps[: unigram_index + 1]
     unigram_model = pipeline.get_tokenizer_ov_subgraph()
     compiled_model = core.compile_model(unigram_model)
 
