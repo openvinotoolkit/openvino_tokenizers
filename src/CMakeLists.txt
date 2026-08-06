@@ -144,6 +144,9 @@ function(ov_tokenizers_link_sentencepiece TARGET_NAME)
       target_link_libraries(${TARGET_NAME} PRIVATE sentencepiece)
     endif()
   else()
+    # SentencePiece generates config.h in its binary directory.
+    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE "${sentencepiece_BINARY_DIR}")
+
     if(SPM_PROTOBUF_PROVIDER STREQUAL "internal")
       if(SPM_ABSL_PROVIDER STREQUAL "package")
         message(FATAL_ERROR "When 'SPM_PROTOBUF_PROVIDER' is 'package', 'SPM_ABSL_PROVIDER' must have the same value")
