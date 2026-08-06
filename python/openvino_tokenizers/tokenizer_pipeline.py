@@ -239,6 +239,14 @@ class RegexNormalizationStep(NormalizationStep):
         return cls(regex_search_pattern=r"\s", replace_term=" ", global_replace=True)
 
     @classmethod
+    def trim_whitespace_regex(cls) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r"^\s+|\s+$", replace_term="", global_replace=True)
+
+    @classmethod
+    def collapse_whitespace_regex(cls) -> "RegexNormalizationStep":
+        return cls(regex_search_pattern=r"\s+", replace_term=" ", global_replace=True)
+
+    @classmethod
     def handle_chinese_chars_regex(cls) -> "RegexNormalizationStep":
         return cls(
             regex_search_pattern=r"([\p{Han}])",
@@ -294,7 +302,7 @@ class CharsmapStep(NormalizationStep):
     charsmap: Optional[bytes] = field(default=None, repr=False)
     normalization_form: Optional[str] = None
     add_dummy_prefix: bool = False
-    remove_extra_whitespaces: bool = True
+    remove_extra_whitespaces: bool = False
     escape_whitespaces: bool = False
     case_fold: bool = False
     nmt: bool = False
@@ -494,7 +502,7 @@ class WhitespaceSplitStep(PreTokenizatinStep):
     """Works like python `str.split`."""
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
-        return RegexSplitStep.whitespace_splitter().get_ov_subgraph(input_nodes)
+        return RegexSplitStep.bert_whitespace_splitter().get_ov_subgraph(input_nodes)
 
 
 @dataclass
@@ -1474,9 +1482,9 @@ class TokenizerPipeline:
         Replaces the normalization steps with an equivalent Charsmap steps before merging.
         """
         if isinstance(step, CaseFoldStep) and step.encoding == "utf-8":
-            return CharsmapStep(normalization_form="identity", case_fold=True, remove_extra_whitespaces=False)
+            return CharsmapStep(normalization_form="identity", case_fold=True)
         if isinstance(step, NormalizeUnicode):
-            return CharsmapStep(normalization_form=step.normalization_form.lower(), remove_extra_whitespaces=False)
+            return CharsmapStep(normalization_form=step.normalization_form.lower())
 
         return step
 

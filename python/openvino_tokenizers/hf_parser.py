@@ -242,7 +242,6 @@ class TransformersTokenizerPipelineParser:
     ] = {
         "BertPreTokenizer": lambda step_dict: RegexSplitStep.bert_splitter(),
         "Whitespace": lambda step_dict: RegexSplitStep.whitespace_splitter(),
-        "WhitespaceSplit": lambda step_dict: WhitespaceSplitStep(),
         "Split": parse_split_step,
         "Punctuation": lambda step_dict: RegexSplitStep.punctuation_splitter(step_dict["behavior"]),
         "ByteLevel": parse_byte_level_pretokenization_step,
@@ -250,6 +249,11 @@ class TransformersTokenizerPipelineParser:
             "isolate" if step_dict["individual_digits"] else "contiguous"
         ),
         "Metaspace": parse_metaspace,
+        "WhitespaceSplit": lambda step_dict: [
+            RegexNormalizationStep.trim_whitespace_regex(),
+            RegexNormalizationStep.collapse_whitespace_regex(),
+            WhitespaceSplitStep(),
+        ],
     }
 
     def parse_pre_tokenization_step(self, step_dict: dict[str, Any]) -> None:
@@ -656,6 +660,7 @@ def modify_sentencepiece_model(
     skip_special_tokens: bool = False,
     add_prefix_space: Optional[bool] = None,
     byte_fallback: Optional[bool] = None,
+    preserve_bos_eos_ids: bool = False,
 ) -> str:
     model_pb = import_protobuf()
     model = model_pb.ModelProto()
@@ -682,7 +687,11 @@ def modify_sentencepiece_model(
 
         if skip_special_tokens and new_piece.type not in (2, 4):  # type 2 is for unk symbol
             new_piece.type = 3  # make it control symbol so it will not decode during detokenization
-        elif not skip_special_tokens and new_piece.type == 3:
+        elif (
+            not skip_special_tokens
+            and new_piece.type == 3
+            and not (preserve_bos_eos_ids and token in (hf_tokenizer.bos_token, hf_tokenizer.eos_token))
+        ):
             new_piece.type = 4  # change control type to userdef type
 
         if to_add:
@@ -823,6 +832,7 @@ def convert_sentencepiece_model_tokenizer(
             skip_special_tokens=False,
             add_prefix_space=params.add_prefix_space,
             byte_fallback=byte_fallback,
+            preserve_bos_eos_ids=True,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
         sp_model_node = as_node(sp_model)
