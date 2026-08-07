@@ -501,7 +501,11 @@ def check_tokenizer_output(
     hf_tokenized = hf_tokenizer(test_string_hf, return_tensors="np", **hf_tokenizer_kwargs)
     ov_tokenized = ov_tokenizer(test_string_ov)
 
-    padding_val = hf_tokenizer_kwargs.get("padding", False)
+    hf_padding = hf_tokenizer_kwargs.get("padding", False)
+    if hf_padding is False:
+        hf_padding = "do_not_pad"
+    elif hf_padding is True:
+        hf_padding = "longest"
 
     for output_name, hf_result in hf_tokenized.items():
         if output_name not in ov_tokenized and skip_missing_outputs:
@@ -510,9 +514,10 @@ def check_tokenizer_output(
         assert output_name in ov_tokenized, f"OV Tokenizer missing output: {output_name}"
         ov_result = ov_tokenized[output_name]
 
-        # hf_result can be object only if the tokenizer returns a ragged array, which is not supported by OV. 
-        # In that case, we can only compare the shapes and not the values.
-        if hf_result.dtype == np.object_ and padding_val is not True:
+        # hf_result can be object if the tokenizer returns a ragged array, which is not supported by OV.
+        # This can happen only when padding is set to max_length and truncation is False.
+        # In that case, before comparison convert ragged array from HF to a dense.
+        if hf_padding == "max_length" and hf_tokenizer_kwargs.get("truncation", False) is False:
             hf_result = convert_hf_object_array_to_dense(hf_result, ov_result, output_name, hf_tokenizer)
 
         outputs = f"\nHF: {hf_result}\nOV: {ov_result}"
