@@ -569,7 +569,7 @@ def is_sentencepiece_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
 
 
 @functools.lru_cache(1)
-def is_sentencepiece_bpe_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
+def get_sentencepiece_model_type(hf_tokenizer: PreTrainedTokenizerBase) -> int:
     with tempfile.TemporaryDirectory() as tmp:
         hf_tokenizer.save_pretrained(tmp)
         vocab_file = Path(tmp) / hf_tokenizer.vocab_files_names["vocab_file"]
@@ -577,7 +577,7 @@ def is_sentencepiece_bpe_model(hf_tokenizer: PreTrainedTokenizerBase) -> bool:
         model = model_pb.ModelProto()
         with open(vocab_file, "rb") as model_file:
             model.ParseFromString(model_file.read())
-            return model.trainer_spec.model_type == 2  #  UNIGRAM=1 BPE=2 WORD=3 CHAR=4
+            return model.trainer_spec.model_type  # UNIGRAM=1, BPE=2, WORD=3, CHAR=4
 
 
 def align_model_file(
@@ -664,6 +664,7 @@ def modify_sentencepiece_model(
     skip_special_tokens: bool = False,
     add_prefix_space: Optional[bool] = None,
     byte_fallback: Optional[bool] = None,
+    preserve_control_tokens: bool = False,
 ) -> str:
     model_pb = import_protobuf()
     model = model_pb.ModelProto()
@@ -690,7 +691,7 @@ def modify_sentencepiece_model(
 
         if skip_special_tokens and new_piece.type not in (2, 4):  # type 2 is for unk symbol
             new_piece.type = 3  # make it control symbol so it will not decode during detokenization
-        elif not skip_special_tokens and new_piece.type == 3:
+        elif not skip_special_tokens and not preserve_control_tokens and new_piece.type == 3:
             new_piece.type = 4  # change control type to userdef type
 
         if to_add:
@@ -740,8 +741,9 @@ def convert_sentencepiece_model_tokenizer(
     if not is_sentencepiece_model(hf_tokenizer):
         raise OVTypeError("Cannot convert tokenizer of this type without `.model` file.")
 
+    sentencepiece_model_type = get_sentencepiece_model_type(hf_tokenizer)
     if params.handle_special_tokens_with_re is None:
-        params.handle_special_tokens_with_re = is_sentencepiece_bpe_model(hf_tokenizer)
+        params.handle_special_tokens_with_re = sentencepiece_model_type in (2, 4)
 
     is_chatglm = getattr(hf_tokenizer, "name", None) == "GLMTokenizer"
     add_bos_token = add_eos_token = None
@@ -831,6 +833,7 @@ def convert_sentencepiece_model_tokenizer(
             skip_special_tokens=False,
             add_prefix_space=params.add_prefix_space,
             byte_fallback=byte_fallback,
+            preserve_control_tokens=True,
         )
         sp_model = np.frombuffer(sp_model_string, dtype=np.uint8)
         sp_model_node = as_node(sp_model)
@@ -866,7 +869,7 @@ def convert_sentencepiece_model_tokenizer(
         [sp_model_node, *next_node] + added_inputs,
         {
             "add_bos": add_bos_token and not params.handle_special_tokens_with_re,
-            "add_eos": add_eos_token and not params.handle_special_tokens_with_re,
+            "add_eos": add_eos_token and (not params.handle_special_tokens_with_re or sentencepiece_model_type == 4),
             "reverse": do_left_padding,
             "alpha": 1,
             "nbest_size": 1,
@@ -915,7 +918,7 @@ def convert_sentencepiece_model_tokenizer(
             "Reverse", [scattered_input_ids, make_constant_node(np.array([-1]))], {"mode": "index"}
         )
 
-    if 0 < (max_length := getattr(hf_tokenizer, "model_max_length", -1)) < 2**17:
+    if params.truncation and 0 < (max_length := getattr(hf_tokenizer, "model_max_length", -1)) < 2**17:
         scattered_input_ids = opset.slice(
             scattered_input_ids,
             start=[-max_length] if do_left_padding else [0],

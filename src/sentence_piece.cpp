@@ -116,7 +116,7 @@ SentencepieceTokenizer::SentencepieceTokenizer(const OutputVector& args, int32_t
 
     init_sp_model(args, m_sp);
     auto do_reverse = (m_reverse && get_input_size() < 5);  // do not reverse if special_tokens_re is used
-    CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, do_reverse)));
+    CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos && get_input_size() < 5, do_reverse)));
     constructor_validate_and_infer_types();
 }
 
@@ -140,7 +140,7 @@ SentencepieceTokenizer::SentencepieceTokenizer(
     if (!m_sp->status().ok()) {
         init_sp_model(args, m_sp);
         auto do_reverse = (m_reverse && get_input_size() < 5);  // do not reverse if special_tokens_re is used
-        CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, do_reverse)));
+        CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos && get_input_size() < 5, do_reverse)));
     };
     constructor_validate_and_infer_types();
 }
@@ -194,7 +194,7 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
             m_sp = std::make_shared<SentencePieceProcessor>();
             init_sp_model_in_eval(inputs, m_sp);
             auto do_reverse = (m_reverse && input_size < 5);  // do not reverse if special_tokens_re is used
-            CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos, do_reverse)));
+            CHECK_OK(m_sp->SetEncodeExtraOptions(form_extra_options(m_add_bos, m_add_eos && input_size < 5, do_reverse)));
         }
 
         if (input_size > 5 && m_special_tokens_re == nullptr) {
@@ -320,6 +320,9 @@ bool SentencepieceTokenizer::evaluate(TensorVector& outputs, const TensorVector&
                 cursor = match_end;
             }
 
+            if (m_add_eos) {
+                ids.push_back(m_sp->eos_id());
+            }
             if (m_reverse && ids.size() - num_tokens_before > 1) {
                 std::reverse(ids.begin() + num_tokens_before, ids.end());
             };
