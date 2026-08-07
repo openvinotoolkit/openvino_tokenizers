@@ -109,7 +109,7 @@ def benchmark_tokenizers(
         ov_time = perf_counter() - ov_start
         mem_after_ov = process.memory_info().rss / 1024 / 1024  # MB
         print(f"OV warmup time: {ov_time:.6f} seconds, memory delta: {mem_after_ov - mem_before_ov:.2f} MB")
-        hf_tokenizer(["test " * repeat])
+        hf_tokenizer(["test " * repeat], truncation=False)
 
     ov_input_ids = []
     ov_perf_counters = []
@@ -139,7 +139,7 @@ def benchmark_tokenizers(
     for res, ov_input_id in tqdm(zip(results, ov_input_ids), total=len(results), desc="HF benchmark"):
         prompt, *_ = res
         hf_start = perf_counter()
-        hf_res = hf_tokenizer(prompt, return_tensors="np", padding=True)
+        hf_res = hf_tokenizer(prompt, return_tensors="np", padding=True, truncation=False)
         res.append(perf_counter() - hf_start)
 
         equal_ids_count += (hf_res["input_ids"].shape == ov_input_id.shape) and (

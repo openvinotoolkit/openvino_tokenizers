@@ -143,7 +143,9 @@ tiktiken_models = [
 THROUGHPUT_CONFIG = {properties.hint.performance_mode(): properties.hint.PerformanceMode.THROUGHPUT}
 
 
-def get_tokenizer(hf_tokenizer, add_special_tokens=True, use_max_padding=False, use_sentencepiece_backend=False, truncation=False):
+def get_tokenizer(
+    hf_tokenizer, add_special_tokens=True, use_max_padding=False, use_sentencepiece_backend=False, truncation=False
+):
     ov_tokenizer = convert_tokenizer(
         hf_tokenizer,
         with_detokenizer=False,
@@ -220,6 +222,7 @@ def do_add_special_tokens(request):
 )
 def do_skip_special_tokens(request):
     return request.param
+
 
 @pytest.fixture(
     scope="session", params=[True, False], ids=lambda truncation: "truncation" if truncation else "no_truncation"
@@ -324,7 +327,9 @@ def bpe_tokenizers(hf_bpe_tokenizers, do_add_special_tokens):
 
 
 @pytest.fixture(scope="session")
-def bpe_tokenizers_with_padding_options(hf_bpe_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding, truncation):
+def bpe_tokenizers_with_padding_options(
+    hf_bpe_tokenizers_with_padding_sides, do_add_special_tokens, use_max_padding, truncation
+):
     if use_max_padding and getattr(hf_bpe_tokenizers_with_padding_sides, "model_max_length") > 2**31:
         pytest.skip("Cannot test max_padding=True for tokenizer without max length.")
 
@@ -332,7 +337,7 @@ def bpe_tokenizers_with_padding_options(hf_bpe_tokenizers_with_padding_sides, do
         hf_bpe_tokenizers_with_padding_sides,
         add_special_tokens=do_add_special_tokens,
         use_max_padding=use_max_padding,
-        truncation=truncation
+        truncation=truncation,
     )
 
 
@@ -578,7 +583,7 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_speci
 )
 def test_hf_wordpiece_tokenizers_multiple_strings(
     wordpiece_tokenizers_with_padding_options, test_string, do_add_special_tokens, use_max_padding
-):  
+):
     hf_tokenizer_kwargs = {
         "add_special_tokens": do_add_special_tokens,
         "padding": "max_length" if use_max_padding else True,
