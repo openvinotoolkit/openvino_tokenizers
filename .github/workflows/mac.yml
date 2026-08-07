@@ -383,8 +383,11 @@ jobs:
       - name: Install OpenVINO tokenizers wheel
         run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
 
-      - name: Tokenizers regression tests (using openvino python wheel)
+      - name: Tokenizers pass-rate tests (using openvino python wheel)
         run: uv run --no-sync pytest tests/tokenizers_test.py -n auto
+
+      - name: Tokenizer functional tests (using openvino python wheel)
+        run: uv run --no-sync pytest tests --ignore=tests/tokenizers_test.py -n auto
 
   Overall_Status:
     name: ci/gha_overall_status_macos
