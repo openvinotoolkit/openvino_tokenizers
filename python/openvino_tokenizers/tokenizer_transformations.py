@@ -41,12 +41,17 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         # If begin is Sequence, we check if input has truncation operation.
         inputs = []
         input_signature = [[]] * num_segments
+        special_token_lengths = {}
         for i in range(num_segments):
             if isinstance(combine_seg.input_value(3 * i).node, ov.op.Constant):
                 # Constant input
                 if not isinstance(combine_seg.input_value(3 * i + 2).node, ov.op.Constant):
                     return False
-                input_signature[i] = combine_seg.input_value(3 * i + 2).node.get_data().item(0)
+                token_data = np.asarray(combine_seg.input_value(3 * i + 2).node.get_data())
+                input_signature[i] = token_data.item(0)
+                special_token_lengths[tuple(token_data.reshape(-1).tolist())] = np.asarray(
+                    combine_seg.input_value(3 * i + 1).node.get_data()
+                ).item(0)
                 inputs.extend(
                     [
                         combine_seg.input_value(3 * i),
@@ -67,6 +72,7 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
                 self.trunc_values = trunc_node.input_values()[3:]
         self.inputs = inputs
         self.input_signature = input_signature
+        self.special_token_lengths = special_token_lengths
         return True
 
     def insert_splits(self):
@@ -130,9 +136,19 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
         signature_to_extend = self.post_processor["pair"]["ids"][len(input_signature) :]
 
         # Since we add additional special tokens the max_length for truncation should be reduced.
-        self.trunc_values[0] = make_constant_node(
-            self.trunc_values[0].node.data - (len(signature_to_extend) - 1), Type.i32
-        ).output(0)
+        num_added_tokens = len(signature_to_extend) - 1
+        max_length_node = self.trunc_values[0].node
+        if max_length_node.get_type_name() == "Select":
+            max_length = np.asarray(max_length_node.input_value(1).node.get_data()).item()
+            adjusted_max_length = make_constant_node(max_length - num_added_tokens, Type.i32)
+            self.trunc_values[0] = opset.select(
+                max_length_node.input_value(0),
+                adjusted_max_length,
+                max_length_node.input_value(2),
+            ).output(0)
+        else:
+            max_length = np.asarray(max_length_node.get_data()).item()
+            self.trunc_values[0] = make_constant_node(max_length - num_added_tokens, Type.i32).output(0)
 
         trunc = _get_factory().create("Truncate", [*first_input, *second_input, *self.trunc_values])
         first_input, second_input = trunc.outputs()[:3], trunc.outputs()[3:6]
@@ -173,7 +189,8 @@ class ModifyCombineSegmentsForPairInput(ModelPass):
                 return False
 
             added_spec_begins = make_constant_node(0, Type.i32).output(0)
-            added_spec_ends = make_constant_node(len(value), Type.i32).output(0)
+            added_spec_length = self.special_token_lengths.get(tuple(value), len(value))
+            added_spec_ends = make_constant_node(added_spec_length, Type.i32).output(0)
             added_spec_data = make_constant_node(value, Type.i32).output(0)
 
             # If ends for the sequence_2 is nullified, we should nullify special_tokens constant as well

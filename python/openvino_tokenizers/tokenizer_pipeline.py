@@ -892,11 +892,20 @@ class PostTokenizationStep(BasePipelineStep):
 class TruncationStep(PostTokenizationStep):
     max_length: int
     truncate_right: bool = True
+    truncation: bool = False
     axis: int = -1
+    _stateful_assign: Optional[op.Node] = field(default=None, init=False, repr=False)
+
+    TRUNCATE_ENABLED_VAR_ID = "truncation"
+    DISABLE_TRUNCATE_MAX_LENGTH = np.int32(np.iinfo(np.int32).max - 64)
 
     @classmethod
     def from_hf_json(
-        cls, tokenizer_json: dict[str, Any], num_of_added_tokens: int = 0, max_length: int = -1
+        cls,
+        tokenizer_json: dict[str, Any],
+        num_of_added_tokens: int = 0,
+        max_length: int = -1,
+        truncation: bool = False,
     ) -> "TruncationStep":
         if max_length == -1:
             max_length = min(
@@ -908,10 +917,11 @@ class TruncationStep(PostTokenizationStep):
         return cls(
             max_length=max_length,
             truncate_right=tokenizer_json["truncation"]["direction"] == "Right",
+            truncation=truncation,
         )
 
     @classmethod
-    def from_hf_object(cls, tokenizer: Any, num_of_added_tokens: int = 0) -> "TruncationStep":
+    def from_hf_object(cls, tokenizer: Any, num_of_added_tokens: int = 0, truncation: bool = False) -> "TruncationStep":
         max_length = min(
             tokenizer.model_max_length - num_of_added_tokens,
             2**31 - 1 - num_of_added_tokens,
@@ -919,6 +929,7 @@ class TruncationStep(PostTokenizationStep):
         return cls(
             max_length=max_length,
             truncate_right=tokenizer.truncation_side == "right",
+            truncation=truncation,
         )
 
     @staticmethod
@@ -931,13 +942,24 @@ class TruncationStep(PostTokenizationStep):
         # TODO: Check if axis is the right-most dimension
         self.validate_inputs(input_nodes)
 
-        input_nodes.extend(make_constant_node(self.max_length, Type.i32).outputs())
+        do_truncate_default = make_constant_node(self.truncation, Type.boolean)
+        truncate_enabled = opset.read_value(do_truncate_default, self.TRUNCATE_ENABLED_VAR_ID)
+        self._stateful_assign = opset.assign(truncate_enabled, self.TRUNCATE_ENABLED_VAR_ID)
+
+        max_length_const = make_constant_node(self.max_length, Type.i32)
+        no_truncate_const = make_constant_node(self.DISABLE_TRUNCATE_MAX_LENGTH, Type.i32)
+        selected_max_length = opset.select(truncate_enabled, max_length_const, no_truncate_const)
+
+        input_nodes.extend(selected_max_length.outputs())
         truncation_side = create_string_constant_node("right" if self.truncate_right else "left")
         truncation_mode = create_string_constant_node("longest_first")
         input_nodes.extend(truncation_side)
         input_nodes.extend(truncation_mode)
 
         return _get_factory().create("Truncate", input_nodes).outputs()
+
+    def get_stateful_sinks(self) -> list[op.Node]:
+        return [self._stateful_assign] if self._stateful_assign is not None else []
 
 
 @dataclass
@@ -1185,14 +1207,16 @@ class PaddingStep(PostTokenizationStep, SpecialTokenWithId):
 
         outputs = []
 
+        # Calculate max_length as the maximum ragged length.
+        input_max_length = opset.reduce_max(
+            opset.subtract(input_nodes[1], input_nodes[0]),
+            make_constant_node(0, Type.i32),
+        )
         if not self.pad_to_max_length or self.max_length == -1 or self.max_length >= 2**31:
-            # Calculate max_length as the maximum ragged length
-            max_length = opset.reduce_max(
-                opset.subtract(input_nodes[1], input_nodes[0]),
-                make_constant_node(0, Type.i32),
-            )
+            max_length = input_max_length
         else:
-            max_length = make_constant_node(self.max_length, Type.i32)
+            configured_max_length = make_constant_node(self.max_length, Type.i32)
+            max_length = opset.maximum(configured_max_length, input_max_length)
 
         names = [TOKEN_IDS_INPUT_NAME, TOKEN_TYPE_IDS_INPUT_NAME][: len(input_nodes) // 3]
         for idx, name in enumerate(names):
@@ -1612,6 +1636,13 @@ class TokenizerPipeline:
             processing_outputs = step.get_ov_subgraph(processing_outputs)
 
         model = Model(processing_outputs, string_inputs, name=TOKENIZER_NAME)
+
+        stateful_sinks = []
+        for step in self.steps:
+            if isinstance(step, TruncationStep):
+                stateful_sinks.extend(step.get_stateful_sinks())
+        model.add_sinks(stateful_sinks)
+
         return model
 
     @property

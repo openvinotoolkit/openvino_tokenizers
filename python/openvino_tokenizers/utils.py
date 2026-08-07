@@ -57,6 +57,9 @@ class TokenzierConversionParams:
     use_max_padding : bool
         If True, enables maximum padding for the tokenizer. Default is False.
 
+    truncation : bool
+        If True, enables truncation by default for the tokenizer. Default is False.
+
     max_length: Optional[int]
         The maximum length of the input sequence.
 
@@ -81,6 +84,7 @@ class TokenzierConversionParams:
     detokenizer_input_type: Type = Type.i64
     streaming_detokenizer: bool = False
     use_max_padding: bool = False
+    truncation: bool = False
     max_length: Optional[int] = None
     handle_special_tokens_with_re: Optional[bool] = None
     use_sentencepiece_backend: bool = False

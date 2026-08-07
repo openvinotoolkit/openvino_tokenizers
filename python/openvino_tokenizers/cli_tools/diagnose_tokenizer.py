@@ -541,7 +541,7 @@ def step_test_full_pipeline(hf_tokenizer, test_strings: list[str]) -> tuple[int,
 
     for s in test_strings:
         # Encode comparison
-        hf_out = hf_tokenizer([s], return_tensors="np", truncation=True)
+        hf_out = hf_tokenizer([s], return_tensors="np", truncation=False)
         ov_out = ov_tok([s])
 
         hf_ids = hf_out["input_ids"]

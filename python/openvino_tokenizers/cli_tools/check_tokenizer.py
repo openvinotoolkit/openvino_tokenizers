@@ -31,6 +31,7 @@ import numpy as np
 
 from openvino_tokenizers.cli_tools.convert_tokenizer import check_positive_int
 
+
 # ── test strings ─────────────────────────────────────────────────────────────
 
 ENG_STRINGS = [
@@ -189,16 +190,26 @@ def step_load_tokenizer(repo_id: str, use_fast: bool, trust_remote_code: bool, s
     return tokenizer
 
 
-def step_convert(hf_tokenizer, with_detokenizer: bool, use_sentencepiece_backend: bool, max_length: int):
+def step_convert(
+    hf_tokenizer,
+    with_detokenizer: bool,
+    use_sentencepiece_backend: bool,
+    use_max_padding: bool,
+    max_length: Optional[int],
+    truncation: bool,
+):
     """Step 2 – convert to OpenVINO."""
     from openvino import Core
+
     from openvino_tokenizers import convert_tokenizer
 
     result = convert_tokenizer(
         hf_tokenizer,
         with_detokenizer=with_detokenizer,
         use_sentencepiece_backend=use_sentencepiece_backend,
+        use_max_padding=use_max_padding,
         max_length=max_length,
+        truncation=truncation,
     )
 
     core = Core()
@@ -221,7 +232,9 @@ def step_test_tokenizer(
     add_special_tokens: bool,
     skip_special_tokens: bool,
     skip_missing_outputs: bool,
-    max_length: int,
+    use_max_padding: bool,
+    max_length: Optional[int],
+    truncation: bool,
 ) -> int:
     """
     Step 3 – run the test suite.
@@ -237,7 +250,8 @@ def step_test_tokenizer(
         hf_out = hf_tokenizer(
             input_list,
             return_tensors="np",
-            truncation=True,
+            padding="max_length" if use_max_padding else "longest",
+            truncation=truncation,
             max_length=max_length,
             add_special_tokens=add_special_tokens,
         )
@@ -302,7 +316,14 @@ def _has_openvino_genai() -> bool:
         return False
 
 
-def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool, max_length: int) -> int:
+def step_test_genai(
+    hf_tokenizer,
+    saved_dir: str,
+    skip_missing_outputs: bool,
+    use_max_padding: bool,
+    max_length: Optional[int],
+    truncation: bool,
+) -> int:
     """
     Step 4 – load openvino_genai.Tokenizer from *saved_dir* and verify that
     encode / decode results match HuggingFace on the standard test strings.
@@ -323,7 +344,12 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool, ma
         # ── encode with / without special tokens (test_encode + test_special_tokens) ──
         for add_spec in (True, False):
             hf_ids = hf_tokenizer(
-                [test_str], return_tensors="np", add_special_tokens=add_spec, truncation=True, max_length=max_length
+                [test_str],
+                return_tensors="np",
+                add_special_tokens=add_spec,
+                padding="max_length" if use_max_padding else "longest",
+                truncation=truncation,
+                max_length=max_length,
             )["input_ids"][0]
             genai_ids = genai_tok.encode(test_str, add_special_tokens=add_spec).input_ids.data[0]
             if not np.array_equal(hf_ids, genai_ids):
@@ -335,7 +361,12 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool, ma
 
         # ── decode with skip / keep special tokens (test_decode + test_special_tokens) ──
         hf_with_special = hf_tokenizer(
-            [test_str], return_tensors="np", add_special_tokens=True, truncation=True, max_length=max_length
+            [test_str],
+            return_tensors="np",
+            add_special_tokens=True,
+            padding="max_length" if use_max_padding else "longest",
+            truncation=truncation,
+            max_length=max_length,
         )["input_ids"]
         for skip_spec in (True, False):
             hf_decoded = hf_tokenizer.decode(hf_with_special[0], skip_special_tokens=skip_spec)
@@ -366,7 +397,14 @@ def step_test_genai(hf_tokenizer, saved_dir: str, skip_missing_outputs: bool, ma
     return len(failures)
 
 
-def step_test_genai_advanced(hf_tokenizer, saved_dir: str, strict: bool = False) -> int:
+def step_test_genai_advanced(
+    hf_tokenizer,
+    saved_dir: str,
+    strict: bool = False,
+    use_max_padding: bool = False,
+    truncation: bool = False,
+    max_length: Optional[int] = None,
+) -> int:
     """
     Step 5 – check batch padding and pair-input behaviour via
     openvino_genai.Tokenizer.
@@ -395,17 +433,19 @@ def step_test_genai_advanced(hf_tokenizer, saved_dir: str, strict: bool = False)
         ("batch/padding_side=right",     True,     None,   None,       "right"),
     ]
     for label, add_spec, max_len, pad_to_max, pad_side in padding_cases:
-        hf_params: dict = dict(
-            return_tensors="np",
-            add_special_tokens=add_spec,
-            padding="max_length" if pad_to_max else "longest",
-            truncation=max_len is not None,
-        )
-        ov_params: dict = dict(add_special_tokens=add_spec)
+        hf_params: dict = {
+            "return_tensors": "np",
+            "add_special_tokens": add_spec,
+            "padding": "max_length" if pad_to_max or use_max_padding else "longest",
+            "truncation": max_len is not None or truncation,
+        }
+        ov_params: dict = {"add_special_tokens": add_spec}
         if max_len is not None:
             hf_params["max_length"] = max_len
             ov_params["max_length"] = max_len
             ov_params["pad_to_max_length"] = True
+        elif truncation and max_length is not None:
+            hf_params["max_length"] = max_length
         if pad_side is not None:
             hf_params["padding_side"] = pad_side
             ov_params["padding_side"] = pad_side
@@ -431,7 +471,13 @@ def step_test_genai_advanced(hf_tokenizer, saved_dir: str, strict: bool = False)
         for first, second in PAIR_INPUTS:
             label = f"pair/{first[:30]!r}"
             try:
-                pair_hf = hf_tokenizer([[first, second]], return_tensors="np")["input_ids"]
+                pair_hf = hf_tokenizer(
+                    [[first, second]],
+                    return_tensors="np",
+                    padding="max_length" if use_max_padding else "longest",
+                    truncation=truncation,
+                    max_length=max_length,
+                )["input_ids"]
                 pair_genai = genai_pair_tok.encode([[first, second]]).input_ids.data
                 if not np.array_equal(pair_hf, pair_genai):
                     warnings_list.append((
@@ -525,13 +571,29 @@ def _configure_parser(parser: argparse.ArgumentParser) -> None:
         default=False,
         help="Ignore HF outputs that are absent in the OV result (e.g. token_type_ids).",
     )
-    
+
     parser.add_argument(
         "--max-length",
         "--max_length",
         type=check_positive_int,
         default=None,
         help="Set max_length for tokenizer conversion and HF truncation checks (default: None).",
+    )
+    parser.add_argument(
+        "--truncation",
+        action="store_true",
+        default=False,
+        help="Enable truncation during conversion and HuggingFace reference checks (default: False).",
+    )
+    parser.add_argument(
+        "--use-max-padding",
+        "--use_max_padding",
+        action="store_true",
+        default=False,
+        help=(
+            "Pad tokenizer outputs to max_length, or tokenizer.model_max_length when max_length is not set, "
+            "during conversion and HuggingFace reference checks."
+        ),
     )
 
 
@@ -562,18 +624,25 @@ def run(args) -> None:
             hf_tokenizer=hf_tokenizer,
             with_detokenizer=not args.no_detokenizer,
             use_sentencepiece_backend=args.use_sentencepiece_backend,
+            use_max_padding=args.use_max_padding,
             max_length=args.max_length,
+            truncation=args.truncation,
         )
         if has_genai:
             import tempfile
+
             from openvino import save_model
+
             from openvino_tokenizers import convert_tokenizer
+
             saved_dir = tempfile.mkdtemp(prefix="check_tokenizer_")
             ov_tok_model, ov_detok_model = convert_tokenizer(
                 hf_tokenizer,
                 with_detokenizer=True,
                 use_sentencepiece_backend=args.use_sentencepiece_backend,
+                use_max_padding=args.use_max_padding,
                 max_length=args.max_length,
+                truncation=args.truncation,
             )
             save_model(ov_tok_model, f"{saved_dir}/openvino_tokenizer.xml")
             save_model(ov_detok_model, f"{saved_dir}/openvino_detokenizer.xml")
@@ -593,7 +662,9 @@ def run(args) -> None:
             add_special_tokens=not args.no_special_tokens,
             skip_special_tokens=args.skip_special_tokens,  # True by default
             skip_missing_outputs=args.skip_missing_outputs,
+            use_max_padding=args.use_max_padding,
             max_length=args.max_length,
+            truncation=args.truncation,
         )
         if n_failures:
             exit_code = 1
@@ -610,7 +681,9 @@ def run(args) -> None:
                 hf_tokenizer=hf_tokenizer,
                 saved_dir=saved_dir,
                 skip_missing_outputs=args.skip_missing_outputs,
+                use_max_padding=args.use_max_padding,
                 max_length=args.max_length,
+                truncation=args.truncation,
             )
             if n_genai_failures:
                 exit_code = 1
@@ -629,6 +702,9 @@ def run(args) -> None:
                 hf_tokenizer=hf_tokenizer,
                 saved_dir=saved_dir,
                 strict=strict_advanced,
+                use_max_padding=args.use_max_padding,
+                truncation=args.truncation,
+                max_length=args.max_length,
             )
             if strict_advanced and n_advanced:
                 exit_code = 1
