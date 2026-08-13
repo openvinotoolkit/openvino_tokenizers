@@ -6,7 +6,7 @@ import os
 import sys
 from collections import namedtuple
 from dataclasses import fields
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 import pytest
@@ -141,6 +141,15 @@ tiktiken_models = [
 
 # THROUGHPUT hint lets AsyncTokenizerRunner spread the primed corpus across CPU streams.
 THROUGHPUT_CONFIG = {properties.hint.performance_mode(): properties.hint.PerformanceMode.THROUGHPUT}
+USE_ASYNC_INFERENCE = sys.platform != "darwin"
+
+
+def compile_tokenizer_model(model: Model, corpus: Optional[list] = None):
+    if not USE_ASYNC_INFERENCE:
+        return core.compile_model(model)
+
+    compiled_model = core.compile_model(model, "CPU", THROUGHPUT_CONFIG)
+    return AsyncTokenizerRunner(compiled_model, corpus) if corpus is not None else compiled_model
 
 
 def get_tokenizer(
@@ -154,8 +163,7 @@ def get_tokenizer(
         truncation=truncation,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
-    compiled_tokenizer = core.compile_model(ov_tokenizer, "CPU", THROUGHPUT_CONFIG)
-    return hf_tokenizer, AsyncTokenizerRunner(compiled_tokenizer, single_string_corpus)
+    return hf_tokenizer, compile_tokenizer_model(cast(Model, ov_tokenizer), single_string_corpus)
 
 
 def build_detokenizer_corpus(hf_tokenizer) -> list:
@@ -180,10 +188,9 @@ def get_tokenizer_detokenizer(
         clean_up_tokenization_spaces=clean_up_tokenization_spaces,
         use_sentencepiece_backend=use_sentencepiece_backend,
     )
-    compiled_tokenizer = core.compile_model(ov_tokenizer, "CPU", THROUGHPUT_CONFIG)
-    compiled_detokenizer = core.compile_model(ov_detokenizer, "CPU", THROUGHPUT_CONFIG)
-    if not streaming_detokenizer:
-        compiled_detokenizer = AsyncTokenizerRunner(compiled_detokenizer, build_detokenizer_corpus(hf_tokenizer))
+    compiled_tokenizer = compile_tokenizer_model(cast(Model, ov_tokenizer))
+    detokenizer_corpus = None if streaming_detokenizer else build_detokenizer_corpus(hf_tokenizer)
+    compiled_detokenizer = compile_tokenizer_model(cast(Model, ov_detokenizer), detokenizer_corpus)
     return hf_tokenizer, compiled_tokenizer, compiled_detokenizer
 
 
