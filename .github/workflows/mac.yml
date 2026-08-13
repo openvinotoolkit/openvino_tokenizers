@@ -383,7 +383,7 @@ jobs:
             "openvino-tokenizers[transformers] @ file://${{ steps.tokenizers_wheel.outputs.wheel_path }}"
 
       - name: Tokenizers regression tests (using openvino python wheel)
-        run: uv run --no-sync pytest tests/tokenizers_test.py -n auto
+        run: uv run --no-sync pytest tests/tokenizers_test.py -n 1
 
   Overall_Status:
     name: ci/gha_overall_status_macos
