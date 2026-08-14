@@ -137,11 +137,34 @@ tiktiken_models = [
     "Qwen/Qwen-14B-Chat",
     "THUDM/glm-4-9b-chat",
 ]
+MACOS_RUNTIME_FAILURE_MODELS = {
+    "BAAI/bge-reranker-v2-m3",
+    "Qwen/Qwen-14B-Chat",
+    "Qwen/Qwen3-Reranker-0.6B",
+    "THUDM/glm-4-9b-chat",
+    "amberoad/bert-multilingual-passage-reranking-msmarco",
+    "answerdotai/ModernBERT-base",
+    "camembert-base",
+    "facebook/galactica-120b",
+    "facebook/musicgen-small",
+    "google/flan-t5-xxl",
+    "google/mobilebert-uncased",
+    "microsoft/deberta-v3-base",
+    "microsoft/speecht5_tts",
+    "rinna/bilingual-gpt-neox-4b",
+    "sentence-transformers/all-MiniLM-L6-v2",
+    "shay681/HeBERT_finetuned_Legal_Clauses",
+}
 
 
 # THROUGHPUT hint lets AsyncTokenizerRunner spread the primed corpus across CPU streams.
 THROUGHPUT_CONFIG = {properties.hint.performance_mode(): properties.hint.PerformanceMode.THROUGHPUT}
 USE_ASYNC_INFERENCE = sys.platform != "darwin"
+
+
+def skip_runtime_failure_on_macos(checkpoint: str) -> None:
+    if sys.platform == "darwin" and checkpoint in MACOS_RUNTIME_FAILURE_MODELS:
+        pytest.skip("OpenVINO mutex failure on macOS")
 
 
 def compile_tokenizer_model(model: Model, corpus: Optional[list] = None):
@@ -206,11 +229,13 @@ def use_max_padding(request):
 
 @pytest.fixture(scope="session", params=wordpiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_wordpiece_tokenizers(request):
+    skip_runtime_failure_on_macos(request.param)
     return get_hf_tokenizer(request)
 
 
 @pytest.fixture(scope="session", params=wordpiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_wordpiece_tokenizers_with_padding_sides(request, use_left_padding):
+    skip_runtime_failure_on_macos(request.param)
     return get_hf_tokenizer(request, left_padding=use_left_padding)
 
 
@@ -252,6 +277,7 @@ def is_sentencepiece_backend(request):
 
 @pytest.fixture(scope="session", params=sentencepiece_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_sentencepiece_tokenizers(request, is_fast_tokenizer, is_sentencepiece_backend):
+    skip_runtime_failure_on_macos(request.param)
     if not is_fast_tokenizer and not is_sentencepiece_backend:
         pytest.skip("Legacy tokenizer must use Sentencepiece backend.")
 
@@ -266,6 +292,7 @@ def hf_sentencepiece_tokenizers(request, is_fast_tokenizer, is_sentencepiece_bac
 def hf_sentencepiece_tokenizers_with_padding_sides(
     request, use_left_padding, is_fast_tokenizer, is_sentencepiece_backend
 ):
+    skip_runtime_failure_on_macos(request.param)
     if not is_fast_tokenizer and not is_sentencepiece_backend:
         pytest.skip("Legacy tokenizer must use sentencepiece backend.")
 
@@ -278,22 +305,26 @@ def hf_sentencepiece_tokenizers_with_padding_sides(
 
 @pytest.fixture(scope="session", params=bpe_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_bpe_tokenizers(request):
+    skip_runtime_failure_on_macos(request.param)
     return get_hf_tokenizer(request)
 
 
 @pytest.fixture(scope="session", params=bpe_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_bpe_tokenizers_with_padding_sides(request, use_left_padding):
+    skip_runtime_failure_on_macos(request.param)
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding)
     return hf_tokenizer
 
 
 @pytest.fixture(scope="session", params=tiktiken_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_tiktoken_tokenizers(request):
+    skip_runtime_failure_on_macos(request.param)
     return get_hf_tokenizer(request, trust_remote_code=True)
 
 
 @pytest.fixture(scope="session", params=tiktiken_models, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def hf_tiktoken_tokenizers_with_padding_sides(request, use_left_padding):
+    skip_runtime_failure_on_macos(request.param)
     hf_tokenizer = get_hf_tokenizer(request, trust_remote_code=True, left_padding=use_left_padding)
     return hf_tokenizer
 
@@ -1102,6 +1133,7 @@ def max_length(request):
 
 @pytest.fixture(scope="session", params=models_with_pair_input, ids=lambda checkpoint: checkpoint.split("/")[-1])
 def ov_hf_tokenizer_pair_with_trunc(request, use_left_padding, max_length):
+    skip_runtime_failure_on_macos(request.param)
     hf_tokenizer = get_hf_tokenizer(request, left_padding=use_left_padding, trust_remote_code=True)
     ov_tokenizer = convert_tokenizer(hf_tokenizer, with_detokenizer=False, number_of_inputs=2, max_length=max_length)
     ov_tokenizer = Core().compile_model(ov_tokenizer, "CPU")
