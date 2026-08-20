@@ -25,9 +25,8 @@ import sys
 import textwrap
 import traceback
 
-# Re-use the standard test suite from check_tokenizer
+from .._testing_data import ALL_TEST_STRINGS
 from .check_tokenizer import (
-    ALL_TEST_STRINGS,
     BOLD,
     GREEN,
     RED,
@@ -40,6 +39,7 @@ from .check_tokenizer import (
     _warn,
     step_load_tokenizer,
 )
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 

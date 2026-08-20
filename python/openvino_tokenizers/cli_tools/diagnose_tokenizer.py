@@ -12,8 +12,8 @@ Steps performed:
   [1] Load the HF tokenizer
   [2] Extract tokenizer.json pipeline and map to OV steps
   [3] Run normalization diagnostics (per-step + combined)
-  [4] Run pre-tokenization diagnostics
-  [5] Run full pipeline comparison to locate first point of divergence
+    [4] Run pre-tokenization diagnostics, including rendered chat prompts
+    [5] Run full pipeline comparison, including rendered chat prompts
 
 Exit code: 0 = all stages matched, 1 = any mismatch or unsupported type.
 """
@@ -27,8 +27,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .._testing_data import ALL_TEST_STRINGS, CHAT_HISTORIES
 from .check_tokenizer import (
-    ALL_TEST_STRINGS,
     BOLD,
     GREEN,
     RED,
@@ -41,6 +41,7 @@ from .check_tokenizer import (
     _warn,
     step_load_tokenizer,
 )
+
 
 # ── formatting helpers ────────────────────────────────────────────────────────
 
@@ -229,8 +230,6 @@ def step_show_finalized_pipeline(hf_tokenizer) -> dict:
         "merge_occurred": bool,
       }
     """
-    from copy import deepcopy
-
     from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
     from openvino_tokenizers.utils import TokenzierConversionParams
 
@@ -258,7 +257,7 @@ def step_show_finalized_pipeline(hf_tokenizer) -> dict:
 
     print(f"\n  {BOLD}Finalized OV pre-tokenization steps:{RESET}")
     if not after:
-        print(f"    (none)")
+        print("    (none)")
     else:
         for i, s in enumerate(after, 1):
             print(f"    {i}. {s}")
@@ -291,12 +290,13 @@ def step_test_normalization(hf_tokenizer, tokenizer_json: dict, test_strings: li
     Step 3 — test normalization steps individually and combined.
     Returns (number_of_failures, list_of_failing_step_types).
     """
+    from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
+
     from .check_normalization import (
         _build_hf_normalizer,
         _build_ov_normalizer,
         _run_step_test,
     )
-    from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
 
     normalizer = tokenizer_json.get("normalizer")
     if normalizer is None:
@@ -514,7 +514,35 @@ def step_test_pre_tokenization(
 # ── full pipeline comparison ──────────────────────────────────────────────────
 
 
-def step_test_full_pipeline(hf_tokenizer, test_strings: list[str]) -> tuple[int, str]:
+def _render_chat_test_strings(hf_tokenizer) -> list[str]:
+    """Render shared chat histories for pipeline diagnostics."""
+    if hf_tokenizer.chat_template is None:
+        return []
+
+    rendered_prompts = []
+    for history_index, messages in enumerate(CHAT_HISTORIES):
+        for add_generation_prompt in (False, True):
+            try:
+                rendered_prompts.append(
+                    hf_tokenizer.apply_chat_template(
+                        messages,
+                        tokenize=False,
+                        add_generation_prompt=add_generation_prompt,
+                    )
+                )
+            except Exception as exc:
+                _warn(
+                    f"Could not render chat history {history_index} "
+                    f"(add_generation_prompt={add_generation_prompt}): {exc}"
+                )
+    return rendered_prompts
+
+
+def step_test_full_pipeline(
+    hf_tokenizer,
+    test_strings: list[str],
+    chat_test_strings: list[str] | None = None,
+) -> tuple[int, str]:
     """
     Step 5 — run the full pipeline (convert + compare) to find the first
     point of divergence.
@@ -522,6 +550,7 @@ def step_test_full_pipeline(hf_tokenizer, test_strings: list[str]) -> tuple[int,
     Returns (number_of_failures, failure_stage).
     """
     from openvino import Core
+
     from openvino_tokenizers import convert_tokenizer
 
     try:
@@ -534,15 +563,40 @@ def step_test_full_pipeline(hf_tokenizer, test_strings: list[str]) -> tuple[int,
     ov_tok = core.compile_model(ov_tok_model)
     ov_detok = core.compile_model(ov_detok_model)
 
+    chat_test_strings = chat_test_strings or []
+    ov_chat_tok = None
+    if chat_test_strings:
+        try:
+            ov_chat_model = convert_tokenizer(
+                hf_tokenizer,
+                with_detokenizer=False,
+                add_special_tokens=False,
+            )
+            if isinstance(ov_chat_model, tuple):
+                raise TypeError("Expected one tokenizer model for with_detokenizer=False")
+            ov_chat_tok = core.compile_model(ov_chat_model)
+        except Exception as exc:
+            _fail(f"Chat tokenizer conversion failed: {exc}")
+            return 1, "conversion"
+
     encode_failures = 0
     decode_failures = 0
     encode_mismatches = []
     decode_mismatches = []
 
-    for s in test_strings:
+    test_cases = [(test_string, True, ov_tok) for test_string in test_strings]
+    if ov_chat_tok is not None:
+        test_cases.extend((test_string, False, ov_chat_tok) for test_string in chat_test_strings)
+
+    for s, add_special_tokens, compiled_tokenizer in test_cases:
         # Encode comparison
-        hf_out = hf_tokenizer([s], return_tensors="np", truncation=False)
-        ov_out = ov_tok([s])
+        hf_out = hf_tokenizer(
+            [s],
+            return_tensors="np",
+            truncation=False,
+            add_special_tokens=add_special_tokens,
+        )
+        ov_out = compiled_tokenizer([s])
 
         hf_ids = hf_out["input_ids"]
         try:
@@ -566,7 +620,7 @@ def step_test_full_pipeline(hf_tokenizer, test_strings: list[str]) -> tuple[int,
             decode_failures += 1
             decode_mismatches.append((s, f"HF: {repr(hf_decoded[0])} vs OV: {repr(ov_decoded[0])}"))
 
-    total = len(test_strings)
+    total = len(test_cases)
 
     if encode_failures:
         _fail(f"Encode: {total - encode_failures}/{total} matched — {encode_failures} failed")
@@ -627,8 +681,8 @@ def build_parser() -> argparse.ArgumentParser:
             "  [1] Load HF tokenizer\n"
             "  [2] Map tokenizer.json pipeline to OV steps\n"
             "  [3] Test normalization steps individually\n"
-            "  [4] Test pre-tokenization\n"
-            "  [5] Run full pipeline comparison\n\n"
+            "  [4] Test pre-tokenization, including rendered chat prompts\n"
+            "  [5] Run full pipeline comparison, including rendered chat prompts\n\n"
             "Exit code: 0 = no issues, 1 = any mismatch or unsupported type."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -654,6 +708,8 @@ def run(args) -> None:
         _fail("Failed to load tokenizer:")
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
+
+    chat_test_strings = _render_chat_test_strings(hf_tokenizer)
 
     # ── Step 2 ────────────────────────────────────────────────────────────────
     _step(2, total_steps, "Mapping tokenizer.json pipeline → OV steps")
@@ -705,10 +761,12 @@ def run(args) -> None:
         exit_code = 1
 
     # ── Step 4 ────────────────────────────────────────────────────────────────
-    _step(4, total_steps, "Testing pre-tokenization")
+    _step(4, total_steps, "Testing pre-tokenization, including rendered chat prompts")
     try:
-        pre_tok_failures, pre_tok_details = step_test_pre_tokenization(
-            hf_tokenizer, finalized_info if finalized_info.get("finalized_pipeline") else None, ALL_TEST_STRINGS
+        pre_tok_failures, _ = step_test_pre_tokenization(
+            hf_tokenizer,
+            finalized_info if finalized_info.get("finalized_pipeline") else None,
+            [*ALL_TEST_STRINGS, *chat_test_strings],
         )
         if pre_tok_failures:
             exit_code = 1
@@ -716,13 +774,16 @@ def run(args) -> None:
         _fail("Pre-tokenization testing raised an unexpected exception:")
         traceback.print_exc(file=sys.stderr)
         pre_tok_failures = 1
-        pre_tok_details = ["<exception>"]
         exit_code = 1
 
     # ── Step 5 ────────────────────────────────────────────────────────────────
-    _step(5, total_steps, "Full pipeline comparison")
+    _step(5, total_steps, "Full pipeline comparison, including rendered chat prompts")
     try:
-        full_failures, failure_stage = step_test_full_pipeline(hf_tokenizer, ALL_TEST_STRINGS)
+        full_failures, failure_stage = step_test_full_pipeline(
+            hf_tokenizer,
+            ALL_TEST_STRINGS,
+            chat_test_strings,
+        )
         if full_failures:
             exit_code = 1
     except Exception:

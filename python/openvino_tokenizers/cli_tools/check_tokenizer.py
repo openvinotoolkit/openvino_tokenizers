@@ -9,13 +9,13 @@ Usage:
     check_tokenizer <hf_repo_id> [options]
 
 Steps performed:
-  [1] Load the HF tokenizer
-  [2] Convert it to OpenVINO (tokenizer + detokenizer)
-  [3] Run the full test-string suite and compare outputs
-  [4] Run openvino_genai.Tokenizer encode/decode checks (only if openvino_genai is installed)
-    [5] Compare HuggingFace and openvino_genai chat-template output and tokenization for the same history
-    [6] Run openvino_genai.Tokenizer padding + pair-input checks (only if openvino_genai is installed)
-            — reported as errors for tokenizers-backend tokenizers, warnings otherwise
+[1] Load the HF tokenizer
+[2] Convert it to OpenVINO (tokenizer + detokenizer)
+[3] Run the full test-string suite and compare outputs
+[4] Run openvino_genai.Tokenizer encode/decode checks (only if openvino_genai is installed)
+[5] Compare HuggingFace and openvino_genai chat-template output and tokenization for the same histories
+[6] Run openvino_genai.Tokenizer padding + pair-input checks (only if openvino_genai is installed)
+    — reported as errors for tokenizers-backend tokenizers, warnings otherwise
 
 On success each step prints a single ✓ line.
 On failure the step prints ✗ plus the relevant context (exception, failing
@@ -30,65 +30,11 @@ from typing import Optional
 
 import numpy as np
 
+from openvino_tokenizers._testing_data import ALL_TEST_STRINGS, CHAT_HISTORIES
 from openvino_tokenizers.cli_tools.convert_tokenizer import check_positive_int
 
 
 # ── test strings ─────────────────────────────────────────────────────────────
-
-ENG_STRINGS = [
-    "Eng... test, string?!",
-    "Multiline\nstring!\nWow!",
-    "A lot\t w!",
-    "A lot\t\tof whitespaces!",
-    "\n\n\n\t\t   A    lot\t\tof\twhitespaces\n!\n\n\n\t\n\n",
-    "Eng, but with d1gits: 123; 0987654321, stop.0987654321 - eng, but with d1gits: 123",
-    "USER: <image>\nWhat is in the image? ASSISTANT:",
-    "What is OpenVINO?",
-    (
-        "If I have 100 million dollars, what kinds of projects should I invest to maximize "
-        "my benefits in background of a growing number of artificial intelligence technologies?"
-    ),
-    (
-        "Write an epic travel diary where an engineer, a poet, and a chef cross seven cities in seven nights, "
-        "and in each city they must solve one unusual challenge: rebuild a clocktower using only recycled brass, "
-        "compose a lullaby for a sleepless market, design a dinner menu for astronauts who miss home, map hidden "
-        "canals beneath an old library, negotiate peace between rival street orchestras, restore a broken weather "
-        "vane that predicts memories instead of storms, and finally present a public workshop explaining every "
-        "decision, every tradeoff, every failed attempt, and every lesson learned, while also listing materials, "
-        "budgets, timelines, contingency plans, and a final reflection on teamwork, creativity, responsibility, "
-        "and how small practical choices can change the future of an entire neighborhood."
-    ),
-]
-MULTILINGUAL_STRINGS = [
-    "Тестовая строка!",
-    "Testzeichenfolge?",
-    "Tester, la chaîne...",
-    "測試字符串",
-    "سلسلة الاختبار",
-    "מחרוזת בדיקה",
-    "Сынақ жолы á",
-    "رشته تست",
-    "介绍下清华大学",
-]
-EMOJI_STRINGS = [
-    "😀",
-    "😁😁",
-    "🤣🤣🤣😁😁😁😁",
-    "🫠",
-    "🤷‍♂️",
-    "🤦🏼‍♂️",
-]
-MISC_STRINGS = [
-    "",
-    b"\x06".decode(),
-    " ",
-    " " * 10,
-    " " * 256,
-    "\n",
-    " \t\n",
-]
-
-ALL_TEST_STRINGS = ENG_STRINGS + MULTILINGUAL_STRINGS + EMOJI_STRINGS + MISC_STRINGS
 
 # Subset used for batch-padding and pair-input checks in step 6
 PADDING_BATCH = [
@@ -102,11 +48,6 @@ PAIR_INPUTS = [
     ["What is OpenVINO?", "It is an inference toolkit."],
     ["Hello world", "Goodbye world, this is a longer second string."],
     ["Eng... test, string?!", "測試字符串"],
-]
-CHAT_HISTORY = [
-    {"role": "user", "content": "What is OpenVINO?"},
-    {"role": "assistant", "content": "OpenVINO is a toolkit for optimizing and running AI inference."},
-    {"role": "user", "content": "Can it run text generation models?"},
 ]
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -418,57 +359,64 @@ def step_test_genai_chat_history(hf_tokenizer, saved_dir: str) -> int:
         return 0
 
     genai_tok = GenAITokenizer(saved_dir)
-    chat_history = ChatHistory(CHAT_HISTORY)
-    failures: list[tuple[bool, str]] = []
+    failures: list[tuple[int, bool, str]] = []
 
-    for add_generation_prompt in (False, True):
-        try:
-            hf_prompt = hf_tokenizer.apply_chat_template(
-                CHAT_HISTORY,
-                tokenize=False,
-                add_generation_prompt=add_generation_prompt,
-            )
-            genai_prompt = genai_tok.apply_chat_template(
-                chat_history,
-                add_generation_prompt=add_generation_prompt,
-            )
-            if hf_prompt != genai_prompt:
-                failures.append((
-                    add_generation_prompt,
-                    f"chat template mismatch:\n"
-                    f"    HF:    {hf_prompt!r}\n"
-                    f"    GenAI: {genai_prompt!r}",
-                ))
+    for history_index, messages in enumerate(CHAT_HISTORIES):
+        chat_history = ChatHistory(messages)
+        for add_generation_prompt in (False, True):
+            try:
+                hf_prompt = hf_tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=add_generation_prompt,
+                )
+                genai_prompt = genai_tok.apply_chat_template(
+                    chat_history,
+                    add_generation_prompt=add_generation_prompt,
+                )
+                if hf_prompt != genai_prompt:
+                    failures.append((
+                        history_index,
+                        add_generation_prompt,
+                        f"chat template mismatch:\n"
+                        f"    HF:    {hf_prompt!r}\n"
+                        f"    GenAI: {genai_prompt!r}",
+                    ))
 
-            hf_ids = hf_tokenizer(
-                hf_prompt,
-                add_special_tokens=False,
-                return_tensors="np",
-            )["input_ids"][0]
-            genai_ids = genai_tok.encode(
-                genai_prompt,
-                add_special_tokens=False,
-            ).input_ids.data[0]
-            if not np.array_equal(hf_ids, genai_ids):
+                hf_ids = hf_tokenizer(
+                    hf_prompt,
+                    add_special_tokens=False,
+                    return_tensors="np",
+                )["input_ids"][0]
+                genai_ids = genai_tok.encode(
+                    genai_prompt,
+                    add_special_tokens=False,
+                ).input_ids.data[0]
+                if not np.array_equal(hf_ids, genai_ids):
+                    failures.append((
+                        history_index,
+                        add_generation_prompt,
+                        f"chat tokenization mismatch:\n"
+                        f"    HF:    {_array_summary(hf_ids)}\n"
+                        f"    GenAI: {_array_summary(genai_ids)}",
+                    ))
+            except Exception as exc:
                 failures.append((
+                    history_index,
                     add_generation_prompt,
-                    f"chat tokenization mismatch:\n"
-                    f"    HF:    {_array_summary(hf_ids)}\n"
-                    f"    GenAI: {_array_summary(genai_ids)}",
+                    f"raised {type(exc).__name__}: {exc}",
                 ))
-        except Exception as exc:
-            failures.append((
-                add_generation_prompt,
-                f"raised {type(exc).__name__}: {exc}",
-            ))
 
     if not failures:
-        _ok("Chat template output and tokenization matched with and without generation prompt")
+        _ok(
+            f"All {len(CHAT_HISTORIES)} chat histories matched with and without generation prompt"
+        )
     else:
         _fail(f"{len(failures)} chat history check(s) failed")
-        for add_generation_prompt, detail in failures:
+        for history_index, add_generation_prompt, detail in failures:
             print(
-                f"\n  {YELLOW}Case:{RESET} add_generation_prompt={add_generation_prompt}",
+                f"\n  {YELLOW}Case:{RESET} history={history_index}, "
+                f"add_generation_prompt={add_generation_prompt}",
                 file=sys.stderr,
             )
             indented = textwrap.indent(detail, "    ")
