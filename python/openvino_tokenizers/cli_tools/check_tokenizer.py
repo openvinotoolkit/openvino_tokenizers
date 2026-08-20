@@ -13,8 +13,9 @@ Steps performed:
   [2] Convert it to OpenVINO (tokenizer + detokenizer)
   [3] Run the full test-string suite and compare outputs
   [4] Run openvino_genai.Tokenizer encode/decode checks (only if openvino_genai is installed)
-  [5] Run openvino_genai.Tokenizer padding + pair-input checks (only if openvino_genai is installed)
-      — reported as errors for tokenizers-backend tokenizers, warnings otherwise
+    [5] Compare HuggingFace and openvino_genai chat-template output and tokenization for the same history
+    [6] Run openvino_genai.Tokenizer padding + pair-input checks (only if openvino_genai is installed)
+            — reported as errors for tokenizers-backend tokenizers, warnings otherwise
 
 On success each step prints a single ✓ line.
 On failure the step prints ✗ plus the relevant context (exception, failing
@@ -89,7 +90,7 @@ MISC_STRINGS = [
 
 ALL_TEST_STRINGS = ENG_STRINGS + MULTILINGUAL_STRINGS + EMOJI_STRINGS + MISC_STRINGS
 
-# Subset used for batch-padding and pair-input checks in step 5
+# Subset used for batch-padding and pair-input checks in step 6
 PADDING_BATCH = [
     "What is OpenVINO?",
     "Multiline\nstring!\nWow!",
@@ -101,6 +102,11 @@ PAIR_INPUTS = [
     ["What is OpenVINO?", "It is an inference toolkit."],
     ["Hello world", "Goodbye world, this is a longer second string."],
     ["Eng... test, string?!", "測試字符串"],
+]
+CHAT_HISTORY = [
+    {"role": "user", "content": "What is OpenVINO?"},
+    {"role": "assistant", "content": "OpenVINO is a toolkit for optimizing and running AI inference."},
+    {"role": "user", "content": "Can it run text generation models?"},
 ]
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -397,6 +403,80 @@ def step_test_genai(
     return len(failures)
 
 
+def step_test_genai_chat_history(hf_tokenizer, saved_dir: str) -> int:
+    """
+    Step 5 – apply the HF and GenAI chat templates to the same multi-turn
+    history and compare the rendered prompts and their token IDs.
+
+    Returns the number of mismatches (0 = all good or no chat template).
+    """
+    from openvino_genai import ChatHistory
+    from openvino_genai import Tokenizer as GenAITokenizer
+
+    if hf_tokenizer.chat_template is None:
+        _ok("Skipped (tokenizer has no chat template)")
+        return 0
+
+    genai_tok = GenAITokenizer(saved_dir)
+    chat_history = ChatHistory(CHAT_HISTORY)
+    failures: list[tuple[bool, str]] = []
+
+    for add_generation_prompt in (False, True):
+        try:
+            hf_prompt = hf_tokenizer.apply_chat_template(
+                CHAT_HISTORY,
+                tokenize=False,
+                add_generation_prompt=add_generation_prompt,
+            )
+            genai_prompt = genai_tok.apply_chat_template(
+                chat_history,
+                add_generation_prompt=add_generation_prompt,
+            )
+            if hf_prompt != genai_prompt:
+                failures.append((
+                    add_generation_prompt,
+                    f"chat template mismatch:\n"
+                    f"    HF:    {hf_prompt!r}\n"
+                    f"    GenAI: {genai_prompt!r}",
+                ))
+
+            hf_ids = hf_tokenizer(
+                hf_prompt,
+                add_special_tokens=False,
+                return_tensors="np",
+            )["input_ids"][0]
+            genai_ids = genai_tok.encode(
+                genai_prompt,
+                add_special_tokens=False,
+            ).input_ids.data[0]
+            if not np.array_equal(hf_ids, genai_ids):
+                failures.append((
+                    add_generation_prompt,
+                    f"chat tokenization mismatch:\n"
+                    f"    HF:    {_array_summary(hf_ids)}\n"
+                    f"    GenAI: {_array_summary(genai_ids)}",
+                ))
+        except Exception as exc:
+            failures.append((
+                add_generation_prompt,
+                f"raised {type(exc).__name__}: {exc}",
+            ))
+
+    if not failures:
+        _ok("Chat template output and tokenization matched with and without generation prompt")
+    else:
+        _fail(f"{len(failures)} chat history check(s) failed")
+        for add_generation_prompt, detail in failures:
+            print(
+                f"\n  {YELLOW}Case:{RESET} add_generation_prompt={add_generation_prompt}",
+                file=sys.stderr,
+            )
+            indented = textwrap.indent(detail, "    ")
+            print(f"{RED}{indented}{RESET}", file=sys.stderr)
+
+    return len(failures)
+
+
 def step_test_genai_advanced(
     hf_tokenizer,
     saved_dir: str,
@@ -406,7 +486,7 @@ def step_test_genai_advanced(
     max_length: Optional[int] = None,
 ) -> int:
     """
-    Step 5 – check batch padding and pair-input behaviour via
+    Step 6 – check batch padding and pair-input behaviour via
     openvino_genai.Tokenizer.
 
     When *strict* is False (default) issues are reported as warnings (⚠) and
@@ -599,7 +679,7 @@ def _configure_parser(parser: argparse.ArgumentParser) -> None:
 
 def run(args) -> None:
     has_genai = _has_openvino_genai()
-    total_steps = 5 if has_genai else 3
+    total_steps = 6 if has_genai else 3
     exit_code = 0
 
     # ── Step 1 ────────────────────────────────────────────────────────────────
@@ -692,11 +772,26 @@ def run(args) -> None:
             traceback.print_exc(file=sys.stderr)
             exit_code = 1
 
-    # ── Step 5 (optional, warnings or errors depending on backend) ────────
+    # ── Step 5 (optional) ────────────────────────────────────────────────────
+    if has_genai and saved_dir is not None:
+        _step(5, total_steps, "Testing HF vs OpenVINO GenAI chat history + tokenization")
+        try:
+            n_chat_failures = step_test_genai_chat_history(
+                hf_tokenizer=hf_tokenizer,
+                saved_dir=saved_dir,
+            )
+            if n_chat_failures:
+                exit_code = 1
+        except Exception:
+            _fail("GenAI chat history testing raised an unexpected exception:")
+            traceback.print_exc(file=sys.stderr)
+            exit_code = 1
+
+    # ── Step 6 (optional, warnings or errors depending on backend) ────────────
     if has_genai and saved_dir is not None:
         strict_advanced = _is_tokenizers_backend(hf_tokenizer)
         label = "errors" if strict_advanced else "warnings only"
-        _step(5, total_steps, f"Testing openvino_genai.Tokenizer padding + pair inputs ({label})")
+        _step(6, total_steps, f"Testing openvino_genai.Tokenizer padding + pair inputs ({label})")
         try:
             n_advanced = step_test_genai_advanced(
                 hf_tokenizer=hf_tokenizer,
@@ -716,7 +811,7 @@ def run(args) -> None:
                 _warn("Advanced GenAI testing raised an unexpected exception:")
             traceback.print_exc(file=sys.stderr)
     elif not has_genai:
-        print("\n  (skipping steps 4-5 — openvino_genai not installed)")
+        print("\n  (skipping steps 4-6 — openvino_genai not installed)")
 
     if saved_dir is not None:
         import shutil
