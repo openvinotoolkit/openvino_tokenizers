@@ -13,7 +13,8 @@ Steps performed:
   [2] Extract tokenizer.json pipeline and map to OV steps
   [3] Run normalization diagnostics (per-step + combined)
     [4] Run pre-tokenization diagnostics, including rendered chat prompts
-    [5] Run full pipeline comparison, including rendered chat prompts
+    [5] Verify special-token ID registration
+    [6] Run full pipeline comparison, including rendered chat prompts
 
 Exit code: 0 = all stages matched, 1 = any mismatch or unsupported type.
 """
@@ -116,6 +117,56 @@ def _get_section_steps(section_json) -> list[dict]:
         if key:
             return section_json[key]
     return [section_json]
+
+
+def _special_token_id_mismatches(hf_tokenizer, encode_token) -> list[tuple[str, int, list[int]]]:
+    """Compare declared special-token IDs with IDs produced for their literal text."""
+    mismatches = []
+    for token_id, added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).items():
+        if not added_token.special:
+            continue
+        actual_ids = np.asarray(encode_token(added_token.content)).reshape(-1).tolist()
+        if actual_ids != [token_id]:
+            mismatches.append((added_token.content, token_id, actual_ids))
+    return mismatches
+
+
+def step_test_special_token_registration(hf_tokenizer) -> int:
+    """Verify that converted tokenization preserves every declared special-token ID."""
+    from openvino import Core
+
+    from openvino_tokenizers import convert_tokenizer
+
+    try:
+        ov_model = convert_tokenizer(
+            hf_tokenizer,
+            with_detokenizer=False,
+            add_special_tokens=False,
+        )
+        if isinstance(ov_model, tuple):
+            raise TypeError("Expected one tokenizer model for with_detokenizer=False")
+        ov_tokenizer = Core().compile_model(ov_model)
+    except Exception as exc:
+        _fail(f"Special-token audit conversion failed: {exc}")
+        return 1
+
+    def encode_token(token: str):
+        return ov_tokenizer([token])["input_ids"]
+
+    mismatches = _special_token_id_mismatches(hf_tokenizer, encode_token)
+    if not mismatches:
+        special_token_count = sum(
+            added_token.special
+            for added_token in getattr(hf_tokenizer, "added_tokens_decoder", {}).values()
+        )
+        _ok(f"All {special_token_count} declared special-token IDs are registered")
+        return 0
+
+    _fail(f"{len(mismatches)} special token(s) are not registered with their declared IDs")
+    for content, expected_id, actual_ids in mismatches[:10]:
+        print(f"    {YELLOW}Token:{RESET} {_truncate(content)}", file=sys.stderr)
+        print(f"    Declared ID: {expected_id}; converted encoding: {actual_ids}", file=sys.stderr)
+    return len(mismatches)
 
 
 # ── pipeline mapping ─────────────────────────────────────────────────────────
@@ -682,7 +733,8 @@ def build_parser() -> argparse.ArgumentParser:
             "  [2] Map tokenizer.json pipeline to OV steps\n"
             "  [3] Test normalization steps individually\n"
             "  [4] Test pre-tokenization, including rendered chat prompts\n"
-            "  [5] Run full pipeline comparison, including rendered chat prompts\n\n"
+            "  [5] Verify special-token ID registration\n"
+            "  [6] Run full pipeline comparison, including rendered chat prompts\n\n"
             "Exit code: 0 = no issues, 1 = any mismatch or unsupported type."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -692,7 +744,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(args) -> None:
-    total_steps = 5
+    total_steps = 6
     exit_code = 0
 
     # ── Step 1 ────────────────────────────────────────────────────────────────
@@ -777,7 +829,19 @@ def run(args) -> None:
         exit_code = 1
 
     # ── Step 5 ────────────────────────────────────────────────────────────────
-    _step(5, total_steps, "Full pipeline comparison, including rendered chat prompts")
+    _step(5, total_steps, "Verifying special-token ID registration")
+    try:
+        special_token_failures = step_test_special_token_registration(hf_tokenizer)
+        if special_token_failures:
+            exit_code = 1
+    except Exception:
+        _fail("Special-token ID audit raised an unexpected exception:")
+        traceback.print_exc(file=sys.stderr)
+        special_token_failures = 1
+        exit_code = 1
+
+    # ── Step 6 ────────────────────────────────────────────────────────────────
+    _step(6, total_steps, "Full pipeline comparison, including rendered chat prompts")
     try:
         full_failures, failure_stage = step_test_full_pipeline(
             hf_tokenizer,
@@ -805,6 +869,10 @@ def run(args) -> None:
         root_cause = "python"
         suggestion = "tokenizer-fix-python"
         description = f"Unsupported types need handlers in hf_parser.py: {', '.join(all_unsupported)}"
+    elif special_token_failures:
+        root_cause = "python"
+        suggestion = "tokenizer-fix-python"
+        description = "Converted tokenizer does not preserve declared special-token IDs"
     elif pre_tok_failures and not norm_failures:
         root_cause = "python"
         suggestion = "tokenizer-fix-python"
@@ -841,6 +909,8 @@ def run(args) -> None:
         affected_stages.append("normalization")
     if pre_tok_failures:
         affected_stages.append("pre_tokenization")
+    if special_token_failures:
+        affected_stages.append("special_tokens")
     if full_failures and failure_stage != "none":
         if "encode" in failure_stage:
             affected_stages.append("encode")
@@ -856,6 +926,7 @@ def run(args) -> None:
     print(f"  unsupported_types: {all_unsupported}")
     print(f"  normalization_failures: {norm_failures}")
     print(f"  pre_tokenization_failures: {pre_tok_failures}")
+    print(f"  special_token_failures: {special_token_failures}")
     print(f"  full_pipeline_failures: {full_failures}")
     print(f"  description: {description}")
     print(f"  suggested_fix_skill: {suggestion}")

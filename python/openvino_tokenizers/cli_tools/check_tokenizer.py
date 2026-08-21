@@ -83,8 +83,10 @@ def _truncate(s: str, max_len: int = 80) -> str:
 def _array_summary(arr) -> str:
     flat = arr.reshape(-1).tolist()
     if len(flat) <= 12:
-        return str(flat)
-    return str(flat[:6]) + " ... " + str(flat[-3:])
+        values = str(flat)
+    else:
+        values = str(flat[:6]) + " ... " + str(flat[-3:])
+    return f"shape={arr.shape}, values={values}"
 
 
 def _compare_outputs(hf_out: dict, ov_out, skip_missing: bool = False) -> list[str]:
