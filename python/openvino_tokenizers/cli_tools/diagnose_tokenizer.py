@@ -705,7 +705,7 @@ def _configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("repo_id", help="HuggingFace model id or local path to a tokenizer directory.")
     parser.add_argument(
         "--subfolder",
-        default=None,
+        default="",
         help="Tokenizer subfolder inside a HuggingFace repo or local model directory.",
     )
     parser.add_argument(
