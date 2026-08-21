@@ -420,31 +420,49 @@ if(ENABLE_LTO AND CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
         $<$<CONFIG:Release>:-flto>)
 endif()
 
-# On Linux, set linker options to hide symbols and avoid conflicts with OpenVINO's symbols
+# Hide symbols of statically linked third parties (sentencepiece and its bundled
+# absl / protobuf-lite) to avoid clashes with the same symbols exported by OpenVINO
 if(LINUX)
   target_link_options(${TARGET_NAME} PRIVATE "-Wl,--exclude-libs,ALL")
+elseif(APPLE)
+  # ld64 has no --exclude-libs, so unexport the conflicting namespaces explicitly
+  set(unexported_symbols_file "${CMAKE_CURRENT_BINARY_DIR}/unexported_symbols.txt")
+  file(WRITE "${unexported_symbols_file}"
+"*absl*\n"
+"*google*protobuf*\n"
+"*sentencepiece*\n"
+"*utf8_range*\n"
+"*pcre2*\n")
+  target_link_options(${TARGET_NAME} PRIVATE "-Wl,-unexported_symbols_list,${unexported_symbols_file}")
 endif()
 
 target_compile_definitions(${TARGET_NAME} PRIVATE IMPLEMENT_OPENVINO_EXTENSION_API)
 target_link_libraries(${TARGET_NAME} PRIVATE openvino::runtime openvino::threading)
 
-set(ABSL_DEPENDENCIES
-  absl::flat_hash_map
-  absl::str_format
-  absl::string_view
-)
+# Link a real Abseil only when sentencepiece is built against it as well. With
+# 'SPM_ABSL_PROVIDER=internal' the sources are compiled against sentencepiece's bundled
+# header-only absl shims, so pulling in another Abseil (e.g. the one coming from OpenVINO's
+# protobuf) would put two incompatible implementations of the same `absl` symbols into one
+# process and corrupt objects shared between them.
+if(sentencepiece_FOUND OR NOT SPM_ABSL_PROVIDER STREQUAL "internal")
+  set(ABSL_DEPENDENCIES
+    absl::flat_hash_map
+    absl::str_format
+    absl::string_view
+  )
 
-foreach(absl_dependency IN LISTS ABSL_DEPENDENCIES)
-  if(TARGET ${absl_dependency})
-    get_target_property(absl_dependency_real ${absl_dependency} ALIASED_TARGET)
+  foreach(absl_dependency IN LISTS ABSL_DEPENDENCIES)
+    if(TARGET ${absl_dependency})
+      get_target_property(absl_dependency_real ${absl_dependency} ALIASED_TARGET)
 
-    if(absl_dependency_real)
-      set(absl_dependency ${absl_dependency_real})
+      if(absl_dependency_real)
+        set(absl_dependency ${absl_dependency_real})
+      endif()
+
+      target_link_libraries(${TARGET_NAME} PRIVATE ${absl_dependency})
     endif()
-
-    target_link_libraries(${TARGET_NAME} PRIVATE ${absl_dependency})
-  endif()
-endforeach()
+  endforeach()
+endif()
 
 #
 # Set install RPATH
