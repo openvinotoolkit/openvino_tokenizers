@@ -34,8 +34,8 @@ void CharsMapNormalization::validate_and_infer_types() {
 bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const bool has_skips = (inputs.size() == 5) || (m_normalization_form != "" && inputs.size() == 4);
 
-    if (m_normalizer == nullptr) {
-        std::call_once(m_init_flag, [&]() {
+    std::call_once(m_init_flag, [&]() {
+        if (m_normalizer == nullptr) {
             sentencepiece::logging::SetMinLogLevel(1);
 
             m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
@@ -55,8 +55,8 @@ bool CharsMapNormalization::evaluate(ov::TensorVector& outputs, const ov::Tensor
             m_spec->set_precompiled_charsmap(std::move(precompiled_charsmap));
 
             m_normalizer = std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
-        });
-    }
+        }
+    });
 
     return evaluate_normalization_helper(
         outputs,
