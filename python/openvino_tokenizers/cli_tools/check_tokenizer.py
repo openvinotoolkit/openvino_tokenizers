@@ -140,6 +140,25 @@ def _array_summary(arr) -> str:
     return str(flat[:6]) + " ... " + str(flat[-3:])
 
 
+def _genai_encode_params(
+    add_special_tokens: bool,
+    pad_to_max_length: bool,
+    max_length: Optional[int],
+    padding_side: Optional[str],
+    truncation: bool,
+) -> dict:
+    params = {
+        "add_special_tokens": add_special_tokens,
+        "pad_to_max_length": pad_to_max_length,
+        "truncation": truncation,
+    }
+    if max_length is not None:
+        params["max_length"] = max_length
+    if padding_side is not None:
+        params["padding_side"] = padding_side
+    return params
+
+
 def _compare_outputs(hf_out: dict, ov_out, skip_missing: bool = False) -> list[str]:
     """
     Return a list of mismatch descriptions, empty list means all match.
@@ -351,7 +370,10 @@ def step_test_genai(
                 truncation=truncation,
                 max_length=max_length,
             )["input_ids"][0]
-            genai_ids = genai_tok.encode(test_str, add_special_tokens=add_spec).input_ids.data[0]
+            genai_ids = genai_tok.encode(
+                test_str,
+                **_genai_encode_params(add_spec, use_max_padding, max_length, None, truncation),
+            ).input_ids.data[0]
             if not np.array_equal(hf_ids, genai_ids):
                 issues.append(
                     f"encode mismatch (add_special_tokens={add_spec}):\n"
@@ -439,16 +461,21 @@ def step_test_genai_advanced(
             "padding": "max_length" if pad_to_max or use_max_padding else "longest",
             "truncation": max_len is not None or truncation,
         }
-        ov_params: dict = {"add_special_tokens": add_spec}
+        effective_truncation = max_len is not None or truncation
+        effective_max_length = max_len if max_len is not None else max_length if truncation else None
+        ov_params = _genai_encode_params(
+            add_spec,
+            bool(pad_to_max or use_max_padding),
+            effective_max_length,
+            pad_side,
+            effective_truncation,
+        )
         if max_len is not None:
             hf_params["max_length"] = max_len
-            ov_params["max_length"] = max_len
-            ov_params["pad_to_max_length"] = True
         elif truncation and max_length is not None:
             hf_params["max_length"] = max_length
         if pad_side is not None:
             hf_params["padding_side"] = pad_side
-            ov_params["padding_side"] = pad_side
         try:
             hf_res = hf_tokenizer(PADDING_BATCH, **hf_params)["input_ids"]
             genai_res = genai_tok.encode(PADDING_BATCH, **ov_params).input_ids.data
@@ -478,7 +505,10 @@ def step_test_genai_advanced(
                     truncation=truncation,
                     max_length=max_length,
                 )["input_ids"]
-                pair_genai = genai_pair_tok.encode([[first, second]]).input_ids.data
+                pair_genai = genai_pair_tok.encode(
+                    [[first, second]],
+                    **_genai_encode_params(True, use_max_padding, max_length, None, truncation),
+                ).input_ids.data
                 if not np.array_equal(pair_hf, pair_genai):
                     warnings_list.append((
                         label,
