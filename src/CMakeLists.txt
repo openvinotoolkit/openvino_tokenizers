@@ -76,6 +76,20 @@ option(ENABLE_SYSTEM_PCRE2 "Use the system-installed PCRE2 library" OFF)
 if(ENABLE_SYSTEM_PCRE2)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(PCRE2 REQUIRED IMPORTED_TARGET libpcre2-8)
+  
+  message(WARNING
+    "ENABLE_SYSTEM_PCRE2=ON is an unsupported, best-effort build configuration.\n"
+    "Found system PCRE2 ${PCRE2_VERSION}. Known pitfalls:\n"
+    "  * Link size: the bundled build uses PCRE2_LINK_SIZE=3. Distro packages "
+    "typically use the default of 2, so large tokenizer regexes may fail to "
+    "compile at runtime with 'regular expression is too large'.\n"
+    "  * JIT: the bundled build enables PCRE2_SUPPORT_JIT. If the system library "
+    "was built without JIT, tokenization silently falls back to the interpreter "
+    "and is significantly slower.\n"
+    "  * The resulting binary gains a runtime dependency on the shared PCRE2 "
+    "library instead of statically linking it.\n"
+    "Please do not report tokenization correctness or performance issues against "
+    "this configuration without first reproducing with ENABLE_SYSTEM_PCRE2=OFF.")
 endif()
 
 FetchContent_Declare(
