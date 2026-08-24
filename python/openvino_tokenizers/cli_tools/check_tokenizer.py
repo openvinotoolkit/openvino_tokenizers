@@ -462,7 +462,9 @@ def step_test_genai_advanced(
             "truncation": max_len is not None or truncation,
         }
         effective_truncation = max_len is not None or truncation
-        effective_max_length = max_len if max_len is not None else max_length if truncation else None
+        effective_max_length = (
+            max_len if max_len is not None else max_length if truncation or use_max_padding else None
+        )
         ov_params = _genai_encode_params(
             add_spec,
             bool(pad_to_max or use_max_padding),
@@ -472,7 +474,7 @@ def step_test_genai_advanced(
         )
         if max_len is not None:
             hf_params["max_length"] = max_len
-        elif truncation and max_length is not None:
+        elif (truncation or use_max_padding) and max_length is not None:
             hf_params["max_length"] = max_length
         if pad_side is not None:
             hf_params["padding_side"] = pad_side
