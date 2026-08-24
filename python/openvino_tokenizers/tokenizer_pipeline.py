@@ -709,8 +709,7 @@ class BPETokenizationStep(TokenizationModelStep):
     @classmethod
     def from_hf_json(cls, tokenizer_json: dict[str, Any]) -> "BPETokenizationStep":
         vocab = cls.get_vocab_as_list(tokenizer_json["model"]["vocab"])
-
-        added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"] if token["id"]}
+        added_tokens = {token["content"]: token["id"] for token in tokenizer_json["added_tokens"]}
 
         # TODO: CVS-150387 Implement suffix_indicator.
         if tokenizer_json["model"]["continuing_subword_prefix"]:
