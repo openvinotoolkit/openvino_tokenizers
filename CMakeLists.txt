@@ -86,6 +86,7 @@ if(BUILD_CPP_EXTENSION)
     endif()
 
     option(ENABLE_LTO "Enable Link Time Optimization" OFF)
+    option(ENABLE_SYSTEM_PCRE2 "Use system libpcre2-8 (requires pkg-config and PCRE2 development files)" OFF)
 
     if(ENABLE_LTO AND NOT OpenVINODeveloperPackage_FOUND)
         include(CheckIPOSupported)
@@ -95,6 +96,40 @@ if(BUILD_CPP_EXTENSION)
         if(NOT IPO_SUPPORTED)
             message(FATAL_ERROR "ENABLE_LTO is ON but IPO / LTO is not supported: ${OUTPUT_MESSAGE}")
         endif()
+    endif()
+
+    if(ENABLE_SYSTEM_PCRE2)
+        find_package(PkgConfig QUIET)
+        if(NOT PkgConfig_FOUND)
+            message(FATAL_ERROR
+              "ENABLE_SYSTEM_PCRE2=ON requires pkg-config to locate libpcre2-8. "
+              "Install pkg-config and the PCRE2 development files, or configure "
+              "with ENABLE_SYSTEM_PCRE2=OFF to use the bundled PCRE2 source.")
+        endif()
+
+        # Define the imported target here so every Tokenizers subdirectory can
+        # use it without leaking a GLOBAL target into an embedding project.
+        pkg_check_modules(PCRE2 QUIET IMPORTED_TARGET libpcre2-8)
+        if(NOT PCRE2_FOUND)
+            message(FATAL_ERROR
+              "ENABLE_SYSTEM_PCRE2=ON requires the libpcre2-8 pkg-config module. "
+              "Install the PCRE2 development files, or configure with "
+              "ENABLE_SYSTEM_PCRE2=OFF to use the bundled PCRE2 source.")
+        endif()
+
+        message(WARNING
+          "ENABLE_SYSTEM_PCRE2=ON is an unsupported, best-effort build configuration.\n"
+          "Found system PCRE2 ${PCRE2_VERSION}. Known pitfalls:\n"
+          "  * Link size: the bundled build uses PCRE2_LINK_SIZE=3. Distro packages "
+          "typically use the default of 2, so large tokenizer regexes may fail to "
+          "compile at runtime with 'regular expression is too large'.\n"
+          "  * JIT: the bundled build enables PCRE2_SUPPORT_JIT. If the system library "
+          "was built without JIT, tokenization silently falls back to the interpreter "
+          "and is significantly slower.\n"
+          "  * The resulting binary gains a runtime dependency on the shared PCRE2 "
+          "library instead of statically linking it.\n"
+          "Please do not report tokenization correctness or performance issues against "
+          "this configuration without first reproducing with ENABLE_SYSTEM_PCRE2=OFF.")
     endif()
 
     add_subdirectory(src)
