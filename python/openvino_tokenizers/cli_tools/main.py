@@ -48,9 +48,10 @@ def main() -> None:
             "  [2] Convert to OpenVINO (tokenizer + detokenizer)\n"
             "  [3] Compare encode/decode outputs on the standard test suite\n"
             "  [4] Run openvino_genai.Tokenizer encode/decode checks  (requires openvino_genai)\n"
-            "  [5] Test batch padding and pair inputs  (requires openvino_genai)\n\n"
+            "  [5] Compare HF and GenAI chat-template output and tokenization  (requires openvino_genai)\n"
+            "  [6] Test batch padding and pair inputs  (requires openvino_genai)\n\n"
             "Exit code: 0 = all hard steps passed, 1 = any hard step failed.\n"
-            "Step 5 warnings never affect the exit code."
+            "Step 6 warnings never affect the exit code."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -81,8 +82,8 @@ def main() -> None:
             "  [1] Load HF tokenizer\n"
             "  [2] Map tokenizer.json pipeline to OV steps\n"
             "  [3] Test normalization steps individually\n"
-            "  [4] Test pre-tokenization\n"
-            "  [5] Run full pipeline comparison\n\n"
+            "  [4] Test pre-tokenization, including rendered chat prompts\n"
+            "  [5] Run full pipeline comparison, including rendered chat prompts\n\n"
             "Exit code: 0 = no issues, 1 = any mismatch or unsupported type."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,

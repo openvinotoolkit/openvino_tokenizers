@@ -25,9 +25,8 @@ import sys
 import textwrap
 import traceback
 
-# Re-use the standard test suite from check_tokenizer
+from .._testing_data import ALL_TEST_STRINGS
 from .check_tokenizer import (
-    ALL_TEST_STRINGS,
     BOLD,
     GREEN,
     RED,
@@ -40,6 +39,7 @@ from .check_tokenizer import (
     _warn,
     step_load_tokenizer,
 )
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -332,7 +332,7 @@ def _configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("repo_id", help="HuggingFace model id or local path to a tokenizer directory.")
     parser.add_argument(
         "--subfolder",
-        default=None,
+        default="",
         help="Tokenizer subfolder inside a HuggingFace repo or local model directory.",
     )
     parser.add_argument(

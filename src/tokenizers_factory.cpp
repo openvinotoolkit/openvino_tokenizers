@@ -55,6 +55,20 @@ ov::OutputVector create_tokenizer_node(const std::string& op_type,
         return std::make_shared<CombineSegments>(inputs)->outputs();
     } else if (op_type == "UTF8Validate") {
         return std::make_shared<UTF8Validate>(inputs)->outputs();
+    } else if (op_type == "RegexNormalization") {
+        auto global_replace = get_attribute_value<bool>(attributes, "global_replace", true);
+        return std::make_shared<RegexNormalization>(inputs, global_replace)->outputs();
+    } else if (op_type == "SentencepieceTokenizer") {
+        auto nbest_size = get_attribute_value<int32_t>(attributes, "nbest_size", 0);
+        auto alpha = get_attribute_value<float>(attributes, "alpha", 0.0f);
+        auto add_bos = get_attribute_value<bool>(attributes, "add_bos", false);
+        auto add_eos = get_attribute_value<bool>(attributes, "add_eos", false);
+        auto reverse = get_attribute_value<bool>(attributes, "reverse", false);
+        return std::make_shared<SentencepieceTokenizer>(inputs, nbest_size, alpha, add_bos, add_eos, reverse)->outputs();
+    } else if (op_type == "SentencepieceDetokenizer") {
+        return std::make_shared<SentencepieceDetokenizer>(inputs)->outputs();
+    } else if (op_type == "SentencepieceStreamDetokenizer") {
+        return std::make_shared<SentencepieceStreamDetokenizer>(inputs)->outputs();
     }
     OPENVINO_THROW("Unsupported operation type: `", op_type, "`");
 }
