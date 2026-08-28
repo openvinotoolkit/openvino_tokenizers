@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <cstring>
 #include <cstdint>
 #include <limits>
 #include <numeric>
@@ -214,6 +215,15 @@ public:
         uint32_t state = 0;
 
         for (size_t position = 0; position < text.size(); ++position) {
+            // At the root no partial match is pending, so every byte that cannot start a token can
+            // be skipped. Jumping over that span with memchr keeps the common no-match path at SIMD
+            // speed instead of testing one byte at a time.
+            if (state == 0) {
+                position = skip_to_token_start(text, position);
+                if (position == std::string_view::npos) {
+                    return;
+                }
+            }
             if (!step(state, static_cast<unsigned char>(text[position]))) {
                 continue;
             }
@@ -239,10 +249,23 @@ public:
     }
 
 private:
-    bool step(uint32_t& state, unsigned char character) const {
-        if (state == 0 && !m_first_bytes.test(character)) {
-            return false;
+    // Returns the first position at or after `position` whose byte can start a special token, or
+    // npos when the rest of the text cannot contain one.
+    size_t skip_to_token_start(std::string_view text, size_t position) const {
+        if (m_single_first_byte >= 0) {
+            const void* hit = std::memchr(text.data() + position, m_single_first_byte, text.size() - position);
+            return hit == nullptr ? std::string_view::npos : static_cast<const char*>(hit) - text.data();
         }
+        while (position < text.size() && !m_first_bytes[static_cast<unsigned char>(text[position])]) {
+            ++position;
+        }
+        return position < text.size() ? position : std::string_view::npos;
+    }
+
+    // Advances `state` by one byte through the Aho-Corasick automaton, following failure links.
+    // Callers must reach the root only on bytes that start a token, which `skip_to_token_start`
+    // guarantees, so the root needs no separate rejection test here.
+    bool step(uint32_t& state, unsigned char character) const {
         const char key = static_cast<char>(character);
         while (true) {
             size_t next_state = state;
@@ -262,6 +285,11 @@ private:
         std::vector<BuildNode> nodes(1);
         OPENVINO_ASSERT(m_tokens.size() <= std::numeric_limits<uint32_t>::max(),
                         "[ SpecialTokensSplit ] Too many special tokens");
+        size_t total_token_bytes = 0;
+        for (const auto& token : m_tokens) {
+            total_token_bytes += token.text.size();
+        }
+        nodes.reserve(total_token_bytes + 1);
         for (size_t token_index = 0; token_index < m_tokens.size(); ++token_index) {
             const uint32_t token_id = static_cast<uint32_t>(token_index);
             uint32_t node = 0;
@@ -315,6 +343,9 @@ private:
             m_first_bytes.set(character);
             map_dat_position(nodes, 0, child, character);
             queue.push(child);
+        }
+        if (nodes[0].children.size() == 1) {
+            m_single_first_byte = nodes[0].children.front().first;
         }
         while (!queue.empty()) {
             const uint32_t node = queue.front();
@@ -385,6 +416,9 @@ private:
     std::vector<uint32_t> m_output_token_ids;
     std::vector<TokenMetadata> m_token_metadata;
     std::bitset<256> m_first_bytes;
+    // Byte value shared by every token's first byte, or -1 when the tokens start with several
+    // different bytes. Tokenizers overwhelmingly use a single marker byte such as '<' or '['.
+    int m_single_first_byte = -1;
 };
 
 
@@ -444,18 +478,9 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     const size_t batch_size = inputs[0].get_size();
     const size_t num_chars = inputs[4].get_size();
 
-    Tensor skips_alternative;
-    const bool *skips;
-    if (has_skips) {
-        skips = inputs[5].data<bool>();
-        outputs[5].set_shape(Shape{num_chars});
-    } else {
-        outputs[5].set_shape(Shape{num_chars});
-        skips_alternative = Tensor(element::boolean, Shape{batch_size});
-        skips = std::fill_n(skips_alternative.data<bool>(), batch_size, false) -
-                batch_size;
-    };
+    const bool* skips = has_skips ? inputs[5].data<bool>() : nullptr;
 
+    outputs[5].set_shape(Shape{num_chars});
     outputs[0].set_shape(inputs[0].get_shape());
     outputs[1].set_shape(inputs[1].get_shape());
     outputs[2].set_shape(Shape{num_chars});
@@ -497,10 +522,9 @@ bool SpecialTokensSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVec
                     }
                     continue;
                 }
+                // Every pending match starts at or before curr_start, so PCRE2 would retry all of them
+                // from curr_start: only the alternative order distinguishes them.
                 auto compare_matches = [](const Match& lhs, const Match& rhs) {
-                    if (lhs.whitespace_start != rhs.whitespace_start) {
-                        return lhs.whitespace_start > rhs.whitespace_start;
-                    }
                     if (lhs.token_id != rhs.token_id) {
                         return lhs.token_id > rhs.token_id;
                     }
