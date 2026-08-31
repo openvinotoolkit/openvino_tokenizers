@@ -461,77 +461,93 @@ std::pair<std::pair<size_t,size_t>, std::pair<size_t,size_t>> PCRE2Wrapper::matc
 }
 
 
-const Trie* Trie::find_child(unsigned char ch) const {
-    auto it = std::lower_bound(
-        m_children.begin(), m_children.end(), ch,
-        [](const std::pair<unsigned char, std::unique_ptr<Trie>>& entry, unsigned char value) {
-            return entry.first < value;
-        });
-    if (it != m_children.end() && it->first == ch) {
-        return it->second.get();
+Trie::Trie() {
+    for (size_t ch = 0; ch < 256; ++ch) {
+        m_root[ch].value = -1;
+        m_root[ch].child = -1;
+        m_root_node[ch] = -1;
     }
-    return nullptr;
+}
+
+int32_t Trie::find_child(const std::vector<Child>& children, unsigned char ch) {
+    auto it = std::lower_bound(
+        children.begin(), children.end(), ch,
+        [](const Child& entry, unsigned char value) { return entry.key < value; });
+    if (it != children.end() && it->key == ch) {
+        return it->node;
+    }
+    return -1;
 }
 
 void Trie::add(const std::vector<unsigned char>& str, const int value, int idx) {
-    if (idx == str.size()) {
-        m_value = value;
-    } else {
-        auto ch = str[idx];
+    if (idx >= static_cast<int>(str.size())) {
+        // Empty key, or an `add` called directly at the end. Never read by
+        // find_longest, exactly as before.
+        m_empty_value = value;
+        return;
+    }
+
+    const unsigned char first = str[idx];
+    if (idx + 1 == static_cast<int>(str.size())) {
+        m_root[first].value = value;
+        return;
+    }
+
+    // Walk/create the depth-1 node, then descend through the pool.
+    int32_t node_idx = m_root_node[first];
+    if (node_idx < 0) {
+        node_idx = static_cast<int32_t>(m_nodes.size());
+        m_nodes.emplace_back();
+        m_root_node[first] = node_idx;
+    }
+    // The depth-1 node is about to hold at least one child, so the flat root slot
+    // must now route this byte to the deep walk.
+    m_root[first].child = node_idx;
+
+    for (int pos = idx + 1; pos < static_cast<int>(str.size()); ++pos) {
+        const unsigned char ch = str[pos];
+        auto& children = m_nodes[node_idx].children;
         auto it = std::lower_bound(
-            m_children.begin(), m_children.end(), ch,
-            [](const std::pair<unsigned char, std::unique_ptr<Trie>>& entry, unsigned char value) {
-                return entry.first < value;
-            });
-        if (it == m_children.end() || it->first != ch) {
-            it = m_children.emplace(it, ch, std::make_unique<Trie>());
+            children.begin(), children.end(), ch,
+            [](const Child& entry, unsigned char key) { return entry.key < key; });
+        if (it == children.end() || it->key != ch) {
+            const int32_t new_idx = static_cast<int32_t>(m_nodes.size());
+            // `children` is a reference into m_nodes; emplace_back may reallocate
+            // the pool, so record the insertion offset and re-acquire afterwards.
+            const auto offset = it - children.begin();
+            m_nodes.emplace_back();
+            m_nodes[node_idx].children.insert(
+                m_nodes[node_idx].children.begin() + offset, Child{new_idx, ch});
+            node_idx = new_idx;
+        } else {
+            node_idx = it->node;
         }
-        it->second->add(str, value, idx + 1);
     }
+    m_nodes[node_idx].value = value;
 }
 
+// Cold path: some key longer than one byte starts with str[idx]. Semantics are
+// those of the original loop -- track the longest key that actually matched and
+// rewind `idx` to its end, not to the end of the walk.
+int Trie::find_longest_deep(const unsigned char* data, int size, int& idx) const {
+    const RootSlot slot = m_root[data[idx]];
+    int token_id = slot.value;
+    ++idx;
+    int end_idx = (token_id != -1) ? idx : idx - 1;
 
-int Trie::find_longest(const std::vector<unsigned char>& str, int& idx) const {
-    int token_id = -1;  // no token found
-    const Trie* current_node = this;
-
-    uint8_t ch = str[idx];
-    int end_idx = idx;
-
-    while (const Trie* next_node = current_node->find_child(ch)) {
-        current_node = next_node;
-        idx++;
-        if (current_node->m_value != -1) {
-            token_id = current_node->m_value;
-            end_idx = idx;
-        }
-        if (idx == str.size()) {
+    int32_t node_idx = slot.child;
+    while (idx < size) {
+        const int32_t next = find_child(m_nodes[node_idx].children, data[idx]);
+        if (next < 0) {
             break;
         }
-        ch = str[idx];
-    }
-    idx = end_idx;
-    return token_id;
-}
-
-int Trie::find_longest(const std::string_view& str, int& idx) const {
-    int token_id = -1;  // no token found
-    const Trie* current_node = this;
-
-    uint8_t ch = str[idx];
-    int end_idx = idx;
-
-    while (const Trie* next_node = current_node->find_child(ch)) {
-        current_node = next_node;
-        idx++;
-        if (current_node->m_value != -1) {
-            token_id = current_node->m_value;
+        node_idx = next;
+        ++idx;
+        const int32_t value = m_nodes[node_idx].value;
+        if (value != -1) {
+            token_id = value;
             end_idx = idx;
         }
-        if (idx == str.size()) {
-            break;
-        }
-        ch = str[idx];
     }
     idx = end_idx;
     return token_id;
