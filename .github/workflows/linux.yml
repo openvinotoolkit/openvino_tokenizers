@@ -340,14 +340,13 @@ jobs:
           wheels_dir: '${{ env.INSTALL_DIR }}/ov_tokenizers'
           package_name: 'openvino_tokenizers'
 
-      - name: Install Test dependencies
-        run: uv sync --extra transformers --group dev --group benchmark --no-install-package openvino
-
-      - name: Install OpenVINO wheel
-        run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
-
-      - name: Install OpenVINO tokenizers wheel
-        run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+      - name: Install test dependencies and wheels
+        run: |
+          uv venv --python "${PYTHON_VERSION}"
+          source .venv/bin/activate
+          uv pip install --group dev \
+            "${{ steps.ov_wheel.outputs.wheel_path }}" \
+            "openvino-tokenizers[transformers] @ file://${{ steps.tokenizers_wheel.outputs.wheel_path }}"
 
       - name: Tokenizers regression tests (using openvino python wheels)
         run: uv run --no-sync pytest tests -n auto
@@ -423,14 +422,13 @@ jobs:
           wheels_dir: '${{ env.INSTALL_DIR }}/ov_tokenizers'
           package_name: 'openvino_tokenizers'
 
-      - name: Install Test dependencies
-        run: uv sync --extra transformers --group dev --no-install-package openvino
-
-      - name: Install OpenVINO wheel
-        run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
-
-      - name: Install OpenVINO tokenizers wheel
-        run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+      - name: Install test dependencies and wheels
+        run: |
+          uv venv --python "${PYTHON_VERSION}"
+          source .venv/bin/activate
+          uv pip install --group dev \
+            "${{ steps.ov_wheel.outputs.wheel_path }}" \
+            "openvino-tokenizers[transformers] @ file://${{ steps.tokenizers_wheel.outputs.wheel_path }}"
 
       - name: Install Tensorflow tests dependencies
         run: uv pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
@@ -512,14 +510,13 @@ jobs:
           wheels_dir: '${{ env.INSTALL_DIR }}/ov_tokenizers'
           package_name: 'openvino_tokenizers'
 
-      - name: Install Test dependencies
-        run: uv sync --group dev --group onnx_tests --no-install-package openvino
-
-      - name: Install OpenVINO wheel
-        run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
-
-      - name: Install OpenVINO tokenizers wheel
-        run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
+      - name: Install test dependencies and wheels
+        run: |
+          uv venv --python "${PYTHON_VERSION}"
+          source .venv/bin/activate
+          uv pip install --group dev --group onnx_tests \
+            "${{ steps.ov_wheel.outputs.wheel_path }}" \
+            "${{ steps.tokenizers_wheel.outputs.wheel_path }}"
 
       - name: ONNX contrib extension tests
         run: uv run --no-sync pytest tests/onnx_contrib_test.py
