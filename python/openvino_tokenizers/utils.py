@@ -148,6 +148,7 @@ def connect_models(
         )
 
     connected_model = Model(new_outputs, new_inputs, f"{first.get_name()}_with_{second.get_name()}")
+    connected_model.add_sinks(first.get_sinks() + second.get_sinks())
     # TODO: Cleanup model1 and mode2 to avoid using them, they are ill-formed after the reconnection
     connected_model.validate_nodes_and_infer_types()
     return connected_model
