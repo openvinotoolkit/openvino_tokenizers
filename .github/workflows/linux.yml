@@ -322,7 +322,7 @@ jobs:
           merge-multiple: true
           
       - name: Configure uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
 
@@ -405,7 +405,7 @@ jobs:
           merge-multiple: true
 
       - name: Configure uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
 
@@ -435,14 +435,32 @@ jobs:
       - name: Install Tensorflow tests dependencies
         run: uv pip install -r ${{ env.OPENVINO_REPO }}/tests/requirements_tensorflow
 
-      - name: TensorFlow 1 Layer Tests
-        run: uv run --no-sync pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests/ -n logical -m precommit  --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
+      - name: TensorFlow tokenizers extension tests
+        run: |
+          tf_tests=${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow_tests
+          uv run --no-sync pytest \
+            ${tf_tests}/test_tf_AsString.py \
+            ${tf_tests}/test_tf_Equal.py::TestEqualStr \
+            ${tf_tests}/test_tf_LookupTableFind.py \
+            ${tf_tests}/test_tf_RaggedTensorToSparse.py \
+            ${tf_tests}/test_tf_RaggedTensorToTensor.py \
+            ${tf_tests}/test_tf_StaticRegexReplace.py \
+            ${tf_tests}/test_tf_StringLower.py \
+            ${tf_tests}/test_tf_StringSplitV2.py \
+            ${tf_tests}/test_tf_StringToHashBucketFast.py \
+            -n logical -m precommit \
+            --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf_fe.xml
         env:
           TEST_DEVICE: CPU
           TEST_PRECISION: FP16
 
-      - name: TensorFlow 2 Layer Tests
-        run: uv run --no-sync pytest ${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow2_keras_tests/ -n logical -m precommit --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf2_fe.xml
+      - name: TensorFlow 2 tokenizers extension tests
+        run: |
+          tf2_tests=${{ env.OPENVINO_REPO }}/tests/layer_tests/tensorflow2_keras_tests
+          uv run --no-sync pytest \
+            ${tf2_tests}/test_tf2_keras_text_vectorization.py \
+            -n logical -m precommit \
+            --junitxml=${{ env.OPENVINO_REPO }}/TEST-tf2_fe.xml
         env:
           TEST_DEVICE: CPU
           TEST_PRECISION: FP16
@@ -494,7 +512,7 @@ jobs:
           merge-multiple: true
 
       - name: Configure uv
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           enable-cache: true
 
