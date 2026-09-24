@@ -127,12 +127,8 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     const bool has_skips = (input_size == 7);
 
     if (num_chars == 0) {
-        // TODO: CVS-160624. This is a workaround for the case when the input is empty.
-        outputs[0].set_shape(Shape{1});
-        outputs[1].set_shape(Shape{1});
-        outputs[0].data<int32_t>()[0] = 0;
-        outputs[1].data<int32_t>()[0] = 0;
-
+        outputs[0] = inputs[0];
+        outputs[1] = inputs[1];
         outputs[2] = inputs[2];
         outputs[3] = inputs[3];
         outputs[4] = inputs[4];
