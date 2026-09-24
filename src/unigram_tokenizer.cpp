@@ -17,9 +17,8 @@ void UnigramTokenizer::validate_and_infer_types() {
 bool UnigramTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inputs) const {
     const auto input_size = get_input_size();
 
-
-    if (m_tokenizer == nullptr) {
-        std::call_once(m_init_flag, [&]() {
+    std::call_once(m_init_flag, [&]() {
+        if (m_tokenizer == nullptr) {
             auto vocab_begins = inputs[5].data<const int32_t>();
             auto vocab_ends   = inputs[6].data<const int32_t>();
             auto vocab_chars  = inputs[7].data<const uint8_t>();
@@ -32,8 +31,8 @@ bool UnigramTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVecto
                 vocab[id] = {token, vocab_probs[id]};
             }
             m_tokenizer = std::make_shared<UnigramTokenizerImpl>(vocab, m_unk_token_id, m_byte_fallback);
-        });
-    }
+        }
+    });
 
     auto ragged_begins = inputs[0].data<const int32_t>();
     auto ragged_ends   = inputs[1].data<const int32_t>();
