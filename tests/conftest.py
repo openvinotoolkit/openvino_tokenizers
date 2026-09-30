@@ -162,6 +162,16 @@ def build_coverege_report(session: pytest.Session) -> None:
         f.write(new_readme.getvalue())
 
 
+@pytest.hookimpl(specname="pytest_sessionfinish", tryfirst=True)
+def pytest_sessionfinish_build_coverage(session: pytest.Session, exitstatus: pytest.ExitCode) -> None:
+    from pytest_harvest import is_main_process
+
+    # pytest-harvest deletes persisted xdist worker data in its trylast session-finish
+    # hook, so the controller must build the report before that cleanup runs.
+    if is_main_process(session) and session.config.getoption("update_readme", default=False):
+        build_coverege_report(session)
+
+
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -> None:
     """
@@ -174,9 +184,6 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: pytest.ExitCode) -
     # pass-rate and status files; workers must not touch them.
     if not is_main_process(session):
         return
-
-    if session.config.getoption("update_readme", default=False):
-        build_coverege_report(session)
 
     if exitstatus != pytest.ExitCode.TESTS_FAILED:
         return
