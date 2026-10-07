@@ -163,7 +163,7 @@ bool is_unicode_whitespace(uint32_t code_point) {
            code_point == 0xA0 || code_point == 0x1680 || code_point == 0x180E ||
            (code_point >= 0x2000 && code_point <= 0x200A) ||
            code_point == 0x2028 || code_point == 0x2029 || code_point == 0x202F || code_point == 0x205F ||
-           code_point == 0x3000;
+           code_point == 0x3000 || code_point == 0xFEFF;
 }
 
 size_t whitespace_end(std::string_view text, size_t position) {
