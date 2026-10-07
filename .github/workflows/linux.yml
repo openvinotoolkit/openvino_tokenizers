@@ -349,11 +349,17 @@ jobs:
       - name: Install OpenVINO tokenizers wheel
         run: uv pip install --no-deps ${{ steps.tokenizers_wheel.outputs.wheel_path }}
 
-      - name: Tokenizers regression tests (using openvino python wheels)
-        run: uv run --no-sync pytest tests -n auto
+      - name: Tokenizers pass-rate tests (using openvino python wheels)
+        run: uv run --no-sync pytest tests/tokenizers_test.py -n auto
 
-      - name: Tokenizers regression tests (with transformers v4)
-        run: uv run --no-sync --with "transformers[sentencepiece]>=4.0.0,<5" pytest tests -n auto
+      - name: Tokenizer functional tests (using openvino python wheels)
+        run: uv run --no-sync pytest tests --ignore=tests/tokenizers_test.py -n auto
+
+      - name: Tokenizers pass-rate tests (with transformers v4)
+        run: uv run --no-sync --with "transformers[sentencepiece]>=4.0.0,<5" pytest tests/tokenizers_test.py -n auto
+
+      - name: Tokenizer functional tests (with transformers v4)
+        run: uv run --no-sync --with "transformers[sentencepiece]>=4.0.0,<5" pytest tests --ignore=tests/tokenizers_test.py -n auto
         
   openvino_tf_tests:
     name: OpenVINO TensorFlow tests
