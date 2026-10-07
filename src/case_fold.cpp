@@ -35,8 +35,8 @@ bool CaseFold::evaluate(ov::TensorVector &outputs,
                         const ov::TensorVector &inputs) const {
   const bool has_skips = (inputs.size() == 4);
 
-  if (m_normalizer == nullptr && m_encoding == "utf-8") {
-    std::call_once(m_init_flag, [&]() {
+  std::call_once(m_init_flag, [&]() {
+    if (m_normalizer == nullptr && m_encoding == "utf-8") {
       sentencepiece::logging::SetMinLogLevel(1);
 
       m_spec = std::make_shared<sentencepiece::NormalizerSpec>();
@@ -50,8 +50,8 @@ bool CaseFold::evaluate(ov::TensorVector &outputs,
 
       m_normalizer =
           std::make_shared<sentencepiece::normalizer::Normalizer>(*m_spec);
-    });
-  }
+    }
+  });
   // we only support upper when encoding is empty
   if (m_encoding.empty()) {
     return evaluate_normalization_helper(

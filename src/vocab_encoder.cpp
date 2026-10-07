@@ -59,8 +59,8 @@ bool VocabEncoder::evaluate_impl(ov::TensorVector& outputs, const ov::TensorVect
     auto ends   = inputs[1].data<const int32_t>();
     auto chars  = inputs[2].data<const uint8_t>();
 
-    if (!m_vocab.has_value()) {
-        std::call_once(m_init_flag, [&]() {
+    std::call_once(m_init_flag, [&]() {
+        if (!m_vocab.has_value()) {
             auto vocab_begins = inputs[3].data<const int32_t>();
             auto vocab_ends   = inputs[4].data<const int32_t>();
             auto vocab_chars  = inputs[5].data<const uint8_t>();
@@ -75,8 +75,8 @@ bool VocabEncoder::evaluate_impl(ov::TensorVector& outputs, const ov::TensorVect
                 auto token = std::string(vocab_chars + vocab_begins[i], vocab_chars + vocab_ends[i]);
                 vocab->insert(std::pair{token, vocab_values[i]});
             };
-        });
-    }
+        }
+    });
     
     auto default_value = *inputs[7].data<const T>();
     const size_t num_elements = inputs[0].get_size();
