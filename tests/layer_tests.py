@@ -1,5 +1,6 @@
 import json
 import re
+import struct
 import tempfile
 from pathlib import Path
 from typing import NamedTuple, Union
@@ -687,3 +688,197 @@ def test_numeric_to_string_passthrough():
     compiled_model = core.compile_model(model)
     result = compiled_model([np.array(["hello", "world", "test"])])[0]
     assert list(result.flatten()) == ["hello", "world", "test"]
+
+
+RAGGED_HEADER_SIZE = 16
+
+
+def _packed_ragged_tensor(begins, ends, values, dtype=np.int32):
+    """Serializes begins/ends/values exactly the way RaggedTensorPack does.
+
+    Keeping a second implementation of the format here makes the tests catch an accidental change
+    of the binary layout: the bytes produced by the operation must match these bytes.
+    """
+    values = np.ascontiguousarray(values, dtype=dtype)
+    header = struct.pack(
+        "<iiII",
+        1,  # version
+        _TYPE_IDS[np.dtype(dtype).name],
+        len(begins),
+        values.nbytes,
+    )
+    assert len(header) == RAGGED_HEADER_SIZE
+    return np.frombuffer(
+        header + np.asarray(begins, dtype=np.int32).tobytes() + np.asarray(ends, dtype=np.int32).tobytes() + values.tobytes(),
+        dtype=np.uint8,
+    )
+
+
+# element::Type_t values that RaggedTensorPack writes into the header
+_TYPE_IDS = {
+    "int8": 7,
+    "int16": 8,
+    "int32": 9,
+    "int64": 10,
+    "uint8": 16,
+    "uint16": 17,
+    "uint32": 18,
+    "uint64": 19,
+    "float32": 4,
+    "float64": 5,
+    "bool": 1,
+}
+
+_NP_TYPES_BY_ID = {
+    1: np.bool,
+    4: np.float32,
+    5: np.float64,
+    7: np.int8,
+    8: np.int16,
+    9: np.int32,
+    10: np.int64,
+    16: np.uint8,
+    17: np.uint16,
+    18: np.uint32,
+    19: np.uint64,
+}
+
+
+@pytest.mark.parametrize(
+    "begins, ends, values, dtype",
+    [
+        ([], [], [], np.int32),  # fully empty
+        ([0], [1], [42], np.int32),  # single element
+        ([0, 0, 0], [0, 0, 0], [7, 8, 9], np.int32),  # rows that are all empty
+        ([0, 2, 2, 5], [2, 2, 5, 7], [1, 2, 3, 4, 5, 6, 7], np.int32),  # rows of varying length
+        ([0, 1], [1, 3], [-1, 2, 9999], np.int32),
+        ([0, 1], [1, 3], [-1, 2, 9999], np.int64),
+        ([0, 2], [2, 3], [0, 255, 128], np.uint8),
+        ([0, 1], [1, 3], [-32768, 0, 32767], np.int16),
+        ([0, 3], [3, 4], [1.5, -2.25, 0.0, 3.14159], np.float32),
+        ([0, 1], [1, 3], [1.5e30, -0.5, 12345.6789], np.float64),
+        ([0, 2], [2, 3], [True, False, True], np.bool),
+    ],
+)
+def test_ragged_tensor_pack_unpack_roundtrip(begins, ends, values, dtype):
+    """Input -> RaggedTensorPack -> RaggedTensorUnpack -> Output preserves the data exactly.
+
+    The two operations are checked separately: RaggedTensorPack turns the decomposed representation
+    into the documented bytes, and those bytes are then handed to RaggedTensorUnpack as data, which is
+    the way a ragged tensor crosses a graph boundary.
+    """
+    ov_type = Type(dtype)
+    np_begins = np.array(begins, dtype=np.int32)
+    np_ends = np.array(ends, dtype=np.int32)
+    np_values = np.array(values, dtype=dtype)
+
+    p_begins = op.Parameter(Type.i32, PartialShape(["?"]))
+    p_ends = op.Parameter(Type.i32, PartialShape(["?"]))
+    p_values = op.Parameter(ov_type, PartialShape(["?"]))
+    pack = _get_factory().create("RaggedTensorPack", [p_begins, p_ends, p_values])
+    assert pack.output(0).get_element_type() == Type.u8
+
+    packed = np.asarray(
+        core.compile_model(Model(pack.outputs(), [p_begins, p_ends, p_values], "pack"))([np_begins, np_ends, np_values])[0]
+    ).reshape(-1)
+    assert packed.dtype == np.uint8, "the packed tensor holds bytes"
+
+    # The header is self-describing, so it states which element type the values were serialized with.
+    # A plugin is allowed to change the precision of the inputs of an extension operation, therefore the
+    # check is against the type that the operation really received, not against the requested one.
+    version, value_type_id, num_elements, values_byte_size = struct.unpack("<iiII", bytes(packed[:RAGGED_HEADER_SIZE]))
+    assert version == 1
+    assert num_elements == len(begins)
+    assert packed.size == RAGGED_HEADER_SIZE + 8 * len(begins) + values_byte_size
+
+    actual_type = np.dtype(_NP_TYPES_BY_ID[value_type_id])
+    expected = _packed_ragged_tensor(begins, ends, values, actual_type)
+    assert np.array_equal(packed, expected), "packed bytes match the documented format"
+
+    # A model that only sees the single packed tensor
+    p_packed = op.Parameter(Type.u8, PartialShape(["?"]))
+    unpack = _get_factory().create("RaggedTensorUnpack", p_packed.outputs(), {"value_type": Type(actual_type).get_type_name()})
+    assert [o.get_element_type() for o in unpack.outputs()] == [Type.i32, Type.i32, Type(actual_type)]
+
+    result = core.compile_model(Model(unpack.outputs(), [p_packed], "unpack"))([packed])
+    assert len(result) == 3
+    assert np.array_equal(np.asarray(result[0]).reshape(-1), np_begins)
+    assert np.array_equal(np.asarray(result[1]).reshape(-1), np_ends)
+    assert np.array_equal(np.asarray(result[2]).reshape(-1), np_values.astype(actual_type))
+
+
+def test_ragged_tensor_pack_unpack_in_one_graph():
+    """The two operations chained into a single model preserve the data."""
+    begins, ends, values = [0, 2, 2], [2, 2, 5], [1, 2, 3, 4, 5]
+
+    p_begins = op.Parameter(Type.i32, PartialShape(["?"]))
+    p_ends = op.Parameter(Type.i32, PartialShape(["?"]))
+    p_values = op.Parameter(Type.i32, PartialShape(["?"]))
+    pack = _get_factory().create("RaggedTensorPack", [p_begins, p_ends, p_values])
+    # The values element type is stored in the packed tensor itself, so it has to be declared
+    # for the operation that deserializes it.
+    unpack = _get_factory().create("RaggedTensorUnpack", pack.outputs(), {"value_type": "i32"})
+    model = Model(unpack.outputs(), [p_begins, p_ends, p_values], "pack_and_unpack")
+
+    result = core.compile_model(model)([
+        np.array(begins, np.int32),
+        np.array(ends, np.int32),
+        np.array(values, np.int32),
+    ])
+    assert np.array_equal(np.asarray(result[0]).reshape(-1), np.array(begins, np.int32))
+    assert np.array_equal(np.asarray(result[1]).reshape(-1), np.array(ends, np.int32))
+    assert np.array_equal(np.asarray(result[2]).reshape(-1), np.array(values, np.int32))
+
+
+def test_ragged_tensor_crosses_graph_boundary():
+    """A packed ragged tensor produced by one model is deserialized by an independent model."""
+    begins, ends, values = [0, 2], [2, 3], [7, 8, 9]
+
+    p_begins = op.Parameter(Type.i32, PartialShape(["?"]))
+    p_ends = op.Parameter(Type.i32, PartialShape(["?"]))
+    p_values = op.Parameter(Type.i32, PartialShape(["?"]))
+    pack = _get_factory().create("RaggedTensorPack", [p_begins, p_ends, p_values])
+    pack_model = Model(pack.outputs(), [p_begins, p_ends, p_values], "pack_only")
+    packed = np.asarray(core.compile_model(pack_model)(
+        [np.array(begins, np.int32), np.array(ends, np.int32), np.array(values, np.int32)]
+    )[0]).reshape(-1)
+
+    # The second model knows nothing about the ragged structure, only about the single u8 tensor
+    p_packed = op.Parameter(Type.u8, PartialShape(["?"]))
+    unpack = _get_factory().create("RaggedTensorUnpack", p_packed.outputs(), {"value_type": "i32"})
+    unpack_model = Model(unpack.outputs(), [p_packed], "unpack_only")
+    result = core.compile_model(unpack_model)([packed])
+
+    assert np.array_equal(np.asarray(result[0]).reshape(-1), np.array(begins, np.int32))
+    assert np.array_equal(np.asarray(result[1]).reshape(-1), np.array(ends, np.int32))
+    assert np.array_equal(np.asarray(result[2]).reshape(-1), np.array(values, np.int32))
+
+
+@pytest.mark.parametrize(
+    "corruption, description",
+    [
+        (lambda b: b[:10], "header truncated"),
+        (lambda b: b[:-1], "body shorter than the header describes"),
+        (lambda b: b[:4] + b"\x63" + b[5:], "unsupported version"),
+        (lambda b: b[:8] + b"\x63" + b[9:], "unknown element type id"),
+        (lambda b: b[:8] + struct.pack("<I", 5) + b[12:], "row count inconsistent with the size"),
+    ],
+)
+def test_ragged_tensor_unpack_rejects_malformed(corruption, description):
+    """A corrupted packed tensor is reported instead of being misinterpreted."""
+    good = bytearray(_packed_ragged_tensor([0, 1], [1, 2], [7, 8], np.int32))
+    packed = np.frombuffer(bytes(corruption(good)), dtype=np.uint8)
+
+    p_packed = op.Parameter(Type.u8, PartialShape(["?"]))
+    unpack = _get_factory().create("RaggedTensorUnpack", p_packed.outputs(), {"value_type": "i32"})
+    model = Model(unpack.outputs(), [p_packed], "malformed")
+    with pytest.raises(Exception):
+        core.compile_model(model)([packed])
+
+
+def test_ragged_tensor_pack_rejects_string_values():
+    """String values cannot be serialized into a self-contained byte stream."""
+    p_begins = op.Parameter(Type.i32, PartialShape(["?"]))
+    p_values = op.Parameter(Type.string, PartialShape(["?"]))
+    with pytest.raises(Exception):
+        _get_factory().create("RaggedTensorPack", [p_begins, p_begins, p_values])
