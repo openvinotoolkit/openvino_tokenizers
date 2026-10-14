@@ -130,7 +130,7 @@ jobs:
                 -B ${{ env.BUILD_DIR }}
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        run: CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.logicalcpu) cmake --build ${{ env.BUILD_DIR }} --config ${{ matrix.build_type }} --verbose
 
       - name: Show ccache stats
         run: ccache --show-stats
@@ -267,6 +267,7 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
+          export CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.logicalcpu)
           python3 -m pip wheel -v \
             --no-deps --wheel-dir ${BUILD_DIR} \
             --config-settings='override=wheel.build_tag="${{ github.run_number }}"' \

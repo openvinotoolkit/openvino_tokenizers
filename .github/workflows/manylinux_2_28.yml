@@ -129,7 +129,7 @@ jobs:
                 -B ${{ env.BUILD_DIR }}
 
       - name: Cmake build - tokenizers
-        run: /usr/bin/cmake --build ${{ env.BUILD_DIR }} --parallel --config ${{ matrix.build_type }} --verbose
+        run: CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) /usr/bin/cmake --build ${{ env.BUILD_DIR }} --config ${{ matrix.build_type }} --verbose
 
       - name: Cmake install - tokenizers
         run: /usr/bin/cmake --install ${{ env.BUILD_DIR }} --config=${{ matrix.build_type }} --prefix=${{ env.OV_TOKENIZERS_INSTALL_DIR }}/ov_tokenizers
@@ -231,6 +231,7 @@ jobs:
 
       - name: Build tokenizers Wheel
         run: |
+          export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)
           python${{ env.PYTHON_VERSION }} -m pip wheel -v --no-deps --wheel-dir ${BUILD_DIR} \
               --config-settings='override=wheel.build_tag="${{ github.run_number }}"' \
               ${{ needs.openvino_download.outputs.ov_wheel_source }} \

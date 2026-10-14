@@ -105,7 +105,7 @@ jobs:
           echo """
           mkdir -p ${BUILD_DIR}
           cmake -DBUILD_FAST_TOKENIZERS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -S${OPENVINO_TOKENIZERS_REPO} -B${BUILD_DIR}
-          CMAKE_BUILD_PARALLEL_LEVEL=4 cmake --build ${{ env.BUILD_DIR }} --parallel --config ${BUILD_TYPE}
+          CMAKE_BUILD_PARALLEL_LEVEL=$(nproc) cmake --build ${{ env.BUILD_DIR }} --config ${BUILD_TYPE}
           """ > build.sh
 
       - name: Build for coverity

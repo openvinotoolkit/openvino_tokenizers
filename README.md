@@ -50,6 +50,11 @@ pip install --pre -U openvino openvino-tokenizers --extra-index-url https://stor
 
 ### Build and Install from Source
 
+Set `CMAKE_BUILD_PARALLEL_LEVEL` before building from source to control concurrent C++ compilation jobs.
+For example, on Linux use `export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)` to use the available processors,
+or set a lower number to reduce peak memory usage. On macOS, use `$(sysctl -n hw.logicalcpu)`;
+on Windows, use `$env:CMAKE_BUILD_PARALLEL_LEVEL = $env:NUMBER_OF_PROCESSORS` in PowerShell.
+
 #### Using OpenVINO PyPI package
 
 openvino-tokenizers build depends on [openvino](https://pypi.org/project/openvino/) package which will be automatically installed from PyPI during the build process. To install unreleased versions, you would need to install openvino package from the nightly distribution channel using `--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly`

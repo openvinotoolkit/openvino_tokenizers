@@ -157,7 +157,9 @@ jobs:
                 -B ${{ env.BUILD_DIR }}
 
       - name: Cmake build - tokenizers
-        run: cmake --build ${{ env.BUILD_DIR }} --parallel $ENV:NUMBER_OF_PROCESSORS --config ${{ matrix.build_type }} --verbose
+        run: |
+          $env:CMAKE_BUILD_PARALLEL_LEVEL = $env:NUMBER_OF_PROCESSORS
+          cmake --build ${{ env.BUILD_DIR }} --config ${{ matrix.build_type }} --verbose
         env:
           ICU_DATA_FILTER_FILE: ${{ env.OPENVINO_TOKENIZERS_REPO }}\\src\\icu_filter_en.json
 
@@ -321,6 +323,7 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
+          $env:CMAKE_BUILD_PARALLEL_LEVEL = $env:NUMBER_OF_PROCESSORS
           python -m pip wheel -v --no-deps --wheel-dir ${{ env.WHEELS_DIR }} `
             --config-settings='override=wheel.build_tag="${{ github.run_number }}"' `
             --config-settings=override=cmake.build_path='${{ env.BUILD_DIR }}' `
