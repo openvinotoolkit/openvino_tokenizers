@@ -267,10 +267,12 @@ jobs:
 
       - name: Build tokenizers wheel
         run: |
-          export CMAKE_BUILD_PARALLEL_LEVEL=$(sysctl -n hw.logicalcpu)
+          parallel_jobs=$(sysctl -n hw.logicalcpu)
+          build_args_override="override=cmake.build_args={\"=\"=[\"--parallel\",\"${parallel_jobs}\",\"--target\",\"openvino_tokenizers\"]}"
           python3 -m pip wheel -v \
             --no-deps --wheel-dir ${BUILD_DIR} \
             --config-settings='override=wheel.build_tag="${{ github.run_number }}"' \
+            --config-settings="$build_args_override" \
             ${{ needs.openvino_download.outputs.ov_wheel_source }} \
             ${OPENVINO_TOKENIZERS_REPO}
         working-directory: ${{ env.INSTALL_DIR }}

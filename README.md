@@ -50,10 +50,17 @@ pip install --pre -U openvino openvino-tokenizers --extra-index-url https://stor
 
 ### Build and Install from Source
 
-Set `CMAKE_BUILD_PARALLEL_LEVEL` before building from source to control concurrent C++ compilation jobs.
-For example, on Linux use `export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)` to use the available processors,
-or set a lower number to reduce peak memory usage. On macOS, use `$(sysctl -n hw.logicalcpu)`;
-on Windows, use `$env:CMAKE_BUILD_PARALLEL_LEVEL = $env:NUMBER_OF_PROCESSORS` in PowerShell.
+On Linux, pass the available processor count as a build-argument override to control concurrent C++ compilation jobs:
+
+```bash
+parallel_jobs=$(nproc)
+pip install . \
+  --config-settings="override=cmake.build_args={\"=\"=[\"--parallel\",\"${parallel_jobs}\",\"--target\",\"openvino_tokenizers\"]}" \
+  --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
+```
+
+Replace `$(nproc)` with the platform's processor-count command on macOS or Windows. Use a lower
+`parallel_jobs` value if you need to reduce peak memory usage.
 
 #### Using OpenVINO PyPI package
 
