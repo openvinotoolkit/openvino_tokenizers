@@ -328,7 +328,7 @@ jobs:
     name: ci/gha_overall_status_manylinux_2_28
     needs: [openvino_download, openvino_tokenizers_cpack, store_artifacts, openvino_tokenizers_wheel]
     if: ${{ always() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Check status of all jobs
         if: >-
