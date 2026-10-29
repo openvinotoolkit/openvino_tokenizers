@@ -12,6 +12,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include "absl/container/flat_hash_map.h"
+#include "bpe_result_cache.hpp"
 #include "utils.hpp"
 
 #ifdef _MSC_VER
@@ -145,11 +146,14 @@ private:
     bool m_byte_fallback = false;
     int32_t m_unk_token_id = -1;
     bool m_fuse_unk = false;
-    size_t m_cache_capacity;
+    size_t m_cache_capacity = 0;
     std::shared_mutex m_mutex;
-    std::unordered_map<std::string, std::vector<int32_t>> m_cache;
+    BPEResultCache m_cache;
 public:
-    BPETokenizerImpl(Vocab vocab, Merges merges): m_vocab(std::move(vocab)), m_merges(std::move(merges)) {};
+    BPETokenizerImpl(Vocab vocab, Merges merges):
+        m_vocab(std::move(vocab)),
+        m_merges(std::move(merges)),
+        m_cache(0) {};
     BPETokenizerImpl(
         Vocab vocab, const TextMerges& merges,
         size_t cache_capacity,

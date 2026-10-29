@@ -9,7 +9,7 @@ import openvino as ov
 import pytest
 import requests
 from openvino import Model, PartialShape, Type, op
-from openvino_tokenizers import _get_factory, _get_opset_factory
+from openvino_tokenizers import _get_factory, _get_opset_factory, convert_tokenizer
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
 from openvino_tokenizers.tokenizer_pipeline import (
@@ -24,9 +24,13 @@ from openvino_tokenizers.tokenizer_pipeline import (
     SpecialToken,
     SpecialTokensSplit,
     TokenizerPipeline,
+    TrieTokenizerStep,
     UTF8ValidateStep,
 )
 from openvino_tokenizers.utils import TokenzierConversionParams
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from transformers import PreTrainedTokenizerFast
 
 from tests.utils import get_hf_tokenizer
 
@@ -42,6 +46,113 @@ class NormalizationTestLine(NamedTuple):
     nfkc: str
     nfkd: str
     comment: str
+
+
+@pytest.fixture(scope="module")
+def synthetic_bpe_tokenizers():
+    vocab = {
+        "[UNK]": 0,
+        "a": 1,
+        "aa": 2,
+        "aaa": 3,
+        "aaaa": 4,
+        "aaaaaaaa": 5,
+        "aaaaaaaaaaaaaaaa": 6,
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": 7,
+        "b": 8,
+        "c": 9,
+        "ab": 10,
+        "bc": 11,
+        "abc": 12,
+    }
+    merges = [
+        ("a", "a"),
+        ("aa", "a"),
+        ("aa", "aa"),
+        ("aaaa", "aaaa"),
+        ("aaaaaaaa", "aaaaaaaa"),
+        ("aaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaa"),
+        ("b", "c"),
+        ("a", "b"),
+        ("a", "bc"),
+    ]
+    backend = Tokenizer(BPE(vocab=vocab, merges=merges, unk_token="[UNK]"))
+    hf_tokenizer = PreTrainedTokenizerFast(tokenizer_object=backend, unk_token="[UNK]")
+    ov_model = convert_tokenizer(hf_tokenizer, with_detokenizer=False, add_special_tokens=False)
+    return hf_tokenizer, core.compile_model(ov_model, "CPU")
+
+
+@pytest.mark.parametrize(
+    "text, expected_ids",
+    [
+        ("aaa", [3]),
+        ("abc", [12]),
+        ("a" * 32, [7]),
+        ("a" * 33, [6, 5, 4, 2, 3]),
+    ],
+    ids=["leftmost_tie", "rank_differs_from_id", "short_path_limit", "priority_queue_fallback"],
+)
+def test_bpe_short_merge_path_matches_hf(synthetic_bpe_tokenizers, text, expected_ids):
+    hf_tokenizer, ov_tokenizer = synthetic_bpe_tokenizers
+    hf_ids = hf_tokenizer(text, add_special_tokens=False)["input_ids"]
+    ov_ids = ov_tokenizer([text])["input_ids"][0].tolist()
+
+    assert hf_ids == expected_ids
+    assert ov_ids == expected_ids
+
+
+@pytest.mark.parametrize(
+    "model,texts,expected_ids",
+    [
+        (
+            BPE(
+                vocab={"[UNK]": 0, "a</w>": 1},
+                merges=[],
+                unk_token="[UNK]",
+                end_of_word_suffix="</w>",
+            ),
+            ["a", ""],
+            [[1], []],
+        ),
+        (
+            BPE(
+                vocab={"[UNK]": 0, "<0xC3>": 1, "<0xA9>": 2},
+                merges=[],
+                unk_token="[UNK]",
+                byte_fallback=True,
+            ),
+            ["é", "x"],
+            [[1, 2], [0]],
+        ),
+        (
+            BPE(
+                vocab={"[UNK]": 0, "a": 1},
+                merges=[],
+                unk_token="[UNK]",
+                fuse_unk=True,
+            ),
+            ["xyz", "xay"],
+            [[0], [0, 1, 0]],
+        ),
+    ],
+    ids=["end_suffix_and_empty", "byte_fallback", "fuse_unk"],
+)
+def test_bpe_edge_paths(model, texts, expected_ids):
+    hf_tokenizer = PreTrainedTokenizerFast(
+        tokenizer_object=Tokenizer(model),
+        unk_token="[UNK]",
+    )
+    ov_model = convert_tokenizer(
+        hf_tokenizer,
+        with_detokenizer=False,
+        add_special_tokens=False,
+    )
+    ov_tokenizer = core.compile_model(ov_model, "CPU")
+
+    for text, expected in zip(texts, expected_ids):
+        assert hf_tokenizer(text, add_special_tokens=False)["input_ids"] == expected
+        assert ov_tokenizer([text])["input_ids"][0].tolist() == expected
+        assert ov_tokenizer([text])["input_ids"][0].tolist() == expected
 
 
 def parse_normalization_test_line(line):
@@ -687,3 +798,98 @@ def test_numeric_to_string_passthrough():
     compiled_model = core.compile_model(model)
     result = compiled_model([np.array(["hello", "world", "test"])])[0]
     assert list(result.flatten()) == ["hello", "world", "test"]
+
+
+############################################
+############# Test Trie Lookup #############
+############################################
+
+# The Trie longest-prefix table backs BPETokenizer, WordpieceTokenizer, and the
+# standalone TrieTokenizer op. TrieTokenizer is the only one that exposes it
+# without a surrounding tokenizer model, so these tests drive it directly.
+#
+# The op loops `while (idx < size)` and appends whatever find_longest returns,
+# so a position with no match at all does not terminate. Every vocab below is
+# therefore byte-complete (all 256 single bytes present), which is also what
+# real RWKV vocabs are.
+
+TRIE_BYTE_BASE_OFFSET = 1  # id 0 is reserved for the empty vocab entry
+
+
+def build_trie_tokenizer(extra_tokens: dict) -> ov.CompiledModel:
+    """A byte-complete Trie vocab plus `extra_tokens` mapping token bytes to ids."""
+    vocab = [b""] + [bytes([byte]) for byte in range(256)]
+    if extra_tokens:
+        vocab.extend([b""] * (max(extra_tokens.values()) + 1 - len(vocab)))
+        for token, idx in extra_tokens.items():
+            vocab[idx] = token
+
+    step = TrieTokenizerStep(vocab, list(range(len(vocab))))
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    output = _get_opset_factory("opset15").create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = step.get_ov_subgraph(TokenizerPipeline.add_ragged_dimension(output))
+    return core.compile_model(Model(output, [input_node], "trie"), "CPU")
+
+
+def byte_ids(data: bytes) -> list:
+    return [byte + TRIE_BYTE_BASE_OFFSET for byte in data]
+
+
+@pytest.fixture(scope="module")
+def trie_tokenizers():
+    return {
+        # No multi-byte key: exercises the single-byte-only table.
+        "bytes_only": build_trie_tokenizer({}),
+        # Nested strict prefixes: "a" < "ab" < "abcd", with "abc" absent so a walk
+        # can descend past a match and dead-end.
+        "prefixes": build_trie_tokenizer({b"ab": 300, b"abcd": 301}),
+        # High-bit bytes, a 45-byte key (the longest in the Qwen BPE trie), and an
+        # embedded NUL.
+        "wide": build_trie_tokenizer(
+            {b"\x80\xff\x81": 300, b"\xff\x80": 301, b"q" * 45: 302, b"a\x00b": 303}
+        ),
+    }
+
+
+@pytest.mark.parametrize(
+    "vocab_id, text, expected",
+    [
+        # Single-byte-only table: every byte resolves at depth 1.
+        ("bytes_only", b"abc", byte_ids(b"abc")),
+        ("bytes_only", bytes(range(256)), byte_ids(bytes(range(256)))),
+        ("bytes_only", b"\x00\x80\xff\x7f", byte_ids(b"\x00\x80\xff\x7f")),
+        # Longest match wins over any shorter prefix.
+        ("prefixes", b"abcd", [301]),
+        ("prefixes", b"ab", [300]),
+        ("prefixes", b"a", byte_ids(b"a")),
+        # Walk descends "a"->"ab"->"abc" then dead-ends: must return the "ab"
+        # match and rewind the cursor to just past "ab", not past "abc".
+        ("prefixes", b"abc", [300] + byte_ids(b"c")),
+        ("prefixes", b"abce", [300] + byte_ids(b"ce")),
+        ("prefixes", b"abcde", [301] + byte_ids(b"e")),
+        # Same rewind with no depth-1 value consumed before the dead end.
+        ("prefixes", b"abx", [300] + byte_ids(b"x")),
+        # High-bit bytes must not be sign-extended on any path.
+        ("wide", b"\x80\xff\x81", [300]),
+        ("wide", b"\xff\x80", [301]),
+        ("wide", b"\x80\xff", byte_ids(b"\x80\xff")),  # descends then rewinds
+        ("wide", b"\x80\xff\x82", byte_ids(b"\x80\xff\x82")),
+        # 45-byte maximum-length key, and its off-by-one neighbours.
+        ("wide", b"q" * 45, [302]),
+        ("wide", b"q" * 44, byte_ids(b"q" * 44)),
+        ("wide", b"q" * 46, [302] + byte_ids(b"q")),
+        # Embedded NUL inside a key and inside a failing walk.
+        ("wide", b"a\x00b", [303]),
+        ("wide", b"a\x00c", byte_ids(b"a\x00c")),
+        # Leading NUL. A trailing one cannot be tested through this op because
+        # numpy's fixed-width bytes dtype strips trailing NULs from the input.
+        ("wide", b"\x00a", byte_ids(b"\x00a")),
+        # Empty input: no output tokens, and no read past the end.
+        ("wide", b"", []),
+    ],
+)
+def test_trie_find_longest(trie_tokenizers, vocab_id, text, expected):
+    compiled_model = trie_tokenizers[vocab_id]
+    result = compiled_model([text])
+    begin, end = int(result[0][0]), int(result[1][0])
+    assert [int(token) for token in result[2][begin:end]] == expected
