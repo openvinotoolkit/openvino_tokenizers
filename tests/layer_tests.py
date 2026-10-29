@@ -19,6 +19,7 @@ from openvino_tokenizers.tokenizer_pipeline import (
     NormalizationStep,
     NormalizeUnicode,
     PreTokenizatinStep,
+    RegexDecodingStep,
     RegexNormalizationStep,
     RegexSplitStep,
     SpecialToken,
@@ -687,3 +688,34 @@ def test_numeric_to_string_passthrough():
     compiled_model = core.compile_model(model)
     result = compiled_model([np.array(["hello", "world", "test"])])[0]
     assert list(result.flatten()) == ["hello", "world", "test"]
+
+
+#############################################
+########### Test Decoding Step ##############
+#############################################
+
+
+@pytest.mark.parametrize(
+    "replace_dict, expected_pattern, expected_content",
+    [
+        (
+            {"type": "Replace", "pattern": {"String": "_"}, "content": " "},
+            "_",
+            " ",
+        ),
+        (
+            {"type": "Replace", "pattern": {"Regex": "\u2581"}, "content": " "},
+            "\u2581",
+            " ",
+        ),
+        (
+            {"type": "Replace", "pattern": {"Regex": "(?<!\\n)^ "}, "content": ""},
+            r"(?<!\n)^ ",
+            "",
+        ),
+    ],
+)
+def test_regex_decoding_step_parse_replace(replace_dict, expected_pattern, expected_content):
+    step = RegexDecodingStep.parse_replace_dict(replace_dict)
+    assert step.regex_search_pattern == expected_pattern
+    assert step.replace_term == expected_content
