@@ -26,7 +26,7 @@ from openvino_tokenizers.tokenizer_pipeline import (
     TokenizerPipeline,
     UTF8ValidateStep,
 )
-from openvino_tokenizers.utils import TokenzierConversionParams
+from openvino_tokenizers.utils import TokenzierConversionParams, create_string_constant_node
 
 from tests.utils import get_hf_tokenizer
 
@@ -389,17 +389,52 @@ def test_regex_split(test_string, expected, layer):
     assert (res_ov == expected).all()
 
 
-def create_special_tokens_split(special_tokens: list[SpecialToken]) -> ov.CompiledModel:
+def test_regex_split_empty_batch():
+    compiled_model = create_splitting_model(RegexSplitStep.whitespace_splitter())
+
+    res_ov = compiled_model(["", ""])[0]
+
+    assert res_ov.tolist() == ["", ""]
+
+
+def create_special_tokens_split(
+    special_tokens: list[SpecialToken], skips: list[bool] | None = None
+) -> ov.CompiledModel:
     layer = SpecialTokensSplit(special_tokens)
 
     input_node = op.Parameter(Type.string, PartialShape(["?"]))
     output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
     output = TokenizerPipeline.add_ragged_dimension(output)
+    if skips is not None:
+        output.extend(ov.opset13.constant(skips, Type.boolean).outputs())
     output = layer.get_ov_subgraph(output)
     output_string = _get_factory().create("StringTensorPack", output[2:5]).outputs()
 
     splitter = Model(output_string + output[-1:], [input_node], "splitter")
     return core.compile_model(splitter)
+
+
+def create_special_tokens_split_from_pattern(pattern: str) -> ov.CompiledModel:
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = TokenizerPipeline.add_ragged_dimension(output)
+    output.extend(create_string_constant_node(pattern))
+    output = _get_factory().create("SpecialTokensSplit", output).outputs()
+    output_string = _get_factory().create("StringTensorPack", output[2:5]).outputs()
+    return core.compile_model(Model(output_string + output[-1:], [input_node], "splitter"))
+
+
+def create_raw_special_tokens_split(
+    special_tokens: list[SpecialToken], skips: list[bool] | None = None
+) -> ov.CompiledModel:
+    layer = SpecialTokensSplit(special_tokens)
+    input_node = op.Parameter(Type.string, PartialShape(["?"]))
+    output = _get_factory().create("StringTensorUnpack", input_node.outputs()).outputs()
+    output = TokenizerPipeline.add_ragged_dimension(output)
+    if skips is not None:
+        output.extend(ov.opset13.constant(skips, Type.boolean).outputs())
+    output = layer.get_ov_subgraph(output)
+    return core.compile_model(Model(output, [input_node], "raw_splitter"))
 
 
 @pytest.mark.parametrize(
@@ -455,6 +490,137 @@ def test_special_tokens_split(special_tokens, text, expected, expected_skips):
     res, skips = compiled_model([text]).values()
     assert (res == expected).all()
     assert (skips == expected_skips).all()
+
+
+@pytest.mark.parametrize(
+    "special_tokens, text, expected, expected_skips",
+    [
+        ([SpecialToken("a"), SpecialToken("ab"), SpecialToken("bc")], "zabc", ("z", "ab", "c"), [0, 1, 0]),
+        ([SpecialToken("danc"), SpecialToken("nci"), SpecialToken("ing")], "dancing", ("danc", "ing"), [1, 1]),
+        ([SpecialToken("nci"), SpecialToken("danc"), SpecialToken("ing")], "dancing", ("danc", "ing"), [1, 1]),
+        ([SpecialToken("a|b"), SpecialToken(r"(x)\y")], r"a|b-(x)\y", ("a|b", "-", r"(x)\y"), [1, 0, 1]),
+    ],
+)
+def test_special_tokens_split_literal_matching(special_tokens, text, expected, expected_skips):
+    compiled_model = create_special_tokens_split(special_tokens)
+    res, skips = compiled_model([text]).values()
+    assert (res == expected).all()
+    assert (skips == expected_skips).all()
+
+
+@pytest.mark.parametrize(
+    "pattern, expected, expected_skips",
+    [
+        ("(a)|(ab)", ("a", "b"), [1, 0]),
+        ("(ab)|(a)", ("ab",), [1]),
+    ],
+)
+def test_special_tokens_split_preserves_pattern_priority(pattern, expected, expected_skips):
+    compiled_model = create_special_tokens_split_from_pattern(pattern)
+
+    res, skips = compiled_model(["ab"]).values()
+
+    assert (res == expected).all()
+    assert (skips == expected_skips).all()
+
+
+def test_special_tokens_split_priority_after_stripped_whitespace():
+    # "\u2003" and "<t>" both become candidates at the same restart offset; the earlier
+    # alternative must win even though "<t>" owns the longer preceding whitespace run.
+    compiled_model = create_special_tokens_split(
+        [SpecialToken("\u2003"), SpecialToken("Q "), SpecialToken("<t>", strip_left=True)]
+    )
+
+    res, skips = compiled_model(["Q \u2003 <t>"]).values()
+
+    assert (res == ("Q ", "\u2003", "<t>")).all()
+    assert (skips == [1, 1, 1]).all()
+
+
+def test_special_tokens_split_unicode_whitespace():
+    compiled_model = create_special_tokens_split(
+        [SpecialToken("<mask>", strip_left=True, strip_right=True)]
+    )
+
+    res, skips = compiled_model(["Hi <mask> there\t<mask>\t<mask>\u2000"]).values()
+
+    assert (res == ("Hi", "<mask>", "there", "<mask>", "<mask>")).all()
+    assert (skips == [0, 1, 0, 1, 1]).all()
+
+
+def test_special_tokens_split_mongolian_vowel_separator():
+    compiled_model = create_special_tokens_split(
+        [SpecialToken("<mask>", strip_left=True, strip_right=True)]
+    )
+
+    res, skips = compiled_model(["before\u180e<mask>\u180eafter"]).values()
+
+    assert (res == ("before", "<mask>", "after")).all()
+    assert (skips == [0, 1, 0]).all()
+
+
+def test_special_tokens_split_batch_and_existing_skips():
+    compiled_model = create_special_tokens_split([SpecialToken("<mask>")], skips=[False, True])
+
+    res, skips = compiled_model(["before<mask>after", "keep<mask>whole"]).values()
+
+    assert (res == ("before", "<mask>", "after", "keep<mask>whole")).all()
+    assert (skips == [0, 1, 0, 1]).all()
+
+
+@pytest.mark.parametrize(
+    "texts, expected_ragged_begins, expected_ragged_ends, expected_begins, expected_ends",
+    [
+        ([""], [0], [0], [], []),
+        (["", ""], [0, 0], [0, 0], [], []),
+        (["", "abc"], [0, 0], [0, 1], [0], [3]),
+    ],
+)
+def test_special_tokens_split_empty_strings(
+    texts, expected_ragged_begins, expected_ragged_ends, expected_begins, expected_ends
+):
+    compiled_model = create_raw_special_tokens_split([SpecialToken("<mask>")])
+
+    ragged_begins, ragged_ends, begins, ends, _, skips = compiled_model(texts).values()
+
+    assert (ragged_begins == expected_ragged_begins).all()
+    assert (ragged_ends == expected_ragged_ends).all()
+    assert (begins == expected_begins).all()
+    assert (ends == expected_ends).all()
+    assert skips.size == len(expected_begins)
+
+
+def test_special_tokens_split_empty_existing_skip():
+    compiled_model = create_raw_special_tokens_split([SpecialToken("<mask>")], skips=[True])
+
+    ragged_begins, ragged_ends, begins, ends, _, skips = compiled_model([""]).values()
+
+    assert (ragged_begins == [0]).all()
+    assert (ragged_ends == [0]).all()
+    assert begins.size == 0
+    assert ends.size == 0
+    assert skips.size == 0
+
+
+def test_special_tokens_split_shared_whitespace():
+    compiled_model = create_special_tokens_split(
+        [SpecialToken("left", strip_right=True), SpecialToken("right", strip_left=True)]
+    )
+
+    res, skips = compiled_model(["left   right"]).values()
+
+    assert (res == ("left", "right")).all()
+    assert (skips == [1, 1]).all()
+
+
+def test_special_tokens_split_many_tokens():
+    special_tokens = [SpecialToken(f"<special_{index}>") for index in range(5000)]
+    compiled_model = create_special_tokens_split(special_tokens)
+
+    res, skips = compiled_model(["before<special_4999>middle<special_0>after"]).values()
+
+    assert (res == ("before", "<special_4999>", "middle", "<special_0>", "after")).all()
+    assert (skips == [0, 1, 0, 1, 0]).all()
 
 
 ###############################################

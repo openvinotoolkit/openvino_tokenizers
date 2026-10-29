@@ -83,9 +83,11 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
     outputs[1].set_shape(inputs[1].get_shape());
     const size_t num_rows = inputs[0].get_size();
 
-    // FIXME: Not accurate estimation as there is theoretical possibility for re-use the same symbol area
-    // to represent different elements in ragged tensor
-    outputs[2].set_shape({inputs[4].get_size()});
+    size_t max_num_tokens = 0;
+    for (size_t ragged_col = 0; ragged_col < inputs[2].get_size(); ++ragged_col) {
+        max_num_tokens += ends[ragged_col] - begins[ragged_col];
+    }
+    outputs[2].set_shape({max_num_tokens});
 
     // Get pointers in the output tensors
     auto new_begins = outputs[0].data<int32_t>();
@@ -97,6 +99,9 @@ bool WordpieceTokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVec
         new_begins[seq] = ragged_offset;
 
         for(size_t ragged_col = ragged_begins[seq]; ragged_col < ragged_ends[seq]; ++ragged_col) {
+            if (begins[ragged_col] == ends[ragged_col]) {
+                continue;
+            }
             if (ends[ragged_col] - begins[ragged_col] > m_max_bytes_per_word) {
                 new_elems[ragged_offset++] = unk_token_id;
                 continue;
