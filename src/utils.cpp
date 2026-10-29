@@ -7,6 +7,7 @@
 #include "openvino/opsets/opset15.hpp"
 #include "utils.hpp"
 #include "ragged_tensor_pack.hpp"
+#include "ragged_tensor_unpack.hpp"
 #include <cstdlib>
 #include <cctype>
 #include <algorithm>
@@ -152,9 +153,18 @@ OutputVector pre_translate_string_tensor_input(const ov::Output<ov::Node>& input
 }
 
 OutputVector pre_translate_ragged_tensor_input(ov::Output<ov::Node> input) {
-    auto ragged_pack = dynamic_cast<RaggedTensorPack*>(input.get_node());
-    OPENVINO_ASSERT(ragged_pack, "Expected RaggedTensorPack but didn't find it");
-    return ragged_pack->input_values();
+    auto input_node = input.get_node_shared_ptr();
+
+    // A ragged tensor can be represented either in the decomposed form (begins, ends, values) or as a single
+    // tensor that keeps all the parts packed by RaggedTensorPack, all the representations are unified here.
+    if (auto ragged_pack = as_type_ptr<RaggedTensorPack>(input_node)) {
+        FRONT_END_GENERAL_CHECK(ragged_pack->get_input_size() == 3, "Expected 3 inputs to RaggedTensorPack which represents a ragged tensor");
+        return ragged_pack->input_values();
+    } else if (auto ragged_unpack = as_type_ptr<RaggedTensorUnpack>(input_node)) {
+        return ragged_unpack->outputs();
+    } else {
+        return std::make_shared<RaggedTensorUnpack>(ov::OutputVector{input})->outputs();
+    }
 }
 
 OutputVector pre_translate_ragged_string_tensor_input(ov::Output<ov::Node> input) {
