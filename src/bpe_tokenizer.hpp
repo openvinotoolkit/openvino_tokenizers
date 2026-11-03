@@ -139,10 +139,11 @@ class BPETokenizerImpl {
 private:
     Vocab m_vocab;
     Merges m_merges;
-    std::shared_ptr<Trie> m_trie;
     std::string m_suffix_indicator;
     std::string m_end_suffix;
     bool m_byte_fallback = false;
+    bool m_ignore_merges = false;
+    bool m_byte_level = false;
     int32_t m_unk_token_id = -1;
     bool m_fuse_unk = false;
     size_t m_cache_capacity;
@@ -157,7 +158,9 @@ public:
         std::string suffix_indicator,
         std::string end_suffix,
         bool fuse_unk = false,
-        bool byte_fallback = false
+        bool byte_fallback = false,
+        bool ignore_merges = false,
+        bool byte_level = false
     );
     std::vector<int32_t> tokenize(std::string& text);
     void tokenize_into(std::string_view text, std::vector<int32_t>& out);
@@ -176,14 +179,18 @@ public:
         bool fuse_unk = false,
         const std::string& suffix_indicator = "",
         const std::string& end_suffix = "",
-        bool byte_fallback = false
+        bool byte_fallback = false,
+        bool ignore_merges = false,
+        bool byte_level = false
     ) :
         ov::op::Op(arguments),
         m_unk_token(unk_token),
         m_fuse_unk(fuse_unk),
         m_suffix_indicator(suffix_indicator),
         m_end_suffix(end_suffix),
-        m_byte_fallback(byte_fallback) {
+        m_byte_fallback(byte_fallback),
+        m_ignore_merges(ignore_merges),
+        m_byte_level(byte_level) {
         constructor_validate_and_infer_types();
     }
     BPETokenizer(
@@ -195,7 +202,9 @@ public:
         const std::string& suffix_indicator = "",
         const std::string& end_suffix = "",
         bool byte_fallback = false,
-        size_t cache_capacity = 20000
+        size_t cache_capacity = 20000,
+        bool ignore_merges = false,
+        bool byte_level = false
     ) :
         ov::op::Op(arguments),
         m_tokenizer(tokenizer),
@@ -205,6 +214,8 @@ public:
         m_suffix_indicator(suffix_indicator),
         m_end_suffix(end_suffix),
         m_byte_fallback(byte_fallback),
+        m_ignore_merges(ignore_merges),
+        m_byte_level(byte_level),
         m_cache_capacity(cache_capacity) {
 
         constructor_validate_and_infer_types();
@@ -214,7 +225,8 @@ public:
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
         return std::make_shared<BPETokenizer>(inputs, m_tokenizer, m_added_tokens, m_unk_token, m_fuse_unk, 
-                                              m_suffix_indicator, m_end_suffix, m_byte_fallback, m_cache_capacity);
+                                              m_suffix_indicator, m_end_suffix, m_byte_fallback, m_cache_capacity,
+                                              m_ignore_merges, m_byte_level);
     }
 
     bool visit_attributes(ov::AttributeVisitor& visitor) override {
@@ -223,6 +235,8 @@ public:
         visitor.on_attribute("suffix_indicator", m_suffix_indicator);
         visitor.on_attribute("end_suffix", m_end_suffix);
         visitor.on_attribute("byte_fallback", m_byte_fallback);
+        visitor.on_attribute("ignore_merges", m_ignore_merges);
+        visitor.on_attribute("byte_level", m_byte_level);
         visitor.on_attribute("cache_capacity", m_cache_capacity);
         return true;
     }
@@ -241,6 +255,8 @@ private:
     std::string m_suffix_indicator;
     std::string m_end_suffix;
     bool m_byte_fallback = false;
+    bool m_ignore_merges = false;
+    bool m_byte_level = false;
     size_t m_cache_capacity = 20000;
     mutable std::once_flag m_init_flag;
 };

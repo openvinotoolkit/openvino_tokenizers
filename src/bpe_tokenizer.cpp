@@ -114,7 +114,8 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
             }
 
             m_tokenizer = std::make_shared<BPETokenizerImpl>(
-                std::move(vocab), merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback
+                std::move(vocab), merges, m_cache_capacity, m_unk_token, m_suffix_indicator, m_end_suffix, m_fuse_unk, m_byte_fallback,
+                m_ignore_merges, m_byte_level
             );
         }
     });
@@ -151,7 +152,14 @@ bool BPETokenizer::evaluate(ov::TensorVector& outputs, const ov::TensorVector& i
                 reinterpret_cast<const char*>(chars + begins[ragged_col]),
                 static_cast<size_t>(ends[ragged_col] - begins[ragged_col])
             );
-            m_tokenizer->tokenize_into(piece, token_buffer, bpe_scratch);
+            // Added tokens have already been isolated by the special-token splitter.
+            const auto added = m_added_tokens ? m_added_tokens->find(std::string(piece))
+                                             : std::map<std::string, int32_t>::const_iterator{};
+            if (m_added_tokens && added != m_added_tokens->end()) {
+                token_buffer.push_back(added->second);
+            } else {
+                m_tokenizer->tokenize_into(piece, token_buffer, bpe_scratch);
+            }
             for (const auto token : token_buffer) {
                 OPENVINO_ASSERT(ragged_offset < outputs[2].get_size());
                 new_elems[ragged_offset++] = token;
@@ -204,19 +212,20 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
         }
     }
 
-    // For models with end_suffix (e.g. </w>) need to add suffix before looking them up in the vocabulary/prefix tree.
-    std::string text_with_suffix;
-    std::string_view text_view = text;
-    if (!m_end_suffix.empty()) {
-        text_with_suffix.reserve(text.size() + m_end_suffix.size());
-        text_with_suffix.append(text);
-        text_with_suffix.append(m_end_suffix);
-        text_view = std::string_view(text_with_suffix);
+    if (text.empty()) {
+        return;
+    }
+    if (m_ignore_merges) {
+        const auto it = m_vocab.find(cache_key);
+        if (it != m_vocab.end()) {
+            out.push_back(static_cast<int32_t>(it->second));
+            return;
+        }
     }
 
     auto& symbols = scratch.symbols;
     symbols.clear();
-    symbols.reserve(text_view.size() + 1);
+    symbols.reserve(text.size() + 1);
 
     auto append_symbol = [&symbols](int32_t id) {
         const int32_t idx = static_cast<int32_t>(symbols.size());
@@ -226,34 +235,55 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
         symbols.push_back(BPESymbol{id, idx - 1, -1, true});
     };
 
-    // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
-    for (int idx = 0; idx < text_view.size();) {
-        auto r = m_trie->find_longest(text_view, idx);
-        if (r != -1) {
-            append_symbol(r);
-            continue;
-        }
-
-        // No vocabulary match at this position. Resolve it the way HF tokenizers does:
-        // prefer the byte-fallback token, then the unk token, otherwise drop the byte.
-        // The byte token is looked up (not asserted) because some published vocabs set
-        // byte_fallback=true yet ship no <0xNN> tokens; a hard map::at there would crash
-        // the whole inference instead of degrading like HF.
-        int32_t fallback_id = -1;
-        if (m_byte_fallback) {
-            const auto byte_it = m_vocab.find(absl::StrFormat("<0x%02X>", static_cast<unsigned char>(text_view[idx])));
-            if (byte_it != m_vocab.end()) {
-                fallback_id = static_cast<int32_t>(byte_it->second);
+    // Byte-level vocabularies are decoded to raw bytes by the converter. Other
+    // BPE models start from Unicode characters, never arbitrary vocabulary pieces.
+    bool pending_unk = false;
+    for (size_t idx = 0; idx < text.size();) {
+        size_t end = idx + 1;
+        if (!m_byte_level) {
+            while (end < text.size() && (static_cast<unsigned char>(text[end]) & 0xc0) == 0x80) {
+                ++end;
             }
         }
-
-        if (fallback_id != -1) {
-            append_symbol(fallback_id);
-        } else if (m_unk_token_id != -1 && (!m_fuse_unk || symbols.empty() || symbols.back().id != -1)) {
-            append_symbol(m_unk_token_id);
+        std::string symbol(text.substr(idx, end - idx));
+        if (end == text.size()) {
+            symbol.append(m_end_suffix);
         }
-        // else: unresolvable byte and no unk token -> skip it, matching HF tokenizers.
-        idx++;
+        idx = end;
+        const auto it = m_vocab.find(symbol);
+        if (it != m_vocab.end()) {
+            if (pending_unk) {
+                append_symbol(m_unk_token_id);
+                pending_unk = false;
+            }
+            append_symbol(static_cast<int32_t>(it->second));
+            continue;
+        }
+        if (m_byte_fallback) {
+            std::vector<int32_t> fallback;
+            for (unsigned char byte : symbol) {
+                const auto byte_it = m_vocab.find(absl::StrFormat("<0x%02X>", byte));
+                if (byte_it == m_vocab.end()) {
+                    break;
+                }
+                fallback.push_back(static_cast<int32_t>(byte_it->second));
+            }
+            if (fallback.size() == symbol.size()) {
+                for (auto id : fallback) {
+                    append_symbol(id);
+                }
+                continue;
+            }
+        }
+        if (m_unk_token_id != -1) {
+            if (pending_unk && !m_fuse_unk) {
+                append_symbol(m_unk_token_id);
+            }
+            pending_unk = true;
+        }
+    }
+    if (pending_unk) {
+        append_symbol(m_unk_token_id);
     }
     const size_t initial_num_tokens = symbols.size();
     const size_t out_start = out.size();
@@ -344,10 +374,14 @@ BPETokenizerImpl::BPETokenizerImpl(
         std::string suffix_indicator,
         std::string end_suffix,
         bool fuse_unk,
-        bool byte_fallback
+        bool byte_fallback,
+        bool ignore_merges,
+        bool byte_level
     ): m_suffix_indicator(std::move(suffix_indicator)),
        m_end_suffix(std::move(end_suffix)),
        m_byte_fallback(byte_fallback),
+       m_ignore_merges(ignore_merges),
+       m_byte_level(byte_level),
        m_fuse_unk(fuse_unk),
        m_cache_capacity(cache_capacity) {
     if (const auto unk_it = vocab.find(unk_token); unk_it != vocab.end()) {
@@ -355,8 +389,6 @@ BPETokenizerImpl::BPETokenizerImpl(
     }
     Merges new_merges;
     new_merges.reserve(merges.size());
-    std::vector<std::string> merged_tokens;
-    merged_tokens.reserve(merges.size());
 
     for (size_t i = 0; i < merges.size(); i++) {
         auto& pair = merges.at(i);
@@ -369,20 +401,9 @@ BPETokenizerImpl::BPETokenizerImpl(
             static_cast<int32_t>(right_id),
             MergeValue{static_cast<int32_t>(i), static_cast<int32_t>(merged_id)}
         );
-        merged_tokens.emplace_back(std::move(merged_token));
-    }
-
-    for (const auto& token : merged_tokens) {
-        vocab.erase(token);
     }
 
     m_vocab = std::move(vocab);
     m_merges = std::move(new_merges);
-
-    m_trie = std::make_unique<Trie>();
-    for(const auto& word: m_vocab) {
-        const auto token = std::vector<unsigned char>(word.first.begin(), word.first.end());
-        m_trie->add(token, word.second);
-    }
     m_cache.reserve(cache_capacity);
 }
