@@ -15,6 +15,7 @@
 #include "fuze.hpp"
 #include "normalize_unicode.hpp"
 #include "ragged_tensor_pack.hpp"
+#include "ragged_tensor_unpack.hpp"
 #include "ragged_to_dense.hpp"
 #include "ragged_to_ragged.hpp"
 #include "ragged_to_sparse.hpp"
