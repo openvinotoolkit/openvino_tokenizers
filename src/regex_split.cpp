@@ -240,72 +240,111 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
                 size_t start = 0;
                 uint32_t num_splits = 0;
 
-                size_t last_begin = -1;
-                auto add_split = [&](int begin, int end, bool invert) {
-                    switch (m_split_mode) {
-                        case (SplitMode::REMOVED):
-                            if (invert) { return; }
-                            break;
-                        case (SplitMode::ISOLATED):
-                            // Do nothing. Do not take invert into account, add split as is.
-                            break;
-                        case (SplitMode::CONTIGUOUS):
-                            OPENVINO_THROW("Prior to evaluate 'contiguous' mode should've been replaced with 'isolated'.");
-                            break;
-                        case (SplitMode::MERGED_WITH_PREVIOUS):
-                            if (invert == false && end != str.length()) {
-                                last_begin = begin;
-                                return;
-                            } else if (invert == true) {
-                                begin = last_begin;
-                            }
-                            break;
-                        case (SplitMode::MERGED_WITH_NEXT):
-                            if (invert == false) {
-                                if (last_begin != -1) { begin = last_begin; }
-                            } else {
-                                last_begin = begin;
-                                return;
-                            }
-                            break;
-                    }
-
-                    // Clamp begin and end to the string length
-                    begin = std::max(0, begin);
-                    end = std::min(static_cast<int>(str.length()), end);
-
-                    new_begins[ragged_offset] = begins[ragged_col] + begin;
-                    if (num_splits == m_max_splits) {
-                        end = str.length();
+                if (!str.empty() && m_max_splits == -1 && (m_split_mode == SplitMode::MERGED_WITH_PREVIOUS ||
+                                           m_split_mode == SplitMode::MERGED_WITH_NEXT)) {
+                    struct Span {
+                        size_t begin;
+                        size_t end;
+                        bool delimiter;
                     };
-                    new_ends[ragged_offset++] = begins[ragged_col] + end;
+                    std::optional<Span> pending;
+                    auto emit = [&](const Span& span) {
+                        new_begins[ragged_offset] = begins[ragged_col] + span.begin;
+                        new_ends[ragged_offset] = begins[ragged_col] + span.end;
+                        if (has_skips) { new_skips[ragged_offset] = false; }
+                        ++ragged_offset;
+                    };
+                    auto add_span = [&](size_t begin, size_t end, bool delimiter) {
+                        Span current{begin, end, delimiter};
+                        if (!pending) { pending = current; return; }
+                        const bool merge = m_split_mode == SplitMode::MERGED_WITH_PREVIOUS
+                            ? !pending->delimiter && delimiter
+                            : pending->delimiter && !delimiter;
+                        if (merge) {
+                            emit(Span{pending->begin, current.end, false});
+                            pending.reset();
+                        } else {
+                            emit(*pending);
+                            pending = current;
+                        }
+                    };
+                    std::optional<std::pair<size_t, size_t>> match;
+                    while ((match = get_next_match(str, start)) != std::nullopt) {
+                        auto [curr_start, curr_end] = *match;
+                        if (curr_start != start) { add_span(start, curr_start, m_invert); }
+                        add_span(curr_start, curr_end, !m_invert);
+                        start = curr_end;
+                    }
+                    if (start < str.length()) { add_span(start, str.length(), m_invert); }
+                    if (pending) { emit(*pending); }
+                } else {
+                    size_t last_begin = -1;
+                    auto add_split = [&](int begin, int end, bool invert) {
+                        switch (m_split_mode) {
+                            case (SplitMode::REMOVED):
+                                if (invert) { return; }
+                                break;
+                            case (SplitMode::ISOLATED):
+                                // Do nothing. Do not take invert into account, add split as is.
+                                break;
+                            case (SplitMode::CONTIGUOUS):
+                                OPENVINO_THROW("Prior to evaluate 'contiguous' mode should've been replaced with 'isolated'.");
+                                break;
+                            case (SplitMode::MERGED_WITH_PREVIOUS):
+                                if (invert == false && end != str.length()) {
+                                    last_begin = begin;
+                                    return;
+                                } else if (invert == true) {
+                                    begin = last_begin;
+                                }
+                                break;
+                            case (SplitMode::MERGED_WITH_NEXT):
+                                if (invert == false) {
+                                    if (last_begin != -1) { begin = last_begin; }
+                                } else {
+                                    last_begin = begin;
+                                    return;
+                                }
+                                break;
+                        }
 
-                    ++num_splits;
-                };
+                        // Clamp begin and end to the string length
+                        begin = std::max(0, begin);
+                        end = std::min(static_cast<int>(str.length()), end);
 
-                std::optional<std::pair<size_t, size_t>> match;
-                while ((match = get_next_match(str, start)) != std::nullopt) {
-                    auto [curr_start, curr_end] = *match;
+                        new_begins[ragged_offset] = begins[ragged_col] + begin;
+                        if (num_splits == m_max_splits) {
+                            end = str.length();
+                        };
+                        new_ends[ragged_offset++] = begins[ragged_col] + end;
 
-                    if (curr_start != start) {
+                        ++num_splits;
+                    };
+
+                    std::optional<std::pair<size_t, size_t>> match;
+                    while ((match = get_next_match(str, start)) != std::nullopt) {
+                        auto [curr_start, curr_end] = *match;
+
+                        if (curr_start != start) {
+                            if (has_skips) {
+                                new_skips[ragged_offset] = false;
+                            };
+                            add_split(start, curr_start, m_invert);
+                        }
                         if (has_skips) {
                             new_skips[ragged_offset] = false;
                         };
-                        add_split(start, curr_start, m_invert);
+                        add_split(curr_start, curr_end, !m_invert);
+                        start = curr_end;
                     }
-                    if (has_skips) {
-                        new_skips[ragged_offset] = false;
-                    };
-                    add_split(curr_start, curr_end, !m_invert);
-                    start = curr_end;
-                }
-                if (start < str.length()) {
-                    if (has_skips) { new_skips[ragged_offset] = false; }
-                    add_split(start, str.length(), m_invert);
-                } else if (m_split_mode == SplitMode::MERGED_WITH_NEXT && last_begin != str.length()) {
-                    // Add last split if the match was at the end of the string
-                    if (has_skips) { new_skips[ragged_offset] = false; }
-                    add_split(last_begin, str.length(), m_invert);
+                    if (start < str.length()) {
+                        if (has_skips) { new_skips[ragged_offset] = false; }
+                        add_split(start, str.length(), m_invert);
+                    } else if (m_split_mode == SplitMode::MERGED_WITH_NEXT && last_begin != str.length()) {
+                        // Add last split if the match was at the end of the string
+                        if (has_skips) { new_skips[ragged_offset] = false; }
+                        add_split(last_begin, str.length(), m_invert);
+                    }
                 }
             }
         }
