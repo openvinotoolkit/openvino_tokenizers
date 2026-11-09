@@ -1,4 +1,4 @@
-name: macOS ARM64 (mac-14, Python 3.11)
+name: macOS ARM64 (mac-15, Python 3.11)
 on:
   workflow_dispatch:
   pull_request:
@@ -46,6 +46,7 @@ jobs:
     - uses: openvinotoolkit/openvino/.github/actions/openvino_provider@master
       id: openvino_download
       with:
+        # The provider uses this legacy key for macOS ARM64 artifacts.
         platform: macos_14_7
         arch: 'arm64'
         commit_packages_to_provide: 'wheels,developer_package.tar.gz'
@@ -61,7 +62,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-14
+    runs-on: macos-15
 
     env:
       CMAKE_GENERATOR: 'Ninja'
@@ -194,7 +195,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-14
+    runs-on: macos-15
 
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
@@ -328,7 +329,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
 
