@@ -68,6 +68,9 @@ endif()
 #
 
 include(FetchContent)
+# GNUInstallDirs only fills CMAKE_INSTALL_BINDIR and friends if they aren't cached yet, so it must run before sentencepiece:
+# sentencepiece's mark_as_advanced() (policy CMP0102 OLD) caches them empty, which pcre2's install() rules then reject
+include(GNUInstallDirs)
 
 # This option must be defined early because it affects SentencePiece configuration
 option(REGENERATE_PRECOMPILED_CHARSMAP "Regenerate the precompiled charsmap header (requires ICU at build time)" OFF)

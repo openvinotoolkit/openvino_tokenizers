@@ -428,7 +428,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install Test dependencies
-        run: uv sync --extra transformers --group dev --group benchmark --no-install-package openvino
+        run: uv sync --no-sources-package openvino --find-links "${{ env.INSTALL_DIR }}\\wheels" --extra transformers --group dev --group benchmark --no-install-package openvino
 
       - name: Install OpenVINO wheel
         run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
@@ -496,7 +496,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install Test dependencies
-        run: uv sync --group dev --group onnx_tests --no-install-package openvino
+        run: uv sync --no-sources-package openvino --find-links "${{ env.INSTALL_DIR }}\\wheels" --group dev --group onnx_tests --no-install-package openvino
 
       - name: Install OpenVINO wheel
         run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
