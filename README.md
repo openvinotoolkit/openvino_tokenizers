@@ -50,6 +50,18 @@ pip install --pre -U openvino openvino-tokenizers --extra-index-url https://stor
 
 ### Build and Install from Source
 
+On Linux, pass the available processor count as a build-argument override to control concurrent C++ compilation jobs:
+
+```bash
+parallel_jobs=$(nproc)
+pip install . \
+  --config-settings="override=cmake.build_args={\"=\"=[\"--parallel\",\"${parallel_jobs}\",\"--target\",\"openvino_tokenizers\"]}" \
+  --extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly
+```
+
+Replace `$(nproc)` with the platform's processor-count command on macOS or Windows. Use a lower
+`parallel_jobs` value if you need to reduce peak memory usage.
+
 #### Using OpenVINO PyPI package
 
 openvino-tokenizers build depends on [openvino](https://pypi.org/project/openvino/) package which will be automatically installed from PyPI during the build process. To install unreleased versions, you would need to install openvino package from the nightly distribution channel using `--extra-index-url https://storage.openvinotoolkit.org/simple/wheels/nightly`
