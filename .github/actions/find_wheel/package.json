@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@actions/core": "^3.0.1",
-    "glob": "^13.0.6",
+    "glob": "^14.0.2",
     "path": "^0.12.7",
     "util": "^0.12.5"
   },
@@ -54,5 +54,9 @@
     "@vercel/ncc": "^0.44.1",
     "jest": "30.4.2",
     "prettier": "^3.9.5"
+  },
+  "overrides": {
+    "glob": "$glob",
+    "minimatch": "^11.0.1"
   }
 }

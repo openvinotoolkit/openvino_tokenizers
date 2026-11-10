@@ -24,6 +24,13 @@ jest.unstable_mockModule("@actions/core", () => ({
   error: jest.fn(),
 }));
 
+// The test wheels are cp311, so pin the Python version instead of using the host one
+jest.unstable_mockModule("child_process", () => ({
+  exec: jest.fn((cmd, callback) =>
+    callback(null, { stdout: "Python 3.11.9\n", stderr: "" }),
+  ),
+}));
+
 const core = await import("@actions/core");
 const findWheelImpl = await import("../src/index.js");
 
@@ -117,11 +124,16 @@ describe("run", () => {
     await findWheelImpl.run();
 
     const expectedWheels = [
-      path.join(wheelsPath, wheels[3]),
       path.join(wheelsPath, wheels[2]),
+      path.join(wheelsPath, wheels[3]),
     ];
-    expect(setFailedMock).toHaveBeenCalledWith(
-      `Multiple files found matching "package_y": ${JSON.stringify(expectedWheels)}`,
+    const prefix = 'Multiple files found matching "package_y": ';
+    expect(setFailedMock).toHaveBeenCalledTimes(1);
+    const message = setFailedMock.mock.calls[0][0];
+    expect(message.startsWith(prefix)).toBe(true);
+    // glob does not guarantee result order
+    expect(JSON.parse(message.slice(prefix.length)).sort()).toEqual(
+      expectedWheels,
     );
   });
 });
