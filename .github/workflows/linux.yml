@@ -100,6 +100,13 @@ jobs:
       MANIFEST_PATH: ${{ github.workspace }}/manifest.yml
 
     steps:
+      - name: Normalize sccache Azure connection string
+        run: |
+          # OpenDAL 0.58.1 used by sccache 0.18.0 no longer trims BlobEndpoint trailing slashes, producing invalid Azure URLs.
+          SCCACHE_AZURE_CONNECTION_STRING="$(sed -E 's#(^|;)(BlobEndpoint=[^;]*[^/;])/+(;|$)#\1\2\3#g' <<< "$SCCACHE_AZURE_CONNECTION_STRING")"
+          echo "::add-mask::${SCCACHE_AZURE_CONNECTION_STRING}"
+          echo "SCCACHE_AZURE_CONNECTION_STRING=${SCCACHE_AZURE_CONNECTION_STRING}" >> "$GITHUB_ENV"
+
       - name: Clone Openvino tokenizers
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -210,6 +217,13 @@ jobs:
       BUILD_DIR: ${{ github.workspace }}/openvino_tokenizers/build
 
     steps:
+      - name: Normalize sccache Azure connection string
+        run: |
+          # OpenDAL 0.58.1 used by sccache 0.18.0 no longer trims BlobEndpoint trailing slashes, producing invalid Azure URLs.
+          SCCACHE_AZURE_CONNECTION_STRING="$(sed -E 's#(^|;)(BlobEndpoint=[^;]*[^/;])/+(;|$)#\1\2\3#g' <<< "$SCCACHE_AZURE_CONNECTION_STRING")"
+          echo "::add-mask::${SCCACHE_AZURE_CONNECTION_STRING}"
+          echo "SCCACHE_AZURE_CONNECTION_STRING=${SCCACHE_AZURE_CONNECTION_STRING}" >> "$GITHUB_ENV"
+
       - name: Clone Openvino tokenizers
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -342,7 +356,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install Test dependencies
-        run: uv sync --extra transformers --group dev --group benchmark --no-install-package openvino
+        run: uv sync --no-sources-package openvino --find-links "${{ env.INSTALL_DIR }}/wheels" --extra transformers --group dev --group benchmark --no-install-package openvino
 
       - name: Install OpenVINO wheel
         run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
@@ -425,7 +439,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install Test dependencies
-        run: uv sync --extra transformers --group dev --no-install-package openvino
+        run: uv sync --no-sources-package openvino --find-links "${{ env.INSTALL_DIR }}/wheels" --extra transformers --group dev --no-install-package openvino
 
       - name: Install OpenVINO wheel
         run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
@@ -532,7 +546,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install Test dependencies
-        run: uv sync --group dev --group onnx_tests --no-install-package openvino
+        run: uv sync --no-sources-package openvino --find-links "${{ env.INSTALL_DIR }}/wheels" --group dev --group onnx_tests --no-install-package openvino
 
       - name: Install OpenVINO wheel
         run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}

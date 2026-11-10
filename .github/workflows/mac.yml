@@ -1,4 +1,4 @@
-name: macOS ARM64 (mac-14, Python 3.11)
+name: macOS ARM64 (mac-15, Python 3.11)
 on:
   workflow_dispatch:
   pull_request:
@@ -61,7 +61,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-14
+    runs-on: macos-15
 
     env:
       CMAKE_GENERATOR: 'Ninja'
@@ -194,7 +194,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-14
+    runs-on: macos-15
 
     env:
       OPENVINO_REPO: ${{ github.workspace }}/openvino
@@ -331,7 +331,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       INSTALL_DIR: ${{ github.workspace }}/openvino/install
 
@@ -378,7 +378,7 @@ jobs:
           package_name: 'openvino_tokenizers'
 
       - name: Install Test dependencies
-        run: uv sync --extra transformers --group dev --group benchmark --no-install-package openvino
+        run: uv sync --no-sources-package openvino --find-links "${{ env.INSTALL_DIR }}/wheels" --extra transformers --group dev --group benchmark --no-install-package openvino
 
       - name: Install OpenVINO wheel
         run: uv pip install --no-deps ${{ steps.ov_wheel.outputs.wheel_path }}
