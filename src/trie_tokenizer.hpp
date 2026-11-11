@@ -24,6 +24,7 @@ public:
     void validate_and_infer_types() override;
 
     std::shared_ptr<ov::Node> clone_with_new_inputs(const ov::OutputVector& inputs) const override {
+        std::lock_guard<std::mutex> lock(m_mutex);
         return std::make_shared<TrieTokenizer>(inputs, m_trie);
     }
 
