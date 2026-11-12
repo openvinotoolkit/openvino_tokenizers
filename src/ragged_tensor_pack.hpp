@@ -6,8 +6,14 @@
 
 #include <openvino/op/op.hpp>
 
-// Having a decomposed representation for a tensor, converts it to a single string tensor for debugging purposes and to facilitate model conversion
-// Base tensor on which this operation builds a ragged tensor can have any shape or type, this operation doesn't try to interpret it.
+#include "ragged_tensor_format.hpp"
+
+// Serializes the decomposed representation of a ragged tensor (begins, ends, values) into a single u8
+// tensor, see ragged_tensor_format.hpp for the description of the format.
+// RaggedTensorUnpack converts such a tensor back into the decomposed representation, therefore a ragged
+// tensor can cross a graph boundary as a single tensor.
+// The values tensor that a ragged tensor is built on can have any shape and any element type except
+// string, this operation doesn't try to interpret it.
 class RaggedTensorPack : public ov::op::Op {
 public:
     OPENVINO_OP("RaggedTensorPack");

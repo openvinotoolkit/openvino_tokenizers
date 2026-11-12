@@ -73,6 +73,7 @@ OPENVINO_CREATE_EXTENSIONS(
     std::vector<ov::Extension::Ptr>({
             std::make_shared<ov::OpExtension<StringTensorPack>>(),
             std::make_shared<ov::OpExtension<RaggedTensorPack>>(),
+            std::make_shared<ov::OpExtension<RaggedTensorUnpack>>(),
             std::make_shared<ov::OpExtension<StringTensorUnpack>>(),
             std::make_shared<ov::OpExtension<EqualStr>>(),
             std::make_shared<ov::OpExtension<NumericToString>>(),
