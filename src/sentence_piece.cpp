@@ -354,6 +354,7 @@ bool SentencepieceTokenizer::has_evaluate() const {
 }
 
 std::shared_ptr<Node> SentencepieceTokenizer::clone_with_new_inputs(const OutputVector& new_args) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
     return std::make_shared<SentencepieceTokenizer>(new_args, m_sp, m_special_tokens_re, m_special_tokens_map, m_nbest_size, m_alpha, m_add_bos, m_add_eos, m_reverse);
 }
 
