@@ -1312,7 +1312,17 @@ class VocabDecoderStep(DecodingStep):
         else:  # Use vocab node from pipeline
             vocab = None
 
-        return cls(vocab, list(skip_tokens), do_skip_tokens)
+        skip_tokens = list(skip_tokens)
+        unk_token_id = tokenizer_json["model"].get("unk_id")
+        if (
+            vocab is not None
+            and unk_token_id is not None
+            and 0 <= unk_token_id < len(vocab)
+            and any(0 <= token_id < len(vocab) and vocab[token_id] == vocab[unk_token_id] for token_id in skip_tokens)
+        ):
+            skip_tokens.append(unk_token_id)
+
+        return cls(vocab, sorted(set(skip_tokens)), do_skip_tokens)
 
     def get_vocab_node_outputs(self) -> Optional[list[Output]]:
         return self.get_pipeline().vocab_node_outputs if self.get_pipeline() is not None else None
