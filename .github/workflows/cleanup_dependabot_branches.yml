@@ -20,7 +20,7 @@ jobs:
     # repository and reused here, so this workflow only wires up the trigger,
     # the dry-run choice and the token.
     if: ${{ github.repository_owner == 'openvinotoolkit' }}
-    uses: openvinotoolkit/openvino/.github/workflows/cleanup_dependabot_branches.yml@41aa722bf4d15ebcd2869da881b577335d7a1155
+    uses: openvinotoolkit/openvino/.github/workflows/cleanup_dependabot_branches.yml@2ad63894cb2d0ee4df89cf8df03e2079810f7ece
     with:
       # Real deletions happen only on the weekly schedule, or on a manual run
       # where the dry_run checkbox was explicitly unchecked. Any other trigger
