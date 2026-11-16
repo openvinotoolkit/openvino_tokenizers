@@ -47,7 +47,10 @@ ov::OutputVector create_tokenizer_node(const std::string& op_type,
         auto suffix_indicator = get_attribute_value<std::string>(attributes, "suffix_indicator", "");
         auto end_suffix = get_attribute_value<std::string>(attributes, "end_suffix", "");
         auto byte_fallback = get_attribute_value<bool>(attributes, "byte_fallback", false);
-        return std::make_shared<BPETokenizer>(inputs, unk_token, fuse_unk, suffix_indicator, end_suffix, byte_fallback)
+        auto ignore_merges = get_attribute_value<bool>(attributes, "ignore_merges", false);
+        auto byte_level = get_attribute_value<bool>(attributes, "byte_level", false);
+        return std::make_shared<BPETokenizer>(inputs, unk_token, fuse_unk, suffix_indicator, end_suffix,
+                                              byte_fallback, ignore_merges, byte_level)
             ->outputs();
     } else if (op_type == "Truncate") {
         return std::make_shared<Truncate>(inputs)->outputs();
