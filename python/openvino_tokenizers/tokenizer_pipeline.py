@@ -1384,7 +1384,8 @@ class RegexDecodingStep(DecodingStep):
 
     @classmethod
     def parse_replace_dict(cls, replace_dict: dict[str, Any]) -> "RegexDecodingStep":
-        pattern = replace_dict.get("pattern", {}).get("String")
+        pattern = replace_dict.get("pattern") or {}
+        pattern = pattern.get("String") or pattern.get("Regex")
         content = replace_dict.get("content")
         if pattern is None or content is None:
             raise ValueError(f"Replace Decoding Op with this parameters: `{replace_dict}` does not support yet.")
