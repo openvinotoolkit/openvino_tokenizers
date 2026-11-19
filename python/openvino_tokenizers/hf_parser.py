@@ -162,6 +162,22 @@ def parse_metaspace(pretokenizer_dict: dict[str, Any]) -> list[Union[Normalizati
     return steps
 
 
+def parse_metaspace_decoder(decoder_dict: dict[str, Any]) -> list[DecodingStep]:
+    # BPE vocabularies keep the replacement character, so it has to be turned back into a space here
+    replacement = decoder_dict.get("replacement", "▁")
+    steps = [
+        FuseStep(),
+        RegexDecodingStep.parse_replace_dict({"pattern": {"String": replacement}, "content": " "}),
+    ]
+
+    # older tokenizer.json files have add_prefix_space instead of prepend_scheme
+    default_scheme = "always" if decoder_dict.get("add_prefix_space", True) else "never"
+    if decoder_dict.get("prepend_scheme", default_scheme) != "never":
+        steps.append(RegexDecodingStep.strip_forward_space())
+
+    return steps
+
+
 class TransformersTokenizerPipelineParser:
     def __init__(self, tokenizer_object: Any, params: TokenzierConversionParams) -> None:
         if not tokenizer_object.is_fast:
@@ -447,6 +463,12 @@ class TransformersTokenizerPipelineParser:
                     self.pipeline.add_steps(decoder_parser(decoder_dict))
         elif has_decoder and self.tokenizer_json["decoder"]["type"] == "ByteLevel":
             self.pipeline.add_steps(CharsToBytesStep())
+        elif (
+            has_decoder
+            and self.tokenizer_json["decoder"]["type"] == "Metaspace"
+            and self.tokenizer_json["model"]["type"] == "BPE"
+        ):
+            self.pipeline.add_steps(parse_metaspace_decoder(self.tokenizer_json["decoder"]))
         else:
             self.pipeline.add_steps(FuseStep())
 
