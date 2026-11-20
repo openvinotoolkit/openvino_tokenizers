@@ -522,6 +522,28 @@ def test_hf_wordpiece_tokenizers(wordpiece_tokenizers, test_string, do_add_speci
 @pytest.mark.parametrize(
     "test_string",
     [
+        "a�b",  # U+FFFD replacement character, dropped by BertNormalizer(clean_text=True)
+        "ab",  # private use area, BMP
+        "a\U000f0000b",  # private use area, plane 15
+        "a\U0010fffdb",  # private use area, last code point of plane 16
+        "a͸b",  # unassigned (Cn), kept by Hugging Face
+    ],
+)
+def test_hf_wordpiece_tokenizers_clean_text_removed_characters(
+    wordpiece_tokenizers, test_string, do_add_special_tokens
+):
+    result, diff = check_tokenizer_output(
+        wordpiece_tokenizers,
+        test_string=test_string,
+        skip_missing_outputs=False,
+        hf_tokenizer_kwargs={"add_special_tokens": do_add_special_tokens},
+    )
+    assert result, diff
+
+
+@pytest.mark.parametrize(
+    "test_string",
+    [
         eng_test_strings,
         multilingual_test_strings,
         emoji_test_strings,

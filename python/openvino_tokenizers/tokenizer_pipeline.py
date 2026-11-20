@@ -264,8 +264,10 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def del_control_chars_regex(cls) -> "RegexNormalizationStep":
+        # Mirrors BertNormalizer(clean_text=True) in HF tokenizers: drops control (Cc, except \t\n\r), format (Cf)
+        # and private-use (Co) characters plus U+FFFD. Unassigned (Cn) characters are kept, as in HF.
         return cls(
-            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\p{Cf}])",  # exclude \n\t\r
+            regex_search_pattern=r"([\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\p{Cf}\p{Co}\x{FFFD}])",
             replace_term="",
             global_replace=True,
         )
