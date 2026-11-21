@@ -1,11 +1,14 @@
 from types import SimpleNamespace
 
+import numpy as np
 import openvino as ov
+import pytest
 from openvino_tokenizers.plamo_parser import convert_plamo_tokenizer
 from openvino_tokenizers.utils import TokenzierConversionParams
 
 
-def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path):
+@pytest.mark.parametrize("skip_special_tokens", [False, True])
+def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path, skip_special_tokens):
     vocab = [
         ("<|plamo:unk|>", 0, "UNKNOWN"),
         ("<|plamo:bos|>", 0, "CONTROL"),
@@ -33,7 +36,10 @@ def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path):
         clean_up_tokenization_spaces=False,
     )
     tokenizer, detokenizer = convert_plamo_tokenizer(
-        reference_config, TokenzierConversionParams(with_detokenizer=True, add_special_tokens=False)
+        reference_config,
+        TokenzierConversionParams(
+            with_detokenizer=True, add_special_tokens=False, skip_special_tokens=skip_special_tokens
+        ),
     )
     tokenizer_path = tmp_path / "openvino_tokenizer.xml"
     detokenizer_path = tmp_path / "openvino_detokenizer.xml"
@@ -52,7 +58,11 @@ def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path):
         [4, 3, 3],
         [byte_offset + byte for byte in "🫠".encode("utf-8")],
     ]
-    assert decode(ids)["string_output"].tolist() == samples
+    assert [decode(row[keep][None, :])["string_output"][0] for row, keep in zip(ids, mask)] == samples
+    # Feed the decoder known IDs directly, including tags and a malformed byte sequence.
+    decoder_ids = np.array([[1, byte_offset + 0xE0, byte_offset + 0x80, 2]], dtype=np.int64)
+    expected = "��" if skip_special_tokens else "<|plamo:bos|>��<|plamo:pad|>"
+    assert decode(decoder_ids)["string_output"].tolist() == [expected]
     empty_batch = encode(["", ""])
     assert empty_batch["input_ids"].shape == (2, 0)
     assert empty_batch["attention_mask"].shape == (2, 0)

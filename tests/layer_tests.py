@@ -109,6 +109,10 @@ utf8_validate_strings = [
     b"\xc0\x80",  # 2 bytes sequence but codepoint is less than 0x80
     b"\xe0\x81\x81",  # 3 bytes sequence but codepoint is less than 0x800
     b"\xf0\x80\x80\x80",  # 4 bytes sequence but codepoint is less than 0x1000
+    b"\xe0\x80",  # Invalid second byte in a truncated overlong sequence.
+    b"\xed\xa0\x80",  # UTF-8 encoding of a surrogate is invalid.
+    b"\xf4\x90\x80\x80",  # Code point above U+10FFFF.
+    b"\xf5\x80",  # Invalid lead byte followed by a continuation.
     b"\xe2\x28\xa1",  # \x28 is not a valid continuation byte
     b"the following block is invalid \xe2\x28\xa1 but this text is valid",  # \x28 is not a valid continuation byte
     b"A\xc3\x28B",  # 'A' and 'B' are valid \x28 is invalid
