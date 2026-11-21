@@ -124,7 +124,12 @@ def convert_tokenizer(
 
     can_use_sentencepiece = is_sentencepiece_model(tokenizer_object)
     if isinstance(tokenizer_object, PreTrainedTokenizerBase):
-        if can_use_sentencepiece and (not tokenizer_object.is_fast or params.use_sentencepiece_backend):
+        if type(tokenizer_object).__name__ == "Plamo3Tokenizer":
+            from .plamo_parser import convert_plamo_tokenizer
+
+            logger.info("Convert PLaMo 3 tokenizer.")
+            ov_tokenizers = convert_plamo_tokenizer(tokenizer_object, params)
+        elif can_use_sentencepiece and (not tokenizer_object.is_fast or params.use_sentencepiece_backend):
             logger.info("Convert tokenizer using SentencePiece .model file.")
             ov_tokenizers = convert_sentencepiece_model_tokenizer(tokenizer_object, params)
         elif is_tiktoken_model(tokenizer_object):

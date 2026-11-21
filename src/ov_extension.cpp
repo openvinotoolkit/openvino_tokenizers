@@ -8,6 +8,7 @@
 #include "contrib_string_ops.hpp"
 #include "tokenizer.hpp"
 #include "numeric_to_string.hpp"
+#include "plamo_tokenizer.hpp"
 
 #define OPENVINO_TOKENIZERS_ONNX_CONVERSION_EXTENSIONS                         \
   std::make_shared<ov::frontend::onnx::ConversionExtension>(                   \
@@ -102,6 +103,7 @@ OPENVINO_CREATE_EXTENSIONS(
             std::make_shared<ov::OpExtension<CaseFold>>(),
             std::make_shared<ov::OpExtension<NormalizeUnicode>>(),
             std::make_shared<ov::OpExtension<UnigramTokenizer>>(),
+            std::make_shared<ov::OpExtension<PlamoTokenizer>>(),
             std::make_shared<ov::OpExtension<ContribStringJoin>>(),
             std::make_shared<ov::OpExtension<ContribStringSplit>>(),
             OPENVINO_TOKENIZERS_TENSORFLOW_CONVERSION_EXTENSIONS,
