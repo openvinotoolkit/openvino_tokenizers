@@ -7,8 +7,8 @@ from openvino_tokenizers.plamo_parser import convert_plamo_tokenizer
 from openvino_tokenizers.utils import TokenzierConversionParams
 
 
-@pytest.mark.parametrize("skip_special_tokens", [False, True])
-def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path, skip_special_tokens):
+@pytest.fixture
+def plamo_config():
     vocab = [
         ("<|plamo:unk|>", 0, "UNKNOWN"),
         ("<|plamo:bos|>", 0, "CONTROL"),
@@ -16,9 +16,8 @@ def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path, skip_special_tok
         ("。", -4.9746, "NORMAL"),
         ("。。。", -9.7236, "NORMAL"),
     ]
-    byte_offset = len(vocab)
     vocab.extend((f"<0x{byte:02X}>", 0, "BYTE") for byte in range(256))
-    reference_config = SimpleNamespace(
+    return SimpleNamespace(
         data=vocab,
         added_tokens_decoder={
             i: SimpleNamespace(content=piece, lstrip=False, rstrip=False) for i, (piece, _, _) in enumerate(vocab[:3])
@@ -35,8 +34,13 @@ def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path, skip_special_tok
         break_around_consecutive_spaces_threshold=2,
         clean_up_tokenization_spaces=False,
     )
+
+
+@pytest.mark.parametrize("skip_special_tokens", [False, True])
+def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path, plamo_config, skip_special_tokens):
+    byte_offset = len(plamo_config.data) - 256
     tokenizer, detokenizer = convert_plamo_tokenizer(
-        reference_config,
+        plamo_config,
         TokenzierConversionParams(
             with_detokenizer=True, add_special_tokens=False, skip_special_tokens=skip_special_tokens
         ),
@@ -66,3 +70,30 @@ def test_plamo_ties_and_byte_fallback_after_ir_reload(tmp_path, skip_special_tok
     empty_batch = encode(["", ""])
     assert empty_batch["input_ids"].shape == (2, 0)
     assert empty_batch["attention_mask"].shape == (2, 0)
+
+
+@pytest.mark.parametrize("add_special_tokens", [False, True])
+@pytest.mark.parametrize("model_max_length", [10**30, 262144])
+def test_plamo_truncation_limit_fits_genai_state_after_ir_reload(
+    tmp_path, plamo_config, add_special_tokens, model_max_length
+):
+    plamo_config.model_max_length = model_max_length
+    model = convert_plamo_tokenizer(plamo_config, TokenzierConversionParams(add_special_tokens=add_special_tokens))
+    path = tmp_path / "openvino_tokenizer.xml"
+    ov.save_model(model, path)
+    core = ov.Core()
+    reloaded = core.read_model(path)
+    combine = next(node for node in reloaded.get_ops() if node.get_type_name() == "CombineSegments")
+    truncate = next(node for node in reloaded.get_ops() if node.get_type_name() == "Truncate")
+    # GenAI adds the number of serialized special-token segments to the configured limit.
+    # The BOS segment is still present when automatic insertion starts disabled.
+    special_token_slots = (combine.get_input_size() - 1) // 3 - 1
+    assert special_token_slots == 1
+    configured_limit = int(truncate.input_value(3).get_node().input_value(1).get_node().get_data().item())
+    assert configured_limit + special_token_slots <= np.iinfo(np.int32).max
+    assert configured_limit == min(
+        model_max_length - int(add_special_tokens), np.iinfo(np.int32).max - special_token_slots
+    )
+
+    encoded = core.compile_model(reloaded, "CPU")(["。"])["input_ids"].tolist()
+    assert encoded == ([[1, 3]] if add_special_tokens else [[3]])

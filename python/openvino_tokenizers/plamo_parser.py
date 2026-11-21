@@ -93,13 +93,18 @@ def convert_plamo_tokenizer(tokenizer, params: TokenzierConversionParams) -> Mod
     if tokenizer.add_eos_token:
         segments.append(AddToken(_token_id=tokenizer.eos_token_id, token_type_id=0))
     combine = CombineSegmentsStep(segments, add_special_tokens=params.add_special_tokens)
+    special_token_slots = combine.number_of_added_tokens
+    truncation = TruncationStep.from_hf_object(
+        tokenizer,
+        num_of_added_tokens=special_token_slots if params.add_special_tokens else 0,
+        truncation=params.truncation,
+    )
+    # GenAI adds the serialized special-token slots back to the i32 limit,
+    # including slots whose insertion is disabled by default.
+    truncation.max_length = min(truncation.max_length, np.iinfo(np.int32).max - special_token_slots)
     pipeline.add_steps(
         [
-            TruncationStep.from_hf_object(
-                tokenizer,
-                num_of_added_tokens=combine.number_of_added_tokens if params.add_special_tokens else 0,
-                truncation=params.truncation,
-            ),
+            truncation,
             combine,
             PaddingStep(
                 _token_id=tokenizer.pad_token_id,
