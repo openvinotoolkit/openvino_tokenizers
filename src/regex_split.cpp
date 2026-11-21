@@ -127,11 +127,11 @@ bool RegexSplit::evaluate(ov::TensorVector& outputs, const ov::TensorVector& inp
     const bool has_skips = (input_size == 7);
 
     if (num_chars == 0) {
-        // TODO: CVS-160624. This is a workaround for the case when the input is empty.
-        outputs[0].set_shape(Shape{1});
-        outputs[1].set_shape(Shape{1});
-        outputs[0].data<int32_t>()[0] = 0;
-        outputs[1].data<int32_t>()[0] = 0;
+        // Each input row has no splits, including batches with multiple empty strings.
+        for (size_t i = 0; i < 2; ++i) {
+            outputs[i].set_shape(inputs[i].get_shape());
+            std::fill_n(outputs[i].data<int32_t>(), outputs[i].get_size(), 0);
+        }
 
         outputs[2] = inputs[2];
         outputs[3] = inputs[3];
