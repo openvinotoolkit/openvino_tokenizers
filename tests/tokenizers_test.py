@@ -753,6 +753,41 @@ def test_bpe_detokenizer(
     )
 
 
+def build_bpe_tokenizer_with_unk(fuse_unk: bool):
+    from tokenizers import Tokenizer
+    from tokenizers.models import BPE
+    from tokenizers.pre_tokenizers import WhitespaceSplit
+    from transformers import PreTrainedTokenizerFast
+
+    vocab = {"<unk>": 0, "a": 1, "b": 2, "ab": 3, "ж": 4}
+    backend = Tokenizer(BPE(vocab=vocab, merges=[("a", "b")], unk_token="<unk>", fuse_unk=fuse_unk))
+    backend.pre_tokenizer = WhitespaceSplit()
+    return PreTrainedTokenizerFast(tokenizer_object=backend, unk_token="<unk>")
+
+
+@pytest.mark.parametrize("fuse_unk", [True, False], ids=["fuse_unk", "no_fuse_unk"])
+@pytest.mark.parametrize(
+    "test_string",
+    [
+        "a — b",  # 3-byte unknown character
+        "ab —— ab",  # consecutive unknown characters
+        "a 🇰🇿 b",  # 4-byte characters (flag emoji)
+        "ж—ж ab—",  # unknown characters inside a word, next to known ones
+        "абв ж",  # 2-byte unknown characters (Cyrillic)
+        "a ٣ b",  # unknown non-Latin digit
+    ],
+)
+def test_bpe_unknown_characters(fuse_unk, test_string):
+    hf_tokenizer = build_bpe_tokenizer_with_unk(fuse_unk)
+    result, diff = check_tokenizer_output(
+        get_tokenizer(hf_tokenizer),
+        test_string=test_string,
+        skip_missing_outputs=True,
+        calculate_diff=True,
+    )
+    assert result, diff
+
+
 @pytest.mark.parametrize(
     "test_string",
     [
