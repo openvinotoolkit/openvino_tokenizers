@@ -9,7 +9,7 @@ import openvino as ov
 import pytest
 import requests
 from openvino import Model, PartialShape, Type, op
-from openvino_tokenizers import _get_factory, _get_opset_factory
+from openvino_tokenizers import _get_factory, _get_opset_factory, convert_tokenizer
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
 from openvino_tokenizers.tokenizer_pipeline import (
@@ -27,6 +27,8 @@ from openvino_tokenizers.tokenizer_pipeline import (
     UTF8ValidateStep,
 )
 from openvino_tokenizers.utils import TokenzierConversionParams
+from tokenizers import Tokenizer, models, normalizers, pre_tokenizers
+from transformers import PreTrainedTokenizerFast
 
 from tests.utils import get_hf_tokenizer
 
@@ -387,6 +389,36 @@ def test_regex_split(test_string, expected, layer):
     compiled_model = create_splitting_model(layer)
     res_ov = compiled_model([test_string])[0]
     assert (res_ov == expected).all()
+
+
+@pytest.mark.parametrize("handle_chinese_chars", [True, False])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "中文 test",
+        "Hello, 世界!",
+        "mixed中文text",
+        "日本語のテキスト",
+        "時々は",  # U+3005 is \p{Han} but not a CJK character for BertNormalizer
+        "⺀x",  # CJK radical, also \p{Han} only
+        "𪜀𫝀",  # CJK Extension C and D
+    ],
+)
+def test_bert_cjk_handling_matches_hf(handle_chinese_chars, text):
+    normalizer = normalizers.BertNormalizer(handle_chinese_chars=handle_chinese_chars, lowercase=False)
+    pre_tokenizer = pre_tokenizers.BertPreTokenizer()
+    vocab = {"[UNK]": 0}
+    for piece, _ in pre_tokenizer.pre_tokenize_str(normalizer.normalize_str(text)):
+        vocab.setdefault(piece, len(vocab))
+    hf_tokenizer = Tokenizer(models.WordLevel(vocab, unk_token="[UNK]"))
+    hf_tokenizer.normalizer = normalizer
+    hf_tokenizer.pre_tokenizer = pre_tokenizer
+    hf_tokenizer = PreTrainedTokenizerFast(tokenizer_object=hf_tokenizer, unk_token="[UNK]")
+
+    ov_tokenizer = core.compile_model(convert_tokenizer(hf_tokenizer))
+    ov_ids = ov_tokenizer([text])["input_ids"][0].tolist()
+
+    assert ov_ids == hf_tokenizer(text, add_special_tokens=False)["input_ids"]
 
 
 def create_special_tokens_split(special_tokens: list[SpecialToken]) -> ov.CompiledModel:

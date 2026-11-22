@@ -240,8 +240,12 @@ class RegexNormalizationStep(NormalizationStep):
 
     @classmethod
     def handle_chinese_chars_regex(cls) -> "RegexNormalizationStep":
+        # The CJK ranges of BertNormalizer in Hugging Face tokenizers, which are narrower than \p{Han}
         return cls(
-            regex_search_pattern=r"([\p{Han}])",
+            regex_search_pattern=(
+                r"([\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{F900}-\x{FAFF}\x{20000}-\x{2A6DF}"
+                r"\x{2A700}-\x{2B81F}\x{2B920}-\x{2CEAF}\x{2F800}-\x{2FA1F}])"
+            ),
             replace_term=r" $1 ",
             global_replace=True,
         )
@@ -395,35 +399,20 @@ class RegexSplitStep(PreTokenizatinStep):
 
     @classmethod
     def bert_keep_delimeters_splitter(cls) -> "RegexSplitStep":
-        """Generates a step with a standard BERT regex.
+        """Generates a step that splits off punctuation, like BertPreTokenizer in Hugging Face tokenizers.
 
-        The source:
+        Based on the BERT regex of TensorFlow Text, without its CJK ranges: Hugging Face separates CJK characters
+        in BertNormalizer (handle_chinese_chars), not in the pre-tokenizer.
         https://github.com/tensorflow/text/blob/4a098cd852c0b7ebee621e2d211c7f202dd679c2/tensorflow_text/python/ops/bert_tokenizer.py#L39
         """
         return cls(
-            "|".join(
+            r"|".join(
                 [
-                    r"|".join(
-                        [
-                            r"[!-/]",
-                            r"[:-@]",
-                            r"[\[-`]",
-                            r"[{-~]",
-                            r"[\p{P}]",
-                        ],
-                    ),
-                    r"|".join(
-                        [
-                            r"[\x{4E00}-\x{9FFF}]",
-                            r"[\x{3400}-\x{4DBF}]",
-                            r"[\x{20000}-\x{2A6DF}]",
-                            r"[\x{2A700}-\x{2B73F}]",
-                            r"[\x{2B740}-\x{2B81F}]",
-                            r"[\x{2B820}-\x{2CEAF}]",
-                            r"[\x{F900}-\x{FAFF}]",
-                            r"[\x{2F800}-\x{2FA1F}]",
-                        ],
-                    ),
+                    r"[!-/]",
+                    r"[:-@]",
+                    r"[\[-`]",
+                    r"[{-~]",
+                    r"[\p{P}]",
                 ],
             ),
             invert=False,
