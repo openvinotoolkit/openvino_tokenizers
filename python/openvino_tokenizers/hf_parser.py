@@ -118,8 +118,13 @@ def parse_split_step(pretokenizer_dict: dict[str, Any]) -> RegexSplitStep:
     return RegexSplitStep(
         split_pattern=split_pattern,
         invert=pretokenizer_dict["invert"],
-        behaviour=pretokenizer_dict["behavior"].lower().rstrip("d"),
+        behaviour=parse_split_behavior(pretokenizer_dict["behavior"]),
     )
+
+
+def parse_split_behavior(behavior: str) -> str:
+    """Converts a Hugging Face split behavior, e.g. "Isolated", to the RegexSplit behaviour name, e.g. "isolate"."""
+    return behavior.lower().rstrip("d")
 
 
 def parse_byte_level_pretokenization_step(
@@ -245,7 +250,9 @@ class TransformersTokenizerPipelineParser:
         "Whitespace": lambda step_dict: RegexSplitStep.whitespace_splitter(),
         "WhitespaceSplit": lambda step_dict: WhitespaceSplitStep(),
         "Split": parse_split_step,
-        "Punctuation": lambda step_dict: RegexSplitStep.punctuation_splitter(step_dict["behavior"]),
+        "Punctuation": lambda step_dict: RegexSplitStep.punctuation_splitter(
+            parse_split_behavior(step_dict["behavior"])
+        ),
         "ByteLevel": parse_byte_level_pretokenization_step,
         "Digits": lambda step_dict: RegexSplitStep.digits_splitter(
             "isolate" if step_dict["individual_digits"] else "contiguous"
