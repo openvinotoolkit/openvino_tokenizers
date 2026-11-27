@@ -9,7 +9,7 @@ import openvino as ov
 import pytest
 import requests
 from openvino import Model, PartialShape, Type, op
-from openvino_tokenizers import _get_factory, _get_opset_factory
+from openvino_tokenizers import _get_factory, _get_opset_factory, convert_tokenizer
 from openvino_tokenizers.constants import UTF8ReplaceMode
 from openvino_tokenizers.hf_parser import TransformersTokenizerPipelineParser
 from openvino_tokenizers.tokenizer_pipeline import (
@@ -27,6 +27,8 @@ from openvino_tokenizers.tokenizer_pipeline import (
     UTF8ValidateStep,
 )
 from openvino_tokenizers.utils import TokenzierConversionParams
+from tokenizers import Tokenizer, models, pre_tokenizers
+from transformers import PreTrainedTokenizerFast
 
 from tests.utils import get_hf_tokenizer
 
@@ -381,12 +383,36 @@ text2image_prompts = [
             ("test", " ", "0", "9", "8", "7", "6", "5", "4", "3", "2", "1", " end"),
             RegexSplitStep.byte_level_splitter(individual_digits=True),
         ),
+        # punctuation_splitter: Hugging Face also counts ASCII symbols like = + * as punctuation
+        ("x=1+2*3", ("x", "=", "1", "+", "2", "*", "3"), RegexSplitStep.punctuation_splitter()),
+        (
+            "a|b~c^d`e<f>g",
+            ("a", "|", "b", "~", "c", "^", "d", "`", "e", "<", "f", ">", "g"),
+            RegexSplitStep.punctuation_splitter(),
+        ),
     ],
 )
 def test_regex_split(test_string, expected, layer):
     compiled_model = create_splitting_model(layer)
     res_ov = compiled_model([test_string])[0]
     assert (res_ov == expected).all()
+
+
+@pytest.mark.parametrize("behavior", ["isolated", "removed", "contiguous"])
+@pytest.mark.parametrize("text", ["Hello, world!", "x=1+2*3", "price: $12.50 (approx.)", "a|b~c^d`e<f>g"])
+def test_punctuation_pre_tokenizer_matches_hf(behavior, text):
+    pre_tokenizer = pre_tokenizers.Punctuation(behavior)
+    vocab = {"[UNK]": 0}
+    for piece, _ in pre_tokenizer.pre_tokenize_str(text):
+        vocab.setdefault(piece, len(vocab))
+    hf_tokenizer = Tokenizer(models.WordLevel(vocab, unk_token="[UNK]"))
+    hf_tokenizer.pre_tokenizer = pre_tokenizer
+    hf_tokenizer = PreTrainedTokenizerFast(tokenizer_object=hf_tokenizer, unk_token="[UNK]")
+
+    ov_tokenizer = core.compile_model(convert_tokenizer(hf_tokenizer))
+    ov_ids = ov_tokenizer([text])["input_ids"][0].tolist()
+
+    assert ov_ids == hf_tokenizer(text, add_special_tokens=False)["input_ids"]
 
 
 def create_special_tokens_split(special_tokens: list[SpecialToken]) -> ov.CompiledModel:

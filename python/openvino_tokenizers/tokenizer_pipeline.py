@@ -466,8 +466,9 @@ class RegexSplitStep(PreTokenizatinStep):
 
     @classmethod
     def punctuation_splitter(cls, behaviour="isolate") -> "RegexSplitStep":
+        # Hugging Face counts all ASCII punctuation, such as $ + < = > ^ ` | ~, as punctuation, not only \p{P}
         return cls(
-            r"\p{P}",
+            r"[\p{P}!-/:-@\[-`{-~]",
             invert=False,
             behaviour=behaviour,
         )
