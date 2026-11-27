@@ -670,6 +670,7 @@ class BPETokenizationStep(TokenizationModelStep):
     byte_fallback: bool = False
     cache_capacity: int = MIN_CACHE_CAPACITY
     added_tokens: Optional[Union[dict[str, int], dict[bytes, int]]] = None
+    ignore_merges: bool = False
 
     def finalize(self) -> None:
         pipeline = self.get_pipeline()
@@ -724,6 +725,7 @@ class BPETokenizationStep(TokenizationModelStep):
             merges=tokenizer_json["model"]["merges"],
             added_tokens=added_tokens,
             byte_fallback=tokenizer_json["model"]["byte_fallback"],
+            ignore_merges=tokenizer_json["model"].get("ignore_merges", False),
             cache_capacity=max(
                 tokenizer_json["model"].get("cache_capacity", int(len(vocab) * VOCAB_SIZE_CACHE_PROPORTION)),
                 MIN_CACHE_CAPACITY,
@@ -814,6 +816,8 @@ class BPETokenizationStep(TokenizationModelStep):
                     "suffix_indicator": self.suffix_indicator,
                     "end_suffix": self.end_suffix,
                     "byte_fallback": self.byte_fallback,
+                    "ignore_merges": self.ignore_merges,
+                    "byte_level": bool(self.vocab and isinstance(self.vocab[0], bytes)),
                     "cache_capacity": self.cache_capacity,
                 },
             )
