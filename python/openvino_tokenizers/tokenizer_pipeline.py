@@ -491,10 +491,10 @@ class RegexSplitStep(PreTokenizatinStep):
 
 @dataclass
 class WhitespaceSplitStep(PreTokenizatinStep):
-    """Works like python `str.split`."""
+    """Works like python `str.split`: splits on whitespace only, punctuation stays in the words."""
 
     def get_ov_subgraph(self, input_nodes: list[Output]) -> list[Output]:
-        return RegexSplitStep.whitespace_splitter().get_ov_subgraph(input_nodes)
+        return RegexSplitStep.bert_whitespace_splitter().get_ov_subgraph(input_nodes)
 
 
 @dataclass
