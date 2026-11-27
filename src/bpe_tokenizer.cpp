@@ -5,12 +5,31 @@
 #include "bpe_tokenizer.hpp"
 #include "openvino/opsets/opset13.hpp"
 #include "absl/strings/str_format.h"
+#include <algorithm>
 #include <queue>
 using namespace ov;
 using namespace ov::opset13;
 
 #undef tokenizer
 
+namespace {
+
+// Length in bytes of the UTF-8 character that starts at text[pos], clipped to the remaining text.
+// Invalid lead bytes count as a single byte so the caller always makes progress.
+size_t utf8_char_length(std::string_view text, size_t pos) {
+    const auto lead = static_cast<unsigned char>(text[pos]);
+    size_t len = 1;
+    if ((lead & 0xE0) == 0xC0) {
+        len = 2;
+    } else if ((lead & 0xF0) == 0xE0) {
+        len = 3;
+    } else if ((lead & 0xF8) == 0xF0) {
+        len = 4;
+    }
+    return std::min(len, text.size() - pos);
+}
+
+}  // namespace
 
 void BPETokenizer::validate_and_infer_types() {
     auto input_size = get_input_size();
@@ -227,10 +246,12 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
     };
 
     // Initialize sequence of integer tokens by looking up the longest match in the prefix tree.
+    bool last_is_unk = false;
     for (int idx = 0; idx < text_view.size();) {
         auto r = m_trie->find_longest(text_view, idx);
         if (r != -1) {
             append_symbol(r);
+            last_is_unk = false;
             continue;
         }
 
@@ -249,11 +270,19 @@ void BPETokenizerImpl::tokenize_into(std::string_view text, std::vector<int32_t>
 
         if (fallback_id != -1) {
             append_symbol(fallback_id);
-        } else if (m_unk_token_id != -1 && (!m_fuse_unk || symbols.empty() || symbols.back().id != -1)) {
+            last_is_unk = false;
+            idx++;
+            continue;
+        }
+
+        // HF BPE works on characters, so an unknown character maps to a single unk token,
+        // not one per UTF-8 byte. With fuse_unk, consecutive unknown characters share one unk.
+        // Without an unk token the character is skipped, matching HF tokenizers.
+        if (m_unk_token_id != -1 && !(m_fuse_unk && last_is_unk)) {
             append_symbol(m_unk_token_id);
         }
-        // else: unresolvable byte and no unk token -> skip it, matching HF tokenizers.
-        idx++;
+        last_is_unk = m_unk_token_id != -1;
+        idx += utf8_char_length(text_view, idx);
     }
     const size_t initial_num_tokens = symbols.size();
     const size_t out_start = out.size();
